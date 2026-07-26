@@ -1,0 +1,475 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{BC316B5E-4FB5-416D-A256-388E72FB14CC}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Application.MainBoundedContext.DTO</RootNamespace>
+    <AssemblyName>Application.MainBoundedContext.DTO</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AutoMapper, Version=8.0.0.0, Culture=neutral, PublicKeyToken=be96cd2c38ef1005, processorArchitecture=MSIL">
+      <HintPath>..\packages\AutoMapper.8.0.0\lib\net461\AutoMapper.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.9.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
+      <HintPath>..\packages\BouncyCastle.1.8.9\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
+      <HintPath>..\packages\BouncyCastle.Cryptography.2.4.0\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
+    </Reference>
+    <Reference Include="itextsharp, Version=5.5.13.4, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
+      <HintPath>..\packages\iTextSharp.5.5.13.4\lib\net461\itextsharp.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.11.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AccountsModule\AccountsModuleProfile.cs" />
+    <Compile Include="AccountsModule\AlternateChannelBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\AlternateChannelDTO.cs" />
+    <Compile Include="AccountsModule\AlternateChannelLogBindingModel.cs" />
+    <Compile Include="AccountsModule\AlternateChannelLogDTO.cs" />
+    <Compile Include="AccountsModule\AlternateChannelReconciliationEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\AlternateChannelReconciliationEntryDTO.cs" />
+    <Compile Include="AccountsModule\AlternateChannelReconciliationPeriodDTO.cs" />
+    <Compile Include="AccountsModule\AlternateChannelTypeCommissionDTO.cs" />
+    <Compile Include="AccountsModule\ARCustomerDTO.cs" />
+    <Compile Include="AccountsModule\BankLinkageDTO.cs" />
+    <Compile Include="AccountsModule\BankReconciliationEntryDTO.cs" />
+    <Compile Include="AccountsModule\BankReconciliationPeriodDTO.cs" />
+    <Compile Include="AccountsModule\BankToMobileRequestDTO.cs" />
+    <Compile Include="AccountsModule\BrokerRequestBindingModel.cs" />
+    <Compile Include="AccountsModule\BrokerRequestDTO.cs" />
+    <Compile Include="AccountsModule\BudgetDTO.cs" />
+    <Compile Include="AccountsModule\BudgetEntryDTO.cs" />
+    <Compile Include="AccountsModule\ChartOfAccountBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\ChartOfAccountDTO.cs" />
+    <Compile Include="AccountsModule\ChartOfAccountSummaryDTO.cs" />
+    <Compile Include="AccountsModule\ChequeBookDTO.cs" />
+    <Compile Include="AccountsModule\ChequeTypeAttachedProductDTO.cs" />
+    <Compile Include="AccountsModule\ChequeTypeCommissionDTO.cs" />
+    <Compile Include="AccountsModule\ChequeTypeDTO.cs" />
+    <Compile Include="AccountsModule\CommissionDTO.cs" />
+    <Compile Include="AccountsModule\CommissionLevyDTO.cs" />
+    <Compile Include="AccountsModule\CommissionSplitDTO.cs" />
+    <Compile Include="AccountsModule\CostCenterDTO.cs" />
+    <Compile Include="AccountsModule\CreditBatchDiscrepancyBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\CreditBatchDiscrepancyDTO.cs" />
+    <Compile Include="AccountsModule\CreditBatchDTO.cs" />
+    <Compile Include="AccountsModule\CreditBatchEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\CreditBatchEntryDTO.cs" />
+    <Compile Include="AccountsModule\CreditTypeAttachedProductDTO.cs" />
+    <Compile Include="AccountsModule\CreditTypeCommissionDTO.cs" />
+    <Compile Include="AccountsModule\CreditTypeConcessionExemptProductDTO.cs" />
+    <Compile Include="AccountsModule\CreditTypeDirectDebitDTO.cs" />
+    <Compile Include="AccountsModule\CreditTypeDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountArrearageDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountCarryForwardDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountCarryForwardInstallmentDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountHistoryDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountSignatoryDTO.cs" />
+    <Compile Include="AccountsModule\CustomerAccountSummaryDTO.cs" />
+    <Compile Include="AccountsModule\DebitBatchDTO.cs" />
+    <Compile Include="AccountsModule\DebitBatchEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\DebitBatchEntryDTO.cs" />
+    <Compile Include="AccountsModule\DebitTypeCommissionDTO.cs" />
+    <Compile Include="AccountsModule\DebitTypeDTO.cs" />
+    <Compile Include="AccountsModule\DirectDebitDTO.cs" />
+    <Compile Include="AccountsModule\DynamicChargeCommissionDTO.cs" />
+    <Compile Include="AccountsModule\DynamicChargeDTO.cs" />
+    <Compile Include="AccountsModule\ElectronicStatementOrderDTO.cs" />
+    <Compile Include="AccountsModule\ElectronicStatementOrderHistoryDTO.cs" />
+    <Compile Include="AccountsModule\FixedDepositTypeAttachedProductDTO.cs" />
+    <Compile Include="AccountsModule\FixedDepositTypeDTO.cs" />
+    <Compile Include="AccountsModule\FixedDepositTypeGraduatedScaleBindingModel.cs" />
+    <Compile Include="AccountsModule\FixedDepositTypeGraduatedScaleDTO.cs" />
+    <Compile Include="AccountsModule\FixedDepositTypeLevyDTO.cs" />
+    <Compile Include="AccountsModule\FuneralRiderClaimPayableDTO.cs" />
+    <Compile Include="AccountsModule\GeneralLedgerDTO.cs" />
+    <Compile Include="AccountsModule\GeneralLedgerEntryDTO.cs" />
+    <Compile Include="AccountsModule\GraduatedScaleDTO.cs" />
+    <Compile Include="AccountsModule\ImprestDTO.cs" />
+    <Compile Include="AccountsModule\ImprestLineDTO.cs" />
+    <Compile Include="AccountsModule\InsuranceCompanyDTO.cs" />
+    <Compile Include="AccountsModule\InterAccountTransferBatchDTO.cs" />
+    <Compile Include="AccountsModule\InterAccountTransferBatchDynamicChargeDTO.cs" />
+    <Compile Include="AccountsModule\InterAccountTransferBatchEntryDTO.cs" />
+    <Compile Include="AccountsModule\InvestmentProductBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\InvestmentProductDTO.cs" />
+    <Compile Include="AccountsModule\InvestmentProductExemptionDTO.cs" />
+    <Compile Include="AccountsModule\ISO8583AlternateChannelLogBindingModel.cs" />
+    <Compile Include="AccountsModule\ISO8583AlternateChannelLogDTO.cs" />
+    <Compile Include="AccountsModule\JournalBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\JournalDTO.cs" />
+    <Compile Include="AccountsModule\JournalEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\JournalEntryDTO.cs" />
+    <Compile Include="AccountsModule\JournalEntrySummaryDTO.cs" />
+    <Compile Include="AccountsModule\JournalReversalBatchDTO.cs" />
+    <Compile Include="AccountsModule\JournalReversalBatchEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\JournalReversalBatchEntryDTO.cs" />
+    <Compile Include="AccountsModule\JournalReversalBatchEntryDTOEqualityComparer.cs" />
+    <Compile Include="AccountsModule\JournalVoucherDTO.cs" />
+    <Compile Include="AccountsModule\JournalVoucherEntryDTO.cs" />
+    <Compile Include="AccountsModule\LevyDTO.cs" />
+    <Compile Include="AccountsModule\LevySplitDTO.cs" />
+    <Compile Include="AccountsModule\LoanCycleDTO.cs" />
+    <Compile Include="AccountsModule\LoanInterestAdjustmentDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductAppraisalProductDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductAuxiliaryConditionDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductAuxilliaryAppraisalFactorDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductCommissionDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductDeductibleDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductDTO.cs" />
+    <Compile Include="AccountsModule\LoanProductDynamicChargeDTO.cs" />
+    <Compile Include="AccountsModule\MobileToBankRequestDTO.cs" />
+    <Compile Include="AccountsModule\OverDeductionBatchDiscrepancyBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\OverDeductionBatchDiscrepancyDTO.cs" />
+    <Compile Include="AccountsModule\OverDeductionBatchDTO.cs" />
+    <Compile Include="AccountsModule\OverDeductionBatchEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\OverDeductionBatchEntryDTO.cs" />
+    <Compile Include="AccountsModule\PaymentDTO.cs" />
+    <Compile Include="AccountsModule\PaymentLineDTO.cs" />
+    <Compile Include="AccountsModule\PaymentVoucherDTO.cs" />
+    <Compile Include="AccountsModule\PostingPeriodDTO.cs" />
+    <Compile Include="AccountsModule\PurchaseCreditMemoDTO.cs" />
+    <Compile Include="AccountsModule\PurchaseCreditMemoLineDTO.cs" />
+    <Compile Include="AccountsModule\PurchaseInvoiceDTO.cs" />
+    <Compile Include="AccountsModule\PurchaseInvoiceLineDTO.cs" />
+    <Compile Include="AccountsModule\ReceiptDTO.cs" />
+    <Compile Include="AccountsModule\ReceiptLineDTO.cs" />
+    <Compile Include="AccountsModule\RecurringBatchDTO.cs" />
+    <Compile Include="AccountsModule\RecurringBatchEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\RecurringBatchEntryDTO.cs" />
+    <Compile Include="AccountsModule\ReportTemplateDTO.cs" />
+    <Compile Include="AccountsModule\ReportTemplateEntryDTO.cs" />
+    <Compile Include="AccountsModule\SalesCreditMemoDTO.cs" />
+    <Compile Include="AccountsModule\SalesCreditMemoLineDTO.cs" />
+    <Compile Include="AccountsModule\SalesInvoiceDTO.cs" />
+    <Compile Include="AccountsModule\SalesInvoiceLineDTO.cs" />
+    <Compile Include="AccountsModule\SavingsProductBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\SavingsProductCommissionDTO.cs" />
+    <Compile Include="AccountsModule\SavingsProductDTO.cs" />
+    <Compile Include="AccountsModule\SavingsProductExemptionDTO.cs" />
+    <Compile Include="AccountsModule\SPARROWAlternateChannelLogBindingModel.cs" />
+    <Compile Include="AccountsModule\SPARROWAlternateChannelLogDTO.cs" />
+    <Compile Include="AccountsModule\StandingOrderBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\StandingOrderDTO.cs" />
+    <Compile Include="AccountsModule\StandingOrderHistoryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\StandingOrderHistoryDTO.cs" />
+    <Compile Include="AccountsModule\SystemGeneralLedgerAccountMappingDTO.cs" />
+    <Compile Include="AccountsModule\SystemTransactionTypeInCommissionDTO.cs" />
+    <Compile Include="AccountsModule\TellerBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\TellerDTO.cs" />
+    <Compile Include="AccountsModule\TreasuryDTO.cs" />
+    <Compile Include="AccountsModule\UnPayReasonCommissionDTO.cs" />
+    <Compile Include="AccountsModule\UnPayReasonDTO.cs" />
+    <Compile Include="AccountsModule\WALLETAlternateChannelLogBindingModel.cs" />
+    <Compile Include="AccountsModule\WALLETAlternateChannelLogDTO.cs" />
+    <Compile Include="AccountsModule\WireTransferBatchDTO.cs" />
+    <Compile Include="AccountsModule\WireTransferBatchEntryBulkCopyDTO.cs" />
+    <Compile Include="AccountsModule\WireTransferBatchEntryDTO.cs" />
+    <Compile Include="AccountsModule\WireTransferTypeCommissionDTO.cs" />
+    <Compile Include="AccountsModule\WireTransferTypeDTO.cs" />
+    <Compile Include="AdministrationModule\AdministrationModuleProfile.cs" />
+    <Compile Include="AdministrationModule\BankBranchBulkCopyDTO.cs" />
+    <Compile Include="AdministrationModule\BankBranchDTO.cs" />
+    <Compile Include="AdministrationModule\BankBulkCopyDTO.cs" />
+    <Compile Include="AdministrationModule\BankDTO.cs" />
+    <Compile Include="AdministrationModule\BranchDTO.cs" />
+    <Compile Include="AdministrationModule\BranchDTOEqualityComparer.cs" />
+    <Compile Include="AdministrationModule\CompanyAttachedProductDTO.cs" />
+    <Compile Include="AdministrationModule\CompanyBindingModel.cs" />
+    <Compile Include="AdministrationModule\CompanyDebitTypeDTO.cs" />
+    <Compile Include="AdministrationModule\CompanyDTO.cs" />
+    <Compile Include="AdministrationModule\LocationDTO.cs" />
+    <Compile Include="AdministrationModule\ModuleNavigationItemDTO.cs" />
+    <Compile Include="AdministrationModule\ModuleNavigationItemInRoleDTO.cs" />
+    <Compile Include="AdministrationModule\NavigationItemDTO.cs" />
+    <Compile Include="AdministrationModule\NavigationItemInRoleDTO.cs" />
+    <Compile Include="AdministrationModule\PermissionWrapperDTO.cs" />
+    <Compile Include="AdministrationModule\ReportDTO.cs" />
+    <Compile Include="AdministrationModule\RoleBindingModel.cs" />
+    <Compile Include="AdministrationModule\RoleDTO.cs" />
+    <Compile Include="AdministrationModule\SystemPermissionTypeInBranchDTO.cs" />
+    <Compile Include="AdministrationModule\SystemPermissionTypeInRoleDTO.cs" />
+    <Compile Include="AdministrationModule\SystemPermissionTypeInRoleDTOEqualityComparer.cs" />
+    <Compile Include="AdministrationModule\UserBindingModel.cs" />
+    <Compile Include="AdministrationModule\UserDTO.cs" />
+    <Compile Include="AdministrationModule\WorkflowBindingModel.cs" />
+    <Compile Include="AdministrationModule\WorkflowDTO.cs" />
+    <Compile Include="AdministrationModule\WorkflowItemBindingModel.cs" />
+    <Compile Include="AdministrationModule\WorkflowItemDTO.cs" />
+    <Compile Include="AdministrationModule\WorkflowItemEntryBindingModel.cs" />
+    <Compile Include="AdministrationModule\WorkflowItemEntryDTO.cs" />
+    <Compile Include="AdministrationModule\WorkflowSettingBindingModel.cs" />
+    <Compile Include="AdministrationModule\WorkflowSettingDTO.cs" />
+    <Compile Include="AmortizationTableEntry.cs" />
+    <Compile Include="ApplicationDomainWrapper.cs" />
+    <Compile Include="ApplicationProfile.cs" />
+    <Compile Include="ApportionmentWrapper.cs" />
+    <Compile Include="AssetDTO.cs" />
+    <Compile Include="AssetTypeDTO.cs" />
+    <Compile Include="AuditLogDTO.cs" />
+    <Compile Include="AuditTrailDTO.cs" />
+    <Compile Include="BackOfficeModule\AttachedLoanDTO.cs" />
+    <Compile Include="BackOfficeModule\AttachedLoanDTOEqualityComparer.cs" />
+    <Compile Include="BackOfficeModule\BackOfficeModuleProfile.cs" />
+    <Compile Include="BackOfficeModule\DataAttachmentEntryDTO.cs" />
+    <Compile Include="BackOfficeModule\DataAttachmentPeriodDTO.cs" />
+    <Compile Include="BackOfficeModule\IncomeAdjustmentDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanAppraisalFactorDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanCaseBulkCopyDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanCaseDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanCollateralDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanDisbursementBatchDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanDisbursementBatchEntryBulkCopyDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanDisbursementBatchEntryDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanDisbursementBatchEntryDTOEqualityComparer.cs" />
+    <Compile Include="BackOfficeModule\LoanGuarantorAttachmentHistoryDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanGuarantorAttachmentHistoryEntryDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanGuarantorBulkCopyDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanGuarantorDTO.cs" />
+    <Compile Include="BackOfficeModule\LoaningRemarkDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanPurposeDTO.cs" />
+    <Compile Include="BackOfficeModule\LoanRequestDTO.cs" />
+    <Compile Include="BatchImportEntryWrapper.cs" />
+    <Compile Include="BatchImportParseInfo.cs" />
+    <Compile Include="ChargeDTO.cs" />
+    <Compile Include="CustomerFileRegisterLastDepartmentInfo.cs" />
+    <Compile Include="EnumerationDTO.cs" />
+    <Compile Include="FileData.cs" />
+    <Compile Include="FileDownloadModel.cs" />
+    <Compile Include="FrontOfficeModule\AccountClosureRequestDTO.cs" />
+    <Compile Include="FrontOfficeModule\CashDepositRequestDTO.cs" />
+    <Compile Include="FrontOfficeModule\CashTransferRequestBindingModel.cs" />
+    <Compile Include="FrontOfficeModule\CashTransferRequestDTO.cs" />
+    <Compile Include="FrontOfficeModule\CashWithdrawalRequestDTO.cs" />
+    <Compile Include="FrontOfficeModule\ElectronicJournalDTO.cs" />
+    <Compile Include="FrontOfficeModule\ExpensePayableDTO.cs" />
+    <Compile Include="FrontOfficeModule\ExpensePayableEntryDTO.cs" />
+    <Compile Include="FrontOfficeModule\ExternalChequeBulkCopyDTO.cs" />
+    <Compile Include="FrontOfficeModule\ExternalChequeDTO.cs" />
+    <Compile Include="FrontOfficeModule\ExternalChequePayableDTO.cs" />
+    <Compile Include="FrontOfficeModule\ExternalChequePayableDTOEqualityComparer.cs" />
+    <Compile Include="FrontOfficeModule\FiscalCountBulkCopyDTO.cs" />
+    <Compile Include="FrontOfficeModule\FiscalCountDTO.cs" />
+    <Compile Include="FrontOfficeModule\FixedDepositBulkCopyDTO.cs" />
+    <Compile Include="FrontOfficeModule\FixedDepositDTO.cs" />
+    <Compile Include="FrontOfficeModule\FixedDepositPayableDTO.cs" />
+    <Compile Include="FrontOfficeModule\FixedDepositPayableDTOEqualityComparer.cs" />
+    <Compile Include="FrontOfficeModule\FrontOfficeModuleProfile.cs" />
+    <Compile Include="FrontOfficeModule\InHouseChequeDTO.cs" />
+    <Compile Include="FrontOfficeModule\SuperSaverInterestDTO.cs" />
+    <Compile Include="FrontOfficeModule\SuperSaverPayableDTO.cs" />
+    <Compile Include="FrontOfficeModule\TruncatedChequeDTO.cs" />
+    <Compile Include="GeneralLedgerAccount.cs" />
+    <Compile Include="GeneralLedgerTransaction.cs" />
+    <Compile Include="HumanResourcesModule\Attendancelog.cs" />
+    <Compile Include="HumanResourcesModule\DepartmentDTO.cs" />
+    <Compile Include="HumanResourcesModule\DesignationDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeAppraisalDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeAppraisalPeriodDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeAppraisalPeriodRecommendationBindingModel.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeAppraisalPeriodRecommendationDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeAppraisalTargetDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeBulkCopyDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeDisciplinaryCaseDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeDocumentDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeExitBindingModel.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeExitDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeExitQueryableDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeePasswordHistoryDTO.cs" />
+    <Compile Include="HumanResourcesModule\EmployeeTypeDTO.cs" />
+    <Compile Include="HumanResourcesModule\ExitInterviewAnswerBindingModel.cs" />
+    <Compile Include="HumanResourcesModule\ExitInterviewAnswerDTO.cs" />
+    <Compile Include="HumanResourcesModule\ExitInterviewQuestionBindingModel.cs" />
+    <Compile Include="HumanResourcesModule\ExitInterviewQuestionDTO.cs" />
+    <Compile Include="HumanResourcesModule\HolidayDTO.cs" />
+    <Compile Include="HumanResourcesModule\HumanResourcesModuleProfile.cs" />
+    <Compile Include="HumanResourcesModule\LeaveApplicationBindingModel.cs" />
+    <Compile Include="HumanResourcesModule\LeaveApplicationDTO.cs" />
+    <Compile Include="HumanResourcesModule\LeaveTypeBindingModel.cs" />
+    <Compile Include="HumanResourcesModule\LeaveTypeDTO.cs" />
+    <Compile Include="HumanResourcesModule\PaySlipBulkCopyDTO.cs" />
+    <Compile Include="HumanResourcesModule\PaySlipDTO.cs" />
+    <Compile Include="HumanResourcesModule\PaySlipEntryBulkCopyDTO.cs" />
+    <Compile Include="HumanResourcesModule\PaySlipEntryDTO.cs" />
+    <Compile Include="HumanResourcesModule\SalaryCardDTO.cs" />
+    <Compile Include="HumanResourcesModule\SalaryCardEntryDTO.cs" />
+    <Compile Include="HumanResourcesModule\SalaryGroupDTO.cs" />
+    <Compile Include="HumanResourcesModule\SalaryGroupEntryDTO.cs" />
+    <Compile Include="HumanResourcesModule\SalaryGroupEntryDTOEqualityComparer.cs" />
+    <Compile Include="HumanResourcesModule\SalaryHeadDTO.cs" />
+    <Compile Include="HumanResourcesModule\SalaryPeriodDTO.cs" />
+    <Compile Include="HumanResourcesModule\TrainingPeriodDTO.cs" />
+    <Compile Include="HumanResourcesModule\TrainingPeriodEntryDTO.cs" />
+    <Compile Include="HumanResourcesModule\TransactionThresholdDTO.cs" />
+    <Compile Include="HumanResourcesModule\TransactionThresholdDTOEqualityComparer.cs" />
+    <Compile Include="InventoryCatalogDTO.cs" />
+    <Compile Include="InventoryModule\CategoryBindingModel.cs" />
+    <Compile Include="InventoryModule\CategoryDTO.cs" />
+    <Compile Include="InventoryModule\InventoryBindingModel.cs" />
+    <Compile Include="InventoryModule\InventoryDTO.cs" />
+    <Compile Include="InventoryModule\InventoryModuleProfile.cs" />
+    <Compile Include="InventoryModule\PurchaseOrderBindingModel.cs" />
+    <Compile Include="InventoryModule\PurchaseOrderDTO.cs" />
+    <Compile Include="InventoryModule\PurchaseOrderEntryBindingModel.cs" />
+    <Compile Include="InventoryModule\PurchaseOrderEntryDTO.cs" />
+    <Compile Include="InventoryModule\SalesOrderBindingModel.cs" />
+    <Compile Include="InventoryModule\SalesOrderDTO.cs" />
+    <Compile Include="InventoryModule\SalesOrderEntryBindingModel.cs" />
+    <Compile Include="InventoryModule\SalesOrderEntryDTO.cs" />
+    <Compile Include="JQueryDataTablesModel.cs" />
+    <Compile Include="JQueryDataTablesResponse.cs" />
+    <Compile Include="MediaDTO.cs" />
+    <Compile Include="MessagingModule\BulkMessageDTO.cs" />
+    <Compile Include="MessagingModule\CustomerMessageHistoryDTO.cs" />
+    <Compile Include="MessagingModule\EmailAlertBCP.cs" />
+    <Compile Include="MessagingModule\EmailAlertDTO.cs" />
+    <Compile Include="MessagingModule\GroupEmailAlertDTO.cs" />
+    <Compile Include="MessagingModule\GroupTextAlertDTO.cs" />
+    <Compile Include="MessagingModule\InBoundMessageDTO.cs" />
+    <Compile Include="MessagingModule\InstantMessageDTO.cs" />
+    <Compile Include="MessagingModule\MessageGroupDTO.cs" />
+    <Compile Include="MessagingModule\MessagingModuleProfile.cs" />
+    <Compile Include="MessagingModule\QuickEmailAlertDTO.cs" />
+    <Compile Include="MessagingModule\QuickTextAlertDTO.cs" />
+    <Compile Include="MessagingModule\TextAlertBCP.cs" />
+    <Compile Include="MessagingModule\TextAlertCommissionDTO.cs" />
+    <Compile Include="MessagingModule\TextAlertDTO.cs" />
+    <Compile Include="MessagingModule\USSDMessageDTO.cs" />
+    <Compile Include="MicroCreditModule\MicroCreditGroupDTO.cs" />
+    <Compile Include="MicroCreditModule\MicroCreditGroupMemberDTO.cs" />
+    <Compile Include="MicroCreditModule\MicroCreditModuleProfile.cs" />
+    <Compile Include="MicroCreditModule\MicroCreditOfficerDTO.cs" />
+    <Compile Include="MonthlySummaryValuesDTO.cs" />
+    <Compile Include="PackageTypeDTO.cs" />
+    <Compile Include="PasswordSettings.cs" />
+    <Compile Include="PdfWriterEvents.cs" />
+    <Compile Include="ProductCollectionInfo.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RegistryModule\AccountAlertBindingModel.cs" />
+    <Compile Include="RegistryModule\AccountAlertDTO.cs" />
+    <Compile Include="RegistryModule\AdministrativeDivisionBindingModel.cs" />
+    <Compile Include="RegistryModule\AdministrativeDivisionDTO.cs" />
+    <Compile Include="RegistryModule\CommissionExemptionBindingModel.cs" />
+    <Compile Include="RegistryModule\CommissionExemptionDTO.cs" />
+    <Compile Include="RegistryModule\CommissionExemptionEntryBindingModel.cs" />
+    <Compile Include="RegistryModule\CommissionExemptionEntryDTO.cs" />
+    <Compile Include="RegistryModule\ConditionalLendingBindingModel.cs" />
+    <Compile Include="RegistryModule\ConditionalLendingDTO.cs" />
+    <Compile Include="RegistryModule\ConditionalLendingEntryBindingModel.cs" />
+    <Compile Include="RegistryModule\ConditionalLendingEntryDTO.cs" />
+    <Compile Include="RegistryModule\CorporationMemberDTO.cs" />
+    <Compile Include="RegistryModule\CustomerBindingModel.cs" />
+    <Compile Include="RegistryModule\CustomerBulkCopyDTO.cs" />
+    <Compile Include="RegistryModule\CustomerCreditTypeDTO.cs" />
+    <Compile Include="RegistryModule\CustomerDocumentBindingModel.cs" />
+    <Compile Include="RegistryModule\CustomerDocumentDTO.cs" />
+    <Compile Include="RegistryModule\CustomerDTO.cs" />
+    <Compile Include="RegistryModule\DelegateDTO.cs" />
+    <Compile Include="RegistryModule\DirectorDTO.cs" />
+    <Compile Include="RegistryModule\DivisionBindingModel.cs" />
+    <Compile Include="RegistryModule\DivisionDTO.cs" />
+    <Compile Include="RegistryModule\EducationAttendeeDTO.cs" />
+    <Compile Include="RegistryModule\EducationRegisterDTO.cs" />
+    <Compile Include="RegistryModule\EducationVenueDTO.cs" />
+    <Compile Include="RegistryModule\EmployerBindingModel.cs" />
+    <Compile Include="RegistryModule\EmployerDTO.cs" />
+    <Compile Include="RegistryModule\FileMovementHistoryDTO.cs" />
+    <Compile Include="RegistryModule\FileRegisterDTO.cs" />
+    <Compile Include="RegistryModule\FuneralRiderClaimDTO.cs" />
+    <Compile Include="RegistryModule\NextOfKinBindingModel.cs" />
+    <Compile Include="RegistryModule\NextOfKinBulkCopyDTO.cs" />
+    <Compile Include="RegistryModule\NextOfKinDTO.cs" />
+    <Compile Include="RegistryModule\NextOfKinDTOEqualityComparer.cs" />
+    <Compile Include="RegistryModule\PartnershipMemberDTO.cs" />
+    <Compile Include="RegistryModule\PopulationRegisterQueryBindingModel.cs" />
+    <Compile Include="RegistryModule\PopulationRegisterQueryDTO.cs" />
+    <Compile Include="RegistryModule\RefereeDTO.cs" />
+    <Compile Include="RegistryModule\RegistryModuleProfile.cs" />
+    <Compile Include="RegistryModule\StationBindingModel.cs" />
+    <Compile Include="RegistryModule\StationDTO.cs" />
+    <Compile Include="RegistryModule\WithdrawalNotificationDTO.cs" />
+    <Compile Include="RegistryModule\WithdrawalSettlementDTO.cs" />
+    <Compile Include="RegistryModule\ZoneBindingModel.cs" />
+    <Compile Include="RegistryModule\ZoneDTO.cs" />
+    <Compile Include="SignalRClientProfile.cs" />
+    <Compile Include="SupplierDTO.cs" />
+    <Compile Include="TariffWrapper.cs" />
+    <Compile Include="TypeAdapterFactory\AutomapperTypeAdapter.cs" />
+    <Compile Include="TypeAdapterFactory\AutomapperTypeAdapterFactory.cs" />
+    <Compile Include="UnitOfMeasurementDTO.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Application.Seedwork\Application.Seedwork.csproj">
+      <Project>{97D7D298-0EA9-4AFF-BEF8-7B50B9339F80}</Project>
+      <Name>Application.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
+      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
+      <Name>Domain.MainBoundedContext</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.Seedwork\Domain.Seedwork.csproj">
+      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
+      <Name>Domain.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
+      <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
+      <Name>Infrastructure.Crosscutting.Framework</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ReportsModule\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

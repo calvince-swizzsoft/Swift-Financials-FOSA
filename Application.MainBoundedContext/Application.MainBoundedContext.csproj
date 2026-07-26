@@ -1,0 +1,453 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.5.2\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.5.2\build\EntityFramework.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{2EF2ACE9-B5DB-4B61-A6ED-66F976783689}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Application.MainBoundedContext</RootNamespace>
+    <AssemblyName>Application.MainBoundedContext</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.9.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
+      <HintPath>..\packages\Portable.BouncyCastle.1.8.9\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
+      <HintPath>..\packages\BouncyCastle.Cryptography.2.4.0\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
+    </Reference>
+    <Reference Include="DistributedServices.Seedwork">
+      <HintPath>..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\DistributedServices.Seedwork\bin\Debug\DistributedServices.Seedwork.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.5.2\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.5.2\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="FileHelpers, Version=3.5.1.0, Culture=neutral, PublicKeyToken=3e0c08d59cc3d657, processorArchitecture=MSIL">
+      <HintPath>..\packages\FileHelpers.3.5.1\lib\net45\FileHelpers.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=1.3.2.10, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+      <HintPath>..\packages\SharpZipLib.1.3.2\lib\net45\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="itextsharp, Version=5.5.13.4, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
+      <HintPath>..\packages\iTextSharp.5.5.13.4\lib\net461\itextsharp.dll</HintPath>
+    </Reference>
+    <Reference Include="KBCsv, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc96fa93a217f7a1, processorArchitecture=MSIL">
+      <HintPath>..\packages\KBCsv.6.0.0\lib\netstandard2.0\KBCsv.dll</HintPath>
+    </Reference>
+    <Reference Include="Kent.Boogaart.Converters, Version=1.3.1.0, Culture=neutral, PublicKeyToken=cc96fa93a217f7a1, processorArchitecture=MSIL">
+      <HintPath>..\packages\Kent.Boogaart.Converters.1.3.1\lib\net45\Kent.Boogaart.Converters.dll</HintPath>
+    </Reference>
+    <Reference Include="Kent.Boogaart.HelperTrinity, Version=1.5.2.0, Culture=neutral, PublicKeyToken=cc96fa93a217f7a1, processorArchitecture=MSIL">
+      <HintPath>..\packages\Kent.Boogaart.HelperTrinity.1.5.2\lib\net45\Kent.Boogaart.HelperTrinity.dll</HintPath>
+    </Reference>
+    <Reference Include="LazyCache, Version=0.7.1.44, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\LazyCache.0.7.1.44\lib\net45\LazyCache.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Caching.Abstractions, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Caching.Abstractions.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Caching.Memory, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Caching.Memory.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.2.1.0\lib\netstandard2.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Options.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Primitives.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="NPOI, Version=2.5.5.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.5.5\lib\net45\NPOI.dll</HintPath>
+    </Reference>
+    <Reference Include="NPOI.OOXML, Version=2.5.5.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.5.5\lib\net45\NPOI.OOXML.dll</HintPath>
+    </Reference>
+    <Reference Include="NPOI.OpenXml4Net, Version=2.5.5.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.5.5\lib\net45\NPOI.OpenXml4Net.dll</HintPath>
+    </Reference>
+    <Reference Include="NPOI.OpenXmlFormats, Version=2.5.5.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.5.5\lib\net45\NPOI.OpenXmlFormats.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Messaging" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AccountsModule\Services\AlternateChannelAppService.cs" />
+    <Compile Include="AccountsModule\Services\AlternateChannelLogAppService.cs" />
+    <Compile Include="AccountsModule\Services\AlternateChannelReconciliationPeriodAppService.cs" />
+    <Compile Include="AccountsModule\Services\ARCustomerAppService.cs" />
+    <Compile Include="AccountsModule\Services\BankLinkageAppService.cs" />
+    <Compile Include="AccountsModule\Services\BankReconciliationPeriodAppService.cs" />
+    <Compile Include="AccountsModule\Services\BankToMobileRequestAppService.cs" />
+    <Compile Include="AccountsModule\Services\BrokerRequestAppService.cs" />
+    <Compile Include="AccountsModule\Services\BudgetAppService.cs" />
+    <Compile Include="AccountsModule\Services\ChartOfAccountAppService.cs" />
+    <Compile Include="AccountsModule\Services\ChequeBookAppService.cs" />
+    <Compile Include="AccountsModule\Services\ChequeTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\CommissionAppService.cs" />
+    <Compile Include="AccountsModule\Services\CostCenterAppService.cs" />
+    <Compile Include="AccountsModule\Services\CreditBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IARCustomerAppService.cs" />
+    <Compile Include="AccountsModule\Services\IImprestAppService.cs" />
+    <Compile Include="AccountsModule\Services\ImprestAppService.cs" />
+    <Compile Include="AccountsModule\Services\IPaymentAppService.cs" />
+    <Compile Include="AccountsModule\Services\IReceiptAppService.cs" />
+    <Compile Include="AccountsModule\Services\ISalesCreditMemoAppService.cs" />
+    <Compile Include="AccountsModule\Services\ISalesInvoiceAppService.cs" />
+    <Compile Include="AccountsModule\Services\PaymentAppService.cs" />
+    <Compile Include="AccountsModule\Services\PurchaseCreditMemoAppService.cs" />
+    <Compile Include="AccountsModule\Services\CreditTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\CustomerAccountAppService.cs" />
+    <Compile Include="AccountsModule\Services\DebitBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\DebitTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\DirectDebitAppService.cs" />
+    <Compile Include="AccountsModule\Services\DynamicChargeAppService.cs" />
+    <Compile Include="AccountsModule\Services\ElectronicStatementOrderAppService.cs" />
+    <Compile Include="AccountsModule\Services\FixedDepositTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\GeneralLedgerAppService.cs" />
+    <Compile Include="AccountsModule\Services\IAlternateChannelAppService.cs" />
+    <Compile Include="AccountsModule\Services\IAlternateChannelLogAppService.cs" />
+    <Compile Include="AccountsModule\Services\IAlternateChannelReconciliationPeriodAppService.cs" />
+    <Compile Include="AccountsModule\Services\IBankLinkageAppService.cs" />
+    <Compile Include="AccountsModule\Services\IBankReconciliationPeriodAppService.cs" />
+    <Compile Include="AccountsModule\Services\IBankToMobileRequestAppService.cs" />
+    <Compile Include="AccountsModule\Services\IBrokerRequestAppService.cs" />
+    <Compile Include="AccountsModule\Services\IBudgetAppService.cs" />
+    <Compile Include="AccountsModule\Services\IChartOfAccountAppService.cs" />
+    <Compile Include="AccountsModule\Services\IChequeBookAppService.cs" />
+    <Compile Include="AccountsModule\Services\IChequeTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\ICommissionAppService.cs" />
+    <Compile Include="AccountsModule\Services\ICostCenterAppService.cs" />
+    <Compile Include="AccountsModule\Services\ICreditBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IPurchaseCreditMemoAppService.cs" />
+    <Compile Include="AccountsModule\Services\ICreditTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\ICustomerAccountAppService.cs" />
+    <Compile Include="AccountsModule\Services\IDebitBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IDebitTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\IDirectDebitAppService.cs" />
+    <Compile Include="AccountsModule\Services\IDynamicChargeAppService.cs" />
+    <Compile Include="AccountsModule\Services\IElectronicStatementOrderAppService.cs" />
+    <Compile Include="AccountsModule\Services\IFixedDepositTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\IGeneralLedgerAppService.cs" />
+    <Compile Include="AccountsModule\Services\IInsuranceCompanyAppService.cs" />
+    <Compile Include="AccountsModule\Services\IInterAccountTransferBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IInvestmentProductAppService.cs" />
+    <Compile Include="AccountsModule\Services\IJournalAppService.cs" />
+    <Compile Include="AccountsModule\Services\IJournalEntryAppService.cs" />
+    <Compile Include="AccountsModule\Services\IJournalReversalBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IJournalVoucherAppService.cs" />
+    <Compile Include="AccountsModule\Services\ILevyAppService.cs" />
+    <Compile Include="AccountsModule\Services\ILoanProductAppService.cs" />
+    <Compile Include="AccountsModule\Services\IMobileToBankRequestAppService.cs" />
+    <Compile Include="AccountsModule\Services\InsuranceCompanyAppService.cs" />
+    <Compile Include="AccountsModule\Services\InterAccountTransferBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\InvestmentProductAppService.cs" />
+    <Compile Include="AccountsModule\Services\IOverDeductionBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IPostingPeriodAppService.cs" />
+    <Compile Include="AccountsModule\Services\IPurchaseInvoiceAppService.cs" />
+    <Compile Include="AccountsModule\Services\IRecurringBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IReportTemplateAppService.cs" />
+    <Compile Include="AccountsModule\Services\ISavingsProductAppService.cs" />
+    <Compile Include="AccountsModule\Services\IStandingOrderAppService.cs" />
+    <Compile Include="AccountsModule\Services\ISystemGeneralLedgerAccountMappingAppService.cs" />
+    <Compile Include="AccountsModule\Services\ITellerAppService.cs" />
+    <Compile Include="AccountsModule\Services\ITreasuryAppService.cs" />
+    <Compile Include="AccountsModule\Services\IUnPayReasonAppService.cs" />
+    <Compile Include="AccountsModule\Services\IWireTransferBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\IWireTransferTypeAppService.cs" />
+    <Compile Include="AccountsModule\Services\JournalAppService.cs" />
+    <Compile Include="AccountsModule\Services\JournalEntryAppService.cs" />
+    <Compile Include="AccountsModule\Services\JournalReversalBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\JournalVoucherAppService.cs" />
+    <Compile Include="AccountsModule\Services\LevyAppService.cs" />
+    <Compile Include="AccountsModule\Services\LoanProductAppService.cs" />
+    <Compile Include="AccountsModule\Services\MobileToBankRequestAppService.cs" />
+    <Compile Include="AccountsModule\Services\OverDeductionBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\PostingPeriodAppService.cs" />
+    <Compile Include="AccountsModule\Services\PurchaseInvoiceAppService.cs" />
+    <Compile Include="AccountsModule\Services\ReceiptAppService.cs" />
+    <Compile Include="AccountsModule\Services\RecurringBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\ReportTemplateAppService.cs" />
+    <Compile Include="AccountsModule\Services\SalesCreditMemoAppService.cs" />
+    <Compile Include="AccountsModule\Services\SalesInvoiceAppService.cs" />
+    <Compile Include="AccountsModule\Services\SavingsProductAppService.cs" />
+    <Compile Include="AccountsModule\Services\StandingOrderAppService.cs" />
+    <Compile Include="AccountsModule\Services\SystemGeneralLedgerAccountMappingAppService.cs" />
+    <Compile Include="AccountsModule\Services\TellerAppService.cs" />
+    <Compile Include="AccountsModule\Services\TreasuryAppService.cs" />
+    <Compile Include="AccountsModule\Services\UnPayReasonAppService.cs" />
+    <Compile Include="AccountsModule\Services\WireTransferBatchAppService.cs" />
+    <Compile Include="AccountsModule\Services\WireTransferTypeAppService.cs" />
+    <Compile Include="AdministrationModule\Services\AuthorizationAppService.cs" />
+    <Compile Include="AdministrationModule\Services\BankAppService.cs" />
+    <Compile Include="AdministrationModule\Services\BranchAppService.cs" />
+    <Compile Include="AdministrationModule\Services\CompanyAppService.cs" />
+    <Compile Include="AdministrationModule\Services\IAuthorizationAppService.cs" />
+    <Compile Include="AdministrationModule\Services\IBankAppService.cs" />
+    <Compile Include="AdministrationModule\Services\IBranchAppService.cs" />
+    <Compile Include="AdministrationModule\Services\ICompanyAppService.cs" />
+    <Compile Include="AdministrationModule\Services\ILocationAppService.cs" />
+    <Compile Include="AdministrationModule\Services\INavigationItemAppService.cs" />
+    <Compile Include="AdministrationModule\Services\INavigationItemInRoleAppService.cs" />
+    <Compile Include="AdministrationModule\Services\IReportAppService.cs" />
+    <Compile Include="AdministrationModule\Services\IWorkflowAppService.cs" />
+    <Compile Include="AdministrationModule\Services\IWorkflowProcessorAppService.cs" />
+    <Compile Include="AdministrationModule\Services\LocationAppService.cs" />
+    <Compile Include="AdministrationModule\Services\NavigationItemAppService.cs" />
+    <Compile Include="AdministrationModule\Services\NavigationItemInRoleAppService.cs" />
+    <Compile Include="AdministrationModule\Services\ReportAppService.cs" />
+    <Compile Include="AdministrationModule\Services\WorkflowAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\DataAttachmentPeriodAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\IDataAttachmentPeriodAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\IIncomeAdjustmentAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\ILoanCaseAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\ILoanDisbursementBatchAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\ILoaningRemarkAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\ILoanPurposeAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\ILoanRequestAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\IncomeAdjustmentAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\InterestCalculationsService.cs" />
+    <Compile Include="BackOfficeModule\Services\LoanCaseAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\LoanDisbursementBatchAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\LoaningRemarkAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\LoanPurposeAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\LoanRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\AccountClosureRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\CashDepositRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\CashTransferRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\CashWithdrawalRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\ElectronicJournalAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\ExpensePayableAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\ExternalChequeAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\FiscalCountAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\FixedDepositAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\IAccountClosureRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\ICashDepositRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\ICashTransferRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\ICashWithdrawalRequestAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\IElectronicJournalAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\IExpensePayableAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\IExternalChequeAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\IFiscalCountAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\IFixedDepositAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\IInHouseChequeAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\InHouseChequeAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\ISuperSaverPayableAppService.cs" />
+    <Compile Include="FrontOfficeModule\Services\SuperSaverPayableAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\DepartmentAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\DesignationAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeAppraisalAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeAppraisalPeriodAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeAppraisalTargetAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeDisciplinaryCaseAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeDocumentAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeExitAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeePasswordHistoryAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\EmployeeTypeAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ExitInterviewAnswerAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ExitInterviewQuestionAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\HolidayAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IDepartmentAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IDesignationAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeAppraisalAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeAppraisalPeriodAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeAppraisalTargetAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeDisciplinaryCaseAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeDocumentAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeExitAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeePasswordHistoryAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IEmployeeTypeAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IExitInterviewAnswerAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IExitInterviewQuestionAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IHolidayAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ILeaveApplicationAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ILeaveTypeAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\IPaySlipAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ISalaryCardAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ISalaryGroupAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ISalaryHeadAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ISalaryPeriodAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\ITrainingPeriodAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\LeaveApplicationAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\LeaveTypeAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\PaySlipAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\SalaryCardAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\SalaryGroupAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\SalaryHeadAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\SalaryPeriodAppService.cs" />
+    <Compile Include="HumanResourcesModule\Services\TrainingPeriodAppService.cs" />
+    <Compile Include="InventoryModule\Services\CategoryAppService.cs" />
+    <Compile Include="InventoryModule\Services\ICategoryAppService.cs" />
+    <Compile Include="InventoryModule\Services\IInventoryAppService.cs" />
+    <Compile Include="InventoryModule\Services\InventoryAppService.cs" />
+    <Compile Include="InventoryModule\Services\IPurchaseOrderAppService.cs" />
+    <Compile Include="InventoryModule\Services\ISalesOrderAppService.cs" />
+    <Compile Include="InventoryModule\Services\PurchaseOrderAppService.cs" />
+    <Compile Include="InventoryModule\Services\SalesOrderAppService.cs" />
+    <Compile Include="MessagingModule\Services\CustomerMessageHistoryAppService.cs" />
+    <Compile Include="MessagingModule\Services\EmailAlertAppService.cs" />
+    <Compile Include="MessagingModule\Services\ICustomerMessageHistoryAppService.cs" />
+    <Compile Include="MessagingModule\Services\IEmailAlertAppService.cs" />
+    <Compile Include="MessagingModule\Services\IMessageGroupAppService.cs" />
+    <Compile Include="MessagingModule\Services\ITextAlertAppService.cs" />
+    <Compile Include="MessagingModule\Services\MessageGroupAppService.cs" />
+    <Compile Include="MessagingModule\Services\TextAlertAppService.cs" />
+    <Compile Include="MicroCreditModule\Services\IMicroCreditGroupAppService.cs" />
+    <Compile Include="MicroCreditModule\Services\IMicroCreditOfficerAppService.cs" />
+    <Compile Include="MicroCreditModule\Services\MicroCreditGroupAppService.cs" />
+    <Compile Include="MicroCreditModule\Services\MicroCreditOfficerAppService.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RegistryModule\Services\AdministrativeDivisionAppService.cs" />
+    <Compile Include="RegistryModule\Services\CommissionExemptionAppService.cs" />
+    <Compile Include="RegistryModule\Services\ConditionalLendingAppService.cs" />
+    <Compile Include="RegistryModule\Services\CustomerAppService.cs" />
+    <Compile Include="RegistryModule\Services\CustomerDocumentAppService.cs" />
+    <Compile Include="RegistryModule\Services\DelegateAppService.cs" />
+    <Compile Include="RegistryModule\Services\DirectorAppService.cs" />
+    <Compile Include="RegistryModule\Services\EducationRegisterAppService.cs" />
+    <Compile Include="RegistryModule\Services\EducationVenueAppService.cs" />
+    <Compile Include="RegistryModule\Services\EmployerAppService.cs" />
+    <Compile Include="RegistryModule\Services\FileRegisterAppService.cs" />
+    <Compile Include="RegistryModule\Services\FuneralRiderClaimAppService.cs" />
+    <Compile Include="RegistryModule\Services\IAdministrativeDivisionAppService.cs" />
+    <Compile Include="RegistryModule\Services\ICommissionExemptionAppService.cs" />
+    <Compile Include="RegistryModule\Services\IConditionalLendingAppService.cs" />
+    <Compile Include="RegistryModule\Services\ICustomerAppService.cs" />
+    <Compile Include="RegistryModule\Services\ICustomerDocumentAppService.cs" />
+    <Compile Include="RegistryModule\Services\IDelegateAppService.cs" />
+    <Compile Include="RegistryModule\Services\IDirectorAppService.cs" />
+    <Compile Include="RegistryModule\Services\IEducationRegisterAppService.cs" />
+    <Compile Include="RegistryModule\Services\IEducationVenueAppService.cs" />
+    <Compile Include="RegistryModule\Services\IEmployerAppService.cs" />
+    <Compile Include="RegistryModule\Services\IFileRegisterAppService.cs" />
+    <Compile Include="RegistryModule\Services\IFuneralRiderClaimAppService.cs" />
+    <Compile Include="RegistryModule\Services\IWithdrawalNotificationAppService.cs" />
+    <Compile Include="RegistryModule\Services\IZoneAppService.cs" />
+    <Compile Include="RegistryModule\Services\WithdrawalNotificationAppService.cs" />
+    <Compile Include="RegistryModule\Services\ZoneAppService.cs" />
+    <Compile Include="Services\AuditLogAppService.cs" />
+    <Compile Include="Services\BrokerService.cs" />
+    <Compile Include="Services\EnumerationAppService.cs" />
+    <Compile Include="Services\FinancialsService.cs" />
+    <Compile Include="Services\IAuditLogAppService.cs" />
+    <Compile Include="Services\IBrokerService.cs" />
+    <Compile Include="Services\IEnumerationAppService.cs" />
+    <Compile Include="Services\IFinancialsService.cs" />
+    <Compile Include="Services\IJournalEntryPostingService.cs" />
+    <Compile Include="Services\IMediaAppService.cs" />
+    <Compile Include="Services\IMessageQueueService.cs" />
+    <Compile Include="Services\INumberSeriesGenerator.cs" />
+    <Compile Include="Services\ISmtpService.cs" />
+    <Compile Include="Services\ISqlCommandAppService.cs" />
+    <Compile Include="Services\JournalEntryPostingService.cs" />
+    <Compile Include="Services\MediaAppService.cs" />
+    <Compile Include="Services\MessageQueueService.cs" />
+    <Compile Include="Services\NullMesageQueueService.cs" />
+    <Compile Include="Services\NumberSeriesGenerator.cs" />
+    <Compile Include="Services\NumberSeriesSeeder.cs" />
+    <Compile Include="Services\SmtpService.cs" />
+    <Compile Include="Services\SqlCommandAppService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Application.Seedwork\Application.Seedwork.csproj">
+      <Project>{97D7D298-0EA9-4AFF-BEF8-7B50B9339F80}</Project>
+      <Name>Application.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
+      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
+      <Name>Domain.MainBoundedContext</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.Seedwork\Domain.Seedwork.csproj">
+      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
+      <Name>Domain.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj">
+      <Project>{159A5AB3-4BC6-4379-A5B5-168D0CB783CD}</Project>
+      <Name>EntityFramework.Interfaces</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
+      <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
+      <Name>Infrastructure.Crosscutting.Framework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj">
+      <Project>{BC316B5E-4FB5-416D-A256-388E72FB14CC}</Project>
+      <Name>Application.MainBoundedContext.DTO</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\EntityFramework.6.5.2\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.5.2\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.5.2\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.5.2\build\EntityFramework.targets'))" />
+  </Target>
+  <Import Project="..\packages\EntityFramework.6.5.2\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.5.2\build\EntityFramework.targets')" />
+</Project>
