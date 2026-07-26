@@ -1,0 +1,26 @@
+﻿using Domain.MainBoundedContext.AccountsModule.Aggregates.CreditTypeAttachedProductAgg;
+using Infrastructure.Crosscutting.Framework.Utils;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity.Infrastructure.Annotations;
+using System.Data.Entity.ModelConfiguration;
+
+namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.AccountsModule
+{
+    class CreditTypeAttachedProductEntityConfiguration : EntityTypeConfiguration<CreditTypeAttachedProduct>
+    {
+        public CreditTypeAttachedProductEntityConfiguration()
+        {
+            HasKey(x => x.Id);
+
+            Property(t => t.SequentialId).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsClustered = true, IsUnique = true }));
+
+            Property(x => x.CreatedBy).HasMaxLength(256);
+
+            Property(t => t.ProductCode).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute("IX_CreditTypeAttachedProduct_ProductCode")));
+
+            Property(t => t.TargetProductId).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute("IX_CreditTypeAttachedProduct_TargetProductId")));
+
+            ToTable(string.Format("{0}CreditTypeAttachedProducts", DefaultSettings.Instance.TablePrefix));
+        }
+    }
+}

@@ -1,19 +1,19 @@
 <Solution>
   <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/Application.Seedwork/Application.Seedwork.csproj" Id="97d7d298-0ea9-4aff-bef8-7b50b9339f80" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/DistributedServices.MainBoundedContext/DistributedServices.MainBoundedContext.csproj" Id="054da3e1-daad-4df5-95b7-0fc9096bec39" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/Domain.MainBoundedContext/Domain.MainBoundedContext.csproj" Id="79fb572d-3bd9-4fed-99a3-56b42e22430b" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/Domain.Seedwork/Domain.Seedwork.csproj" Id="c477e3ae-850c-4681-b6c4-1a9928679cd4" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/EntityFramework.Implementation/EntityFramework.Implementation.csproj" Id="e8e97372-82e1-417a-9e23-11106ad1ca16" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/EntityFramework.Interfaces/EntityFramework.Interfaces.csproj" Id="159a5ab3-4bc6-4379-a5b5-168d0cb783cd" />
   <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/Infrastructure.Crosscutting.Framework/Infrastructure.Crosscutting.Framework.csproj" Id="e839a387-3a87-49a7-9039-d114d02f05b1" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/Infrastructure.Data.MainBoundedContext/Infrastructure.Data.MainBoundedContext.csproj" Id="3167a4c1-44e6-499a-8fc7-682d875429f5" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/SwiftFinancials.Presentation.Contracts/SwiftFinancials.Presentation.Contracts.csproj" Id="02619dc1-0a34-404d-9e52-82a9890377ab" />
   <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/SwiftFinancials.Presentation.Infrastructure/SwiftFinancials.Presentation.Infrastructure.csproj" Id="dcfca848-40ee-4f4e-a2d6-aa449c908cc5" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/SwiftFinancials.Presentation.Shared/SwiftFinancials.Presentation.Shared.csproj" Id="b1ea34bf-3885-466f-aace-568ad3f24938" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/SwiftFinancials.Utility/SwiftFinancials.Utility.csproj" Id="617aad11-f940-4b14-878b-6d776b6fe0b4" />
   <Project Path="Application.MainBoundedContext.DTO/Application.MainBoundedContext.DTO.csproj" Id="bc316b5e-4fb5-416d-a256-388e72fb14cc" />
   <Project Path="Application.MainBoundedContext/Application.MainBoundedContext.csproj" Id="2ef2ace9-b5db-4b61-a6ed-66f976783689" />
+  <Project Path="DistributedServices.MainBoundedContext/DistributedServices.MainBoundedContext.csproj" Id="054da3e1-daad-4df5-95b7-0fc9096bec39" />
+  <Project Path="DistributedServices.Seedwork/DistributedServices.Seedwork.csproj" Id="06d5c3a8-452b-4bac-ac7a-e36b343ab7db" />
+  <Project Path="Domain.MainBoundedContext/Domain.MainBoundedContext.csproj" Id="79fb572d-3bd9-4fed-99a3-56b42e22430b" />
+  <Project Path="Domain.Seedwork/Domain.Seedwork.csproj" Id="c477e3ae-850c-4681-b6c4-1a9928679cd4" />
+  <Project Path="EntityFramework.Implementation/EntityFramework.Implementation.csproj" Id="e8e97372-82e1-417a-9e23-11106ad1ca16" />
+  <Project Path="EntityFramework.Interfaces/EntityFramework.Interfaces.csproj" Id="159a5ab3-4bc6-4379-a5b5-168d0cb783cd" />
+  <Project Path="Infrastructure.Data.MainBoundedContext/Infrastructure.Data.MainBoundedContext.csproj" Id="3167a4c1-44e6-499a-8fc7-682d875429f5" />
   <Project Path="SwiftApis/SwiftApis.csproj" />
-  <Project Path="swiftapis472/swiftapis472.csproj" Id="11363e09-639e-4d18-a79d-d6d2a224a7e7" />
+  <Project Path="SwiftFinancials.Presentation.Contracts/SwiftFinancials.Presentation.Contracts.csproj" Id="02619dc1-0a34-404d-9e52-82a9890377ab" />
+  <Project Path="SwiftFinancials.Presentation.Shared/SwiftFinancials.Presentation.Shared.csproj" Id="b1ea34bf-3885-466f-aace-568ad3f24938" />
+  <Project Path="SwiftFinancials.Utility/SwiftFinancials.Utility.csproj" Id="617aad11-f940-4b14-878b-6d776b6fe0b4" />
   <Project Path="WebApplication1/WebApplication1.csproj" Id="57d79552-8eae-457a-a51a-e9090b5816e5" />
 </Solution>

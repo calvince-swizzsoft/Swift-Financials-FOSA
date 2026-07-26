@@ -1,0 +1,32 @@
+﻿
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Account Registration</title>
+</head>
+<body>
+    <p>
+        Dear @Raw(Model.FirstName),
+    </p>
+    <p>
+        You have been successfully registered to Swift Financials.
+    </p>
+    <p>
+        Your username is @Raw(Model.Username)
+    </p>
+    <p>
+        Your password is: <strong>@Raw(Model.UserPassword)</strong>
+    </p>
+    <p>
+        Please confirm your account by clicking  <a href=@Raw(Model.CallbackUrl)>here</a>.
+    </p>
+    <p>
+        This is an automatically generated email, please do not reply to this address.
+    </p>
+    <p>
+        @Raw(Model.CompanyDescription)
+    </p>
+</body>
+</html>

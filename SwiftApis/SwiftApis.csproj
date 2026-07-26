@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LazyCache" Version="0.7.1.44" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageReference Include="System.Runtime.Caching" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj" />
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Data.MainBoundedContext\Infrastructure.Data.MainBoundedContext.csproj" />
+    <ProjectReference Include="..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj" />
+    <ProjectReference Include="..\Application.MainBoundedContext\Application.MainBoundedContext.csproj" />
+  </ItemGroup>
+
+</Project>

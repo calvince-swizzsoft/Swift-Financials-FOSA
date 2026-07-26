@@ -419,18 +419,6 @@
       <Project>{97D7D298-0EA9-4AFF-BEF8-7B50B9339F80}</Project>
       <Name>Application.Seedwork</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
-      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
-      <Name>Domain.MainBoundedContext</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.Seedwork\Domain.Seedwork.csproj">
-      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
-      <Name>Domain.Seedwork</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj">
-      <Project>{159A5AB3-4BC6-4379-A5B5-168D0CB783CD}</Project>
-      <Name>EntityFramework.Interfaces</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
       <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
       <Name>Infrastructure.Crosscutting.Framework</Name>
@@ -438,6 +426,18 @@
     <ProjectReference Include="..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj">
       <Project>{BC316B5E-4FB5-416D-A256-388E72FB14CC}</Project>
       <Name>Application.MainBoundedContext.DTO</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
+      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
+      <Name>Domain.MainBoundedContext</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain.Seedwork\Domain.Seedwork.csproj">
+      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
+      <Name>Domain.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj">
+      <Project>{159A5AB3-4BC6-4379-A5B5-168D0CB783CD}</Project>
+      <Name>EntityFramework.Interfaces</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

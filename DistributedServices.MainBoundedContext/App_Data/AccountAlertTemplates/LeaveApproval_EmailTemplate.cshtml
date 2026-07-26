@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Account Alert</title>
+</head>
+<body>
+    <p>
+        Dear @Raw(Model.EmployeeCustomerFullName), 
+    </p>
+    <p>
+       @Raw(Model.LeaveTypeDescription) application from @Raw(Model.DurationStartDate) to @Raw(Model.DurationEndDate) has been @Raw(Model.StatusDescription).
+    </p>
+    <p>
+        Remarks:  @Raw(Model.AuthorizationRemarks)
+    </p>
+    <p>
+        Duration: @Raw(Model.DurationStartDate) - @Raw(Model.DurationEndDate)
+    </p>
+    <p>
+        @Raw(Model.CompanyDescription)
+    </p>
+</body>
+</html>  

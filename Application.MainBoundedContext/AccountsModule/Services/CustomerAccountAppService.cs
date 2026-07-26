@@ -6,6 +6,7 @@ using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.Services;
 using Application.Seedwork;
+using DistributedServices.Seedwork.EndpointBehaviors;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountArrearageAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountCarryForwardAgg;
@@ -22,6 +23,7 @@ using Numero3.EntityFramework.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ServiceModel;
 using System.Threading.Tasks;
 
 namespace Application.MainBoundedContext.AccountsModule.Services
@@ -152,7 +154,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     {
                         var customerAccountType = new CustomerAccountType(customerAccountDTO.CustomerAccountTypeProductCode, customerAccountDTO.CustomerAccountTypeTargetProductId, customerAccountDTO.CustomerAccountTypeTargetProductCode);
 
-                        var customerAccount = CustomerAccountFactory.CreateCustomerAccount(customerAccountDTO.CustomerId, customerAccountDTO.BranchId, customerAccountType);
+                        var customerAccount = CustomerAccountFactory.CreateCustomerAccount(customerAccountDTO.CustomerId, customerAccountDTO.BranchId, customerAccountType, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId);
 
                         customerAccount.Status = (byte)customerAccountDTO.Status;
 
@@ -269,7 +271,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             {
                                 var customerAccountType = new CustomerAccountType(item.CustomerAccountTypeProductCode, item.CustomerAccountTypeTargetProductId, item.CustomerAccountTypeTargetProductCode);
 
-                                var customerAccount = CustomerAccountFactory.CreateCustomerAccount(item.CustomerId, item.BranchId, customerAccountType);
+                                var customerAccount = CustomerAccountFactory.CreateCustomerAccount(item.CustomerId, item.BranchId, customerAccountType, item.CustomerAccountTypeTargetProductChartOfAccountId);
 
                                 customerAccount.Status = (byte)item.Status;
 
@@ -454,7 +456,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccount != null)
                     {
-                        return customerAccount.ProjectedAs<CustomerAccountDTO>();
+                        var customerAccountDto =  customerAccount.ProjectedAs<CustomerAccountDTO>();
+
+                        FetchCustomerAccountBalances(new List<CustomerAccountDTO> { customerAccountDto }, serviceHeader, false, false);
+
+                        return customerAccountDto;
                     }
                     else return null;
                 }
@@ -2383,6 +2389,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                             break;
                         default:
+
+
+                            customerAccount.AvailableBalance = _sqlCommandAppService.FindCustomerAccountAvailableBalance(customerAccount, DateTime.Now, serviceHeader);
+
+                            customerAccount.BookBalance = _sqlCommandAppService.FindCustomerAccountBookBalance(customerAccount, 1, DateTime.Now, serviceHeader);
                             break;
                     }
                 });
@@ -2876,5 +2887,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
             else return false;
         }
+
+
     }
 }

@@ -1,0 +1,43 @@
+﻿using Domain.MainBoundedContext.AccountsModule.Aggregates.ImprestAgg;
+using Infrastructure.Crosscutting.Framework.Utils;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity.Infrastructure.Annotations;
+using System.Data.Entity.ModelConfiguration;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.AccountsModule
+{
+    class ImprestEntityConfiguration : EntityTypeConfiguration<Imprest>
+    {
+
+
+        public ImprestEntityConfiguration()
+        {
+
+            HasKey(x => x.Id);
+
+
+            //Property(x => x.No).HasDatabaseGeneratedOption(DatabaseGeneratedOption.Identity);
+
+
+            Property(t => t.SequentialId).HasDatabaseGeneratedOption(DatabaseGeneratedOption.None).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsClustered = true, IsUnique = true }));
+
+            Property(x => x.CreatedBy).HasMaxLength(256);
+
+    
+            Property(x => x.EmployeeName).HasMaxLength(256);
+
+  
+
+            Property(t => t.CreatedDate).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute("IX_Imprest_CreatedDate")));
+
+            ToTable(string.Format("{0}Imprests", DefaultSettings.Instance.TablePrefix));
+
+
+        }
+    }
+}

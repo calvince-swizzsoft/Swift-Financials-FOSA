@@ -10,6 +10,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
     {
         Task<bool> AddNavigationItemToRolesAsync(NavigationItemDTO navigationItemDTO, string[] roleNames, ServiceHeader serviceHeader);
 
+        Task<bool> AddNavigationItemsToRoleAsync(List<NavigationItemInRoleDTO> navigationItemsInRoleDTO, ServiceHeader serviceHeader);
+
         Task<bool> AddNavigationItemToRoleAsync(NavigationItemInRoleDTO navigationItemInRoleDTO, ServiceHeader serviceHeader);
 
         Task<bool> MapNavigationItemToRoleAsync(NavigationItemInRoleDTO navigationItemInRoleDTO, ServiceHeader serviceHeader);
@@ -21,6 +23,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
         Task<List<NavigationItemInRoleDTO>> GetNavigationItemsInRoleAsync(string roleName, ServiceHeader serviceHeader);
 
         Task<bool> RemoveNavigationItemFromRolesAsync(NavigationItemDTO navigationItemDTO, string[] roleNames, ServiceHeader serviceHeader);
+
+
+        Task<bool> RemoveNavigationItemsInRoleAsync(List<Guid> navigationItemId, string roleName, ServiceHeader serviceHeader);
 
         Task<bool> RemoveNavigationItemRoleAsync(Guid navigationItemId, string roleName, ServiceHeader serviceHeader);
 

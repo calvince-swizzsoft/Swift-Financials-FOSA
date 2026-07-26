@@ -21,7 +21,7 @@ namespace Application.MainBoundedContext.DTO.AdministrationModule
         [Display(Name = "Parent")]
         public Guid? ParentId { get; set; }
 
-        [DataMember]
+        //[DataMember]
         [Display(Name = "Parent")]
         public NavigationItemDTO Parent { get; set; }
 

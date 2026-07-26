@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
-using System.Net;
-using System.Net.Http;
-using System.Web.Http;
-using Application.MainBoundedContext.AccountsModule.Services;
-using Infrastructure.Crosscutting.Framework.Utils;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Infrastructure.Crosscutting.Framework.Utils;
+using System;
+using System.Web.Http;
+using System.Web.Http.Cors;
 
 namespace WebApplication1.Controllers
 {
-
+    [EnableCors(origins: "*", headers: "*", methods: "*")]
+    [AllowAnonymous]
     [RoutePrefix("api/standingorders")]
     public class StandingOrdersController: ApiController
     {

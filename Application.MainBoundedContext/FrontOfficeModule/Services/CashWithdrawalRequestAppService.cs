@@ -58,7 +58,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
-                    var cashWithdrawalRequest = CashWithdrawalRequestFactory.CreateCashWithdrawalRequest(cashWithdrawalRequestDTO.BranchId, cashWithdrawalRequestDTO.CustomerAccountId, cashWithdrawalRequestDTO.ChartOfAccountId, cashWithdrawalRequestDTO.Type, cashWithdrawalRequestDTO.Category, cashWithdrawalRequestDTO.Amount, cashWithdrawalRequestDTO.Remarks, cashWithdrawalRequestDTO.PaymentVoucherId, cashWithdrawalRequestDTO.PaymentVoucherPayee);
+                    var cashWithdrawalRequest = CashWithdrawalRequestFactory.CreateCashWithdrawalRequest(cashWithdrawalRequestDTO.BranchId, cashWithdrawalRequestDTO.CustomerAccountId, cashWithdrawalRequestDTO.ChartOfAccountId, cashWithdrawalRequestDTO.Type, cashWithdrawalRequestDTO.Category, cashWithdrawalRequestDTO.Amount, cashWithdrawalRequestDTO.Remarks, cashWithdrawalRequestDTO.PaymentVoucherId, cashWithdrawalRequestDTO.PaymentVoucherPayee,cashWithdrawalRequestDTO.TransactionType);
 
                     switch ((CashWithdrawalRequestType)cashWithdrawalRequestDTO.Type)
                     {

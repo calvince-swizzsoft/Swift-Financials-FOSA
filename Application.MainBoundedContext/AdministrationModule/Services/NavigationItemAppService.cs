@@ -9,6 +9,7 @@ using Infrastructure.Data.MainBoundedContext.Seeders;
 using Numero3.EntityFramework.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Deployment.Internal;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -39,12 +40,14 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             try
             {
 
-                _numberSeriesSeeder.SeedAsync(serviceHeader);
+                await _numberSeriesSeeder.SeedAsync(serviceHeader);
             }
             catch (Exception ex)
             {
                 // Log the error but continue with navigation items
                 // Logger.Error("Failed to seed NumberSeries", ex);
+
+                return false;
             }
 
             var parentNavigationItems = navigationItems.Where(x => x.IsArea).ToList();

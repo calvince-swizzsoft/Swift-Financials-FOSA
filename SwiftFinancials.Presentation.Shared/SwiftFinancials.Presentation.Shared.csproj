@@ -1,0 +1,1181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B1EA34BF-3885-466F-AACE-568AD3F24938}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SwiftFinancials.Presentation.Shared</RootNamespace>
+    <AssemblyName>SwiftFinancials.Presentation.Shared</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AutoMapper, Version=8.0.0.0, Culture=neutral, PublicKeyToken=be96cd2c38ef1005, processorArchitecture=MSIL">
+      <HintPath>..\packages\AutoMapper.8.0.0\lib\net461\AutoMapper.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.11.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Messaging" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelLogBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelLogBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelLogDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelLogDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelReconciliationEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelReconciliationEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelReconciliationEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelReconciliationEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelReconciliationPeriodDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelReconciliationPeriodDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelTypeCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\AlternateChannelTypeCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BankLinkageDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BankLinkageDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BankReconciliationEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BankReconciliationEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BankReconciliationPeriodDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BankReconciliationPeriodDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BankToMobileRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BankToMobileRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BrokerRequestBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BrokerRequestBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BrokerRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BrokerRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BudgetDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BudgetDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\BudgetEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\BudgetEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ChartOfAccountBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ChartOfAccountBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ChartOfAccountDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ChartOfAccountDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ChartOfAccountSummaryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ChartOfAccountSummaryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ChequeBookDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ChequeBookDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ChequeTypeAttachedProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ChequeTypeAttachedProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ChequeTypeCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ChequeTypeCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ChequeTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ChequeTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CommissionLevyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CommissionLevyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CommissionSplitDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CommissionSplitDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CostCenterDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CostCenterDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditBatchDiscrepancyBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditBatchDiscrepancyBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditBatchDiscrepancyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditBatchDiscrepancyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditBatchEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditBatchEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditTypeAttachedProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditTypeAttachedProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditTypeCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditTypeCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditTypeConcessionExemptProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditTypeConcessionExemptProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditTypeDirectDebitDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditTypeDirectDebitDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CreditTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CreditTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountArrearageDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountArrearageDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountCarryForwardDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountCarryForwardDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountCarryForwardInstallmentDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountCarryForwardInstallmentDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountHistoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountHistoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountSignatoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountSignatoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountSummaryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\CustomerAccountSummaryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DebitBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DebitBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DebitBatchEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DebitBatchEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DebitBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DebitBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DebitTypeCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DebitTypeCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DebitTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DebitTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DirectDebitDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DirectDebitDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DynamicChargeCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DynamicChargeCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\DynamicChargeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\DynamicChargeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ElectronicStatementOrderDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ElectronicStatementOrderDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ElectronicStatementOrderHistoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ElectronicStatementOrderHistoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeAttachedProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeAttachedProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeGraduatedScaleBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeGraduatedScaleBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeGraduatedScaleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeGraduatedScaleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeLevyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\FixedDepositTypeLevyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\FuneralRiderClaimPayableDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\FuneralRiderClaimPayableDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\GeneralLedgerDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\GeneralLedgerDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\GeneralLedgerEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\GeneralLedgerEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\GraduatedScaleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\GraduatedScaleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\InsuranceCompanyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\InsuranceCompanyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\InterAccountTransferBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\InterAccountTransferBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\InterAccountTransferBatchDynamicChargeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\InterAccountTransferBatchDynamicChargeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\InterAccountTransferBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\InterAccountTransferBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\InvestmentProductBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\InvestmentProductBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\InvestmentProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\InvestmentProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\InvestmentProductExemptionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\InvestmentProductExemptionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ISO8583AlternateChannelLogBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ISO8583AlternateChannelLogBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ISO8583AlternateChannelLogDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ISO8583AlternateChannelLogDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalEntrySummaryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalEntrySummaryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchEntryDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalReversalBatchEntryDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalVoucherDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalVoucherDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\JournalVoucherEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\JournalVoucherEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LevyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LevyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LevySplitDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LevySplitDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanCycleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanCycleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanInterestAdjustmentDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanInterestAdjustmentDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductAppraisalProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductAppraisalProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductAuxiliaryConditionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductAuxiliaryConditionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductAuxilliaryAppraisalFactorDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductAuxilliaryAppraisalFactorDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductDeductibleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductDeductibleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\LoanProductDynamicChargeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\LoanProductDynamicChargeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\MobileToBankRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\MobileToBankRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchDiscrepancyBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchDiscrepancyBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchDiscrepancyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchDiscrepancyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\OverDeductionBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\PaymentVoucherDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\PaymentVoucherDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\PostingPeriodDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\PostingPeriodDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\RecurringBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\RecurringBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\RecurringBatchEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\RecurringBatchEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\RecurringBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\RecurringBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ReportTemplateDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ReportTemplateDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\ReportTemplateEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\ReportTemplateEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SavingsProductBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SavingsProductBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SavingsProductCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SavingsProductCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SavingsProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SavingsProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SavingsProductExemptionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SavingsProductExemptionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SPARROWAlternateChannelLogBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SPARROWAlternateChannelLogBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SPARROWAlternateChannelLogDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SPARROWAlternateChannelLogDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\StandingOrderBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\StandingOrderBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\StandingOrderDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\StandingOrderDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\StandingOrderHistoryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\StandingOrderHistoryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\StandingOrderHistoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\StandingOrderHistoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SystemGeneralLedgerAccountMappingDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SystemGeneralLedgerAccountMappingDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\SystemTransactionTypeInCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\SystemTransactionTypeInCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\TellerBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\TellerBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\TellerDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\TellerDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\TreasuryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\TreasuryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\UnPayReasonCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\UnPayReasonCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\UnPayReasonDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\UnPayReasonDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\WALLETAlternateChannelLogBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\WALLETAlternateChannelLogBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\WALLETAlternateChannelLogDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\WALLETAlternateChannelLogDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\WireTransferBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\WireTransferBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\WireTransferBatchEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\WireTransferBatchEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\WireTransferBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\WireTransferBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\WireTransferTypeCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\WireTransferTypeCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AccountsModule\WireTransferTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AccountsModule\WireTransferTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\BankBranchBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\BankBranchBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\BankBranchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\BankBranchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\BankBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\BankBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\BankDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\BankDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\BranchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\BranchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\BranchDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\BranchDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\CompanyAttachedProductDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\CompanyAttachedProductDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\CompanyBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\CompanyBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\CompanyDebitTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\CompanyDebitTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\CompanyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\CompanyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\LocationDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\LocationDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\ModuleNavigationItemDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\ModuleNavigationItemDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\ModuleNavigationItemInRoleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\ModuleNavigationItemInRoleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\NavigationItemDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\NavigationItemDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\NavigationItemInRoleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\NavigationItemInRoleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\PermissionWrapperDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\PermissionWrapperDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\ReportDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\ReportDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\RoleBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\RoleBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\RoleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\RoleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\SystemPermissionTypeInBranchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\SystemPermissionTypeInBranchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\SystemPermissionTypeInRoleDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\SystemPermissionTypeInRoleDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\SystemPermissionTypeInRoleDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\SystemPermissionTypeInRoleDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\UserBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\UserBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\UserDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\UserDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemEntryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemEntryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowItemEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowSettingBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowSettingBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AdministrationModule\WorkflowSettingDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AdministrationModule\WorkflowSettingDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AmortizationTableEntry.cs">
+      <Link>Application.MainBoundedContext.DTO\AmortizationTableEntry.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\ApplicationDomainWrapper.cs">
+      <Link>Application.MainBoundedContext.DTO\ApplicationDomainWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\ApportionmentWrapper.cs">
+      <Link>Application.MainBoundedContext.DTO\ApportionmentWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AssetDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AssetDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AssetTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AssetTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AuditLogDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AuditLogDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\AuditTrailDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\AuditTrailDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\AttachedLoanDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\AttachedLoanDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\AttachedLoanDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\AttachedLoanDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\DataAttachmentEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\DataAttachmentEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\DataAttachmentPeriodDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\DataAttachmentPeriodDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\IncomeAdjustmentDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\IncomeAdjustmentDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanAppraisalFactorDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanAppraisalFactorDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanCaseBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanCaseBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanCaseDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanCaseDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanCollateralDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanCollateralDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchEntryDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanDisbursementBatchEntryDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorAttachmentHistoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorAttachmentHistoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorAttachmentHistoryEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorAttachmentHistoryEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanGuarantorDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoaningRemarkDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoaningRemarkDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanPurposeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanPurposeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BackOfficeModule\LoanRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\BackOfficeModule\LoanRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BatchImportEntryWrapper.cs">
+      <Link>Application.MainBoundedContext.DTO\BatchImportEntryWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\BatchImportParseInfo.cs">
+      <Link>Application.MainBoundedContext.DTO\BatchImportParseInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\ChargeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\ChargeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\CustomerFileRegisterLastDepartmentInfo.cs">
+      <Link>Application.MainBoundedContext.DTO\CustomerFileRegisterLastDepartmentInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\EnumerationDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\EnumerationDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FileData.cs">
+      <Link>Application.MainBoundedContext.DTO\FileData.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FileDownloadModel.cs">
+      <Link>Application.MainBoundedContext.DTO\FileDownloadModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\AccountClosureRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\AccountClosureRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\CashDepositRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\CashDepositRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\CashTransferRequestBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\CashTransferRequestBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\CashTransferRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\CashTransferRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\CashWithdrawalRequestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\CashWithdrawalRequestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\ElectronicJournalDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\ElectronicJournalDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\ExpensePayableDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\ExpensePayableDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\ExpensePayableEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\ExpensePayableEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequeBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequeBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequePayableDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequePayableDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequePayableDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\ExternalChequePayableDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\FiscalCountBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\FiscalCountBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\FiscalCountDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\FiscalCountDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositPayableDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositPayableDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositPayableDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\FixedDepositPayableDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\InHouseChequeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\InHouseChequeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\SuperSaverInterestDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\SuperSaverInterestDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\SuperSaverPayableDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\SuperSaverPayableDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\FrontOfficeModule\TruncatedChequeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\FrontOfficeModule\TruncatedChequeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\GeneralLedgerAccount.cs">
+      <Link>Application.MainBoundedContext.DTO\GeneralLedgerAccount.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\GeneralLedgerTransaction.cs">
+      <Link>Application.MainBoundedContext.DTO\GeneralLedgerTransaction.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\Attendancelog.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\Attendancelog.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\DepartmentDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\DepartmentDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\DesignationDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\DesignationDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalPeriodDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalPeriodDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalPeriodRecommendationBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalPeriodRecommendationBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalPeriodRecommendationDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalPeriodRecommendationDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalTargetDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeAppraisalTargetDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeDisciplinaryCaseDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeDisciplinaryCaseDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeDocumentDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeDocumentDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeExitBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeExitBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeExitDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeExitDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeExitQueryableDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeExitQueryableDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeePasswordHistoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeePasswordHistoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\EmployeeTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewAnswerBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewAnswerBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewAnswerDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewAnswerDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewQuestionBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewQuestionBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewQuestionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\ExitInterviewQuestionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\HolidayDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\HolidayDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveApplicationBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveApplicationBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveApplicationDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveApplicationDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveTypeBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveTypeBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\LeaveTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipEntryBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipEntryBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\PaySlipEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryCardDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryCardDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryCardEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryCardEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryGroupDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryGroupDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryGroupEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryGroupEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryGroupEntryDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryGroupEntryDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryHeadDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryHeadDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryPeriodDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\SalaryPeriodDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\TrainingPeriodDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\TrainingPeriodDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\TrainingPeriodEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\TrainingPeriodEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\TransactionThresholdDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\TransactionThresholdDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\HumanResourcesModule\TransactionThresholdDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\HumanResourcesModule\TransactionThresholdDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryCatalogDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\InventoryCatalogDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\CategoryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\CategoryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\CategoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\CategoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\InventoryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\InventoryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\InventoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\InventoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\PurchaseOrderBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\PurchaseOrderBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\PurchaseOrderDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\PurchaseOrderDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\PurchaseOrderEntryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\PurchaseOrderEntryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\PurchaseOrderEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\PurchaseOrderEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\SalesOrderBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\SalesOrderBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\SalesOrderDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\SalesOrderDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\SalesOrderEntryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\SalesOrderEntryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\SalesOrderEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\SalesOrderEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\InventoryModule\CategoryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\CategoryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\JQueryDataTablesModel.cs">
+      <Link>Application.MainBoundedContext.DTO\JQueryDataTablesModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\JQueryDataTablesResponse.cs">
+      <Link>Application.MainBoundedContext.DTO\JQueryDataTablesResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MediaDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MediaDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\BulkMessageDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\BulkMessageDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\CustomerMessageHistoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\CustomerMessageHistoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\EmailAlertBCP.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\EmailAlertBCP.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\EmailAlertDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\EmailAlertDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\GroupEmailAlertDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\GroupEmailAlertDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\GroupTextAlertDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\GroupTextAlertDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\InBoundMessageDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\InBoundMessageDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\InstantMessageDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\InstantMessageDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\MessageGroupDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\MessageGroupDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\QuickEmailAlertDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\QuickEmailAlertDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\QuickTextAlertDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\QuickTextAlertDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\TextAlertBCP.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\TextAlertBCP.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\TextAlertCommissionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\TextAlertCommissionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\TextAlertDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\TextAlertDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MessagingModule\USSDMessageDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MessagingModule\USSDMessageDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MicroCreditModule\MicroCreditGroupDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MicroCreditModule\MicroCreditGroupDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MicroCreditModule\MicroCreditGroupMemberDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MicroCreditModule\MicroCreditGroupMemberDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MicroCreditModule\MicroCreditOfficerDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MicroCreditModule\MicroCreditOfficerDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\MonthlySummaryValuesDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\MonthlySummaryValuesDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\PackageTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\PackageTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\PasswordSettings.cs">
+      <Link>Application.MainBoundedContext.DTO\PasswordSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\ProductCollectionInfo.cs">
+      <Link>Application.MainBoundedContext.DTO\ProductCollectionInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\AccountAlertBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\AccountAlertBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\AccountAlertDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\AccountAlertDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\AdministrativeDivisionBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\AdministrativeDivisionBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\AdministrativeDivisionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\AdministrativeDivisionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionEntryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionEntryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CommissionExemptionEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingEntryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingEntryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingEntryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\ConditionalLendingEntryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CorporationMemberDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CorporationMemberDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CustomerBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CustomerBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CustomerBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CustomerBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CustomerCreditTypeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CustomerCreditTypeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CustomerDocumentBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CustomerDocumentBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CustomerDocumentDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CustomerDocumentDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\CustomerDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\CustomerDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\DelegateDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\DelegateDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\DirectorDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\DirectorDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\DivisionBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\DivisionBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\DivisionDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\DivisionDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\EducationAttendeeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\EducationAttendeeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\EducationRegisterDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\EducationRegisterDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\EducationVenueDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\EducationVenueDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\EmployerBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\EmployerBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\EmployerDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\EmployerDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\FileMovementHistoryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\FileMovementHistoryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\FileRegisterDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\FileRegisterDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\FuneralRiderClaimDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\FuneralRiderClaimDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\NextOfKinBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\NextOfKinBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\NextOfKinBulkCopyDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\NextOfKinBulkCopyDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\NextOfKinDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\NextOfKinDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\NextOfKinDTOEqualityComparer.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\NextOfKinDTOEqualityComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\PartnershipMemberDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\PartnershipMemberDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\PopulationRegisterQueryBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\PopulationRegisterQueryBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\PopulationRegisterQueryDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\PopulationRegisterQueryDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\RefereeDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\RefereeDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\StationBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\StationBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\StationDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\StationDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\WithdrawalNotificationDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\WithdrawalNotificationDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\WithdrawalSettlementDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\WithdrawalSettlementDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\ZoneBindingModel.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\ZoneBindingModel.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\RegistryModule\ZoneDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\RegistryModule\ZoneDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\SupplierDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\SupplierDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\TariffWrapper.cs">
+      <Link>Application.MainBoundedContext.DTO\TariffWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext.DTO\UnitOfMeasurementDTO.cs">
+      <Link>Application.MainBoundedContext.DTO\UnitOfMeasurementDTO.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext\Services\IMessageQueueService.cs">
+      <Link>Application.MainBoundedContext\Services\IMessageQueueService.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext\Services\ISmtpService.cs">
+      <Link>Application.MainBoundedContext\Services\ISmtpService.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext\Services\MessageQueueService.cs">
+      <Link>Application.MainBoundedContext\Services\MessageQueueService.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.MainBoundedContext\Services\SmtpService.cs">
+      <Link>Application.MainBoundedContext\Services\SmtpService.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.Seedwork\BindingModelBase.cs">
+      <Link>Application.Seedwork\BindingModelBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Application.Seedwork\PropertyValidation.cs">
+      <Link>Application.Seedwork\PropertyValidation.cs</Link>
+    </Compile>
+    <Compile Include="..\DistributedServices.Seedwork\EndpointBehaviors\CustomBehavior.cs">
+      <Link>DistributedServices.Seedwork\EndpointBehaviors\CustomBehavior.cs</Link>
+    </Compile>
+    <Compile Include="..\DistributedServices.Seedwork\EndpointBehaviors\CustomHeader.cs">
+      <Link>DistributedServices.Seedwork\EndpointBehaviors\CustomHeader.cs</Link>
+    </Compile>
+    <Compile Include="..\DistributedServices.Seedwork\EndpointBehaviors\CustomHeaderNames.cs">
+      <Link>DistributedServices.Seedwork\EndpointBehaviors\CustomHeaderNames.cs</Link>
+    </Compile>
+    <Compile Include="..\DistributedServices.Seedwork\EndpointBehaviors\CustomMessageInspector.cs">
+      <Link>DistributedServices.Seedwork\EndpointBehaviors\CustomMessageInspector.cs</Link>
+    </Compile>
+    <Compile Include="..\DistributedServices.Seedwork\ErrorHandlers\ApplicationServiceError.cs">
+      <Link>DistributedServices.Seedwork\ErrorHandlers\ApplicationServiceError.cs</Link>
+    </Compile>
+    <Compile Include="..\Domain.Seedwork\PageCollectionInfo.cs">
+      <Link>Application.MainBoundedContext.DTO\PageCollectionInfo.cs</Link>
+    </Compile>
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\ARCustomerDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\ImprestDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\ImprestLineDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\ImprestSurrenderDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\ImprestSurrenderLineDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\PaymentDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\PaymentLineDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\PurchaseCreditMemoDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\PurchaseCreditMemoLineDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\PurchaseInvoiceDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\PurchaseInvoiceLineDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\ReceiptDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\ReceiptLineDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\SalesCreditMemoDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\SalesCreditMemoLineDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\SalesInvoiceDTO.cs" />
+    <Compile Include="Application.MainBoundedContext.DTO\AccountsModule\SalesInvoiceLineDTO.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
+      <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
+      <Name>Infrastructure.Crosscutting.Framework</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

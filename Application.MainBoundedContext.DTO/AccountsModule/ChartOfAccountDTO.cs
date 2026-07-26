@@ -24,7 +24,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         [Display(Name = "Parent G/L Acccount")]
         public Guid? ParentId { get; set; }
 
-        [DataMember]
+        //[DataMember]
         [Display(Name = "Parent")]
         public ChartOfAccountDTO Parent { get; set; }
 

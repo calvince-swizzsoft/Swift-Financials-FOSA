@@ -1,0 +1,379 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3167A4C1-44E6-499A-8FC7-682D875429F5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Infrastructure.Data.MainBoundedContext</RootNamespace>
+    <AssemblyName>Infrastructure.Data.MainBoundedContext</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AutoMapper, Version=8.0.0.0, Culture=neutral, PublicKeyToken=be96cd2c38ef1005, processorArchitecture=MSIL">
+      <HintPath>..\packages\AutoMapper.8.0.0\lib\net461\AutoMapper.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="LazyCache, Version=0.7.1.44, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\LazyCache.0.7.1.44\lib\net45\LazyCache.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Caching.Abstractions, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Caching.Abstractions.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Caching.Memory, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Caching.Memory.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.2.1.0\lib\netstandard2.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Options.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Primitives.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Configuration.ConfigurationManager, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Configuration.ConfigurationManager.6.0.0\lib\net461\System.Configuration.ConfigurationManager.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.OracleClient" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security" />
+    <Reference Include="System.Security.AccessControl, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.AccessControl.6.0.0\lib\net461\System.Security.AccessControl.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Permissions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Permissions.6.0.0\lib\net461\System.Security.Permissions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Principal.Windows, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Principal.Windows.5.0.0\lib\net461\System.Security.Principal.Windows.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Migrations\Configuration.cs" />
+    <Compile Include="Migrations\MigrationsContextFactory.cs" />
+    <Compile Include="Migrations\NonClusteredPrimaryKeyCSharpMigrationCodeGenerator.cs" />
+    <Compile Include="Migrations\NonClusteredPrimaryKeySqlMigrationSqlGenerator.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Repositories\Repository.cs" />
+    <Compile Include="UnitOfWork\BoundedContextConfiguration.cs" />
+    <Compile Include="UnitOfWork\BoundedContextUnitOfWork.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\AlternateChannelEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\AlternateChannelLogArchiveEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\AlternateChannelLogEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\AlternateChannelReconciliationEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\AlternateChannelReconciliationPeriodEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\AlternateChannelTypeCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ARCustomerEnitityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\BankLinkageEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\BankReconciliationEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\BankReconciliationPeriodEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\BankToMobileRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\BrokerRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\BudgetEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\BudgetEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ChartOfAccountEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ChequeBookEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ChequeTypeAttachedProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ChequeTypeCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ChequeTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CommissionLevyEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CommissionSplitEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CostCenterEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditBatchDiscrepancyEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditBatchEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditTypeAttachedProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditTypeCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditTypeConcessionExemptProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditTypeDirectDebitEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CreditTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CustomerAccountArrearageEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CustomerAccountCarryForwardEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CustomerAccountCarryForwardInstallmentEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CustomerAccountEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CustomerAccountHistoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\CustomerAccountSignatoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\DebitBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\DebitBatchEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\DebitTypeCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\DebitTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\DirectDebitEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\DynamicChargeCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\DynamicChargeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ElectronicStatementOrderEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ElectronicStatementOrderHistoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\FixedDepositTypeAttachedProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\FixedDepositTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\FixedDepositTypeGraduatedScaleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\FixedDepositTypeLevyEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\FuneralRiderClaimPayableEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\GeneralLedgerEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\GeneralLedgerEntryEntitySpecifications.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\GraduatedScaleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ImprestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ImprestLineEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\InsuranceCompanyEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\InterAccountTransferBatchDynamicChargeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\InterAccountTransferBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\InterAccountTransferBatchEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\InvestmentProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\InvestmentProductExemptionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalArchiveEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalEntryArchiveEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalReversalBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalReversalBatchEntryEntitySpecifications.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalVoucherEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\JournalVoucherEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LevyEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LevySplitEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanCycleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanProductAppraisalProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanProductAuxiliaryConditionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanProductAuxilliaryAppraisalFactorEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanProductCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanProductDeductibleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanProductDynamicChargeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\LoanProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\MobileToBankRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\OverDeductionBatchDiscrepancyEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\OverDeductionBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\OverDeductionBatchEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PaymentEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PaymentLineEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PaymentVoucherEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PostingPeriodEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PurchaseCreditMemoEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PurchaseCreditMemoLineEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PurchaseInvoiceEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\PurchaseInvoiceLineEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ReceiptEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ReceiptLineEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\RecurringBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\RecurringBatchEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ReportTemplateEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ReportTemplateEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SalesCreditMemoEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SalesCreditMemoLineEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SalesInvoiceEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SalesInvoiceLineEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SavingsProductCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SavingsProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SavingsProductExemptionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\StandingOrderEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\StandingOrderHistoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SystemGeneralLedgerAccountMappingEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\SystemTransactionTypeInCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\TellerEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\TreasuryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\UnPayReasonCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\UnPayReasonEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferBatchEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferTypeCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\BankBranchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\BankEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\BranchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\CompanyAttachedProductEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\CompanyDebitTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\CompanyEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\EmployeeInBranchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\LocationEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\ModuleNavigationItemEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\ModuleNavigationItemInRoleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\NavigationItemEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\NavigationItemInRoleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\ReportEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\SystemPermissionTypeInBranchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\SystemPermissionTypeInRoleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AuditLogArchiveEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AuditLogEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AuditTrailEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\AttachedLoanEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\DataAttachmentEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\DataAttachmentPeriodEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\IncomeAdjustmentEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanAppraisalFactorEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanCaseEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanCollateralEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanDisbursementBatchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanDisbursementBatchEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanGuarantorAttachmentHistoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanGuarantorAttachmentHistoryEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanGuarantorEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanGuarantorSubstituteEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoaningRemarkEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanPurposeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\EnumerationEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\AccountClosureRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\CashDepositRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\CashTransferRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\CashWithdrawalRequestEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\ElectronicJournalEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\ExpensePayableEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\ExpensePayableEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\ExternalChequeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\ExternalChequePayableEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\FiscalCountEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\FixedDepositEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\FixedDepositPayableEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\InHouseChequeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\SuperSaverPayableEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\FrontOfficeModule\TruncatedChequeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\DepartmentEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\DesignationEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeAppraisalEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeAppraisalPeriodEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeAppraisalPeriodRecommendationEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeAppraisalTargetEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeDisciplinaryCaseEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeDocumentEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeExitEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeePasswordHistoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\EmployeeTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\ExitInterviewAnswerEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\ExitInterviewQuestionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\HolidayEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\LeaveApplicationEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\LeaveTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\PaySlipEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\PaySlipEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\SalaryCardEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\SalaryCardEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\SalaryGroupEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\SalaryGroupEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\SalaryHeadEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\SalaryPeriodEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\TrainingPeriodEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\TrainingPeriodEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\TransactionThresholdEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MessagingModule\CustomerMessageHistoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MessagingModule\EmailAlertEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MessagingModule\MessageGroupEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MessagingModule\TextAlertCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MessagingModule\TextAlertEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MicroCreditModule\MicroCreditGroupEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MicroCreditModule\MicroCreditGroupMemberEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\MicroCreditModule\MicroCreditOfficerEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\NumberSeriesEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\AccountAlertEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\AdministrativeDivisionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\CommissionExemptionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\CommissionExemptionEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\ConditionalLendingEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\ConditionalLendingEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\CorporationMemberEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\CustomerCreditTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\CustomerDocumentEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\CustomerEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\DelegateEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\DirectorEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\DivisionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\EducationAttendeeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\EducationRegisterEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\EducationVenueEntitySpecifications.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\EmployerEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\FileMovementHistoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\FileRegisterEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\FuneralRiderClaimEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\NextOfKinEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\PartnershipMemberEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\PopulationRegisterQueryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\RefereeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\StationEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\WithdrawalNotificationEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\WithdrawalSettlementEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\RegistryModule\ZoneEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\RuntimeContextFactory.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
+      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
+      <Name>Domain.MainBoundedContext</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain.Seedwork\Domain.Seedwork.csproj">
+      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
+      <Name>Domain.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj">
+      <Project>{159A5AB3-4BC6-4379-A5B5-168D0CB783CD}</Project>
+      <Name>EntityFramework.Interfaces</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
+      <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
+      <Name>Infrastructure.Crosscutting.Framework</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

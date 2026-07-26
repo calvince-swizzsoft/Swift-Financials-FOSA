@@ -1,0 +1,26 @@
+﻿
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>e-Statement Alert</title>
+</head>
+<body>
+    <p>
+        Dear Customer,
+        <br /><br />
+        Your E-Statement for the period <b>@Raw(Model.Reference)</b> is attached and is ready for viewing (in Adobe Acrobat pdf format). You can save, view and print it at your convenience.
+        <br /><br />
+        To provide security and confidentiality, password protection has been built in. When prompted for password, <b>please enter your account number as the password</b>.
+        <br /><br />
+        Remember you can choose to receive your eStatement daily, weekly or monthly. For more information on how to register, visit our website or any of your branches.
+        <br /><br />
+        As this is an automatically generated mail, please do not reply to this address. If you have any questions, wish to amend your details or unsubscribe, kindly contact our Call Center on 020 XXXX XXX.
+    </p>
+    <p>
+        Yours sincerely,
+        <br />
+        @Raw(Model.CompanyDescription)
+    </p>
+</body>
+</html> 

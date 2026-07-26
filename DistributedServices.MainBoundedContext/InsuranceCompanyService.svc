@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="DistributedServices.MainBoundedContext.InsuranceCompanyService" CodeBehind="InsuranceCompanyService.svc.cs" %>

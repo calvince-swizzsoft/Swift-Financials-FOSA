@@ -40,6 +40,26 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             }
         }
 
+
+        public async Task<bool> AddNavigationItemsToRoleAsync(List<NavigationItemInRoleDTO> navigationItemInRoleDTOs, ServiceHeader serviceHeader)
+        {
+            if (navigationItemInRoleDTOs == null) return false;
+
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+
+                foreach (var navigationItem in navigationItemInRoleDTOs)
+                {
+                    var navigationItemInRole = NavigationItemInRoleFactory.CreateNavigationItemInRole(navigationItem.NavigationItemId, navigationItem.RoleName);
+
+                    navigationItemInRole.CreatedBy = serviceHeader.ApplicationUserName;
+
+                    _NavigationItemInRoleRepository.Add(navigationItemInRole, serviceHeader);
+                }
+                return await dbContextScope.SaveChangesAsync(serviceHeader) >= 0;
+            }
+        }
+
         #region NavigationItemInRoleDTO
 
         public Task<bool> AddNavigationItemToRolesAsync(NavigationItemDTO navigationItemDTO, string[] roleNames, ServiceHeader serviceHeader)
@@ -108,6 +128,26 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
         {
             throw new NotImplementedException();
         }
+
+
+        public async Task<bool> RemoveNavigationItemsInRoleAsync(List<Guid> navigationItemId, string roleName, ServiceHeader serviceHeader)
+        {
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+
+                foreach (var id in navigationItemId)
+                {
+
+                    ISpecification<NavigationItemInRole> spec = NavigationItemInRoleSpecifications.NavigationItemAndRoleName(id, roleName);
+
+                    var NavigationItemInRole = await _NavigationItemInRoleRepository.AllMatchingAsync(spec, serviceHeader);
+
+                    NavigationItemInRole.ForEach(x => _NavigationItemInRoleRepository.Remove(x, serviceHeader));
+                }
+                return dbContextScope.SaveChanges(serviceHeader) >= 0;
+            }
+        }
+
 
         public async Task<bool> RemoveNavigationItemRoleAsync(Guid navigationItemId, string roleName, ServiceHeader serviceHeader)
         {

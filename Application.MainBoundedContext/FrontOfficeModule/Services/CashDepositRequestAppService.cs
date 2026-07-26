@@ -58,9 +58,11 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
-                    var cashDepositRequest = CashDepositRequestFactory.CreateCashDepositRequest(cashDepositRequestDTO.BranchId, cashDepositRequestDTO.CustomerAccountId, cashDepositRequestDTO.Amount, cashDepositRequestDTO.Remarks);
+                    var cashDepositRequest = CashDepositRequestFactory.CreateCashDepositRequest(cashDepositRequestDTO.BranchId, cashDepositRequestDTO.CustomerAccountId, cashDepositRequestDTO.Amount, cashDepositRequestDTO.Remarks, cashDepositRequestDTO.TransactionType);
 
                     //cashDepositRequest.Status = (int)CashDepositRequestAuthStatus.Pending;
+
+                  
                     cashDepositRequest.Status = (byte)cashDepositRequestDTO.Status;
                     cashDepositRequest.CreatedBy = serviceHeader.ApplicationUserName;
 

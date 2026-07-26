@@ -234,6 +234,21 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         }
 
         [DataMember]
+        [Display(Name = "TransactionType")]
+        public int TransactionType { get; set; }
+
+        [DataMember]
+        [Display(Name = "TransactionType")]
+        public string TransactionTypeDescription
+        {
+            get
+            {
+                return Enum.IsDefined(typeof(FrontOfficeTransactionType), Type) ? EnumHelper.GetDescription((FrontOfficeTransactionType)TransactionType) : string.Empty;
+            }
+        }
+
+
+        [DataMember]
         [Display(Name = "Category")]
         public int Category { get; set; }
 

@@ -280,6 +280,7 @@
     <Compile Include="BatchImportParseInfo.cs" />
     <Compile Include="ChargeDTO.cs" />
     <Compile Include="CustomerFileRegisterLastDepartmentInfo.cs" />
+    <Compile Include="CustomerTransactionModel.cs" />
     <Compile Include="EnumerationDTO.cs" />
     <Compile Include="FileData.cs" />
     <Compile Include="FileDownloadModel.cs" />
@@ -442,6 +443,7 @@
     <Compile Include="SignalRClientProfile.cs" />
     <Compile Include="SupplierDTO.cs" />
     <Compile Include="TariffWrapper.cs" />
+    <Compile Include="TransactionModel.cs" />
     <Compile Include="TypeAdapterFactory\AutomapperTypeAdapter.cs" />
     <Compile Include="TypeAdapterFactory\AutomapperTypeAdapterFactory.cs" />
     <Compile Include="UnitOfMeasurementDTO.cs" />
@@ -451,17 +453,17 @@
       <Project>{97D7D298-0EA9-4AFF-BEF8-7B50B9339F80}</Project>
       <Name>Application.Seedwork</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
-      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
-      <Name>Domain.MainBoundedContext</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Domain.Seedwork\Domain.Seedwork.csproj">
-      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
-      <Name>Domain.Seedwork</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
       <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
       <Name>Infrastructure.Crosscutting.Framework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
+      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
+      <Name>Domain.MainBoundedContext</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain.Seedwork\Domain.Seedwork.csproj">
+      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
+      <Name>Domain.Seedwork</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,196 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{02619DC1-0A34-404D-9E52-82A9890377AB}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SwiftFinancials.Presentation.Contracts</RootNamespace>
+    <AssemblyName>SwiftFinancials.Presentation.Contracts</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AccountsModule\IAlternateChannelLogService.cs" />
+    <Compile Include="AccountsModule\IAlternateChannelReconciliationPeriodService.cs" />
+    <Compile Include="AccountsModule\IAlternateChannelService.cs" />
+    <Compile Include="AccountsModule\IARCustomerService.cs" />
+    <Compile Include="AccountsModule\IBankLinkageService.cs" />
+    <Compile Include="AccountsModule\IBankReconciliationPeriodService.cs" />
+    <Compile Include="AccountsModule\IBankToMobileRequestService.cs" />
+    <Compile Include="AccountsModule\IBrokerRequestService.cs" />
+    <Compile Include="AccountsModule\IBudgetService.cs" />
+    <Compile Include="AccountsModule\IChartOfAccountService.cs" />
+    <Compile Include="AccountsModule\IChequeBookService.cs" />
+    <Compile Include="AccountsModule\IChequeTypeService.cs" />
+    <Compile Include="AccountsModule\ICommissionService.cs" />
+    <Compile Include="AccountsModule\ICostCenterService.cs" />
+    <Compile Include="AccountsModule\ICreditBatchService.cs" />
+    <Compile Include="AccountsModule\ICreditTypeService.cs" />
+    <Compile Include="AccountsModule\ICustomerAccountService.cs" />
+    <Compile Include="AccountsModule\IDebitBatchService.cs" />
+    <Compile Include="AccountsModule\IDebitTypeService.cs" />
+    <Compile Include="AccountsModule\IDirectDebitService.cs" />
+    <Compile Include="AccountsModule\IDynamicChargeService.cs" />
+    <Compile Include="AccountsModule\IElectronicStatementOrderService.cs" />
+    <Compile Include="AccountsModule\IFixedDepositTypeService.cs" />
+    <Compile Include="AccountsModule\IGeneralLedgerService.cs" />
+    <Compile Include="AccountsModule\IImprestService.cs" />
+    <Compile Include="AccountsModule\IInsuranceCompanyService.cs" />
+    <Compile Include="AccountsModule\IInterAccountTransferBatchService.cs" />
+    <Compile Include="AccountsModule\IInvestmentProductService.cs" />
+    <Compile Include="AccountsModule\IJournalEntryService.cs" />
+    <Compile Include="AccountsModule\IJournalReversalBatchService.cs" />
+    <Compile Include="AccountsModule\IJournalService.cs" />
+    <Compile Include="AccountsModule\IJournalVoucherService.cs" />
+    <Compile Include="AccountsModule\ILevyService.cs" />
+    <Compile Include="AccountsModule\ILoanProductService.cs" />
+    <Compile Include="AccountsModule\IMobileToBankRequestService.cs" />
+    <Compile Include="AccountsModule\IOverDeductionBatchService.cs" />
+    <Compile Include="AccountsModule\IPaymentService.cs" />
+    <Compile Include="AccountsModule\IPostingPeriodService.cs" />
+    <Compile Include="AccountsModule\IPurchaseCreditMemoService.cs" />
+    <Compile Include="AccountsModule\IPurchaseInvoiceService.cs" />
+    <Compile Include="AccountsModule\IReceiptService.cs" />
+    <Compile Include="AccountsModule\IRecurringBatchService.cs" />
+    <Compile Include="AccountsModule\IReportTemplateService.cs" />
+    <Compile Include="AccountsModule\ISalesCreditMemoService.cs" />
+    <Compile Include="AccountsModule\ISalesInvoiceService.cs" />
+    <Compile Include="AccountsModule\ISavingsProductService.cs" />
+    <Compile Include="AccountsModule\IStandingOrderService.cs" />
+    <Compile Include="AccountsModule\ITellerService.cs" />
+    <Compile Include="AccountsModule\ITreasuryService.cs" />
+    <Compile Include="AccountsModule\IUnPayReasonService.cs" />
+    <Compile Include="AccountsModule\IWireTransferBatchService.cs" />
+    <Compile Include="AccountsModule\IWireTransferTypeService.cs" />
+    <Compile Include="AccountsModule\ILoanProductAppraisalProductService.cs" />
+    <Compile Include="AccountsModule\ISystemGeneralLedgerAccountMappingService.cs" />
+    <Compile Include="AdministrationModule\IBankService.cs" />
+    <Compile Include="AdministrationModule\IBranchService.cs" />
+    <Compile Include="AdministrationModule\ICompanyService.cs" />
+    <Compile Include="AdministrationModule\ILocationService.cs" />
+    <Compile Include="AdministrationModule\IMembershipService.cs" />
+    <Compile Include="AdministrationModule\IModuleNavigationItemService.cs" />
+    <Compile Include="AdministrationModule\INavigationItemInRoleService.cs" />
+    <Compile Include="AdministrationModule\INavigationItemService.cs" />
+    <Compile Include="AdministrationModule\IReportService.cs" />
+    <Compile Include="AdministrationModule\IWorkflowService.cs" />
+    <Compile Include="BackOfficeModule\IDataAttachmentPeriodService.cs" />
+    <Compile Include="BackOfficeModule\IIncomeAdjustmentService.cs" />
+    <Compile Include="BackOfficeModule\ILoanCaseService.cs" />
+    <Compile Include="BackOfficeModule\ILoanDisbursementBatchService.cs" />
+    <Compile Include="BackOfficeModule\ILoaningRemarkService.cs" />
+    <Compile Include="BackOfficeModule\ILoanPurposeService.cs" />
+    <Compile Include="BackOfficeModule\ILoanRequestService.cs" />
+    <Compile Include="FrontOfficeModule\IAccountClosureRequestService.cs" />
+    <Compile Include="FrontOfficeModule\ICashDepositRequestService.cs" />
+    <Compile Include="FrontOfficeModule\ICashTransferRequestService.cs" />
+    <Compile Include="FrontOfficeModule\ICashWithdrawalRequestService.cs" />
+    <Compile Include="FrontOfficeModule\IElectronicJournalService.cs" />
+    <Compile Include="FrontOfficeModule\IExpensePayableService.cs" />
+    <Compile Include="FrontOfficeModule\IExternalChequeService.cs" />
+    <Compile Include="FrontOfficeModule\IFiscalCountService.cs" />
+    <Compile Include="FrontOfficeModule\IFixedDepositService.cs" />
+    <Compile Include="FrontOfficeModule\IInHouseChequeService.cs" />
+    <Compile Include="FrontOfficeModule\ISuperSaverPayableService.cs" />
+    <Compile Include="HumanResourcesModule\IDepartmentService.cs" />
+    <Compile Include="HumanResourcesModule\IDesignationService.cs" />
+    <Compile Include="HumanResourcesModule\IEmployeeAppraisalPeriodService.cs" />
+    <Compile Include="HumanResourcesModule\IEmployeeAppraisalService.cs" />
+    <Compile Include="HumanResourcesModule\IEmployeeAppraisalTargetService.cs" />
+    <Compile Include="HumanResourcesModule\IEmployeeDocumentService.cs" />
+    <Compile Include="HumanResourcesModule\IEmployeeExitService.cs" />
+    <Compile Include="HumanResourcesModule\IEmployeeService.cs" />
+    <Compile Include="HumanResourcesModule\IEmployeeTypeService.cs" />
+    <Compile Include="HumanResourcesModule\IExitInterviewAnswerService.cs" />
+    <Compile Include="HumanResourcesModule\IExitInterviewQuestionService.cs" />
+    <Compile Include="HumanResourcesModule\IHolidayService.cs" />
+    <Compile Include="HumanResourcesModule\ILeaveApplicationService.cs" />
+    <Compile Include="HumanResourcesModule\ILeaveTypeService.cs" />
+    <Compile Include="HumanResourcesModule\IPaySlipService.cs" />
+    <Compile Include="HumanResourcesModule\ISalaryCardService.cs" />
+    <Compile Include="HumanResourcesModule\ISalaryGroupService.cs" />
+    <Compile Include="HumanResourcesModule\ISalaryHeadService.cs" />
+    <Compile Include="HumanResourcesModule\ISalaryPeriodService.cs" />
+    <Compile Include="HumanResourcesModule\ITrainingPeriodService.cs" />
+    <Compile Include="IAuditLogService.cs" />
+    <Compile Include="ICategoryService.cs" />
+    <Compile Include="IFileUploadService.cs" />
+    <Compile Include="IMediaService.cs" />
+    <Compile Include="InventoryModule\ICategoryService.cs" />
+    <Compile Include="InventoryModule\IInventoryService.cs" />
+    <Compile Include="InventoryModule\IPurchaseOrderService.cs" />
+    <Compile Include="InventoryModule\ISalesOrderService.cs" />
+    <Compile Include="IUtilityService.cs" />
+    <Compile Include="MembershipModule\IMembershipManagerService.cs" />
+    <Compile Include="MembershipModule\IPasswordManagerService.cs" />
+    <Compile Include="MembershipModule\IRoleManagerService.cs" />
+    <Compile Include="MembershipModule\IUserManagerService.cs" />
+    <Compile Include="MessagingModule\IEmailAlertService.cs" />
+    <Compile Include="MessagingModule\IMessageGroupService.cs" />
+    <Compile Include="MessagingModule\ITextAlertService.cs" />
+    <Compile Include="MicroCreditModule\IMicroCreditGroupService.cs" />
+    <Compile Include="MicroCreditModule\IMicroCreditOfficerService.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RegistryModule\IAdministrativeDivisionService.cs" />
+    <Compile Include="RegistryModule\ICommissionExemptionService.cs" />
+    <Compile Include="RegistryModule\IConditionalLendingAppService.cs" />
+    <Compile Include="RegistryModule\ICustomerDocumentService.cs" />
+    <Compile Include="RegistryModule\ICustomerService.cs" />
+    <Compile Include="RegistryModule\IDelegateService.cs" />
+    <Compile Include="RegistryModule\IDirectorService.cs" />
+    <Compile Include="RegistryModule\IDivisionService.cs" />
+    <Compile Include="RegistryModule\IEducationRegisterService.cs" />
+    <Compile Include="RegistryModule\IEducationVenueService.cs" />
+    <Compile Include="RegistryModule\IEmployerService.cs" />
+    <Compile Include="RegistryModule\IFileRegisterService.cs" />
+    <Compile Include="RegistryModule\IFuneralRiderClaimService.cs" />
+    <Compile Include="RegistryModule\IWithdrawalNotificationService.cs" />
+    <Compile Include="RegistryModule\IZoneService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SwiftFinancials.Presentation.Shared\SwiftFinancials.Presentation.Shared.csproj">
+      <Project>{B1EA34BF-3885-466F-AACE-568AD3F24938}</Project>
+      <Name>SwiftFinancials.Presentation.Shared</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

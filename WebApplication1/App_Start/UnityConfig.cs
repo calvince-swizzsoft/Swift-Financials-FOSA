@@ -14,14 +14,19 @@ using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Data.MainBoundedContext.Repositories;
 using Infrastructure.Data.MainBoundedContext.UnitOfWork;
 using LazyCache;
+using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.EntityFramework;
 using Numero3.EntityFramework.Implementation;
 using Numero3.EntityFramework.Interfaces;
+using System.Data.Entity;
 using System.Runtime.Caching;
 using System.Web.Http;
 using Unity;
 using Unity.Injection;
 using Unity.Lifetime;
 using Unity.WebApi;
+using WebApplication1.Areas.Identity;
+using WebApplication1.Services;
 
 namespace WebApplication1
 {
@@ -49,7 +54,7 @@ namespace WebApplication1
 
         public static void RegisterComponents()
         {
-			Current = new UnityContainer();
+			//Current = new UnityContainer();
 
             Current = new UnityContainer();
 
@@ -77,13 +82,13 @@ namespace WebApplication1
 
             //Authentication
             //Current.RegisterType<IMembershipService, MembershipService>();
-            //Current.RegisterType<UserManager<ApplicationUser>>(new TransientLifetimeManager());
-            //Current.RegisterType<IUserStore<ApplicationUser>, UserStore<ApplicationUser>>(new TransientLifetimeManager());
-            //Current.RegisterType<RoleStore<IdentityRole>, RoleStore<IdentityRole>>(new TransientLifetimeManager());
-            //Current.RegisterType<DbContext, ApplicationDbContext>(new TransientLifetimeManager(), new InjectionConstructor("AuthStore"));
-            //Current.RegisterType<ApplicationUserManager>();
-            //Current.RegisterType<ApplicationRoleManager>();
-            //Current.RegisterType<RoleManager<IdentityRole>>(new TransientLifetimeManager());
+            Current.RegisterType<UserManager<ApplicationUser>>(new TransientLifetimeManager());
+            Current.RegisterType<IUserStore<ApplicationUser>, UserStore<ApplicationUser>>(new TransientLifetimeManager());
+            Current.RegisterType<RoleStore<IdentityRole>, RoleStore<IdentityRole>>(new TransientLifetimeManager());
+            Current.RegisterType<DbContext, ApplicationDbContext>(new TransientLifetimeManager(), new InjectionConstructor("AuthStore"));
+            Current.RegisterType<ApplicationUserManager>();
+          //  Current.RegisterType<ApplicationRoleManager>();
+            Current.RegisterType<RoleManager<IdentityRole>>(new TransientLifetimeManager());
 
             //-> Application services
             Current.RegisterType<IAuditLogAppService, AuditLogAppService>();
@@ -141,7 +146,7 @@ namespace WebApplication1
             Current.RegisterType<ISuperSaverPayableAppService, SuperSaverPayableAppService>();
             Current.RegisterType<IBankToMobileRequestAppService, BankToMobileRequestAppService>();
             Current.RegisterType<IBrokerRequestAppService, BrokerRequestAppService>();
-           // Current.RegisterType<ISystemGeneralLedgerAccountMappingService, SystemGeneralLedgerAccountMappingService>();
+           Current.RegisterType<ISystemGeneralLedgerAccountMappingAppService, SystemGeneralLedgerAccountMappingAppService>();
 
             Current.RegisterType<IFiscalCountAppService, FiscalCountAppService>();
             Current.RegisterType<IExternalChequeAppService, ExternalChequeAppService>();
@@ -236,6 +241,8 @@ namespace WebApplication1
 
 
             Current.RegisterType<IImprestAppService, ImprestAppService>();
+
+            //Current.RegisterType<RoleManagerService, RoleManagerService>();
 
             // register all your components with the container here
             // it is NOT necessary to register your controllers

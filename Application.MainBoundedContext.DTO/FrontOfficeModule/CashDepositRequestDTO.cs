@@ -247,16 +247,16 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         public double Denomination { get; set; }
 
         [DataMember]
-        [Display(Name = "Type")]
-        public int Type { get; set; }
+        [Display(Name = "TransactionType")]
+        public int TransactionType { get; set; }
 
         [DataMember]
-        [Display(Name = "Type")]
-        public string TypeDescription
+        [Display(Name = "TransactionType")]
+        public string TransactionTypeDescription
         {
             get
             {
-                return Enum.IsDefined(typeof(FrontOfficeTransactionType), Type) ? EnumHelper.GetDescription((FrontOfficeTransactionType)Type) : string.Empty;
+                return Enum.IsDefined(typeof(FrontOfficeTransactionType), TransactionType) ? EnumHelper.GetDescription((FrontOfficeTransactionType)TransactionType) : string.Empty;
             }
         }
 

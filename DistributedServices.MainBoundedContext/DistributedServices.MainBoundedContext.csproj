@@ -1,0 +1,1147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>
+    </ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{054DA3E1-DAAD-4DF5-95B7-0FC9096BEC39}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>DistributedServices.MainBoundedContext</RootNamespace>
+    <AssemblyName>DistributedServices.MainBoundedContext</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <WcfConfigValidationEnabled>True</WcfConfigValidationEnabled>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <UseIISExpress>true</UseIISExpress>
+    <Use64BitIISExpress />
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <UseGlobalApplicationHostFile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CommonServiceLocator, Version=2.0.4.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.5.8.13\lib\net47\CommonServiceLocator.dll</HintPath>
+    </Reference>
+    <Reference Include="CsvHelper, Version=33.0.0.0, Culture=neutral, PublicKeyToken=8c4959082be5c823, processorArchitecture=MSIL">
+      <HintPath>..\packages\CsvHelper.33.0.1\lib\net47\CsvHelper.dll</HintPath>
+    </Reference>
+    <Reference Include="Dapper, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Dapper.2.1.72\lib\net461\Dapper.dll</HintPath>
+    </Reference>
+    <Reference Include="Elasticsearch.Net, Version=6.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
+      <HintPath>..\packages\Elasticsearch.Net.6.0.0\lib\net46\Elasticsearch.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="LazyCache, Version=0.7.1.44, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\LazyCache.0.7.1.44\lib\net45\LazyCache.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="LumenWorks.Framework.IO, Version=3.8.0.0, Culture=neutral, PublicKeyToken=5ad3ea2f85776344, processorArchitecture=MSIL">
+      <HintPath>..\packages\LumenWorks.Framework.IO.3.8.0\lib\net20\LumenWorks.Framework.IO.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.Identity.Core, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Identity.Core.2.2.4\lib\net45\Microsoft.AspNet.Identity.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.Identity.EntityFramework, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Identity.EntityFramework.2.2.3\lib\net45\Microsoft.AspNet.Identity.EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.Identity.Owin, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Identity.Owin.2.2.4\lib\net45\Microsoft.AspNet.Identity.Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=9.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.9.0.1\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.HashCode, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.HashCode.1.1.1\lib\net461\Microsoft.Bcl.HashCode.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.DotNet.PlatformAbstractions, Version=2.0.4.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.DotNet.PlatformAbstractions.2.0.4\lib\net45\Microsoft.DotNet.PlatformAbstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Caching.Abstractions, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Caching.Abstractions.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Caching.Memory, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Caching.Memory.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.2.0.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.Abstractions, Version=2.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.Abstractions.2.0.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Configuration.Binder, Version=2.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Configuration.Binder.2.0.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.Binder.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.2.1.0\lib\netstandard2.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyModel, Version=3.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.DependencyModel.3.0.0\lib\net451\Microsoft.Extensions.DependencyModel.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Options.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options.ConfigurationExtensions, Version=2.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Options.ConfigurationExtensions.2.0.0\lib\netstandard2.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Primitives.2.1.0\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Owin.4.2.2\lib\net45\Microsoft.Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Owin.Security.4.2.2\lib\net45\Microsoft.Owin.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.Cookies, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Owin.Security.Cookies.4.2.2\lib\net45\Microsoft.Owin.Security.Cookies.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.OAuth, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Owin.Security.OAuth.4.2.2\lib\net45\Microsoft.Owin.Security.OAuth.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.11.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Owin, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f0ebd12fd5e55cc5, processorArchitecture=MSIL">
+      <HintPath>..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.2.8.0\lib\net46\Serilog.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Settings.AppSettings, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Settings.AppSettings.2.2.2\lib\net45\Serilog.Settings.AppSettings.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Settings.Configuration, Version=3.1.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Settings.Configuration.3.1.0\lib\net461\Serilog.Settings.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.Elasticsearch, Version=6.5.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Sinks.Elasticsearch.6.5.0\lib\net45\Serilog.Sinks.Elasticsearch.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.File, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Sinks.File.4.0.0\lib\net45\Serilog.Sinks.File.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.PeriodicBatching, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Sinks.PeriodicBatching.2.3.1\lib\net45\Serilog.Sinks.PeriodicBatching.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.RollingFile, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Sinks.RollingFile.3.3.0\lib\net45\Serilog.Sinks.RollingFile.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration.ConfigurationManager, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Configuration.ConfigurationManager.6.0.0\lib\net461\System.Configuration.ConfigurationManager.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.OracleClient" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.0.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.Remoting" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Security.AccessControl, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.AccessControl.6.0.0\lib\net461\System.Security.AccessControl.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Permissions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Permissions.6.0.0\lib\net461\System.Security.Permissions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Principal.Windows, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Principal.Windows.5.0.0\lib\net461\System.Security.Principal.Windows.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.DynamicData" />
+    <Reference Include="System.Web.Entity" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.EnterpriseServices" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Web" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Unity.Abstractions, Version=3.3.1.0, Culture=neutral, PublicKeyToken=6d32ff45e0ccc69f, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.Abstractions.3.3.1\lib\net47\Unity.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Configuration, Version=5.2.5.0, Culture=neutral, PublicKeyToken=6d32ff45e0ccc69f, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.Configuration.5.2.5\lib\net47\Unity.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Container, Version=5.8.13.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.Container.5.8.13\lib\net47\Unity.Container.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Interception, Version=5.5.6.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.Interception.5.5.6\lib\net47\Unity.Interception.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Interception.Configuration, Version=5.1.7.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.Interception.Configuration.5.1.7\lib\net47\Unity.Interception.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RegistrationByConvention, Version=2.1.9.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.RegistrationByConvention.2.1.9\lib\net47\Unity.RegistrationByConvention.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ServiceLocation, Version=2.1.2.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.ServiceLocation.2.1.2\lib\net47\Unity.ServiceLocation.dll</HintPath>
+    </Reference>
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="AccountClosureRequestService.svc" />
+    <Content Include="AdministrativeDivisionService.svc" />
+    <Content Include="AlternateChannelLogService.svc" />
+    <Content Include="AlternateChannelReconciliationPeriodService.svc" />
+    <Content Include="AlternateChannelService.svc" />
+    <Content Include="ARCustomerService.svc" />
+    <Content Include="AuditLogService.svc" />
+    <Content Include="BankLinkageService.svc" />
+    <Content Include="BankReconciliationPeriodService.svc" />
+    <Content Include="BankService.svc" />
+    <Content Include="BankToMobileRequestService.svc" />
+    <Content Include="BranchService.svc" />
+    <Content Include="BrokerRequestService.svc" />
+    <Content Include="BudgetService.svc" />
+    <Content Include="CashDepositRequestService.svc" />
+    <Content Include="CashTransferRequestService.svc" />
+    <Content Include="CashWithdrawalRequestService.svc" />
+    <Content Include="CategoryService.svc" />
+    <Content Include="ChartOfAccountService.svc" />
+    <Content Include="ChequeBookService.svc" />
+    <Content Include="ChequeTypeService.svc" />
+    <Content Include="clientaccesspolicy.xml" />
+    <Content Include="CommissionExemptionService.svc" />
+    <Content Include="CommissionService.svc" />
+    <Content Include="CompanyService.svc" />
+    <Content Include="ConditionalLendingService.svc" />
+    <Content Include="ImprestService.svc" />
+    <Content Include="PaymentService.svc" />
+    <Content Include="PurchaseCreditMemoService.svc" />
+    <Content Include="InventoryService.svc" />
+    <Content Include="PurchaseInvoiceService.svc" />
+    <Content Include="PurchaseOrderService.svc" />
+    <Content Include="ReceiptService.svc" />
+    <Content Include="SalesCreditMemoService.svc" />
+    <Content Include="SalesInvoiceService.svc" />
+    <Content Include="SalesOrderService.svc" />
+    <Content Include="SystemGeneralLedgerAccountMappingService.svc" />
+    <Content Include="CostCenterService.svc" />
+    <Content Include="CreditBatchService.svc" />
+    <Content Include="CreditTypeService.svc" />
+    <Content Include="crossdomain.xml" />
+    <Content Include="CustomerAccountService.svc" />
+    <Content Include="CustomerDocumentService.svc" />
+    <Content Include="CustomerService.svc" />
+    <Content Include="DataAttachmentPeriodService.svc" />
+    <Content Include="DebitBatchService.svc" />
+    <Content Include="DebitTypeService.svc" />
+    <Content Include="DelegateService.svc" />
+    <Content Include="DepartmentService.svc" />
+    <Content Include="DesignationService.svc" />
+    <Content Include="DirectDebitService.svc" />
+    <Content Include="DirectorService.svc" />
+    <Content Include="DynamicChargeService.svc" />
+    <Content Include="EducationRegisterService.svc" />
+    <Content Include="EducationVenueService.svc" />
+    <Content Include="ElectronicJournalService.svc" />
+    <Content Include="ElectronicStatementOrderService.svc" />
+    <Content Include="EmailAlertService.svc" />
+    <Content Include="EmployeeAppraisalPeriodService.svc" />
+    <Content Include="EmployeeAppraisalService.svc" />
+    <Content Include="EmployeeAppraisalTargetService.svc" />
+    <Content Include="EmployeeDocumentService.svc" />
+    <Content Include="EmployeeExitService.svc" />
+    <Content Include="EmployeeService.svc" />
+    <Content Include="EmployeeTypeService.svc" />
+    <Content Include="EmployerService.svc" />
+    <Content Include="ExitInterviewAnswerService.svc" />
+    <Content Include="ExitInterviewQuestionService.svc" />
+    <Content Include="ExpensePayableService.svc" />
+    <Content Include="ExternalChequeService.svc" />
+    <Content Include="FileRegisterService.svc" />
+    <Content Include="FileUploadService.svc" />
+    <Content Include="FiscalCountService.svc" />
+    <Content Include="FixedDepositService.svc" />
+    <Content Include="FixedDepositTypeService.svc" />
+    <Content Include="FuneralRiderClaimService.svc" />
+    <Content Include="GeneralLedgerService.svc" />
+    <Content Include="Global.asax" />
+    <Content Include="HolidayService.svc" />
+    <Content Include="IncomeAdjustmentService.svc" />
+    <Content Include="InHouseChequeService.svc" />
+    <Content Include="InsuranceCompanyService.svc" />
+    <Content Include="InterAccountTransferBatchService.svc" />
+    <Content Include="InvestmentProductService.svc" />
+    <Content Include="JournalEntryService.svc" />
+    <Content Include="JournalReversalBatchService.svc" />
+    <Content Include="JournalService.svc" />
+    <Content Include="JournalVoucherService.svc" />
+    <Content Include="LeaveApplicationService.svc" />
+    <Content Include="LeaveTypeService.svc" />
+    <Content Include="LevyService.svc" />
+    <Content Include="LoanCaseService.svc" />
+    <Content Include="LoanDisbursementBatchService.svc" />
+    <Content Include="LoaningRemarkService.svc" />
+    <Content Include="LoanProductService.svc" />
+    <Content Include="LoanPurposeService.svc" />
+    <Content Include="LoanRequestService.svc" />
+    <Content Include="LocationService.svc" />
+    <Content Include="MediaService.svc" />
+    <Content Include="MembershipManagerService.svc" />
+    <Content Include="MembershipService.svc" />
+    <Content Include="MessageGroupService.svc" />
+    <Content Include="MicroCreditGroupService.svc" />
+    <Content Include="MicroCreditOfficerService.svc" />
+    <Content Include="MobileToBankRequestService.svc" />
+    <Content Include="ModuleNavigationItemService.svc" />
+    <Content Include="NavigationItemInRoleService.svc" />
+    <Content Include="NavigationItemService.svc" />
+    <Content Include="OverDeductionBatchService.svc" />
+    <Content Include="PasswordManagerService.svc" />
+    <Content Include="PaySlipService.svc" />
+    <Content Include="PostingPeriodService.svc" />
+    <Content Include="RecurringBatchService.svc" />
+    <Content Include="ReportService.svc" />
+    <Content Include="ReportTemplateService.svc" />
+    <Content Include="RoleManagerService.svc" />
+    <Content Include="SalaryCardService.svc" />
+    <Content Include="SalaryGroupService.svc" />
+    <Content Include="SalaryHeadService.svc" />
+    <Content Include="SalaryPeriodService.svc" />
+    <Content Include="SavingsProductService.svc" />
+    <Content Include="StandingOrderService.svc" />
+    <Content Include="SuperSaverPayableService.svc" />
+    <Content Include="TellerService.svc" />
+    <Content Include="TextAlertService.svc" />
+    <Content Include="TrainingPeriodService.svc" />
+    <Content Include="TreasuryService.svc" />
+    <Content Include="UnPayReasonService.svc" />
+    <Content Include="UserManagerService.svc" />
+    <Content Include="UtilityService.svc" />
+    <Content Include="Web.config" />
+    <Content Include="WireTransferBatchService.svc" />
+    <Content Include="WireTransferTypeService.svc" />
+    <Content Include="WithdrawalNotificationService.svc" />
+    <Content Include="ZoneService.svc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AccountClosureRequestService.svc.cs">
+      <DependentUpon>AccountClosureRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="AdministrativeDivisionService.svc.cs">
+      <DependentUpon>AdministrativeDivisionService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="AlternateChannelLogService.svc.cs">
+      <DependentUpon>AlternateChannelLogService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="AlternateChannelReconciliationPeriodService.svc.cs">
+      <DependentUpon>AlternateChannelReconciliationPeriodService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="AlternateChannelService.svc.cs">
+      <DependentUpon>AlternateChannelService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="App_Start\SecurityConfig.cs" />
+    <Compile Include="ARCustomerService.svc.cs">
+      <DependentUpon>ARCustomerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="AuditLogService.svc.cs">
+      <DependentUpon>AuditLogService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="BankLinkageService.svc.cs">
+      <DependentUpon>BankLinkageService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="BankReconciliationPeriodService.svc.cs">
+      <DependentUpon>BankReconciliationPeriodService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="BankService.svc.cs">
+      <DependentUpon>BankService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="BankToMobileRequestService.svc.cs">
+      <DependentUpon>BankToMobileRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="BranchService.svc.cs">
+      <DependentUpon>BranchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="BrokerRequestService.svc.cs">
+      <DependentUpon>BrokerRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="BudgetService.svc.cs">
+      <DependentUpon>BudgetService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CashDepositRequestService.svc.cs">
+      <DependentUpon>CashDepositRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CashTransferRequestService.svc.cs">
+      <DependentUpon>CashTransferRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CashWithdrawalRequestService.svc.cs">
+      <DependentUpon>CashWithdrawalRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CategoryService.svc.cs">
+      <DependentUpon>CategoryService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ChartOfAccountService.svc.cs">
+      <DependentUpon>ChartOfAccountService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ChequeBookService.svc.cs">
+      <DependentUpon>ChequeBookService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ChequeTypeService.svc.cs">
+      <DependentUpon>ChequeTypeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CommissionExemptionService.svc.cs">
+      <DependentUpon>CommissionExemptionService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CommissionService.svc.cs">
+      <DependentUpon>CommissionService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CompanyService.svc.cs">
+      <DependentUpon>CompanyService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ConditionalLendingService.svc.cs">
+      <DependentUpon>ConditionalLendingService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="Contracts\AccountsModule\IAlternateChannelLogService.cs" />
+    <Compile Include="Contracts\AccountsModule\IAlternateChannelReconciliationPeriodService.cs" />
+    <Compile Include="Contracts\AccountsModule\IAlternateChannelService.cs" />
+    <Compile Include="Contracts\AccountsModule\IARCustomerService.cs" />
+    <Compile Include="Contracts\AccountsModule\IBankLinkageService.cs" />
+    <Compile Include="Contracts\AccountsModule\IBankReconciliationPeriodService.cs" />
+    <Compile Include="Contracts\AccountsModule\IBankToMobileRequestService.cs" />
+    <Compile Include="Contracts\AccountsModule\IBrokerRequestService.cs" />
+    <Compile Include="Contracts\AccountsModule\IBudgetService.cs" />
+    <Compile Include="Contracts\AccountsModule\IChartOfAccountService.cs" />
+    <Compile Include="Contracts\AccountsModule\IChequeBookService.cs" />
+    <Compile Include="Contracts\AccountsModule\IChequeTypeService.cs" />
+    <Compile Include="Contracts\AccountsModule\ICommissionService.cs" />
+    <Compile Include="Contracts\AccountsModule\ICostCenterService.cs" />
+    <Compile Include="Contracts\AccountsModule\ICreditBatchService.cs" />
+    <Compile Include="Contracts\AccountsModule\IImprestService.cs" />
+    <Compile Include="Contracts\AccountsModule\IPaymentService.cs" />
+    <Compile Include="Contracts\AccountsModule\IPurchaseCreditMemoService.cs" />
+    <Compile Include="Contracts\AccountsModule\ICreditTypeService.cs" />
+    <Compile Include="Contracts\AccountsModule\ICustomerAccountService.cs" />
+    <Compile Include="Contracts\AccountsModule\IDebitBatchService.cs" />
+    <Compile Include="Contracts\AccountsModule\IDebitTypeService.cs" />
+    <Compile Include="Contracts\AccountsModule\IDirectDebitService.cs" />
+    <Compile Include="Contracts\AccountsModule\IDynamicChargeService.cs" />
+    <Compile Include="Contracts\AccountsModule\IElectronicStatementOrderService.cs" />
+    <Compile Include="Contracts\AccountsModule\IFixedDepositTypeService.cs" />
+    <Compile Include="Contracts\AccountsModule\IGeneralLedgerService.cs" />
+    <Compile Include="Contracts\AccountsModule\IInsuranceCompanyService.cs" />
+    <Compile Include="Contracts\AccountsModule\IInterAccountTransferBatchService.cs" />
+    <Compile Include="Contracts\AccountsModule\IInvestmentProductService.cs" />
+    <Compile Include="Contracts\AccountsModule\IJournalEntryService.cs" />
+    <Compile Include="Contracts\AccountsModule\IJournalReversalBatchService.cs" />
+    <Compile Include="Contracts\AccountsModule\IJournalService.cs" />
+    <Compile Include="Contracts\AccountsModule\IJournalVoucherService.cs" />
+    <Compile Include="Contracts\AccountsModule\ILevyService.cs" />
+    <Compile Include="Contracts\AccountsModule\ILoanProductService.cs" />
+    <Compile Include="Contracts\AccountsModule\IMobileToBankRequestService.cs" />
+    <Compile Include="Contracts\AccountsModule\IOverDeductionBatchService.cs" />
+    <Compile Include="Contracts\AccountsModule\IPostingPeriodService.cs" />
+    <Compile Include="Contracts\AccountsModule\IPurchaseInvoiceService.cs" />
+    <Compile Include="Contracts\AccountsModule\IReceiptService.cs" />
+    <Compile Include="Contracts\AccountsModule\IRecurringBatchService.cs" />
+    <Compile Include="Contracts\AccountsModule\IReportTemplateService.cs" />
+    <Compile Include="Contracts\AccountsModule\ISalesCreditMemoService.cs" />
+    <Compile Include="Contracts\AccountsModule\ISalesInvoiceService.cs" />
+    <Compile Include="Contracts\AccountsModule\ISavingsProductService.cs" />
+    <Compile Include="Contracts\AccountsModule\IStandingOrderService.cs" />
+    <Compile Include="Contracts\AccountsModule\ISystemGeneralLedgerAccountMappingService.cs" />
+    <Compile Include="Contracts\AccountsModule\ITellerService.cs" />
+    <Compile Include="Contracts\AccountsModule\ITreasuryService.cs" />
+    <Compile Include="Contracts\AccountsModule\IUnPayReasonService.cs" />
+    <Compile Include="Contracts\AccountsModule\IWireTransferBatchService.cs" />
+    <Compile Include="Contracts\AccountsModule\IWireTransferTypeService.cs" />
+    <Compile Include="ImprestService.svc.cs">
+      <DependentUpon>ImprestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="PaymentService.svc.cs">
+      <DependentUpon>PaymentService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="PurchaseCreditMemoService.svc.cs">
+      <DependentUpon>PurchaseCreditMemoService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ICategoryService.cs" />
+    <Compile Include="IInventoryService.cs" />
+    <Compile Include="InventoryService.svc.cs">
+      <DependentUpon>InventoryService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="IPurchaseOrderService.cs" />
+    <Compile Include="ISalesOrderService.cs" />
+    <Compile Include="Migrations\Configuration.cs" />
+    <Compile Include="Migrations\MigrationsContextFactory.cs" />
+    <Compile Include="PurchaseInvoiceService.svc.cs">
+      <DependentUpon>PurchaseInvoiceService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="PurchaseOrderService.svc.cs">
+      <DependentUpon>PurchaseOrderService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ReceiptService.svc.cs">
+      <DependentUpon>ReceiptService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SalesCreditMemoService.svc.cs">
+      <DependentUpon>SalesCreditMemoService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SalesInvoiceService.svc.cs">
+      <DependentUpon>SalesInvoiceService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SalesOrderService.svc.cs">
+      <DependentUpon>SalesOrderService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SystemGeneralLedgerAccountMappingService.svc.cs">
+      <DependentUpon>SystemGeneralLedgerAccountMappingService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="Contracts\AdministrationModule\IBankService.cs" />
+    <Compile Include="Contracts\AdministrationModule\IBranchService.cs" />
+    <Compile Include="Contracts\AdministrationModule\ICompanyService.cs" />
+    <Compile Include="Contracts\AdministrationModule\ILocationService.cs" />
+    <Compile Include="Contracts\AdministrationModule\IModuleNavigationItemService.cs" />
+    <Compile Include="Contracts\AdministrationModule\IReportService.cs" />
+    <Compile Include="Contracts\AdministrationModule\IWorkflowService.cs" />
+    <Compile Include="Contracts\BackOfficeModule\IDataAttachmentPeriodService.cs" />
+    <Compile Include="Contracts\BackOfficeModule\IIncomeAdjustmentService.cs" />
+    <Compile Include="Contracts\BackOfficeModule\ILoanCaseService.cs" />
+    <Compile Include="Contracts\BackOfficeModule\ILoanDisbursementBatchService.cs" />
+    <Compile Include="Contracts\BackOfficeModule\ILoaningRemarkService.cs" />
+    <Compile Include="Contracts\BackOfficeModule\ILoanPurposeService.cs" />
+    <Compile Include="Contracts\BackOfficeModule\ILoanRequestService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\IAccountClosureRequestService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\ICashDepositRequestService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\ICashTransferRequestService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\ICashWithdrawalRequestService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\IElectronicJournalService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\IExpensePayableService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\IExternalChequeService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\IFiscalCountService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\IFixedDepositService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\IInHouseChequeService.cs" />
+    <Compile Include="Contracts\FrontOfficeModule\ISuperSaverPayableService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IDepartmentService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IDesignationService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IEmployeeAppraisalPeriodService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IEmployeeAppraisalService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IEmployeeAppraisalTargetService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IEmployeeDocumentService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IEmployeeExitService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IEmployeeService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IEmployeeTypeService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IExitInterviewAnswerService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IExitInterviewQuestionService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IHolidayService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\ILeaveApplicationService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\ILeaveTypeService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\IPaySlipService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\ISalaryCardService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\ISalaryGroupService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\ISalaryHeadService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\ISalaryPeriodService.cs" />
+    <Compile Include="Contracts\HumanResourcesModule\ITrainingPeriodService.cs" />
+    <Compile Include="Contracts\IAuditLogService.cs" />
+    <Compile Include="Contracts\IFileUploadService.cs" />
+    <Compile Include="Contracts\IMediaService.cs" />
+    <Compile Include="Contracts\IUtilityService.cs" />
+    <Compile Include="Contracts\MembershipModule\IMembershipManagerService.cs" />
+    <Compile Include="Contracts\MembershipModule\IPasswordManagerService.cs" />
+    <Compile Include="Contracts\MembershipModule\IRoleManagerService.cs" />
+    <Compile Include="Contracts\MembershipModule\IUserManagerService.cs" />
+    <Compile Include="Contracts\MessagingModule\IEmailAlertService.cs" />
+    <Compile Include="Contracts\MessagingModule\IMessageGroupService.cs" />
+    <Compile Include="Contracts\MessagingModule\ITextAlertService.cs" />
+    <Compile Include="Contracts\MicroCreditModule\IMicroCreditGroupService.cs" />
+    <Compile Include="Contracts\MicroCreditModule\IMicroCreditOfficerService.cs" />
+    <Compile Include="Contracts\RegistryModule\IAdministrativeDivisionService.cs" />
+    <Compile Include="Contracts\RegistryModule\ICommissionExemptionService.cs" />
+    <Compile Include="Contracts\RegistryModule\IConditionalLendingService.cs" />
+    <Compile Include="Contracts\RegistryModule\ICustomerDocumentService.cs" />
+    <Compile Include="Contracts\RegistryModule\ICustomerService.cs" />
+    <Compile Include="Contracts\RegistryModule\IDelegateService.cs" />
+    <Compile Include="Contracts\RegistryModule\IDirectorService.cs" />
+    <Compile Include="Contracts\RegistryModule\IEducationRegisterService.cs" />
+    <Compile Include="Contracts\RegistryModule\IEducationVenueService.cs" />
+    <Compile Include="Contracts\RegistryModule\IEmployerService.cs" />
+    <Compile Include="Contracts\RegistryModule\IFileRegisterService.cs" />
+    <Compile Include="Contracts\RegistryModule\IFuneralRiderClaimService.cs" />
+    <Compile Include="Contracts\RegistryModule\IWithdrawalNotificationService.cs" />
+    <Compile Include="Contracts\RegistryModule\IZoneService.cs" />
+    <Compile Include="CostCenterService.svc.cs">
+      <DependentUpon>CostCenterService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CreditBatchService.svc.cs">
+      <DependentUpon>CreditBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CreditTypeService.svc.cs">
+      <DependentUpon>CreditTypeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CustomerAccountService.svc.cs">
+      <DependentUpon>CustomerAccountService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CustomerDocumentService.svc.cs">
+      <DependentUpon>CustomerDocumentService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="CustomerService.svc.cs">
+      <DependentUpon>CustomerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DataAttachmentPeriodService.svc.cs">
+      <DependentUpon>DataAttachmentPeriodService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DebitBatchService.svc.cs">
+      <DependentUpon>DebitBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DebitTypeService.svc.cs">
+      <DependentUpon>DebitTypeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DelegateService.svc.cs">
+      <DependentUpon>DelegateService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DepartmentService.svc.cs">
+      <DependentUpon>DepartmentService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DesignationService.svc.cs">
+      <DependentUpon>DesignationService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DirectDebitService.svc.cs">
+      <DependentUpon>DirectDebitService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DirectorService.svc.cs">
+      <DependentUpon>DirectorService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="DynamicChargeService.svc.cs">
+      <DependentUpon>DynamicChargeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EducationRegisterService.svc.cs">
+      <DependentUpon>EducationRegisterService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EducationVenueService.svc.cs">
+      <DependentUpon>EducationVenueService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ElectronicJournalService.svc.cs">
+      <DependentUpon>ElectronicJournalService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ElectronicStatementOrderService.svc.cs">
+      <DependentUpon>ElectronicStatementOrderService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmailAlertService.svc.cs">
+      <DependentUpon>EmailAlertService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeAppraisalPeriodService.svc.cs">
+      <DependentUpon>EmployeeAppraisalPeriodService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeAppraisalService.svc.cs">
+      <DependentUpon>EmployeeAppraisalService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeAppraisalTargetService.svc.cs">
+      <DependentUpon>EmployeeAppraisalTargetService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeDocumentService.svc.cs">
+      <DependentUpon>EmployeeDocumentService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeExitService.svc.cs">
+      <DependentUpon>EmployeeExitService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeService.svc.cs">
+      <DependentUpon>EmployeeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeTypeService.svc.cs">
+      <DependentUpon>EmployeeTypeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="EmployerService.svc.cs">
+      <DependentUpon>EmployerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ExitInterviewAnswerService.svc.cs">
+      <DependentUpon>ExitInterviewAnswerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ExitInterviewQuestionService.svc.cs">
+      <DependentUpon>ExitInterviewQuestionService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ExpensePayableService.svc.cs">
+      <DependentUpon>ExpensePayableService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ExternalChequeService.svc.cs">
+      <DependentUpon>ExternalChequeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="FileRegisterService.svc.cs">
+      <DependentUpon>FileRegisterService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="FileUploadService.svc.cs">
+      <DependentUpon>FileUploadService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="FiscalCountService.svc.cs">
+      <DependentUpon>FiscalCountService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="FixedDepositService.svc.cs">
+      <DependentUpon>FixedDepositService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="FixedDepositTypeService.svc.cs">
+      <DependentUpon>FixedDepositTypeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="FuneralRiderClaimService.svc.cs">
+      <DependentUpon>FuneralRiderClaimService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="GeneralLedgerService.svc.cs">
+      <DependentUpon>GeneralLedgerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="Global.asax.cs">
+      <DependentUpon>Global.asax</DependentUpon>
+    </Compile>
+    <Compile Include="HolidayService.svc.cs">
+      <DependentUpon>HolidayService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="Identity\ApplicationDbContext.cs" />
+    <Compile Include="Identity\ApplicationRoleManager.cs" />
+    <Compile Include="Identity\ApplicationUser.cs" />
+    <Compile Include="Identity\ApplicationUserManager.cs" />
+    <Compile Include="Contracts\AdministrationModule\IMembershipService.cs" />
+    <Compile Include="Contracts\AdministrationModule\INavigationItemInRoleService.cs" />
+    <Compile Include="Contracts\AdministrationModule\INavigationItemService.cs" />
+    <Compile Include="IncomeAdjustmentService.svc.cs">
+      <DependentUpon>IncomeAdjustmentService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="InHouseChequeService.svc.cs">
+      <DependentUpon>InHouseChequeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="InstanceProviders\UnityInstanceProvider.cs" />
+    <Compile Include="InstanceProviders\UnityInstanceProviderServiceBehavior.cs" />
+    <Compile Include="InsuranceCompanyService.svc.cs">
+      <DependentUpon>InsuranceCompanyService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="InterAccountTransferBatchService.svc.cs">
+      <DependentUpon>InterAccountTransferBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="InvestmentProductService.svc.cs">
+      <DependentUpon>InvestmentProductService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="JournalEntryService.svc.cs">
+      <DependentUpon>JournalEntryService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="JournalReversalBatchService.svc.cs">
+      <DependentUpon>JournalReversalBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="JournalService.svc.cs">
+      <DependentUpon>JournalService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="JournalVoucherService.svc.cs">
+      <DependentUpon>JournalVoucherService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LeaveApplicationService.svc.cs">
+      <DependentUpon>LeaveApplicationService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LeaveTypeService.svc.cs">
+      <DependentUpon>LeaveTypeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LevyService.svc.cs">
+      <DependentUpon>LevyService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LoanCaseService.svc.cs">
+      <DependentUpon>LoanCaseService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LoanDisbursementBatchService.svc.cs">
+      <DependentUpon>LoanDisbursementBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LoaningRemarkService.svc.cs">
+      <DependentUpon>LoaningRemarkService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LoanProductService.svc.cs">
+      <DependentUpon>LoanProductService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LoanPurposeService.svc.cs">
+      <DependentUpon>LoanPurposeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LoanRequestService.svc.cs">
+      <DependentUpon>LoanRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="LocationService.svc.cs">
+      <DependentUpon>LocationService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="MediaService.svc.cs">
+      <DependentUpon>MediaService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="MembershipManagerService.svc.cs">
+      <DependentUpon>MembershipManagerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="MembershipService.svc.cs">
+      <DependentUpon>MembershipService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="MessageGroupService.svc.cs">
+      <DependentUpon>MessageGroupService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="MicroCreditGroupService.svc.cs">
+      <DependentUpon>MicroCreditGroupService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="MicroCreditOfficerService.svc.cs">
+      <DependentUpon>MicroCreditOfficerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="MobileToBankRequestService.svc.cs">
+      <DependentUpon>MobileToBankRequestService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ModuleNavigationItemService.svc.cs">
+      <DependentUpon>ModuleNavigationItemService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="NavigationItemInRoleService.svc.cs">
+      <DependentUpon>NavigationItemInRoleService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="NavigationItemService.svc.cs">
+      <DependentUpon>NavigationItemService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="OverDeductionBatchService.svc.cs">
+      <DependentUpon>OverDeductionBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="PasswordManagerService.svc.cs">
+      <DependentUpon>PasswordManagerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="PaySlipService.svc.cs">
+      <DependentUpon>PaySlipService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="PostingPeriodService.svc.cs">
+      <DependentUpon>PostingPeriodService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="RecurringBatchService.svc.cs">
+      <DependentUpon>RecurringBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ReportService.svc.cs">
+      <DependentUpon>ReportService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ReportTemplateService.svc.cs">
+      <DependentUpon>ReportTemplateService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="RoleManagerService.svc.cs">
+      <DependentUpon>RoleManagerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SalaryCardService.svc.cs">
+      <DependentUpon>SalaryCardService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SalaryGroupService.svc.cs">
+      <DependentUpon>SalaryGroupService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SalaryHeadService.svc.cs">
+      <DependentUpon>SalaryHeadService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SalaryPeriodService.svc.cs">
+      <DependentUpon>SalaryPeriodService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SavingsProductService.svc.cs">
+      <DependentUpon>SavingsProductService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StandingOrderService.svc.cs">
+      <DependentUpon>StandingOrderService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="SuperSaverPayableService.svc.cs">
+      <DependentUpon>SuperSaverPayableService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="TellerService.svc.cs">
+      <DependentUpon>TellerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="TextAlertService.svc.cs">
+      <DependentUpon>TextAlertService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="TrainingPeriodService.svc.cs">
+      <DependentUpon>TrainingPeriodService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="TreasuryService.svc.cs">
+      <DependentUpon>TreasuryService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="UnityContainers\Container.cs" />
+    <Compile Include="UnPayReasonService.svc.cs">
+      <DependentUpon>UnPayReasonService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="UserManagerService.svc.cs">
+      <DependentUpon>UserManagerService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="UtilityService.svc.cs">
+      <DependentUpon>UtilityService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="WireTransferBatchService.svc.cs">
+      <DependentUpon>WireTransferBatchService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="WireTransferTypeService.svc.cs">
+      <DependentUpon>WireTransferTypeService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="WithdrawalNotificationService.svc.cs">
+      <DependentUpon>WithdrawalNotificationService.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ZoneService.svc.cs">
+      <DependentUpon>ZoneService.svc</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_Data\AccountAlertTemplates\CustomerRegistration_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipAccountRegistration_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipAccountVerification_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipAccountVerification_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipResetPassword_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\PromotionalAccountAlert_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MobileToBank_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\PurchasePayables_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SaccoLink_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SalaryProcessing_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SavingsLedgerFee_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\Sparrow_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\Sparrow_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SpotCash_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\PurchasePayables_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SaccoLink_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SalaryProcessing_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SavingsLedgerFee_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SpotCash_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\StandingOrder_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\StandingOrder_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\StatementFee_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\StatementFee_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SuperSaverPayables_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\SuperSaverPayables_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\TruncatedCheque_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\TruncatedCheque_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\WireTransferBatch_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\WireTransferBatch_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanRequest_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanRequest_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanRestructuring_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanRestructuring_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MCoopCashWallet_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MCoopCashWallet_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipApproval_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipApproval_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipTermination_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MembershipTermination_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MobileToBankSenderAcknowledgement_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MobileToBankSenderAcknowledgement_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\MobileToBank_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\OverDeductionBatch_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\OverDeductionBatch_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\PesaPepeMicroloan_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\PesaPepeMicroloan_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\PesaPepe_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\PesaPepe_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AbcBank_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AbcBank_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AccountClosure_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AccountClosure_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AccountDormant_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AccountDormant_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AccountFreezing_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AccountFreezing_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AgencyBanking_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AgencyBanking_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelDelinking_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelDelinking_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelLinking_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelLinking_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelRenewal_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelRenewal_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelReplacement_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelReplacement_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelStoppage_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AlternateChannelStoppage_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AssetDisposals_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\AssetDisposals_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\BackOfficeCashReceipt_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\BackOfficeCashReceipt_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashDeposit_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashDeposit_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashWithdrawalAccountClosure_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashWithdrawalAccountClosure_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashWithdrawalPaymentVoucher_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashWithdrawalPaymentVoucher_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashWithdrawal_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CashWithdrawal_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ChequeDeposit_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ChequeDeposit_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\Citius_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\Citius_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CreditBatchCheckOff_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CreditBatchCheckOff_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CreditBatchPayout_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CreditBatchPayout_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CustomerDetailsEditing_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\CustomerDetailsEditing_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\DebitBatch_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\DebitBatch_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ElectronicStatementOrder_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ElectronicStatementOrder_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalChequeBanking_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalChequeBanking_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalChequeClearance_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalChequeClearance_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalChequeTransfer_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalChequeTransfer_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalCheque_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\ExternalCheque_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\FixedDeposit_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\FixedDeposit_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\FuneralRiderClaimPayables_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\FuneralRiderClaimPayables_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GeneralLedger_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GeneralLedger_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GuarantorAttachment_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GuarantorAttachment_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GuarantorRelieving_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GuarantorRelieving_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GuarantorSubstitution_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\GuarantorSubstitution_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InHouseCheque_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InHouseCheque_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InterAcccountTransfer_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InterAcccountTransfer_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InterestCapitalization_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InterestCapitalization_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\IntraAcccountTransfer_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\IntraAcccountTransfer_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InvestmentBalancesAdjustment_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InvestmentBalancesAdjustment_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InvestmentBalancesPooling_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\InvestmentBalancesPooling_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\JournalVoucher_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\JournalVoucher_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LeaveApproval_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LeaveApproval_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanDeferred_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanDeferred_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanDisbursement_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanDisbursement_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanGuarantee_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanGuarantee_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanLedgerFee_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanLedgerFee_TextTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanOffsetting_EmailTemplate.cshtml" />
+    <Content Include="App_Data\AccountAlertTemplates\LoanOffsetting_TextTemplate.cshtml" />
+    <None Include="packages.config" />
+    <None Include="Web.Debug.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+    <None Include="Web.Release.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj">
+      <Project>{BC316B5E-4FB5-416D-A256-388E72FB14CC}</Project>
+      <Name>Application.MainBoundedContext.DTO</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Application.MainBoundedContext\Application.MainBoundedContext.csproj">
+      <Project>{2EF2ACE9-B5DB-4B61-A6ED-66F976783689}</Project>
+      <Name>Application.MainBoundedContext</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Application.Seedwork\Application.Seedwork.csproj">
+      <Project>{97D7D298-0EA9-4AFF-BEF8-7B50B9339F80}</Project>
+      <Name>Application.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
+      <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
+      <Name>Infrastructure.Crosscutting.Framework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DistributedServices.Seedwork\DistributedServices.Seedwork.csproj">
+      <Project>{06d5c3a8-452b-4bac-ac7a-e36b343ab7db}</Project>
+      <Name>DistributedServices.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain.Seedwork\Domain.Seedwork.csproj">
+      <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
+      <Name>Domain.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EntityFramework.Implementation\EntityFramework.Implementation.csproj">
+      <Project>{E8E97372-82E1-417A-9E23-11106AD1CA16}</Project>
+      <Name>EntityFramework.Implementation</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj">
+      <Project>{159A5AB3-4BC6-4379-A5B5-168D0CB783CD}</Project>
+      <Name>EntityFramework.Interfaces</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Infrastructure.Data.MainBoundedContext\Infrastructure.Data.MainBoundedContext.csproj">
+      <Project>{3167A4C1-44E6-499A-8FC7-682D875429F5}</Project>
+      <Name>Infrastructure.Data.MainBoundedContext</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>True</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>0</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:53902/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl>
+          </CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
