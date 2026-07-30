@@ -250,6 +250,10 @@
     <Compile Include="UnitOfWork\Mapping\AdministrationModule\ReportEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AdministrationModule\SystemPermissionTypeInBranchEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AdministrationModule\SystemPermissionTypeInRoleEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\WorkflowEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\WorkflowItemEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\WorkflowItemEntryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\WorkflowSettingEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AuditLogArchiveEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AuditLogEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AuditTrailEntityConfiguration.cs" />

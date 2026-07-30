@@ -395,7 +395,7 @@ namespace DistributedServices.MainBoundedContext
 
     public static class ApplicationSpecifications
     {
-        public static Specification<ApplicationUser> ApplicationUsersWithText(string text)
+        public static Specification<DistributedServices.MainBoundedContext.Identity.ApplicationUser> ApplicationUsersWithText(string text)
         {
             Specification<ApplicationUser> specification = new TrueSpecification<ApplicationUser>();
 

@@ -9,6 +9,7 @@ using System.Web;
 using System.Web.Http;
 using System.Web.Http.Results;
 using System.Web.UI.WebControls;
+using WebApplication1.Areas.Admin.Services;
 using WebApplication1.Areas.Identity;
 
 namespace WebApplication1.Areas.Auth
@@ -73,9 +74,11 @@ namespace WebApplication1.Areas.Auth
 
 
             var roles = await _userManager.GetRolesAsync(user.Id);
+            var token = JwtTokenService.GenerateToken(user, roles);
 
             return Ok(new
             {
+                token,
                 user.UserName,
                 roles
             });

@@ -15,7 +15,7 @@ namespace WebApplication1.Controllers
 
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     [AllowAnonymous]
-    [RoutePrefix("api/customer-accounts")]
+    [RoutePrefix("api/accounts/customer-accounts")]
     public class CustomerAccountsController : ApiController
     {
         private readonly CustomerAccountService _service = new CustomerAccountService();

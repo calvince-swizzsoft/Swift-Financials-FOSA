@@ -1,32 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web.Http;
-
-using Application.MainBoundedContext.AccountsModule.Services;
-using Application.MainBoundedContext.RegistryModule.Services;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
 using Application.MainBoundedContext.DTO.MessagingModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.FrontOfficeModule.Services;
-using Infrastructure.Crosscutting.Framework.Utils;
-using Application.MainBoundedContext.AdministrationModule.Services;
-using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.MessagingModule.Services;
-
-using System.Web.Http.Cors;
+using Application.MainBoundedContext.RegistryModule.Services;
+using Infrastructure.Crosscutting.Framework.Utils;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Linq;
+using System.Security.Claims;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web.Http;
+using System.Web.Http.Cors;
 using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    //[EnableCors(origins: "*", headers: "*", methods: "*")]
+    //[AllowAnonymous]
     [RoutePrefix("api/frontoffice/requests")]
     public class CashDepositController : ApiController
     {
@@ -56,6 +56,12 @@ namespace WebApplication1.Controllers
 
         private readonly IInvestmentProductAppService _investmentProductAppService;
 
+        private readonly IAuthorizationAppService _authorizationAppService;
+
+        private readonly IWorkflowAppService _workflowAppService;
+
+        //private readonly IWorkflowProcessorAppService _workflowProcessorAppService;
+
      
         public CashDepositController(ICashDepositRequestAppService cashDepositRequestAppService, 
             ICustomerAccountAppService customerAccountAppService, 
@@ -69,7 +75,9 @@ namespace WebApplication1.Controllers
             IExternalChequeAppService externalChequeAppService,
             ITextAlertAppService textAlertAppService,
             ISavingsProductAppService savingsProductAppService,
-            IInvestmentProductAppService investmentProductAppService 
+            IInvestmentProductAppService investmentProductAppService,
+            IAuthorizationAppService authorizationAppService,
+            IWorkflowAppService workflowAppService
             )
         {
             _cashDepositRequestAppService = cashDepositRequestAppService;
@@ -85,6 +93,8 @@ namespace WebApplication1.Controllers
             _textAlertAppService = textAlertAppService;
             _savingsProductAppService = savingsProductAppService;
             _investmentProductAppService = investmentProductAppService;
+            _authorizationAppService = authorizationAppService;
+            _workflowAppService = workflowAppService;
         }
 
         [HttpGet]
@@ -175,8 +185,12 @@ namespace WebApplication1.Controllers
             }
 
             var SelectedBranch = _branchAppService.FindBranch(transactionModel.BranchId, serviceHeader);
-            var SelectedTeller = _tellerAppService.FindTeller((Guid)transactionModel.CurrentTellerId, serviceHeader);
-          
+
+            var SelectedTeller = GetCurrentTeller(serviceHeader);
+            //var SelectedTeller = _tellerAppService.FindTeller((Guid)transactionModel.CurrentTellerId, serviceHeader);
+
+
+
             if (SelectedTeller == null)
             {
                 var response = new
@@ -695,31 +709,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        private async Task<TellerDTO> GetCurrentTeller()
-        {
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
-
-            // Get the current user
-            //var user = await _applicationUserManager.FindByIdAsync(User.Identity.GetUserId());
-
-            var teller = _tellerAppService.FindTellerByEmployeeId(Guid.Parse("50BDE4A6-1F50-F111-9B87-C8E2651EF92A"), serviceHeader);
-
-            return teller;
-
-        }
+      
 
         private async Task<OperationResult> ProcessCustomerTransactionAsync(CustomerTransactionModel transactionModel, TellerDTO selectedTellerDTO, CustomerAccountDTO customerAccountDTO, CustomerDTO selectedCustomer, SavingsProductDTO targetProduct)
         {
@@ -756,7 +746,7 @@ namespace WebApplication1.Controllers
                             case CashDepositCategory.WithinLimits:
                                 var withinLimitsCashDepositJournal = _journalAppService.AddNewJournal(transactionModel.BranchId, null, transactionModel.TotalValue, transactionModel.PrimaryDescription, transactionModel.SecondaryDescription, transactionModel.Reference, transactionModel.ModuleNavigationItemCode, transactionModel.TransactionCode, transactionModel.ValueDate, transactionModel.CreditChartOfAccountId, transactionModel.DebitChartOfAccountId, transactionModel.CreditCustomerAccount, transactionModel.DebitCustomerAccount, tariffs, serviceHeader);
                                 
-                                transactionModel.CustomerAccount.NewAvailableBalance = transactionModel.CustomerAccount.AvailableBalance + transactionModel.TotalValue;
+                                //transactionModel.CustomerAccount.NewAvailableBalance = transactionModel.CustomerAccount.AvailableBalance + transactionModel.TotalValue;
                                 var updateWithinLimitResult = _customerAccountAppService.UpdateCustomerAccount(SelectedCustomerAccount, serviceHeader);
 
 
@@ -837,7 +827,7 @@ namespace WebApplication1.Controllers
                                             var authorizedCashDepositJournal = _journalAppService.AddNewJournal(transactionModel.BranchId, null, transactionModel.TotalValue, transactionModel.PrimaryDescription, transactionModel.SecondaryDescription, transactionModel.Reference, transactionModel.ModuleNavigationItemCode, transactionModel.TransactionCode, transactionModel.ValueDate, transactionModel.CreditChartOfAccountId, transactionModel.DebitChartOfAccountId, transactionModel.CreditCustomerAccount, transactionModel.DebitCustomerAccount, tariffs, serviceHeader);
 
 
-                                            transactionModel.CustomerAccount.NewAvailableBalance = transactionModel.CustomerAccount.AvailableBalance + transactionModel.TotalValue;
+                                            //transactionModel.CustomerAccount.NewAvailableBalance = transactionModel.CustomerAccount.AvailableBalance + transactionModel.TotalValue;
                                             var updateAuhorizedResult = _customerAccountAppService.UpdateCustomerAccount(SelectedCustomerAccount, serviceHeader);
 
 
@@ -911,9 +901,21 @@ namespace WebApplication1.Controllers
                                     aboveMaxCashDepositRequestDTO.Posted = false;
                                     aboveMaxCashDepositRequestDTO.TransactionType = transactionModel.Type;
 
-                                    aboveMaxCashDepositRequestDTO.Remarks = transactionModel.CurrentTellerId.ToString();
+                                    aboveMaxCashDepositRequestDTO.Remarks = SelectedTeller.Id.ToString();
 
-                                    _cashDepositRequestAppService.AddNewCashDepositRequest(aboveMaxCashDepositRequestDTO, serviceHeader);
+                                    var cashDepositRequestDTO = _cashDepositRequestAppService.AddNewCashDepositRequest(aboveMaxCashDepositRequestDTO, serviceHeader);
+
+
+                                    WorkflowDTO workflowDto = new WorkflowDTO
+                                    {
+                                        RecordId = cashDepositRequestDTO.Id, 
+                                        BranchId = transactionModel.BranchId,
+                                        Status = (int)WorkflowRecordStatus.Pending,
+                                        SystemPermissionType = (int)SystemPermissionType.CashDepositRequestAuthorization
+                                    };
+
+                                    var rolesList = _authorizationAppService.GetRolesListForSystemPermissionType((int)SystemPermissionType.CashDepositRequestAuthorization, serviceHeader);
+                                    _workflowAppService.AddNewWorkflow(workflowDto, rolesList, serviceHeader);
 
 
                                     string message = string.Format(
@@ -1310,7 +1312,7 @@ namespace WebApplication1.Controllers
                                 SelectedCustomerAccount = _customerAccountAppService.FindCustomerAccountDTO(SelectedCustomerAccount.Id, serviceHeader);
 
 
-                                var updatedTeller = await GetCurrentTeller();
+                                var updatedTeller = GetCurrentTeller(serviceHeader);
                                 string successmessage = $"Customer new balance is {SelectedCustomerAccount.AvailableBalance} and Teller's new balance is {updatedTeller.BookBalance}";
 
 
@@ -1459,6 +1461,17 @@ namespace WebApplication1.Controllers
             public CustomerTransactionModel TransactionData { get; set; }
 
             public JournalDTO TransactionJournal { get; set; }
+        }
+
+
+        private TellerDTO GetCurrentTeller(ServiceHeader serviceHeader)
+        {
+            var employeeIdClaim = (System.Web.HttpContext.Current?.User as ClaimsPrincipal)?.FindFirst("EmployeeId");
+
+            if (employeeIdClaim == null || !Guid.TryParse(employeeIdClaim.Value, out var employeeId))
+                throw new InvalidOperationException("Current user has no linked employee/teller record.");
+
+            return _tellerAppService.FindTellerByEmployeeId(employeeId, serviceHeader);
         }
 
 

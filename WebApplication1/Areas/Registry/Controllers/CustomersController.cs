@@ -17,7 +17,7 @@ namespace WebApplication1.Controllers
 
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     [AllowAnonymous]
-    [RoutePrefix("api/customers")]
+    [RoutePrefix("api/registry/customers")]
     public class CustomersController : ApiController
     {
      

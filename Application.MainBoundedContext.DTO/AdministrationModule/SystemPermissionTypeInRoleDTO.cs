@@ -71,8 +71,6 @@ namespace Application.MainBoundedContext.DTO.AdministrationModule
 
         // List of branches that can be associated with the selected SystemPermissionType
         public ObservableCollection<string> Branches;
-
-
     }
 
 }

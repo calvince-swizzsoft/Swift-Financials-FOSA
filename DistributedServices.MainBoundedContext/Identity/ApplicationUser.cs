@@ -4,7 +4,7 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace WebApplication1.Areas.Identity
+namespace DistributedServices.MainBoundedContext.Identity
 {
     public class ApplicationUser : IdentityUser
     {

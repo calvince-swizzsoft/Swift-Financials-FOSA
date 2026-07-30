@@ -113,7 +113,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
                             workflowItemDTO.WorkflowId = workflowResult.Id;
 
-                            workflowItemDTO.RequiredApprovals = role.RequiredApprovers;
+                            workflowItemDTO.RequiredApprovals = role.RequiredApprovers; // a role can have multiple users, remember
 
                             workflowItemDTO.CurrentApprovals = 0;
 

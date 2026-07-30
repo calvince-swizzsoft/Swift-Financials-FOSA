@@ -31,9 +31,6 @@ namespace Application.MainBoundedContext.DTO
 
 
         [DataMember]
-        public Guid CurrentTellerId { get; set; }
-
-        [DataMember]
         public Guid ChequeType { get; set; }
 
         [DataMember]
