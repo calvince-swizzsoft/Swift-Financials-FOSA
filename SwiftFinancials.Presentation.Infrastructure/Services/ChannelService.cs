@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
@@ -345,37 +345,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EmployeeDTO>> GetUserInfoCollectionInPageAsync(int pageIndex, int pageSize, string filter, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
+        public Task<PageCollectionInfo<EmployeeDTO>> GetUserInfoCollectionInPageAsync(int pageIndex, int pageSize, string filter, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
 
-        //    IMembershipManagerService service = GetService<IMembershipManagerService>(serviceHeader);
+            IMembershipManagerService service = GetService<IMembershipManagerService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDTO> response = ((IMembershipManagerService)result.AsyncState).EndGetUserInfoCollectionInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDTO> response = ((IMembershipManagerService)result.AsyncState).EndGetUserInfoCollectionInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginGetUserInfoCollectionInPage(pageIndex, pageSize, filter, asyncCallback, service);
+            service.BeginGetUserInfoCollectionInPage(pageIndex, pageSize, filter, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<int> CreateUserAsync(EmployeeDTO employeeDTO, ServiceHeader serviceHeader)
         {
@@ -669,83 +669,83 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region MembershipSevice
 
-        //public Task<PageCollectionInfo<UserDTO>> FindMembershipByFilterInPageAsync(string text, int pageIndex, int pageSize, List<string> sortFields, bool sortAscending, ServiceHeader serviceHeader)
-        //{
-        //    TaskCompletionSource<PageCollectionInfo<UserDTO>> tcs = new TaskCompletionSource<PageCollectionInfo<UserDTO>>();
+        public Task<PageCollectionInfo<UserDTO>> FindMembershipByFilterInPageAsync(string text, int pageIndex, int pageSize, List<string> sortFields, bool sortAscending, ServiceHeader serviceHeader)
+        {
+            TaskCompletionSource<PageCollectionInfo<UserDTO>> tcs = new TaskCompletionSource<PageCollectionInfo<UserDTO>>();
 
-        //    IMembershipService service = GetService<IMembershipService>(serviceHeader);
+            IMembershipService service = GetService<IMembershipService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<UserDTO> response = ((IMembershipService)result.AsyncState).EndFindMembershipByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<UserDTO> response = ((IMembershipService)result.AsyncState).EndFindMembershipByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb))
-        //                {
-        //                    tcs.TrySetResult(null);
-        //                }
-        //                else
-        //                {
-        //                    tcs.TrySetException(ex);
-        //                }
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb))
+                        {
+                            tcs.TrySetResult(null);
+                        }
+                        else
+                        {
+                            tcs.TrySetException(ex);
+                        }
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMembershipByFilterInPage(text, pageIndex, pageSize, sortFields, sortAscending, asyncCallback, service);
+            service.BeginFindMembershipByFilterInPage(text, pageIndex, pageSize, sortFields, sortAscending, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<RoleDTO>> FindMembershipRolesByFilterInPageAsync(string text, int pageIndex, int pageSize, List<string> sortFields, bool sortAscending, ServiceHeader serviceHeader)
-        //{
-        //    TaskCompletionSource<PageCollectionInfo<RoleDTO>> tcs = new TaskCompletionSource<PageCollectionInfo<RoleDTO>>();
+        public Task<PageCollectionInfo<RoleDTO>> FindMembershipRolesByFilterInPageAsync(string text, int pageIndex, int pageSize, List<string> sortFields, bool sortAscending, ServiceHeader serviceHeader)
+        {
+            TaskCompletionSource<PageCollectionInfo<RoleDTO>> tcs = new TaskCompletionSource<PageCollectionInfo<RoleDTO>>();
 
-        //    IMembershipService service = GetService<IMembershipService>(serviceHeader);
+            IMembershipService service = GetService<IMembershipService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<RoleDTO> response = ((IMembershipService)result.AsyncState).EndFindMembershipRolesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<RoleDTO> response = ((IMembershipService)result.AsyncState).EndFindMembershipRolesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb))
-        //                {
-        //                    tcs.TrySetResult(null);
-        //                }
-        //                else
-        //                {
-        //                    tcs.TrySetException(ex);
-        //                }
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb))
+                        {
+                            tcs.TrySetResult(null);
+                        }
+                        else
+                        {
+                            tcs.TrySetException(ex);
+                        }
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMembershipRolesByFilterInPage(text, pageIndex, pageSize, sortFields, sortAscending, asyncCallback, service);
+            service.BeginFindMembershipRolesByFilterInPage(text, pageIndex, pageSize, sortFields, sortAscending, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<UserDTO> AddNewMembershipAsync(UserDTO userDTO, ServiceHeader serviceHeader)
         {
@@ -1056,69 +1056,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<CompanyDTO>> FindCompaniesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CompanyDTO>>();
+        public Task<PageCollectionInfo<CompanyDTO>> FindCompaniesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CompanyDTO>>();
 
-        //    ICompanyService service = GetService<ICompanyService>(serviceHeader);
+            ICompanyService service = GetService<ICompanyService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CompanyDTO> response = ((ICompanyService)result.AsyncState).EndFindCompaniesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CompanyDTO> response = ((ICompanyService)result.AsyncState).EndFindCompaniesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCompaniesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCompaniesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<CompanyDTO>> FindCompaniesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CompanyDTO>>();
+        public Task<PageCollectionInfo<CompanyDTO>> FindCompaniesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CompanyDTO>>();
 
-        //    ICompanyService service = GetService<ICompanyService>(serviceHeader);
+            ICompanyService service = GetService<ICompanyService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CompanyDTO> response = ((ICompanyService)result.AsyncState).EndFindCompaniesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CompanyDTO> response = ((ICompanyService)result.AsyncState).EndFindCompaniesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCompaniesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCompaniesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<CompanyDTO> AddCompanyAsync(CompanyDTO companyDTO, ServiceHeader serviceHeader)
         {
@@ -1452,69 +1452,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<AuditLogDTO>> FindAuditLogsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AuditLogDTO>>();
+        public Task<PageCollectionInfo<AuditLogDTO>> FindAuditLogsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AuditLogDTO>>();
 
-        //    IAuditLogService service = GetService<IAuditLogService>(serviceHeader);
+            IAuditLogService service = GetService<IAuditLogService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AuditLogDTO> response = ((IAuditLogService)result.AsyncState).EndFindAuditLogsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AuditLogDTO> response = ((IAuditLogService)result.AsyncState).EndFindAuditLogsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAuditLogsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindAuditLogsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<AuditLogDTO>> FindAuditLogsByDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string filter, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AuditLogDTO>>();
+        public Task<PageCollectionInfo<AuditLogDTO>> FindAuditLogsByDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string filter, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AuditLogDTO>>();
 
-        //    IAuditLogService service = GetService<IAuditLogService>(serviceHeader);
+            IAuditLogService service = GetService<IAuditLogService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AuditLogDTO> response = ((IAuditLogService)result.AsyncState).EndFindAuditLogsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AuditLogDTO> response = ((IAuditLogService)result.AsyncState).EndFindAuditLogsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAuditLogsByDateRangeAndFilterInPage(pageIndex, pageSize, startDate, endDate, filter, asyncCallback, service);
+            service.BeginFindAuditLogsByDateRangeAndFilterInPage(pageIndex, pageSize, startDate, endDate, filter, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
@@ -1584,37 +1584,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<AuditTrailDTO>> FindAuditTrailsByDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string filter, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AuditTrailDTO>>();
+        public Task<PageCollectionInfo<AuditTrailDTO>> FindAuditTrailsByDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string filter, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AuditTrailDTO>>();
 
-        //    IAuditLogService service = GetService<IAuditLogService>(serviceHeader);
+            IAuditLogService service = GetService<IAuditLogService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AuditTrailDTO> response = ((IAuditLogService)result.AsyncState).EndFindAuditTrailsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AuditTrailDTO> response = ((IAuditLogService)result.AsyncState).EndFindAuditTrailsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAuditTrailsByDateRangeAndFilterInPage(pageIndex, pageSize, startDate, endDate, filter, asyncCallback, service);
+            service.BeginFindAuditTrailsByDateRangeAndFilterInPage(pageIndex, pageSize, startDate, endDate, filter, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
@@ -1955,69 +1955,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region BranchDTO
 
-        //public Task<PageCollectionInfo<BranchDTO>> FindBranchesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BranchDTO>>();
+        public Task<PageCollectionInfo<BranchDTO>> FindBranchesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BranchDTO>>();
 
-        //    IBranchService service = GetService<IBranchService>(serviceHeader);
+            IBranchService service = GetService<IBranchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BranchDTO> response = ((IBranchService)result.AsyncState).EndFindBranchesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BranchDTO> response = ((IBranchService)result.AsyncState).EndFindBranchesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBranchesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBranchesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<BranchDTO>> FindBranchesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BranchDTO>>();
+        public Task<PageCollectionInfo<BranchDTO>> FindBranchesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BranchDTO>>();
 
-        //    IBranchService service = GetService<IBranchService>(serviceHeader);
+            IBranchService service = GetService<IBranchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BranchDTO> response = ((IBranchService)result.AsyncState).EndFindBranchesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BranchDTO> response = ((IBranchService)result.AsyncState).EndFindBranchesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBranchesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBranchesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<BranchDTO>> FindBranchesAsync(ServiceHeader serviceHeader)
         {
@@ -2183,69 +2183,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region BankDTO
 
-        //public Task<PageCollectionInfo<BankDTO>> FindBanksInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankDTO>>();
+        public Task<PageCollectionInfo<BankDTO>> FindBanksInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankDTO>>();
 
-        //    IBankService service = GetService<IBankService>(serviceHeader);
+            IBankService service = GetService<IBankService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankDTO> response = ((IBankService)result.AsyncState).EndFindBanksInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankDTO> response = ((IBankService)result.AsyncState).EndFindBanksInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBanksInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBanksInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<BankDTO>> FindBanksByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankDTO>>();
+        public Task<PageCollectionInfo<BankDTO>> FindBanksByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankDTO>>();
 
-        //    IBankService service = GetService<IBankService>(serviceHeader);
+            IBankService service = GetService<IBankService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankDTO> response = ((IBankService)result.AsyncState).EndFindBanksByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankDTO> response = ((IBankService)result.AsyncState).EndFindBanksByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBanksByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBanksByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<BankDTO> AddBankAsync(BankDTO bankDTO, ServiceHeader serviceHeader)
         {
@@ -2347,69 +2347,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region LocationDTO
 
-        //public Task<PageCollectionInfo<LocationDTO>> FindLocationsByFilterInPageAsync(string filter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LocationDTO>>();
+        public Task<PageCollectionInfo<LocationDTO>> FindLocationsByFilterInPageAsync(string filter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LocationDTO>>();
 
-        //    ILocationService service = GetService<ILocationService>(serviceHeader);
+            ILocationService service = GetService<ILocationService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LocationDTO> response = ((ILocationService)result.AsyncState).EndFindLocationsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LocationDTO> response = ((ILocationService)result.AsyncState).EndFindLocationsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLocationsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLocationsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LocationDTO>> FindLocationsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LocationDTO>>();
+        public Task<PageCollectionInfo<LocationDTO>> FindLocationsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LocationDTO>>();
 
-        //    ILocationService service = GetService<ILocationService>(serviceHeader);
+            ILocationService service = GetService<ILocationService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LocationDTO> response = ((ILocationService)result.AsyncState).EndFindLocationsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LocationDTO> response = ((ILocationService)result.AsyncState).EndFindLocationsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLocationsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLocationsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LocationDTO> AddLocationAsync(LocationDTO locationDTO, ServiceHeader serviceHeader)
         {
@@ -2765,94 +2765,94 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ReportDTO>> FindReportFilterInPageAsync(int startIndex, int pageSize, IList<string> sortedColumns, string searchString, bool sortAscending, ServiceHeader serviceHeader, double timeoutMinutes = 10)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ReportDTO>>();
+        public Task<PageCollectionInfo<ReportDTO>> FindReportFilterInPageAsync(int startIndex, int pageSize, IList<string> sortedColumns, string searchString, bool sortAscending, ServiceHeader serviceHeader, double timeoutMinutes = 10)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ReportDTO>>();
 
-        //    IReportService service = GetService<IReportService>(serviceHeader, timeoutMinutes);
+            IReportService service = GetService<IReportService>(serviceHeader, timeoutMinutes);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ReportDTO> response =
-        //                ((IReportService)result.AsyncState).EndFindReportFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ReportDTO> response =
+                        ((IReportService)result.AsyncState).EndFindReportFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                tcs.TrySetResult(null);
-        //            });
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        tcs.TrySetResult(null);
+                    });
+                }
+            });
 
-        //    service.BeginFindReportFilterInPage(startIndex, pageSize, sortedColumns, searchString, sortAscending,
-        //        asyncCallback, service);
+            service.BeginFindReportFilterInPage(startIndex, pageSize, sortedColumns, searchString, sortAscending,
+                asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ReportDTO>> FindDetailedReportFilterInPageAsync(int startIndex, int pageSize, IList<string> sortedColumns, string searchString, bool sortAscending, ServiceHeader serviceHeader, double timeoutMinutes = 10)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ReportDTO>>();
+        public Task<PageCollectionInfo<ReportDTO>> FindDetailedReportFilterInPageAsync(int startIndex, int pageSize, IList<string> sortedColumns, string searchString, bool sortAscending, ServiceHeader serviceHeader, double timeoutMinutes = 10)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ReportDTO>>();
 
-        //    IReportService service = GetService<IReportService>(serviceHeader, timeoutMinutes);
+            IReportService service = GetService<IReportService>(serviceHeader, timeoutMinutes);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ReportDTO> response =
-        //                ((IReportService)result.AsyncState).EndFindDetailedReportFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ReportDTO> response =
+                        ((IReportService)result.AsyncState).EndFindDetailedReportFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                tcs.TrySetResult(null);
-        //            });
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        tcs.TrySetResult(null);
+                    });
+                }
+            });
 
-        //    service.BeginFindDetailedReportFilterInPage(startIndex, pageSize, sortedColumns, searchString, sortAscending,
-        //        asyncCallback, service);
+            service.BeginFindDetailedReportFilterInPage(startIndex, pageSize, sortedColumns, searchString, sortAscending,
+                asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ReportDTO>> FindReportHeadersFilterInPageAsync(int startIndex, int pageSize, IList<string> sortedColumns, string searchString, bool sortAscending, ServiceHeader serviceHeader, double timeoutMinutes = 10)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ReportDTO>>();
+        public Task<PageCollectionInfo<ReportDTO>> FindReportHeadersFilterInPageAsync(int startIndex, int pageSize, IList<string> sortedColumns, string searchString, bool sortAscending, ServiceHeader serviceHeader, double timeoutMinutes = 10)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ReportDTO>>();
 
-        //    IReportService service = GetService<IReportService>(serviceHeader, timeoutMinutes);
+            IReportService service = GetService<IReportService>(serviceHeader, timeoutMinutes);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ReportDTO> response =
-        //                ((IReportService)result.AsyncState).EndFindReportHeadersFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ReportDTO> response =
+                        ((IReportService)result.AsyncState).EndFindReportHeadersFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                tcs.TrySetResult(null);
-        //            });
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        tcs.TrySetResult(null);
+                    });
+                }
+            });
 
-        //    service.BeginFindReportHeadersFilterInPage(startIndex, pageSize, sortedColumns, searchString, sortAscending, asyncCallback, service);
+            service.BeginFindReportHeadersFilterInPage(startIndex, pageSize, sortedColumns, searchString, sortAscending, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ReportDTO> FindReportByIdAsync(Guid id, ServiceHeader serviceHeader, double timeoutMinutes = 10)
         {
@@ -3034,33 +3034,33 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<NavigationItemDTO>> FindNavigationItemsFilterPageCollectionInfoAsync(int pageIndex, int pageSize, List<string> sortedColumns, string text, bool sortAscending, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<NavigationItemDTO>>();
+        public Task<PageCollectionInfo<NavigationItemDTO>> FindNavigationItemsFilterPageCollectionInfoAsync(int pageIndex, int pageSize, List<string> sortedColumns, string text, bool sortAscending, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<NavigationItemDTO>>();
 
-        //    INavigationItemService service = GetService<INavigationItemService>(serviceHeader);
+            INavigationItemService service = GetService<INavigationItemService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            var response = ((INavigationItemService)result.AsyncState).EndFindNavigationItemsFilterPageCollectionInfo(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    var response = ((INavigationItemService)result.AsyncState).EndFindNavigationItemsFilterPageCollectionInfo(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                tcs.TrySetResult(null);
-        //            });
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        tcs.TrySetResult(null);
+                    });
+                }
+            });
 
-        //    service.BeginFindNavigationItemsFilterPageCollectionInfo(pageIndex, pageSize, sortedColumns, text, sortAscending, asyncCallback, service);
+            service.BeginFindNavigationItemsFilterPageCollectionInfo(pageIndex, pageSize, sortedColumns, text, sortAscending, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<List<NavigationItemDTO>> FindModuleNavigationActionByControllerNameAsync(string controllerName, ServiceHeader serviceHeader)
         {
@@ -3718,72 +3718,72 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<WorkflowDTO>> FindQueableWorkflowsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<WorkflowDTO>>();
+        public Task<PageCollectionInfo<WorkflowDTO>> FindQueableWorkflowsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<WorkflowDTO>>();
 
-        //    IWorkflowService service = GetService<IWorkflowService>(serviceHeader);
+            IWorkflowService service = GetService<IWorkflowService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<WorkflowDTO> response = ((IWorkflowService)result.AsyncState).EndFindQueableWorkflowsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<WorkflowDTO> response = ((IWorkflowService)result.AsyncState).EndFindQueableWorkflowsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindQueableWorkflowsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindQueableWorkflowsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
         #endregion
 
         #region WorkflowItemDTO
 
-        //public Task<PageCollectionInfo<WorkflowItemDTO>> FindWorkflowItemsByFilterInPageAsync(int systemPermissionType, int status, string filter, DateTime startDate, DateTime endDate, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<WorkflowItemDTO>>();
+        public Task<PageCollectionInfo<WorkflowItemDTO>> FindWorkflowItemsByFilterInPageAsync(int systemPermissionType, int status, string filter, DateTime startDate, DateTime endDate, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<WorkflowItemDTO>>();
 
-        //    IWorkflowService service = GetService<IWorkflowService>(serviceHeader);
+            IWorkflowService service = GetService<IWorkflowService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<WorkflowItemDTO> response = ((IWorkflowService)result.AsyncState).EndFindWorkflowItemsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<WorkflowItemDTO> response = ((IWorkflowService)result.AsyncState).EndFindWorkflowItemsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindWorkflowItemsByFilterInPage(systemPermissionType, status, filter, startDate, endDate, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindWorkflowItemsByFilterInPage(systemPermissionType, status, filter, startDate, endDate, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<List<WorkflowItemDTO>> FindWorkflowItemsAsync(Guid workflowId, ServiceHeader serviceHeader)
         {
@@ -4604,37 +4604,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<MicroCreditGroupDTO>> FindMicroCreditGroupsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<MicroCreditGroupDTO>>();
+        public Task<PageCollectionInfo<MicroCreditGroupDTO>> FindMicroCreditGroupsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<MicroCreditGroupDTO>>();
 
-        //    IMicroCreditGroupService service = GetService<IMicroCreditGroupService>(serviceHeader);
+            IMicroCreditGroupService service = GetService<IMicroCreditGroupService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<MicroCreditGroupDTO> response = ((IMicroCreditGroupService)result.AsyncState).EndFindMicroCreditGroupsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<MicroCreditGroupDTO> response = ((IMicroCreditGroupService)result.AsyncState).EndFindMicroCreditGroupsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMicroCreditGroupsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindMicroCreditGroupsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<MicroCreditGroupDTO> AddMicroCreditGroupAsync(MicroCreditGroupDTO microCreditGroupDTO, ServiceHeader serviceHeader)
         {
@@ -4796,37 +4796,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<MicroCreditGroupMemberDTO>> FindMicroCreditGroupMembersByMicroCreditGroupIdInPageAsync(Guid microCreditGroupId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<MicroCreditGroupMemberDTO>>();
+        public Task<PageCollectionInfo<MicroCreditGroupMemberDTO>> FindMicroCreditGroupMembersByMicroCreditGroupIdInPageAsync(Guid microCreditGroupId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<MicroCreditGroupMemberDTO>>();
 
-        //    IMicroCreditGroupService service = GetService<IMicroCreditGroupService>(serviceHeader);
+            IMicroCreditGroupService service = GetService<IMicroCreditGroupService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<MicroCreditGroupMemberDTO> response = ((IMicroCreditGroupService)result.AsyncState).EndFindMicroCreditGroupMembersByMicroCreditGroupIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<MicroCreditGroupMemberDTO> response = ((IMicroCreditGroupService)result.AsyncState).EndFindMicroCreditGroupMembersByMicroCreditGroupIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMicroCreditGroupMembersByMicroCreditGroupIdInPage(microCreditGroupId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindMicroCreditGroupMembersByMicroCreditGroupIdInPage(microCreditGroupId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<MicroCreditGroupMemberDTO> AddMicroCreditGroupMemberAsync(MicroCreditGroupMemberDTO microCreditGroupMemberDTO, ServiceHeader serviceHeader)
         {
@@ -4960,101 +4960,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region TextAlertDTO
 
-        //public Task<PageCollectionInfo<TextAlertDTO>> FindTextAlertsByFilterInPageAsync(int dlrStatus, string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TextAlertDTO>>();
+        public Task<PageCollectionInfo<TextAlertDTO>> FindTextAlertsByFilterInPageAsync(int dlrStatus, string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TextAlertDTO>>();
 
-        //    ITextAlertService service = GetService<ITextAlertService>(serviceHeader);
+            ITextAlertService service = GetService<ITextAlertService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TextAlertDTO> response = ((ITextAlertService)result.AsyncState).EndFindTextAlertsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TextAlertDTO> response = ((ITextAlertService)result.AsyncState).EndFindTextAlertsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTextAlertsByFilterInPage(dlrStatus, text, pageIndex, pageSize, daysCap, asyncCallback, service);
+            service.BeginFindTextAlertsByFilterInPage(dlrStatus, text, pageIndex, pageSize, daysCap, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<TextAlertDTO>> FindTextAlertsByDateRangeAndFilterInPageAsync(int dlrStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TextAlertDTO>>();
+        public Task<PageCollectionInfo<TextAlertDTO>> FindTextAlertsByDateRangeAndFilterInPageAsync(int dlrStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TextAlertDTO>>();
 
-        //    ITextAlertService service = GetService<ITextAlertService>(serviceHeader);
+            ITextAlertService service = GetService<ITextAlertService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TextAlertDTO> response = ((ITextAlertService)result.AsyncState).EndFindTextAlertsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TextAlertDTO> response = ((ITextAlertService)result.AsyncState).EndFindTextAlertsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTextAlertsByDateRangeAndFilterInPage(dlrStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindTextAlertsByDateRangeAndFilterInPage(dlrStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<TextAlertDTO>> FindTextAlertsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TextAlertDTO>>();
+        public Task<PageCollectionInfo<TextAlertDTO>> FindTextAlertsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TextAlertDTO>>();
 
-        //    ITextAlertService service = GetService<ITextAlertService>(serviceHeader);
+            ITextAlertService service = GetService<ITextAlertService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TextAlertDTO> response = ((ITextAlertService)result.AsyncState).EndFindTextAlertsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TextAlertDTO> response = ((ITextAlertService)result.AsyncState).EndFindTextAlertsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTextAlertsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindTextAlertsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> AddBulkMessageAsync(BulkMessageDTO bulkMessageDTO, ServiceHeader serviceHeader)
         {
@@ -5409,101 +5409,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region EmailAlertDTO
 
-        //public Task<PageCollectionInfo<EmailAlertDTO>> FindEmailAlertsByFilterInPageAsync(int dlrStatus, string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmailAlertDTO>>();
+        public Task<PageCollectionInfo<EmailAlertDTO>> FindEmailAlertsByFilterInPageAsync(int dlrStatus, string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmailAlertDTO>>();
 
-        //    IEmailAlertService service = GetService<IEmailAlertService>(serviceHeader);
+            IEmailAlertService service = GetService<IEmailAlertService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmailAlertDTO> response = ((IEmailAlertService)result.AsyncState).EndFindEmailAlertsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmailAlertDTO> response = ((IEmailAlertService)result.AsyncState).EndFindEmailAlertsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmailAlertsByFilterInPage(dlrStatus, text, pageIndex, pageSize, daysCap, asyncCallback, service);
+            service.BeginFindEmailAlertsByFilterInPage(dlrStatus, text, pageIndex, pageSize, daysCap, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmailAlertDTO>> FindEmailAlertsByDateRangeAndFilterInPageAsync(int dlrStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmailAlertDTO>>();
+        public Task<PageCollectionInfo<EmailAlertDTO>> FindEmailAlertsByDateRangeAndFilterInPageAsync(int dlrStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmailAlertDTO>>();
 
-        //    IEmailAlertService service = GetService<IEmailAlertService>(serviceHeader);
+            IEmailAlertService service = GetService<IEmailAlertService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmailAlertDTO> response = ((IEmailAlertService)result.AsyncState).EndFindEmailAlertsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmailAlertDTO> response = ((IEmailAlertService)result.AsyncState).EndFindEmailAlertsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmailAlertsByDateRangeAndFilterInPage(dlrStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmailAlertsByDateRangeAndFilterInPage(dlrStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmailAlertDTO>> FindEmailAlertsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmailAlertDTO>>();
+        public Task<PageCollectionInfo<EmailAlertDTO>> FindEmailAlertsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmailAlertDTO>>();
 
-        //    IEmailAlertService service = GetService<IEmailAlertService>(serviceHeader);
+            IEmailAlertService service = GetService<IEmailAlertService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmailAlertDTO> response = ((IEmailAlertService)result.AsyncState).EndFindEmailAlertsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmailAlertDTO> response = ((IEmailAlertService)result.AsyncState).EndFindEmailAlertsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmailAlertsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmailAlertsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> AddEmailAlertsAsync(ObservableCollection<EmailAlertDTO> emailAlertDTOs, ServiceHeader serviceHeader)
         {
@@ -5761,69 +5761,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region MessageGroupDTO
 
-        //public Task<PageCollectionInfo<MessageGroupDTO>> FindMessageGroupsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<MessageGroupDTO>>();
+        public Task<PageCollectionInfo<MessageGroupDTO>> FindMessageGroupsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<MessageGroupDTO>>();
 
-        //    IMessageGroupService service = GetService<IMessageGroupService>(serviceHeader);
+            IMessageGroupService service = GetService<IMessageGroupService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<MessageGroupDTO> response = ((IMessageGroupService)result.AsyncState).EndFindMessageGroupsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<MessageGroupDTO> response = ((IMessageGroupService)result.AsyncState).EndFindMessageGroupsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMessageGroupsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindMessageGroupsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<MessageGroupDTO>> FindMessageGroupsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<MessageGroupDTO>>();
+        public Task<PageCollectionInfo<MessageGroupDTO>> FindMessageGroupsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<MessageGroupDTO>>();
 
-        //    IMessageGroupService service = GetService<IMessageGroupService>(serviceHeader);
+            IMessageGroupService service = GetService<IMessageGroupService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<MessageGroupDTO> response = ((IMessageGroupService)result.AsyncState).EndFindMessageGroupsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<MessageGroupDTO> response = ((IMessageGroupService)result.AsyncState).EndFindMessageGroupsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMessageGroupsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindMessageGroupsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<MessageGroupDTO> AddNewMessageGroupAsync(MessageGroupDTO messageGroupDTO, ServiceHeader serviceHeader)
         {
@@ -6085,69 +6085,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<FuneralRiderClaimDTO>> FindFuneralRiderClaimsByFilterAndDateInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimDTO>>();
+        public Task<PageCollectionInfo<FuneralRiderClaimDTO>> FindFuneralRiderClaimsByFilterAndDateInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimDTO>>();
 
-        //    IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
+            IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FuneralRiderClaimDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimsByFilterAndDateInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FuneralRiderClaimDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimsByFilterAndDateInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFuneralRiderClaimsByFilterAndDateInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFuneralRiderClaimsByFilterAndDateInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<FuneralRiderClaimDTO>> FindFuneralRiderClaimsByStatusAndFilterInPageAsync(int status, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimDTO>>();
+        public Task<PageCollectionInfo<FuneralRiderClaimDTO>> FindFuneralRiderClaimsByStatusAndFilterInPageAsync(int status, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimDTO>>();
 
-        //    IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
+            IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FuneralRiderClaimDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimsByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FuneralRiderClaimDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimsByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFuneralRiderClaimsByStatusAndFilterInPage(status, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFuneralRiderClaimsByStatusAndFilterInPage(status, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<FuneralRiderClaimDTO> FindFuneralRiderClaimAsync(Guid funeralRiderClaimId, ServiceHeader serviceHeader)
         {
@@ -6213,37 +6213,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<FuneralRiderClaimDTO>> FindFuneralRiderClaimsByFilterInPageAsync(string filter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimDTO>>();
+        public Task<PageCollectionInfo<FuneralRiderClaimDTO>> FindFuneralRiderClaimsByFilterInPageAsync(string filter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimDTO>>();
 
-        //    IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
+            IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FuneralRiderClaimDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FuneralRiderClaimDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFuneralRiderClaimsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFuneralRiderClaimsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
@@ -6441,37 +6441,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<FuneralRiderClaimPayableDTO>> FindFuneralRiderClaimPayablesByRecordStatusPaymentStatusFilterAndDateInPageAsync(int recordStatus, int paymentStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimPayableDTO>>();
+        public Task<PageCollectionInfo<FuneralRiderClaimPayableDTO>> FindFuneralRiderClaimPayablesByRecordStatusPaymentStatusFilterAndDateInPageAsync(int recordStatus, int paymentStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimPayableDTO>>();
 
-        //    IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
+            IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FuneralRiderClaimPayableDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusFilterAndDateInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FuneralRiderClaimPayableDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusFilterAndDateInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusFilterAndDateInPage(recordStatus, paymentStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusFilterAndDateInPage(recordStatus, paymentStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<PageCollectionInfo<FuneralRiderClaimPayableDTO>> FindFuneralRiderClaimPayablesByRecordStatusFilterAndDateInPageAsync(int recordStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
         {
@@ -6505,72 +6505,72 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<FuneralRiderClaimPayableDTO>> FindFuneralRiderClaimPayablesByRecordStatusPaymentStatusAndFilterInPageAsync(int recordStatus, int paymentStatus, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimPayableDTO>>();
+        public Task<PageCollectionInfo<FuneralRiderClaimPayableDTO>> FindFuneralRiderClaimPayablesByRecordStatusPaymentStatusAndFilterInPageAsync(int recordStatus, int paymentStatus, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FuneralRiderClaimPayableDTO>>();
 
-        //    IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
+            IFuneralRiderClaimService service = GetService<IFuneralRiderClaimService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FuneralRiderClaimPayableDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FuneralRiderClaimPayableDTO> response = ((IFuneralRiderClaimService)result.AsyncState).EndFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusAndFilterInPage(recordStatus, paymentStatus, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFuneralRiderClaimPayablesByRecordStatusPaymentStatusAndFilterInPage(recordStatus, paymentStatus, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
+            return tcs.Task;
         }
         #endregion
 
         #region CashWithdrawalRequestDTO
 
-        //public Task<PageCollectionInfo<CashWithdrawalRequestDTO>> FindCashWithdrawalRequestsByFilterInPageAsync(DateTime startDate, DateTime endDate, int status, string text, int customerFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CashWithdrawalRequestDTO>>();
+        public Task<PageCollectionInfo<CashWithdrawalRequestDTO>> FindCashWithdrawalRequestsByFilterInPageAsync(DateTime startDate, DateTime endDate, int status, string text, int customerFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CashWithdrawalRequestDTO>>();
 
-        //    ICashWithdrawalRequestService service = GetService<ICashWithdrawalRequestService>(serviceHeader);
+            ICashWithdrawalRequestService service = GetService<ICashWithdrawalRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CashWithdrawalRequestDTO> response = ((ICashWithdrawalRequestService)result.AsyncState).EndFindCashWithdrawalRequestsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CashWithdrawalRequestDTO> response = ((ICashWithdrawalRequestService)result.AsyncState).EndFindCashWithdrawalRequestsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCashWithdrawalRequestsByFilterInPage(startDate, endDate, status, text, customerFilter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCashWithdrawalRequestsByFilterInPage(startDate, endDate, status, text, customerFilter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<CashWithdrawalRequestDTO>> FindMatureCashWithdrawalRequestsByCustomerAccountIdAsync(CustomerAccountDTO customerAccountDTO, ServiceHeader serviceHeader)
         {
@@ -6993,106 +6993,106 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<CashTransferRequestDTO>> FindCashTransferRequestsByFilterInPageAsync(Guid employeeId, DateTime startDate, DateTime endDate, int status, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CashTransferRequestDTO>>();
+        public Task<PageCollectionInfo<CashTransferRequestDTO>> FindCashTransferRequestsByFilterInPageAsync(Guid employeeId, DateTime startDate, DateTime endDate, int status, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CashTransferRequestDTO>>();
 
-        //    ICashTransferRequestService service = GetService<ICashTransferRequestService>(serviceHeader);
+            ICashTransferRequestService service = GetService<ICashTransferRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CashTransferRequestDTO> response = ((ICashTransferRequestService)result.AsyncState).EndFindCashTransferRequestsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CashTransferRequestDTO> response = ((ICashTransferRequestService)result.AsyncState).EndFindCashTransferRequestsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCashTransferRequestsByFilterInPage(employeeId, startDate, endDate, status, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCashTransferRequestsByFilterInPage(employeeId, startDate, endDate, status, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
 
-        //public Task<PageCollectionInfo<CashTransferRequestDTO>> FindCashTransferRequestsByStatusAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int status, int customerFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CashTransferRequestDTO>>();
+        public Task<PageCollectionInfo<CashTransferRequestDTO>> FindCashTransferRequestsByStatusAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int status, int customerFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CashTransferRequestDTO>>();
 
-        //    ICashTransferRequestService service = GetService<ICashTransferRequestService>(serviceHeader);
+            ICashTransferRequestService service = GetService<ICashTransferRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CashTransferRequestDTO> response = ((ICashTransferRequestService)result.AsyncState).EndFindCashTransferRequestsByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CashTransferRequestDTO> response = ((ICashTransferRequestService)result.AsyncState).EndFindCashTransferRequestsByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCashTransferRequestsByStatusAndFilterInPage(text, startDate, endDate, status, customerFilter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCashTransferRequestsByStatusAndFilterInPage(text, startDate, endDate, status, customerFilter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
         #region CashDepositRequestDTO
 
-        //public Task<PageCollectionInfo<CashDepositRequestDTO>> FindCashDepositRequestsByFilterInPageAsync(DateTime startDate, DateTime endDate, int status, string text, int customerFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CashDepositRequestDTO>>();
+        public Task<PageCollectionInfo<CashDepositRequestDTO>> FindCashDepositRequestsByFilterInPageAsync(DateTime startDate, DateTime endDate, int status, string text, int customerFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CashDepositRequestDTO>>();
 
-        //    ICashDepositRequestService service = GetService<ICashDepositRequestService>(serviceHeader);
+            ICashDepositRequestService service = GetService<ICashDepositRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CashDepositRequestDTO> response = ((ICashDepositRequestService)result.AsyncState).EndFindCashDepositRequestsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CashDepositRequestDTO> response = ((ICashDepositRequestService)result.AsyncState).EndFindCashDepositRequestsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCashDepositRequestsByFilterInPage(startDate, endDate, status, text, customerFilter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCashDepositRequestsByFilterInPage(startDate, endDate, status, text, customerFilter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<CashDepositRequestDTO>> FindActionableCashDepositRequestsByCustomerAccountAsync(CustomerAccountDTO customerAccountDTO, ServiceHeader serviceHeader)
         {
@@ -7290,69 +7290,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region ExternalChequeDTO
 
-        //public Task<PageCollectionInfo<ExternalChequeDTO>> FindExternalChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
+        public Task<PageCollectionInfo<ExternalChequeDTO>> FindExternalChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
 
-        //    IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
+            IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindExternalChequesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindExternalChequesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExternalChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExternalChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ExternalChequeDTO>> FindExternalChequesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
+        public Task<PageCollectionInfo<ExternalChequeDTO>> FindExternalChequesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
 
-        //    IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
+            IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindExternalChequesByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindExternalChequesByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExternalChequesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExternalChequesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ExternalChequeDTO> AddExternalChequeAsync(ExternalChequeDTO externalChequeDTO, ServiceHeader serviceHeader)
         {
@@ -7503,37 +7503,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         }
 
-        //public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnTransferredExternalChequesByTellerIdAndFilterInPageAsync(Guid tellerId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
+        public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnTransferredExternalChequesByTellerIdAndFilterInPageAsync(Guid tellerId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
 
-        //    IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
+            IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnTransferredExternalChequesByTellerIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnTransferredExternalChequesByTellerIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindUnTransferredExternalChequesByTellerIdAndFilterInPage(tellerId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindUnTransferredExternalChequesByTellerIdAndFilterInPage(tellerId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<ExternalChequeDTO>> FindUnTransferredExternalChequesByTellerIdAndFilterAsync(Guid tellerId, string text, ServiceHeader serviceHeader)
         {
@@ -7599,69 +7599,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnClearedExternalChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
+        public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnClearedExternalChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
 
-        //    IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
+            IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnClearedExternalChequesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnClearedExternalChequesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindUnClearedExternalChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindUnClearedExternalChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnClearedExternalChequesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
+        public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnClearedExternalChequesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
 
-        //    IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
+            IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnClearedExternalChequesByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnClearedExternalChequesByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindUnClearedExternalChequesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindUnClearedExternalChequesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> ClearExternalChequeAsync(ExternalChequeDTO externalChequeDTO, int clearingOption, int moduleNavigationItemCode, UnPayReasonDTO unPayReasonDTO, ServiceHeader serviceHeader)
         {
@@ -7695,37 +7695,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnBankedExternalChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
+        public Task<PageCollectionInfo<ExternalChequeDTO>> FindUnBankedExternalChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExternalChequeDTO>>();
 
-        //    IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
+            IExternalChequeService service = GetService<IExternalChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnBankedExternalChequesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExternalChequeDTO> response = ((IExternalChequeService)result.AsyncState).EndFindUnBankedExternalChequesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindUnBankedExternalChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindUnBankedExternalChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> BankExternalChequesAsync(ObservableCollection<ExternalChequeDTO> externalChequeDTOs, BankLinkageDTO bankLinkageDTO, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
@@ -7859,37 +7859,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<FiscalCountDTO>> FindFiscalCountsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FiscalCountDTO>>();
+        public Task<PageCollectionInfo<FiscalCountDTO>> FindFiscalCountsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FiscalCountDTO>>();
 
-        //    IFiscalCountService service = GetService<IFiscalCountService>(serviceHeader);
+            IFiscalCountService service = GetService<IFiscalCountService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FiscalCountDTO> response = ((IFiscalCountService)result.AsyncState).EndFindFiscalCountsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FiscalCountDTO> response = ((IFiscalCountService)result.AsyncState).EndFindFiscalCountsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFiscalCountsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFiscalCountsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<FiscalCountDTO> AddFiscalCountAsync(FiscalCountDTO fiscalCountDTO, ServiceHeader serviceHeader)
         {
@@ -8023,101 +8023,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ElectronicJournalDTO>> FindElectronicJournalsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicJournalDTO>>();
+        public Task<PageCollectionInfo<ElectronicJournalDTO>> FindElectronicJournalsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicJournalDTO>>();
 
-        //    IElectronicJournalService service = GetService<IElectronicJournalService>(serviceHeader);
+            IElectronicJournalService service = GetService<IElectronicJournalService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ElectronicJournalDTO> response = ((IElectronicJournalService)result.AsyncState).EndFindElectronicJournalsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ElectronicJournalDTO> response = ((IElectronicJournalService)result.AsyncState).EndFindElectronicJournalsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindElectronicJournalsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindElectronicJournalsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<TruncatedChequeDTO>> FindTruncatedChequesByElectronicJournalIdAndFilterInPageAsync(Guid electronicJournalId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TruncatedChequeDTO>>();
+        public Task<PageCollectionInfo<TruncatedChequeDTO>> FindTruncatedChequesByElectronicJournalIdAndFilterInPageAsync(Guid electronicJournalId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TruncatedChequeDTO>>();
 
-        //    IElectronicJournalService service = GetService<IElectronicJournalService>(serviceHeader);
+            IElectronicJournalService service = GetService<IElectronicJournalService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TruncatedChequeDTO> response = ((IElectronicJournalService)result.AsyncState).EndFindTruncatedChequesByElectronicJournalIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TruncatedChequeDTO> response = ((IElectronicJournalService)result.AsyncState).EndFindTruncatedChequesByElectronicJournalIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTruncatedChequesByElectronicJournalIdAndFilterInPage(electronicJournalId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindTruncatedChequesByElectronicJournalIdAndFilterInPage(electronicJournalId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<TruncatedChequeDTO>> FindTruncatedChequesByElectronicJournalIdAndStatusAndFilterInPageAsync(Guid electronicJournalId, int status, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TruncatedChequeDTO>>();
+        public Task<PageCollectionInfo<TruncatedChequeDTO>> FindTruncatedChequesByElectronicJournalIdAndStatusAndFilterInPageAsync(Guid electronicJournalId, int status, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TruncatedChequeDTO>>();
 
-        //    IElectronicJournalService service = GetService<IElectronicJournalService>(serviceHeader);
+            IElectronicJournalService service = GetService<IElectronicJournalService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TruncatedChequeDTO> response = ((IElectronicJournalService)result.AsyncState).EndFindTruncatedChequesByElectronicJournalIdAndStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TruncatedChequeDTO> response = ((IElectronicJournalService)result.AsyncState).EndFindTruncatedChequesByElectronicJournalIdAndStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTruncatedChequesByElectronicJournalIdAndStatusAndFilterInPage(electronicJournalId, status, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindTruncatedChequesByElectronicJournalIdAndStatusAndFilterInPage(electronicJournalId, status, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> CloseElectronicJournalAsync(ElectronicJournalDTO electronicJournalDTO, ServiceHeader serviceHeader)
         {
@@ -8315,133 +8315,133 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<InHouseChequeDTO>> FindInHouseChequesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
+        public Task<PageCollectionInfo<InHouseChequeDTO>> FindInHouseChequesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
 
-        //    IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
+            IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindInHouseChequesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindInHouseChequesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInHouseChequesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInHouseChequesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-     //   }
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<InHouseChequeDTO>> FindInHouseChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
+        public Task<PageCollectionInfo<InHouseChequeDTO>> FindInHouseChequesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
 
-        //    IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
+            IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindInHouseChequesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindInHouseChequesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInHouseChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInHouseChequesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-       // }
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<InHouseChequeDTO>> FindInHouseChequesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
+        public Task<PageCollectionInfo<InHouseChequeDTO>> FindInHouseChequesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
 
-        //    IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
+            IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindInHouseChequesByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindInHouseChequesByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInHouseChequesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInHouseChequesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<InHouseChequeDTO>> FindUnPrintedInHouseChequesByBranchIdAndFilterInPageAsync(Guid branchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
+        public Task<PageCollectionInfo<InHouseChequeDTO>> FindUnPrintedInHouseChequesByBranchIdAndFilterInPageAsync(Guid branchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InHouseChequeDTO>>();
 
-        //    IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
+            IInHouseChequeService service = GetService<IInHouseChequeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindUnPrintedInHouseChequesByBranchIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InHouseChequeDTO> response = ((IInHouseChequeService)result.AsyncState).EndFindUnPrintedInHouseChequesByBranchIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindUnPrintedInHouseChequesByBranchIdAndFilterInPage(branchId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindUnPrintedInHouseChequesByBranchIdAndFilterInPage(branchId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> PrintInHouseChequeAsync(InHouseChequeDTO inHouseChequeDTO, BankLinkageDTO bankLinkageDTO, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
@@ -8479,165 +8479,165 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region FixedDepositDTO
 
-        //public Task<PageCollectionInfo<FixedDepositDTO>> FindFixedDepositsByStatusAndFilterInPageAsync(int status, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
+        public Task<PageCollectionInfo<FixedDepositDTO>> FindFixedDepositsByStatusAndFilterInPageAsync(int status, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
 
-        //    IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
+            IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindFixedDepositsByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindFixedDepositsByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFixedDepositsByStatusAndFilterInPage(status, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindFixedDepositsByStatusAndFilterInPage(status, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<FixedDepositDTO>> FindFixedDepositsByFilterInPageAsync(string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
+        public Task<PageCollectionInfo<FixedDepositDTO>> FindFixedDepositsByFilterInPageAsync(string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
 
-        //    IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
+            IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindFixedDepositsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindFixedDepositsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFixedDepositsByFilterInPage(text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindFixedDepositsByFilterInPage(text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<FixedDepositDTO>> FindFixedDepositsByBranchIdInPageAsync(Guid branchId, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
+        public Task<PageCollectionInfo<FixedDepositDTO>> FindFixedDepositsByBranchIdInPageAsync(Guid branchId, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
 
-        //    IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
+            IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindFixedDepositsByBranchIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindFixedDepositsByBranchIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFixedDepositsByBranchIdInPage(branchId, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindFixedDepositsByBranchIdInPage(branchId, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<FixedDepositDTO>> FindPayableFixedDepositsByFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
+        public Task<PageCollectionInfo<FixedDepositDTO>> FindPayableFixedDepositsByFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
 
-        //    IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
+            IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindPayableFixedDepositsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindPayableFixedDepositsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPayableFixedDepositsByFilterInPage(startDate, endDate, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindPayableFixedDepositsByFilterInPage(startDate, endDate, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<FixedDepositDTO>> FindRevocableFixedDepositsByFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
+        public Task<PageCollectionInfo<FixedDepositDTO>> FindRevocableFixedDepositsByFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositDTO>>();
 
-        //    IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
+            IFixedDepositService service = GetService<IFixedDepositService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindRevocableFixedDepositsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FixedDepositDTO> response = ((IFixedDepositService)result.AsyncState).EndFindRevocableFixedDepositsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindRevocableFixedDepositsByFilterInPage(startDate, endDate, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindRevocableFixedDepositsByFilterInPage(startDate, endDate, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<FixedDepositDTO> InvokeFixedDepositAsync(FixedDepositDTO fixedDepositDTO, ServiceHeader serviceHeader)
         {
@@ -8994,37 +8994,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<SuperSaverPayableDTO>> FindSuperSaverPayablesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SuperSaverPayableDTO>>();
+        public Task<PageCollectionInfo<SuperSaverPayableDTO>> FindSuperSaverPayablesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SuperSaverPayableDTO>>();
 
-        //    ISuperSaverPayableService service = GetService<ISuperSaverPayableService>(serviceHeader);
+            ISuperSaverPayableService service = GetService<ISuperSaverPayableService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SuperSaverPayableDTO> response = ((ISuperSaverPayableService)result.AsyncState).EndFindSuperSaverPayablesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SuperSaverPayableDTO> response = ((ISuperSaverPayableService)result.AsyncState).EndFindSuperSaverPayablesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSuperSaverPayablesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSuperSaverPayablesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> AuditSuperSaverPayableAsync(SuperSaverPayableDTO superSaverPayableDTO, int superSaverPayableAuditOption, ServiceHeader serviceHeader = null)
         {
@@ -9126,69 +9126,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region LoanPurposeDTO
 
-        //public Task<PageCollectionInfo<LoanPurposeDTO>> FindLoanPurposesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanPurposeDTO>>();
+        public Task<PageCollectionInfo<LoanPurposeDTO>> FindLoanPurposesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanPurposeDTO>>();
 
-        //    ILoanPurposeService service = GetService<ILoanPurposeService>(serviceHeader);
+            ILoanPurposeService service = GetService<ILoanPurposeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanPurposeDTO> response = ((ILoanPurposeService)result.AsyncState).EndFindLoanPurposesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanPurposeDTO> response = ((ILoanPurposeService)result.AsyncState).EndFindLoanPurposesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanPurposesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanPurposesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoanPurposeDTO>> FindLoanPurposesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanPurposeDTO>>();
+        public Task<PageCollectionInfo<LoanPurposeDTO>> FindLoanPurposesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanPurposeDTO>>();
 
-        //    ILoanPurposeService service = GetService<ILoanPurposeService>(serviceHeader);
+            ILoanPurposeService service = GetService<ILoanPurposeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanPurposeDTO> response = ((ILoanPurposeService)result.AsyncState).EndFindLoanPurposesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanPurposeDTO> response = ((ILoanPurposeService)result.AsyncState).EndFindLoanPurposesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanPurposesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanPurposesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LoanPurposeDTO> AddLoanPurposeAsync(LoanPurposeDTO loanPurposeDTO, ServiceHeader serviceHeader)
         {
@@ -9546,69 +9546,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesInPageAsync(int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
+        public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesInPageAsync(int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanCasesInPage(pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
+            service.BeginFindLoanCasesInPage(pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByFilterInPageAsync(string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
+        public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByFilterInPageAsync(string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanCasesByFilterInPage(text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
+            service.BeginFindLoanCasesByFilterInPage(text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LoanCaseDTO> AddLoanCaseAsync(LoanCaseDTO loanCaseDTO, ServiceHeader serviceHeader)
         {
@@ -9802,37 +9802,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanGuarantorDTO>> FindLoanGuarantorsByCustomerIdAndFilterInPageAsync(Guid customerId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanGuarantorDTO>>();
+        public Task<PageCollectionInfo<LoanGuarantorDTO>> FindLoanGuarantorsByCustomerIdAndFilterInPageAsync(Guid customerId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanGuarantorDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanGuarantorDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanGuarantorsByCustomerIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanGuarantorDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanGuarantorsByCustomerIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanGuarantorsByCustomerIdAndFilterInPage(customerId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanGuarantorsByCustomerIdAndFilterInPage(customerId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<LoanGuarantorDTO>> FindLoanGuarantorsByLoanCaseIdAsync(Guid loanCaseId, ServiceHeader serviceHeader)
         {
@@ -9866,37 +9866,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByStatusAndFilterInPageAsync(int status, string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
+        public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByStatusAndFilterInPageAsync(int status, string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanCasesByStatusAndFilterInPage(status, text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
+            service.BeginFindLoanCasesByStatusAndFilterInPage(status, text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<LoanGuarantorDTO>> FindLoanGuarantorsByLoaneeCustomerIdAndLoanProductIdAsync(Guid loanCaseCustomerId, Guid loanCaseLoanProductId, ServiceHeader serviceHeader)
         {
@@ -9930,101 +9930,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanGuarantorDTO>> FindLoanGuarantorsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanGuarantorDTO>>();
+        public Task<PageCollectionInfo<LoanGuarantorDTO>> FindLoanGuarantorsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanGuarantorDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanGuarantorDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanGuarantorsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanGuarantorDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanGuarantorsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanGuarantorsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanGuarantorsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByLoanProductSectionAndFilterInPageAsync(int loanProductSection, int status, DateTime startDate, DateTime endDate, string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
+        public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByLoanProductSectionAndFilterInPageAsync(int loanProductSection, int status, DateTime startDate, DateTime endDate, string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByLoanProductSectionAndStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByLoanProductSectionAndStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanCasesByLoanProductSectionAndStatusAndFilterInPage(loanProductSection, status, startDate, endDate, text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
+            service.BeginFindLoanCasesByLoanProductSectionAndStatusAndFilterInPage(loanProductSection, status, startDate, endDate, text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByLoanProductCategoryAndFilterInPageAsync(int loanProductCategory, int status, DateTime startDate, DateTime endDate, string text, int loanCaseFilter, decimal approvedAmountThreshold, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
+        public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByLoanProductCategoryAndFilterInPageAsync(int loanProductCategory, int status, DateTime startDate, DateTime endDate, string text, int loanCaseFilter, decimal approvedAmountThreshold, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByLoanProductCategoryAndStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByLoanProductCategoryAndStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanCasesByLoanProductCategoryAndStatusAndFilterInPage(loanProductCategory, status, startDate, endDate, text, loanCaseFilter, approvedAmountThreshold, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
+            service.BeginFindLoanCasesByLoanProductCategoryAndStatusAndFilterInPage(loanProductCategory, status, startDate, endDate, text, loanCaseFilter, approvedAmountThreshold, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<AttachedLoanDTO>> FindAttachedLoansByLoanCaseIdAsync(Guid loanCaseId, ServiceHeader serviceHeader)
         {
@@ -10153,37 +10153,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByLoanProductSectionAndFilterInPageAsync(int loanProductSection, DateTime startDate, DateTime endDate, string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
+        public Task<PageCollectionInfo<LoanCaseDTO>> FindLoanCasesByLoanProductSectionAndFilterInPageAsync(int loanProductSection, DateTime startDate, DateTime endDate, string text, int loanCaseFilter, int pageIndex, int pageSize, bool includeBatchStatus, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanCaseDTO>>();
 
-        //    ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
+            ILoanCaseService service = GetService<ILoanCaseService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByLoanProductSectionAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanCaseDTO> response = ((ILoanCaseService)result.AsyncState).EndFindLoanCasesByLoanProductSectionAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanCasesByLoanProductSectionAndFilterInPage(loanProductSection, startDate, endDate, text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
+            service.BeginFindLoanCasesByLoanProductSectionAndFilterInPage(loanProductSection, startDate, endDate, text, loanCaseFilter, pageIndex, pageSize, includeBatchStatus, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LoanCaseDTO> FindLastLoanCaseByCustomerIdAsync(Guid customerId, Guid loanProductId, ServiceHeader serviceHeader)
         {
@@ -10667,69 +10667,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region IncomeAdjustmentDTO
 
-        //public Task<PageCollectionInfo<IncomeAdjustmentDTO>> FindIncomeAdjustmentsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<IncomeAdjustmentDTO>>();
+        public Task<PageCollectionInfo<IncomeAdjustmentDTO>> FindIncomeAdjustmentsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<IncomeAdjustmentDTO>>();
 
-        //    IIncomeAdjustmentService service = GetService<IIncomeAdjustmentService>(serviceHeader);
+            IIncomeAdjustmentService service = GetService<IIncomeAdjustmentService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<IncomeAdjustmentDTO> response = ((IIncomeAdjustmentService)result.AsyncState).EndFindIncomeAdjustmentsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<IncomeAdjustmentDTO> response = ((IIncomeAdjustmentService)result.AsyncState).EndFindIncomeAdjustmentsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindIncomeAdjustmentsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindIncomeAdjustmentsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<IncomeAdjustmentDTO>> FindIncomeAdjustmentsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<IncomeAdjustmentDTO>>();
+        public Task<PageCollectionInfo<IncomeAdjustmentDTO>> FindIncomeAdjustmentsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<IncomeAdjustmentDTO>>();
 
-        //    IIncomeAdjustmentService service = GetService<IIncomeAdjustmentService>(serviceHeader);
+            IIncomeAdjustmentService service = GetService<IIncomeAdjustmentService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<IncomeAdjustmentDTO> response = ((IIncomeAdjustmentService)result.AsyncState).EndFindIncomeAdjustmentsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<IncomeAdjustmentDTO> response = ((IIncomeAdjustmentService)result.AsyncState).EndFindIncomeAdjustmentsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindIncomeAdjustmentsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindIncomeAdjustmentsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<IncomeAdjustmentDTO> AddIncomeAdjustmentAsync(IncomeAdjustmentDTO incomeAdjustmentDTO, ServiceHeader serviceHeader)
         {
@@ -10831,69 +10831,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region LoaningRemarkDTO
 
-        //public Task<PageCollectionInfo<LoaningRemarkDTO>> FindLoaningRemarksByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoaningRemarkDTO>>();
+        public Task<PageCollectionInfo<LoaningRemarkDTO>> FindLoaningRemarksByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoaningRemarkDTO>>();
 
-        //    ILoaningRemarkService service = GetService<ILoaningRemarkService>(serviceHeader);
+            ILoaningRemarkService service = GetService<ILoaningRemarkService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoaningRemarkDTO> response = ((ILoaningRemarkService)result.AsyncState).EndFindLoaningRemarksByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoaningRemarkDTO> response = ((ILoaningRemarkService)result.AsyncState).EndFindLoaningRemarksByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoaningRemarksByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoaningRemarksByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoaningRemarkDTO>> FindLoaningRemarksInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoaningRemarkDTO>>();
+        public Task<PageCollectionInfo<LoaningRemarkDTO>> FindLoaningRemarksInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoaningRemarkDTO>>();
 
-        //    ILoaningRemarkService service = GetService<ILoaningRemarkService>(serviceHeader);
+            ILoaningRemarkService service = GetService<ILoaningRemarkService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoaningRemarkDTO> response = ((ILoaningRemarkService)result.AsyncState).EndFindLoaningRemarksInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoaningRemarkDTO> response = ((ILoaningRemarkService)result.AsyncState).EndFindLoaningRemarksInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoaningRemarksInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoaningRemarksInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LoaningRemarkDTO> AddLoaningRemarkAsync(LoaningRemarkDTO loaningRemarkDTO, ServiceHeader serviceHeader)
         {
@@ -10995,69 +10995,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region DataAttachmentPeriodDTO
 
-        //public Task<PageCollectionInfo<DataAttachmentPeriodDTO>> FindDataAttachmentPeriodsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DataAttachmentPeriodDTO>>();
+        public Task<PageCollectionInfo<DataAttachmentPeriodDTO>> FindDataAttachmentPeriodsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DataAttachmentPeriodDTO>>();
 
-        //    IDataAttachmentPeriodService service = GetService<IDataAttachmentPeriodService>(serviceHeader);
+            IDataAttachmentPeriodService service = GetService<IDataAttachmentPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DataAttachmentPeriodDTO> response = ((IDataAttachmentPeriodService)result.AsyncState).EndFindDataAttachmentPeriodsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DataAttachmentPeriodDTO> response = ((IDataAttachmentPeriodService)result.AsyncState).EndFindDataAttachmentPeriodsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDataAttachmentPeriodsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDataAttachmentPeriodsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<DataAttachmentPeriodDTO>> FindDataAttachmentPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DataAttachmentPeriodDTO>>();
+        public Task<PageCollectionInfo<DataAttachmentPeriodDTO>> FindDataAttachmentPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DataAttachmentPeriodDTO>>();
 
-        //    IDataAttachmentPeriodService service = GetService<IDataAttachmentPeriodService>(serviceHeader);
+            IDataAttachmentPeriodService service = GetService<IDataAttachmentPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DataAttachmentPeriodDTO> response = ((IDataAttachmentPeriodService)result.AsyncState).EndFindDataAttachmentPeriodsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DataAttachmentPeriodDTO> response = ((IDataAttachmentPeriodService)result.AsyncState).EndFindDataAttachmentPeriodsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDataAttachmentPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDataAttachmentPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<DataAttachmentPeriodDTO> AddDataAttachmentPeriodAsync(DataAttachmentPeriodDTO dataAttachmentPeriodDTO, ServiceHeader serviceHeader)
         {
@@ -11155,37 +11155,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<DataAttachmentEntryDTO>> FindDataAttachmentEntriesByDataAttachmentPeriodIdAndFilterInPageAsync(Guid dataAttachmentPeriodId, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DataAttachmentEntryDTO>>();
+        public Task<PageCollectionInfo<DataAttachmentEntryDTO>> FindDataAttachmentEntriesByDataAttachmentPeriodIdAndFilterInPageAsync(Guid dataAttachmentPeriodId, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DataAttachmentEntryDTO>>();
 
-        //    IDataAttachmentPeriodService service = GetService<IDataAttachmentPeriodService>(serviceHeader);
+            IDataAttachmentPeriodService service = GetService<IDataAttachmentPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DataAttachmentEntryDTO> response = ((IDataAttachmentPeriodService)result.AsyncState).EndFindDataAttachmentEntriesByDataAttachmentPeriodIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DataAttachmentEntryDTO> response = ((IDataAttachmentPeriodService)result.AsyncState).EndFindDataAttachmentEntriesByDataAttachmentPeriodIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDataAttachmentEntriesByDataAttachmentPeriodIdAndFilterInPage(dataAttachmentPeriodId, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindDataAttachmentEntriesByDataAttachmentPeriodIdAndFilterInPage(dataAttachmentPeriodId, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<DataAttachmentEntryDTO> AddDataAttachmentEntryAsync(DataAttachmentEntryDTO dataAttachmentEntryDTO, ServiceHeader serviceHeader)
         {
@@ -11319,69 +11319,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region EmployeeDTO
 
-        //public Task<PageCollectionInfo<EmployeeDTO>> FindEmployeesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
+        public Task<PageCollectionInfo<EmployeeDTO>> FindEmployeesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
 
-        //    IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
+            IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmployeeDTO>> FindEmployeesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
+        public Task<PageCollectionInfo<EmployeeDTO>> FindEmployeesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
 
-        //    IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
+            IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<EmployeeDTO> AddEmployeeAsync(EmployeeDTO employeeDTO, ServiceHeader serviceHeader)
         {
@@ -11575,37 +11575,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EmployeeDTO>> FindEmployeesByDepartmentIdAndFilterInPageAsync(Guid departmentId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
+        public Task<PageCollectionInfo<EmployeeDTO>> FindEmployeesByDepartmentIdAndFilterInPageAsync(Guid departmentId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDTO>>();
 
-        //    IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
+            IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeesByDepartmentIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeesByDepartmentIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeesByDepartmentIdAndFilterInPage(departmentId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeesByDepartmentIdAndFilterInPage(departmentId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<EmployeeDTO>> FindEmployeesAsync(ServiceHeader serviceHeader)
         {
@@ -11739,69 +11739,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>> FindEmployeeDisciplinaryCasesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>>();
+        public Task<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>> FindEmployeeDisciplinaryCasesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>>();
 
-        //    IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
+            IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDisciplinaryCaseDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeeDisciplinaryCasesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDisciplinaryCaseDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeeDisciplinaryCasesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeDisciplinaryCasesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeDisciplinaryCasesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>> FindEmployeeDisciplinaryCasesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>>();
+        public Task<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>> FindEmployeeDisciplinaryCasesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>>();
 
-        //    IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
+            IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDisciplinaryCaseDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeeDisciplinaryCasesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDisciplinaryCaseDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeeDisciplinaryCasesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeDisciplinaryCasesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeDisciplinaryCasesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<EmployeeDisciplinaryCaseDTO> FindEmployeeDisciplinaryCaseAsync(Guid employeeDisciplinaryCaseId, ServiceHeader serviceHeader)
         {
@@ -11835,37 +11835,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>> FindEmployeeDisciplinaryCasesByEmployeeIdAsync(Guid employeeId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>>();
+        public Task<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>> FindEmployeeDisciplinaryCasesByEmployeeIdAsync(Guid employeeId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDisciplinaryCaseDTO>>();
 
-        //    IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
+            IEmployeeService service = GetService<IEmployeeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDisciplinaryCaseDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeeDisciplinaryCasesByEmployeeId(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDisciplinaryCaseDTO> response = ((IEmployeeService)result.AsyncState).EndFindEmployeeDisciplinaryCasesByEmployeeId(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeDisciplinaryCasesByEmployeeId(employeeId, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeDisciplinaryCasesByEmployeeId(employeeId, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
@@ -11903,101 +11903,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EmployeeAppraisalTargetDTO>> FindEmployeeAppraisalTargetsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalTargetDTO>>();
+        public Task<PageCollectionInfo<EmployeeAppraisalTargetDTO>> FindEmployeeAppraisalTargetsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalTargetDTO>>();
 
-        //    IEmployeeAppraisalTargetService service = GetService<IEmployeeAppraisalTargetService>(serviceHeader);
+            IEmployeeAppraisalTargetService service = GetService<IEmployeeAppraisalTargetService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeAppraisalTargetDTO> response = ((IEmployeeAppraisalTargetService)result.AsyncState).EndFindEmployeeAppraisalTargetsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeAppraisalTargetDTO> response = ((IEmployeeAppraisalTargetService)result.AsyncState).EndFindEmployeeAppraisalTargetsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeAppraisalTargetsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeAppraisalTargetsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-       // }
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmployeeAppraisalTargetDTO>> FindEmployeeAppraisalTargetsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalTargetDTO>>();
+        public Task<PageCollectionInfo<EmployeeAppraisalTargetDTO>> FindEmployeeAppraisalTargetsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalTargetDTO>>();
 
-        //    IEmployeeAppraisalTargetService service = GetService<IEmployeeAppraisalTargetService>(serviceHeader);
+            IEmployeeAppraisalTargetService service = GetService<IEmployeeAppraisalTargetService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeAppraisalTargetDTO> response = ((IEmployeeAppraisalTargetService)result.AsyncState).EndFindEmployeeAppraisalTargetsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeAppraisalTargetDTO> response = ((IEmployeeAppraisalTargetService)result.AsyncState).EndFindEmployeeAppraisalTargetsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeAppraisalTargetsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeAppraisalTargetsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmployeeAppraisalTargetDTO>> FindChildEmployeeAppraisalTargetsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalTargetDTO>>();
+        public Task<PageCollectionInfo<EmployeeAppraisalTargetDTO>> FindChildEmployeeAppraisalTargetsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalTargetDTO>>();
 
-        //    IEmployeeAppraisalTargetService service = GetService<IEmployeeAppraisalTargetService>(serviceHeader);
+            IEmployeeAppraisalTargetService service = GetService<IEmployeeAppraisalTargetService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeAppraisalTargetDTO> response = ((IEmployeeAppraisalTargetService)result.AsyncState).EndFindChildEmployeeAppraisalTargetsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeAppraisalTargetDTO> response = ((IEmployeeAppraisalTargetService)result.AsyncState).EndFindChildEmployeeAppraisalTargetsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindChildEmployeeAppraisalTargetsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindChildEmployeeAppraisalTargetsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<List<EmployeeAppraisalTargetDTO>> FindChildEmployeeAppraisalTargetsAsync(ServiceHeader serviceHeader)
         {
@@ -12359,37 +12359,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ExitInterviewAnswerDTO>> FindExitInterviewAnswersInPageAsync(Guid employeeId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExitInterviewAnswerDTO>>();
+        public Task<PageCollectionInfo<ExitInterviewAnswerDTO>> FindExitInterviewAnswersInPageAsync(Guid employeeId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExitInterviewAnswerDTO>>();
 
-        //    IExitInterviewAnswerService service = GetService<IExitInterviewAnswerService>(serviceHeader);
+            IExitInterviewAnswerService service = GetService<IExitInterviewAnswerService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExitInterviewAnswerDTO> response = ((IExitInterviewAnswerService)result.AsyncState).EndFindExitInterviewAnswersInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExitInterviewAnswerDTO> response = ((IExitInterviewAnswerService)result.AsyncState).EndFindExitInterviewAnswersInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExitInterviewAnswersInPage(employeeId, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExitInterviewAnswersInPage(employeeId, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<List<ExitInterviewAnswerDTO>> FindExitInterviewAnswersAsync(Guid employeeId, ServiceHeader serviceHeader)
         {
@@ -12523,37 +12523,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<TrainingPeriodDTO>> FindTrainingPeriodsFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TrainingPeriodDTO>>();
+        public Task<PageCollectionInfo<TrainingPeriodDTO>> FindTrainingPeriodsFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TrainingPeriodDTO>>();
 
-        //    ITrainingPeriodService service = GetService<ITrainingPeriodService>(serviceHeader);
+            ITrainingPeriodService service = GetService<ITrainingPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TrainingPeriodDTO> response = ((ITrainingPeriodService)result.AsyncState).EndFindTrainingPeriodsFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TrainingPeriodDTO> response = ((ITrainingPeriodService)result.AsyncState).EndFindTrainingPeriodsFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTrainingPeriodsFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindTrainingPeriodsFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
@@ -12654,69 +12654,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<TrainingPeriodEntryDTO>> FindTrainingPeriodEntriesByTrainingPeriodIdFilterInPageAsync(Guid trainingPeriodId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TrainingPeriodEntryDTO>>();
+        public Task<PageCollectionInfo<TrainingPeriodEntryDTO>> FindTrainingPeriodEntriesByTrainingPeriodIdFilterInPageAsync(Guid trainingPeriodId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TrainingPeriodEntryDTO>>();
 
-        //    ITrainingPeriodService service = GetService<ITrainingPeriodService>(serviceHeader);
+            ITrainingPeriodService service = GetService<ITrainingPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TrainingPeriodEntryDTO> response = ((ITrainingPeriodService)result.AsyncState).EndFindTrainingPeriodEntriesByTrainingPeriodIdFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TrainingPeriodEntryDTO> response = ((ITrainingPeriodService)result.AsyncState).EndFindTrainingPeriodEntriesByTrainingPeriodIdFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTrainingPeriodEntriesByTrainingPeriodIdFilterInPage(trainingPeriodId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindTrainingPeriodEntriesByTrainingPeriodIdFilterInPage(trainingPeriodId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<TrainingPeriodEntryDTO>> FindTrainingPeriodEntriesByEmployeeIdFilterInPageAsync(Guid employeeId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TrainingPeriodEntryDTO>>();
+        public Task<PageCollectionInfo<TrainingPeriodEntryDTO>> FindTrainingPeriodEntriesByEmployeeIdFilterInPageAsync(Guid employeeId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TrainingPeriodEntryDTO>>();
 
-        //    ITrainingPeriodService service = GetService<ITrainingPeriodService>(serviceHeader);
+            ITrainingPeriodService service = GetService<ITrainingPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TrainingPeriodEntryDTO> response = ((ITrainingPeriodService)result.AsyncState).EndFindTrainingPeriodEntriesByEmployeeIdFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TrainingPeriodEntryDTO> response = ((ITrainingPeriodService)result.AsyncState).EndFindTrainingPeriodEntriesByEmployeeIdFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTrainingPeriodEntriesByEmployeeIdFilterInPage(employeeId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindTrainingPeriodEntriesByEmployeeIdFilterInPage(employeeId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> RemoveTrainingPeriodEntriesAsync(ObservableCollection<TrainingPeriodEntryDTO> trainingPeriodEntries, ServiceHeader serviceHeader)
         {
@@ -12755,68 +12755,68 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         #region EmployeeAppraisalPeriodDTO
 
         public Task<PageCollectionInfo<EmployeeAppraisalPeriodDTO>> FindEmployeeAppraisalPeriodsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalPeriodDTO>>();
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalPeriodDTO>>();
 
-        //    IEmployeeAppraisalPeriodService service = GetService<IEmployeeAppraisalPeriodService>(serviceHeader);
+            IEmployeeAppraisalPeriodService service = GetService<IEmployeeAppraisalPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeAppraisalPeriodDTO> response = ((IEmployeeAppraisalPeriodService)result.AsyncState).EndFindEmployeeAppraisalPeriodsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeAppraisalPeriodDTO> response = ((IEmployeeAppraisalPeriodService)result.AsyncState).EndFindEmployeeAppraisalPeriodsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeAppraisalPeriodsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeAppraisalPeriodsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmployeeAppraisalPeriodDTO>> FindEmployeeAppraisalPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalPeriodDTO>>();
+        public Task<PageCollectionInfo<EmployeeAppraisalPeriodDTO>> FindEmployeeAppraisalPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeAppraisalPeriodDTO>>();
 
-        //    IEmployeeAppraisalPeriodService service = GetService<IEmployeeAppraisalPeriodService>(serviceHeader);
+            IEmployeeAppraisalPeriodService service = GetService<IEmployeeAppraisalPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeAppraisalPeriodDTO> response = ((IEmployeeAppraisalPeriodService)result.AsyncState).EndFindEmployeeAppraisalPeriodsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeAppraisalPeriodDTO> response = ((IEmployeeAppraisalPeriodService)result.AsyncState).EndFindEmployeeAppraisalPeriodsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeAppraisalPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeAppraisalPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<EmployeeAppraisalPeriodDTO> AddEmployeeAppraisalPeriodAsync(EmployeeAppraisalPeriodDTO employeeAppraisalPeriodDTO, ServiceHeader serviceHeader)
         {
@@ -13018,37 +13018,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region ExitInterviewQuestionDTO
 
-        //public Task<PageCollectionInfo<ExitInterviewQuestionDTO>> FindExitInterviewQuestionsByFilterInPageAsync(string filter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExitInterviewQuestionDTO>>();
+        public Task<PageCollectionInfo<ExitInterviewQuestionDTO>> FindExitInterviewQuestionsByFilterInPageAsync(string filter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExitInterviewQuestionDTO>>();
 
-        //    IExitInterviewQuestionService service = GetService<IExitInterviewQuestionService>(serviceHeader);
+            IExitInterviewQuestionService service = GetService<IExitInterviewQuestionService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExitInterviewQuestionDTO> response = ((IExitInterviewQuestionService)result.AsyncState).EndFindExitInterviewQuestionsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExitInterviewQuestionDTO> response = ((IExitInterviewQuestionService)result.AsyncState).EndFindExitInterviewQuestionsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExitInterviewQuestionsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExitInterviewQuestionsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<List<ExitInterviewQuestionDTO>> FindUnlockedExitInterviewQuestionsAsync(ServiceHeader serviceHeader)
         {
@@ -13310,105 +13310,105 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EmployeeExitDTO>> FindEmployeeExitsByFilterAndDateInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeExitDTO>>();
+        public Task<PageCollectionInfo<EmployeeExitDTO>> FindEmployeeExitsByFilterAndDateInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeExitDTO>>();
 
-        //    IEmployeeExitService service = GetService<IEmployeeExitService>(serviceHeader);
+            IEmployeeExitService service = GetService<IEmployeeExitService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeExitDTO> response = ((IEmployeeExitService)result.AsyncState).EndFindEmployeeExitsByFilterAndDateInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeExitDTO> response = ((IEmployeeExitService)result.AsyncState).EndFindEmployeeExitsByFilterAndDateInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeExitsByFilterAndDateInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeExitsByFilterAndDateInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
         #region EmployeeDocumentDTO
 
-        //public Task<PageCollectionInfo<EmployeeDocumentDTO>> FindEmployeeDocumentsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDocumentDTO>>();
+        public Task<PageCollectionInfo<EmployeeDocumentDTO>> FindEmployeeDocumentsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDocumentDTO>>();
 
-        //    IEmployeeDocumentService service = GetService<IEmployeeDocumentService>(serviceHeader);
+            IEmployeeDocumentService service = GetService<IEmployeeDocumentService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDocumentDTO> response = ((IEmployeeDocumentService)result.AsyncState).EndFindEmployeeDocumentsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDocumentDTO> response = ((IEmployeeDocumentService)result.AsyncState).EndFindEmployeeDocumentsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeDocumentsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeDocumentsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<EmployeeDocumentDTO>> FindEmployeeDocumentsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDocumentDTO>>();
+        public Task<PageCollectionInfo<EmployeeDocumentDTO>> FindEmployeeDocumentsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeDocumentDTO>>();
 
-        //    IEmployeeDocumentService service = GetService<IEmployeeDocumentService>(serviceHeader);
+            IEmployeeDocumentService service = GetService<IEmployeeDocumentService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeDocumentDTO> response = ((IEmployeeDocumentService)result.AsyncState).EndFindEmployeeDocumentsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeDocumentDTO> response = ((IEmployeeDocumentService)result.AsyncState).EndFindEmployeeDocumentsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeDocumentsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeDocumentsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<EmployeeDocumentDTO> AddEmployeeDocumentAsync(EmployeeDocumentDTO employeeDocumentDTO, ServiceHeader serviceHeader)
         {
@@ -13543,69 +13543,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         }
 
 
-        //public Task<PageCollectionInfo<DesignationDTO>> FindDesignationsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DesignationDTO>>();
+        public Task<PageCollectionInfo<DesignationDTO>> FindDesignationsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DesignationDTO>>();
 
-        //    IDesignationService service = GetService<IDesignationService>(serviceHeader);
+            IDesignationService service = GetService<IDesignationService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DesignationDTO> response = ((IDesignationService)result.AsyncState).EndFindDesignationsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DesignationDTO> response = ((IDesignationService)result.AsyncState).EndFindDesignationsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDesignationsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDesignationsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<DesignationDTO>> FindDesignationsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DesignationDTO>>();
+        public Task<PageCollectionInfo<DesignationDTO>> FindDesignationsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DesignationDTO>>();
 
-        //    IDesignationService service = GetService<IDesignationService>(serviceHeader);
+            IDesignationService service = GetService<IDesignationService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DesignationDTO> response = ((IDesignationService)result.AsyncState).EndFindDesignationsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DesignationDTO> response = ((IDesignationService)result.AsyncState).EndFindDesignationsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDesignationsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDesignationsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<DesignationDTO>> FindDesignationsTraverseAsync(bool updateDepth, bool traverseTree, ServiceHeader serviceHeader)
         {
@@ -13739,69 +13739,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region DepartmentDTO
 
-        //public Task<PageCollectionInfo<DepartmentDTO>> FindDepartmentsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DepartmentDTO>>();
+        public Task<PageCollectionInfo<DepartmentDTO>> FindDepartmentsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DepartmentDTO>>();
 
-        //    IDepartmentService service = GetService<IDepartmentService>(serviceHeader);
+            IDepartmentService service = GetService<IDepartmentService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DepartmentDTO> response = ((IDepartmentService)result.AsyncState).EndFindDepartmentsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DepartmentDTO> response = ((IDepartmentService)result.AsyncState).EndFindDepartmentsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDepartmentsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDepartmentsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<DepartmentDTO>> FindDepartmentsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DepartmentDTO>>();
+        public Task<PageCollectionInfo<DepartmentDTO>> FindDepartmentsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DepartmentDTO>>();
 
-        //    IDepartmentService service = GetService<IDepartmentService>(serviceHeader);
+            IDepartmentService service = GetService<IDepartmentService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DepartmentDTO> response = ((IDepartmentService)result.AsyncState).EndFindDepartmentsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DepartmentDTO> response = ((IDepartmentService)result.AsyncState).EndFindDepartmentsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDepartmentsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDepartmentsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<DepartmentDTO>> FindDepartmentsAsync(ServiceHeader serviceHeader)
         {
@@ -13935,37 +13935,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region HolidayDTO
 
-        //public Task<PageCollectionInfo<HolidayDTO>> FindHolidaysByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<HolidayDTO>>();
+        public Task<PageCollectionInfo<HolidayDTO>> FindHolidaysByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<HolidayDTO>>();
 
-        //    IHolidayService service = GetService<IHolidayService>(serviceHeader);
+            IHolidayService service = GetService<IHolidayService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<HolidayDTO> response = ((IHolidayService)result.AsyncState).EndFindHolidaysByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<HolidayDTO> response = ((IHolidayService)result.AsyncState).EndFindHolidaysByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindHolidaysByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindHolidaysByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<HolidayDTO>> FindHolidaysByPostingPeriodAsync(Guid postingPeriodId, ServiceHeader serviceHeader)
         {
@@ -14195,69 +14195,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region SalaryHeadDTO
 
-        //public Task<PageCollectionInfo<SalaryHeadDTO>> FindSalaryHeadsByFilterInPageAsync(string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryHeadDTO>>();
+        public Task<PageCollectionInfo<SalaryHeadDTO>> FindSalaryHeadsByFilterInPageAsync(string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryHeadDTO>>();
 
-        //    ISalaryHeadService service = GetService<ISalaryHeadService>(serviceHeader);
+            ISalaryHeadService service = GetService<ISalaryHeadService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryHeadDTO> response = ((ISalaryHeadService)result.AsyncState).EndFindSalaryHeadsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryHeadDTO> response = ((ISalaryHeadService)result.AsyncState).EndFindSalaryHeadsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryHeadsByFilterInPage(text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindSalaryHeadsByFilterInPage(text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<SalaryHeadDTO>> FindSalaryHeadsInPageAsync(int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryHeadDTO>>();
+        public Task<PageCollectionInfo<SalaryHeadDTO>> FindSalaryHeadsInPageAsync(int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryHeadDTO>>();
 
-        //    ISalaryHeadService service = GetService<ISalaryHeadService>(serviceHeader);
+            ISalaryHeadService service = GetService<ISalaryHeadService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryHeadDTO> response = ((ISalaryHeadService)result.AsyncState).EndFindSalaryHeadsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryHeadDTO> response = ((ISalaryHeadService)result.AsyncState).EndFindSalaryHeadsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryHeadsInPage(pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindSalaryHeadsInPage(pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<SalaryHeadDTO> AddSalaryHeadAsync(SalaryHeadDTO salaryHeadDTO, ServiceHeader serviceHeader)
         {
@@ -14359,37 +14359,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region SalaryGroupDTO
 
-        //public Task<PageCollectionInfo<SalaryGroupDTO>> FindSalaryGroupsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryGroupDTO>>();
+        public Task<PageCollectionInfo<SalaryGroupDTO>> FindSalaryGroupsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryGroupDTO>>();
 
-        //    ISalaryGroupService service = GetService<ISalaryGroupService>(serviceHeader);
+            ISalaryGroupService service = GetService<ISalaryGroupService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryGroupDTO> response = ((ISalaryGroupService)result.AsyncState).EndFindSalaryGroupsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryGroupDTO> response = ((ISalaryGroupService)result.AsyncState).EndFindSalaryGroupsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryGroupsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalaryGroupsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> UpdateSalaryGroupEntriesBySalaryGroupIdAsync(Guid salaryGroupId, ObservableCollection<SalaryGroupEntryDTO> salaryGroupEntries, ServiceHeader serviceHeader)
         {
@@ -14455,37 +14455,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<SalaryGroupDTO>> FindSalaryGroupsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryGroupDTO>>();
+        public Task<PageCollectionInfo<SalaryGroupDTO>> FindSalaryGroupsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryGroupDTO>>();
 
-        //    ISalaryGroupService service = GetService<ISalaryGroupService>(serviceHeader);
+            ISalaryGroupService service = GetService<ISalaryGroupService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryGroupDTO> response = ((ISalaryGroupService)result.AsyncState).EndFindSalaryGroupsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryGroupDTO> response = ((ISalaryGroupService)result.AsyncState).EndFindSalaryGroupsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryGroupsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalaryGroupsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<SalaryGroupDTO> AddSalaryGroupAsync(SalaryGroupDTO salaryGroupDTO, ServiceHeader serviceHeader)
         {
@@ -14651,69 +14651,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region SalaryCardDTO
 
-        //public Task<PageCollectionInfo<SalaryCardDTO>> FindSalaryCardsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryCardDTO>>();
+        public Task<PageCollectionInfo<SalaryCardDTO>> FindSalaryCardsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryCardDTO>>();
 
-        //    ISalaryCardService service = GetService<ISalaryCardService>(serviceHeader);
+            ISalaryCardService service = GetService<ISalaryCardService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryCardDTO> response = ((ISalaryCardService)result.AsyncState).EndFindSalaryCardsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryCardDTO> response = ((ISalaryCardService)result.AsyncState).EndFindSalaryCardsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryCardsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalaryCardsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<SalaryCardDTO>> FindSalaryCardsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryCardDTO>>();
+        public Task<PageCollectionInfo<SalaryCardDTO>> FindSalaryCardsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryCardDTO>>();
 
-        //    ISalaryCardService service = GetService<ISalaryCardService>(serviceHeader);
+            ISalaryCardService service = GetService<ISalaryCardService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryCardDTO> response = ((ISalaryCardService)result.AsyncState).EndFindSalaryCardsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryCardDTO> response = ((ISalaryCardService)result.AsyncState).EndFindSalaryCardsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryCardsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalaryCardsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<SalaryCardDTO> AddSalaryCardAsync(SalaryCardDTO salaryCardDTO, ServiceHeader serviceHeader)
         {
@@ -14943,69 +14943,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         #endregion
 
         #region SalaryPeriodDTO
-        //public Task<PageCollectionInfo<SalaryProcessingDTO>> FindSalaryPeriodsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryProcessingDTO>>();
+        public Task<PageCollectionInfo<SalaryProcessingDTO>> FindSalaryPeriodsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryProcessingDTO>>();
 
-        //    ISalaryPeriodService service = GetService<ISalaryPeriodService>(serviceHeader);
+            ISalaryPeriodService service = GetService<ISalaryPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryProcessingDTO> response = ((ISalaryPeriodService)result.AsyncState).EndFindSalaryPeriodsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryProcessingDTO> response = ((ISalaryPeriodService)result.AsyncState).EndFindSalaryPeriodsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryPeriodsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalaryPeriodsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<SalaryProcessingDTO>> FindSalaryPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryProcessingDTO>>();
+        public Task<PageCollectionInfo<SalaryProcessingDTO>> FindSalaryPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalaryProcessingDTO>>();
 
-        //    ISalaryPeriodService service = GetService<ISalaryPeriodService>(serviceHeader);
+            ISalaryPeriodService service = GetService<ISalaryPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalaryProcessingDTO> response = ((ISalaryPeriodService)result.AsyncState).EndFindSalaryPeriodsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalaryProcessingDTO> response = ((ISalaryPeriodService)result.AsyncState).EndFindSalaryPeriodsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalaryPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalaryPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<SalaryProcessingDTO> AddSalaryPeriodAsync(SalaryProcessingDTO salaryPeriodDTO, ServiceHeader serviceHeader)
         {
@@ -15333,101 +15333,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<PaySlipDTO>> FindPaySlipsBySalaryPeriodIdInPageAsync(Guid salaryPeriodId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PaySlipDTO>>();
+        public Task<PageCollectionInfo<PaySlipDTO>> FindPaySlipsBySalaryPeriodIdInPageAsync(Guid salaryPeriodId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PaySlipDTO>>();
 
-        //    IPaySlipService service = GetService<IPaySlipService>(serviceHeader);
+            IPaySlipService service = GetService<IPaySlipService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PaySlipDTO> response = ((IPaySlipService)result.AsyncState).EndFindPaySlipsBySalaryPeriodIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PaySlipDTO> response = ((IPaySlipService)result.AsyncState).EndFindPaySlipsBySalaryPeriodIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPaySlipsBySalaryPeriodIdInPage(salaryPeriodId, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindPaySlipsBySalaryPeriodIdInPage(salaryPeriodId, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<PaySlipDTO>> FindPaySlipsBySalaryPeriodIdAndFilterInPageAsync(Guid salaryPeriodId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PaySlipDTO>>();
+        public Task<PageCollectionInfo<PaySlipDTO>> FindPaySlipsBySalaryPeriodIdAndFilterInPageAsync(Guid salaryPeriodId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PaySlipDTO>>();
 
-        //    IPaySlipService service = GetService<IPaySlipService>(serviceHeader);
+            IPaySlipService service = GetService<IPaySlipService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PaySlipDTO> response = ((IPaySlipService)result.AsyncState).EndFindPaySlipsBySalaryPeriodIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PaySlipDTO> response = ((IPaySlipService)result.AsyncState).EndFindPaySlipsBySalaryPeriodIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPaySlipsBySalaryPeriodIdAndFilterInPage(salaryPeriodId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindPaySlipsBySalaryPeriodIdAndFilterInPage(salaryPeriodId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<PaySlipDTO>> FindQueablePaySlipsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PaySlipDTO>>();
+        public Task<PageCollectionInfo<PaySlipDTO>> FindQueablePaySlipsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PaySlipDTO>>();
 
-        //    IPaySlipService service = GetService<IPaySlipService>(serviceHeader);
+            IPaySlipService service = GetService<IPaySlipService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PaySlipDTO> response = ((IPaySlipService)result.AsyncState).EndFindQueablePaySlipsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PaySlipDTO> response = ((IPaySlipService)result.AsyncState).EndFindQueablePaySlipsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindQueablePaySlipsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindQueablePaySlipsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<PaySlipDTO> FindPaySlipAsync(Guid paySlipId, ServiceHeader serviceHeader)
         {
@@ -19774,34 +19774,34 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         #region CustomerAccountDTO
         //public Task<CustomerAccountDTO> FindCustomerAccountAsync(Guid customerAccountId, ServiceHeader serviceHeader)
         //{
-        //    var tcs = new TaskCompletionSource<CustomerAccountDTO>();
+            //var tcs = new TaskCompletionSource<CustomerAccountDTO>();
 
-        //    ICustomerAccountService service = GetService<ICustomerAccountService>(serviceHeader);
+            //ICustomerAccountService service = GetService<ICustomerAccountService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            CustomerAccountDTO response = ((ICustomerAccountService)result.AsyncState).EndFindCustomerAccount(result);
+            //AsyncCallback asyncCallback = (result =>
+            //{
+                //try
+                //{
+                    //CustomerAccountDTO response = ((ICustomerAccountService)result.AsyncState).EndFindCustomerAccount(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    //tcs.TrySetResult(response);
+                //}
+                //catch (Exception ex)
+                //{
+                    //HandleFault(ex, (msgcb) =>
+                    //{
+                        //if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    //});
+                //}
+                //finally
+                //{
+                    //DisposeService(service as IClientChannel);
+                //}
+            //});
 
-        //    service.BeginFindCustomerAccount(customerAccountId, asyncCallback, service);
+            //service.BeginFindCustomerAccount(customerAccountId, asyncCallback, service);
 
-        //    return tcs.Task;
+            //return tcs.Task;
         //}
 
         public Task<bool> UpdateCustomerAccountAsync(CustomerAccountDTO customerAccountDTO, ServiceHeader serviceHeader)
@@ -21412,37 +21412,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<JournalDTO>> FindReversibleJournalsByDateRangeAndFilterInPageAsync(int systemTransactionCode, DateTime startDate, DateTime endDate, string text, int journalFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalDTO>>();
+        public Task<PageCollectionInfo<JournalDTO>> FindReversibleJournalsByDateRangeAndFilterInPageAsync(int systemTransactionCode, DateTime startDate, DateTime endDate, string text, int journalFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalDTO>>();
 
-        //    IJournalService service = GetService<IJournalService>(serviceHeader);
+            IJournalService service = GetService<IJournalService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalDTO> response = ((IJournalService)result.AsyncState).EndFindReversibleJournalsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalDTO> response = ((IJournalService)result.AsyncState).EndFindReversibleJournalsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindReversibleJournalsByDateRangeAndFilterInPage(systemTransactionCode, startDate, endDate, text, journalFilter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindReversibleJournalsByDateRangeAndFilterInPage(systemTransactionCode, startDate, endDate, text, journalFilter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> ReverseJournalsAsync(ObservableCollection<JournalDTO> journalDTOs, string description, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
@@ -21608,297 +21608,297 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region JournalEntryDTO
 
-        //public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindLastXGeneralLedgerTransactionsByCustomerAccountIdAsync(CustomerAccountDTO customerAccountDTO, int lastXItems, bool tallyDebitsCredits, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
+        public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindLastXGeneralLedgerTransactionsByCustomerAccountIdAsync(CustomerAccountDTO customerAccountDTO, int lastXItems, bool tallyDebitsCredits, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
 
-        //    IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
+            IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindLastXGeneralLedgerTransactionsByCustomerAccountId(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindLastXGeneralLedgerTransactionsByCustomerAccountId(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLastXGeneralLedgerTransactionsByCustomerAccountId(customerAccountDTO, lastXItems, tallyDebitsCredits, asyncCallback, service);
+            service.BeginFindLastXGeneralLedgerTransactionsByCustomerAccountId(customerAccountDTO, lastXItems, tallyDebitsCredits, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeAsync(CustomerAccountDTO customerAccountDTO, DateTime startDate, DateTime endDate, bool tallyDebitsCredits, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
+        public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeAsync(CustomerAccountDTO customerAccountDTO, DateTime startDate, DateTime endDate, bool tallyDebitsCredits, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
 
-        //    IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
+            IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRange(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRange(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRange(customerAccountDTO, startDate, endDate, tallyDebitsCredits, asyncCallback, service);
+            service.BeginFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRange(customerAccountDTO, startDate, endDate, tallyDebitsCredits, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeInPageAsync(int pageIndex, int pageSize, CustomerAccountDTO customerAccountDTO, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, bool tallyDebitsCredits, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
+        public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeInPageAsync(int pageIndex, int pageSize, CustomerAccountDTO customerAccountDTO, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, bool tallyDebitsCredits, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
 
-        //    IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
+            IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeInPage(pageIndex, pageSize, customerAccountDTO, startDate, endDate, text, journalEntryFilter, tallyDebitsCredits, asyncCallback, service);
+            service.BeginFindGeneralLedgerTransactionsByCustomerAccountIdAndDateRangeInPage(pageIndex, pageSize, customerAccountDTO, startDate, endDate, text, journalEntryFilter, tallyDebitsCredits, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, Guid chartOfAccountId, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, int transactionDateFilter, bool tallyDebitsCredits, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
+        public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, Guid chartOfAccountId, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, int transactionDateFilter, bool tallyDebitsCredits, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
 
-        //    IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
+            IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndFilterInPage(pageIndex, pageSize, chartOfAccountId, startDate, endDate, text, journalEntryFilter, transactionDateFilter, tallyDebitsCredits, asyncCallback, service);
+            service.BeginFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndFilterInPage(pageIndex, pageSize, chartOfAccountId, startDate, endDate, text, journalEntryFilter, transactionDateFilter, tallyDebitsCredits, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndTransactionCodeAndReferenceInPageAsync(int pageIndex, int pageSize, Guid chartOfAccountId, DateTime startDate, DateTime endDate, int transactionCode, string reference, int transactionDateFilter, bool tallyDebitsCredits, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
+        public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndTransactionCodeAndReferenceInPageAsync(int pageIndex, int pageSize, Guid chartOfAccountId, DateTime startDate, DateTime endDate, int transactionCode, string reference, int transactionDateFilter, bool tallyDebitsCredits, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
 
-        //    IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
+            IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndTransactionCodeAndReferenceInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndTransactionCodeAndReferenceInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndTransactionCodeAndReferenceInPage(pageIndex, pageSize, chartOfAccountId, startDate, endDate, transactionCode, reference, transactionDateFilter, tallyDebitsCredits, asyncCallback, service);
+            service.BeginFindGeneralLedgerTransactionsByChartOfAccountIdAndDateRangeAndTransactionCodeAndReferenceInPage(pageIndex, pageSize, chartOfAccountId, startDate, endDate, transactionCode, reference, transactionDateFilter, tallyDebitsCredits, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
+        public Task<PageCollectionInfo<GeneralLedgerTransaction>> FindGeneralLedgerTransactionsByDateRangeAndFilterInPageAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerTransaction>>();
 
-        //    IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
+            IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerTransaction> response = ((IJournalEntryService)result.AsyncState).EndFindGeneralLedgerTransactionsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgerTransactionsByDateRangeAndFilterInPage(pageIndex, pageSize, startDate, endDate, text, journalEntryFilter, asyncCallback, service);
+            service.BeginFindGeneralLedgerTransactionsByDateRangeAndFilterInPage(pageIndex, pageSize, startDate, endDate, text, journalEntryFilter, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<JournalEntryDTO>> FindReversibleJournalEntriesByDateRangeAndFilterInPageAsync(int systemTransactionCode, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalEntryDTO>>();
+        public Task<PageCollectionInfo<JournalEntryDTO>> FindReversibleJournalEntriesByDateRangeAndFilterInPageAsync(int systemTransactionCode, DateTime startDate, DateTime endDate, string text, int journalEntryFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalEntryDTO>>();
 
-        //    IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
+            IJournalEntryService service = GetService<IJournalEntryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalEntryDTO> response = ((IJournalEntryService)result.AsyncState).EndFindReversibleJournalEntriesByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalEntryDTO> response = ((IJournalEntryService)result.AsyncState).EndFindReversibleJournalEntriesByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindReversibleJournalEntriesByDateRangeAndFilterInPage(systemTransactionCode, startDate, endDate, text, journalEntryFilter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindReversibleJournalEntriesByDateRangeAndFilterInPage(systemTransactionCode, startDate, endDate, text, journalEntryFilter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
         #region PostingPeriodDTO
 
-        //public Task<PageCollectionInfo<PostingPeriodDTO>> FindPostingPeriodsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PostingPeriodDTO>>();
+        public Task<PageCollectionInfo<PostingPeriodDTO>> FindPostingPeriodsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PostingPeriodDTO>>();
 
-        //    IPostingPeriodService service = GetService<IPostingPeriodService>(serviceHeader);
+            IPostingPeriodService service = GetService<IPostingPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PostingPeriodDTO> response = ((IPostingPeriodService)result.AsyncState).EndFindPostingPeriodsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PostingPeriodDTO> response = ((IPostingPeriodService)result.AsyncState).EndFindPostingPeriodsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPostingPeriodsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindPostingPeriodsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<PostingPeriodDTO>> FindPostingPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PostingPeriodDTO>>();
+        public Task<PageCollectionInfo<PostingPeriodDTO>> FindPostingPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PostingPeriodDTO>>();
 
-        //    IPostingPeriodService service = GetService<IPostingPeriodService>(serviceHeader);
+            IPostingPeriodService service = GetService<IPostingPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PostingPeriodDTO> response = ((IPostingPeriodService)result.AsyncState).EndFindPostingPeriodsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PostingPeriodDTO> response = ((IPostingPeriodService)result.AsyncState).EndFindPostingPeriodsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPostingPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindPostingPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<PostingPeriodDTO> AddPostingPeriodAsync(PostingPeriodDTO postingPeriodDTO, ServiceHeader serviceHeader)
         {
@@ -22095,69 +22095,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region CommissionDTO
 
-        //public Task<PageCollectionInfo<CommissionDTO>> FindCommissionsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CommissionDTO>>();
+        public Task<PageCollectionInfo<CommissionDTO>> FindCommissionsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CommissionDTO>>();
 
-        //    ICommissionService service = GetService<ICommissionService>(serviceHeader);
+            ICommissionService service = GetService<ICommissionService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CommissionDTO> response = ((ICommissionService)result.AsyncState).EndFindCommissionsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CommissionDTO> response = ((ICommissionService)result.AsyncState).EndFindCommissionsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCommissionsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCommissionsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<CommissionDTO>> FindCommissionsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CommissionDTO>>();
+        public Task<PageCollectionInfo<CommissionDTO>> FindCommissionsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CommissionDTO>>();
 
-        //    ICommissionService service = GetService<ICommissionService>(serviceHeader);
+            ICommissionService service = GetService<ICommissionService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CommissionDTO> response = ((ICommissionService)result.AsyncState).EndFindCommissionsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CommissionDTO> response = ((ICommissionService)result.AsyncState).EndFindCommissionsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCommissionsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCommissionsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<CommissionDTO>> FindCommissionsAsync(ServiceHeader serviceHeader)
         {
@@ -22898,69 +22898,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region LevyDTO
 
-        //public Task<PageCollectionInfo<LevyDTO>> FindLeviesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LevyDTO>>();
+        public Task<PageCollectionInfo<LevyDTO>> FindLeviesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LevyDTO>>();
 
-        //    ILevyService service = GetService<ILevyService>(serviceHeader);
+            ILevyService service = GetService<ILevyService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LevyDTO> response = ((ILevyService)result.AsyncState).EndFindLeviesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LevyDTO> response = ((ILevyService)result.AsyncState).EndFindLeviesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLeviesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLeviesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LevyDTO>> FindLeviesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LevyDTO>>();
+        public Task<PageCollectionInfo<LevyDTO>> FindLeviesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LevyDTO>>();
 
-        //    ILevyService service = GetService<ILevyService>(serviceHeader);
+            ILevyService service = GetService<ILevyService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LevyDTO> response = ((ILevyService)result.AsyncState).EndFindLeviesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LevyDTO> response = ((ILevyService)result.AsyncState).EndFindLeviesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLeviesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLeviesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<LevyDTO>> FindLeviesAsync(ServiceHeader serviceHeader)
         {
@@ -23158,37 +23158,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region SavingsProductDTO
 
-        //public Task<PageCollectionInfo<SavingsProductDTO>> FindSavingsProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SavingsProductDTO>>();
+        public Task<PageCollectionInfo<SavingsProductDTO>> FindSavingsProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SavingsProductDTO>>();
 
-        //    ISavingsProductService service = GetService<ISavingsProductService>(serviceHeader);
+            ISavingsProductService service = GetService<ISavingsProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SavingsProductDTO> response = ((ISavingsProductService)result.AsyncState).EndFindSavingsProductsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SavingsProductDTO> response = ((ISavingsProductService)result.AsyncState).EndFindSavingsProductsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSavingsProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSavingsProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<SavingsProductDTO>> FindSavingsProductsAsync(ServiceHeader serviceHeader)
         {
@@ -23254,37 +23254,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<SavingsProductDTO>> FindSavingsProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SavingsProductDTO>>();
+        public Task<PageCollectionInfo<SavingsProductDTO>> FindSavingsProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SavingsProductDTO>>();
 
-        //    ISavingsProductService service = GetService<ISavingsProductService>(serviceHeader);
+            ISavingsProductService service = GetService<ISavingsProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SavingsProductDTO> response = ((ISavingsProductService)result.AsyncState).EndFindSavingsProductsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SavingsProductDTO> response = ((ISavingsProductService)result.AsyncState).EndFindSavingsProductsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSavingsProductsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSavingsProductsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<SavingsProductDTO> AddSavingsProductAsync(SavingsProductDTO savingsProductDTO, ServiceHeader serviceHeader)
         {
@@ -23546,37 +23546,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region InvestmentProductDTO
 
-        //public Task<PageCollectionInfo<InvestmentProductDTO>> FindInvestmentProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InvestmentProductDTO>>();
+        public Task<PageCollectionInfo<InvestmentProductDTO>> FindInvestmentProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InvestmentProductDTO>>();
 
-        //    IInvestmentProductService service = GetService<IInvestmentProductService>(serviceHeader);
+            IInvestmentProductService service = GetService<IInvestmentProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InvestmentProductDTO> response = ((IInvestmentProductService)result.AsyncState).EndFindInvestmentProductsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InvestmentProductDTO> response = ((IInvestmentProductService)result.AsyncState).EndFindInvestmentProductsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInvestmentProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInvestmentProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<InvestmentProductDTO>> FindInvestmentProductsAsync(ServiceHeader serviceHeader)
         {
@@ -23674,37 +23674,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<InvestmentProductDTO>> FindInvestmentProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InvestmentProductDTO>>();
+        public Task<PageCollectionInfo<InvestmentProductDTO>> FindInvestmentProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InvestmentProductDTO>>();
 
-        //    IInvestmentProductService service = GetService<IInvestmentProductService>(serviceHeader);
+            IInvestmentProductService service = GetService<IInvestmentProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InvestmentProductDTO> response = ((IInvestmentProductService)result.AsyncState).EndFindInvestmentProductsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InvestmentProductDTO> response = ((IInvestmentProductService)result.AsyncState).EndFindInvestmentProductsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInvestmentProductsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInvestmentProductsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<InvestmentProductDTO> AddInvestmentProductAsync(InvestmentProductDTO investmentProductDTO, ServiceHeader serviceHeader)
         {
@@ -23902,70 +23902,70 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region LoanProductDTO
 
-        //public Task<PageCollectionInfo<LoanProductDTO>> FindLoanProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductDTO>>();
+        public Task<PageCollectionInfo<LoanProductDTO>> FindLoanProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductDTO>>();
 
-        //    ILoanProductService service = GetService<ILoanProductService>(serviceHeader);
+            ILoanProductService service = GetService<ILoanProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanProductDTO> response = ((ILoanProductService)result.AsyncState).EndFindLoanProductsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanProductDTO> response = ((ILoanProductService)result.AsyncState).EndFindLoanProductsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
 
-        //public Task<PageCollectionInfo<LoanProductDTO>> FindLoanProductsByLoanProductSectionAndFilterInPageAsync(int loanProductSection, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductDTO>>();
+        public Task<PageCollectionInfo<LoanProductDTO>> FindLoanProductsByLoanProductSectionAndFilterInPageAsync(int loanProductSection, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductDTO>>();
 
-        //    ILoanProductService service = GetService<ILoanProductService>(serviceHeader);
+            ILoanProductService service = GetService<ILoanProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanProductDTO> response = ((ILoanProductService)result.AsyncState).EndFindLoanProductsByLoanProductSectionAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanProductDTO> response = ((ILoanProductService)result.AsyncState).EndFindLoanProductsByLoanProductSectionAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanProductsByLoanProductSectionAndFilterInPage(loanProductSection, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanProductsByLoanProductSectionAndFilterInPage(loanProductSection, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<LoanProductDTO>> FindLoanProductsAsync(ServiceHeader serviceHeader)
         {
@@ -24063,37 +24063,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanProductDTO>> FindLoanProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductDTO>>();
+        public Task<PageCollectionInfo<LoanProductDTO>> FindLoanProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductDTO>>();
 
-        //    ILoanProductService service = GetService<ILoanProductService>(serviceHeader);
+            ILoanProductService service = GetService<ILoanProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanProductDTO> response = ((ILoanProductService)result.AsyncState).EndFindLoanProductsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanProductDTO> response = ((ILoanProductService)result.AsyncState).EndFindLoanProductsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanProductsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanProductsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LoanProductDTO> AddLoanProductAsync(LoanProductDTO loanProductDTO, ServiceHeader serviceHeader)
         {
@@ -24740,37 +24740,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<DynamicChargeDTO>> FindDynamicChargesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DynamicChargeDTO>>();
+        public Task<PageCollectionInfo<DynamicChargeDTO>> FindDynamicChargesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DynamicChargeDTO>>();
 
-        //    IDynamicChargeService service = GetService<IDynamicChargeService>(serviceHeader);
+            IDynamicChargeService service = GetService<IDynamicChargeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DynamicChargeDTO> response = ((IDynamicChargeService)result.AsyncState).EndFindDynamicChargesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DynamicChargeDTO> response = ((IDynamicChargeService)result.AsyncState).EndFindDynamicChargesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDynamicChargesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDynamicChargesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<DynamicChargeDTO>> FindDynamicChargesAsync(ServiceHeader serviceHeader)
         {
@@ -24900,105 +24900,105 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<DynamicChargeDTO>> FindDynamicChargesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DynamicChargeDTO>>();
+        public Task<PageCollectionInfo<DynamicChargeDTO>> FindDynamicChargesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DynamicChargeDTO>>();
 
-        //    IDynamicChargeService service = GetService<IDynamicChargeService>(serviceHeader);
+            IDynamicChargeService service = GetService<IDynamicChargeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DynamicChargeDTO> response = ((IDynamicChargeService)result.AsyncState).EndFindDynamicChargesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DynamicChargeDTO> response = ((IDynamicChargeService)result.AsyncState).EndFindDynamicChargesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDynamicChargesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDynamicChargesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         #endregion
 
         #region CostCenterDTO
 
-        //public Task<PageCollectionInfo<CostCenterDTO>> FindCostCentersByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CostCenterDTO>>();
+        public Task<PageCollectionInfo<CostCenterDTO>> FindCostCentersByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CostCenterDTO>>();
 
-        //    ICostCenterService service = GetService<ICostCenterService>(serviceHeader);
+            ICostCenterService service = GetService<ICostCenterService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CostCenterDTO> response = ((ICostCenterService)result.AsyncState).EndFindCostCentersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CostCenterDTO> response = ((ICostCenterService)result.AsyncState).EndFindCostCentersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCostCentersByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCostCentersByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<CostCenterDTO>> FindCostCentersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CostCenterDTO>>();
+        public Task<PageCollectionInfo<CostCenterDTO>> FindCostCentersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CostCenterDTO>>();
 
-        //    ICostCenterService service = GetService<ICostCenterService>(serviceHeader);
+            ICostCenterService service = GetService<ICostCenterService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CostCenterDTO> response = ((ICostCenterService)result.AsyncState).EndFindCostCentersInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CostCenterDTO> response = ((ICostCenterService)result.AsyncState).EndFindCostCentersInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCostCentersInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCostCentersInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<CostCenterDTO> AddCostCenterAsync(CostCenterDTO costCenterDTO, ServiceHeader serviceHeader)
         {
@@ -25132,37 +25132,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region TellerDTO
 
-        //public Task<PageCollectionInfo<TellerDTO>> FindTellersByFilterInPageAsync(int tellerType, string text, int pageIndex, int pageSize, bool includeBalances, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TellerDTO>>();
+        public Task<PageCollectionInfo<TellerDTO>> FindTellersByFilterInPageAsync(int tellerType, string text, int pageIndex, int pageSize, bool includeBalances, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TellerDTO>>();
 
-        //    ITellerService service = GetService<ITellerService>(serviceHeader);
+            ITellerService service = GetService<ITellerService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TellerDTO> response = ((ITellerService)result.AsyncState).EndFindTellersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TellerDTO> response = ((ITellerService)result.AsyncState).EndFindTellersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTellersByFilterInPage(tellerType, text, pageIndex, pageSize, includeBalances, asyncCallback, service);
+            service.BeginFindTellersByFilterInPage(tellerType, text, pageIndex, pageSize, includeBalances, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<TellerDTO> AddTellerAsync(TellerDTO tellerDTO, ServiceHeader serviceHeader)
         {
@@ -25460,69 +25460,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         }
 
 
-        //public Task<PageCollectionInfo<BankLinkageDTO>> FindBankLinkagesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankLinkageDTO>>();
+        public Task<PageCollectionInfo<BankLinkageDTO>> FindBankLinkagesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankLinkageDTO>>();
 
-        //    IBankLinkageService service = GetService<IBankLinkageService>(serviceHeader);
+            IBankLinkageService service = GetService<IBankLinkageService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankLinkageDTO> response = ((IBankLinkageService)result.AsyncState).EndFindBankLinkagesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankLinkageDTO> response = ((IBankLinkageService)result.AsyncState).EndFindBankLinkagesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBankLinkagesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBankLinkagesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<BankLinkageDTO>> FindBankLinkagesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankLinkageDTO>>();
+        public Task<PageCollectionInfo<BankLinkageDTO>> FindBankLinkagesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankLinkageDTO>>();
 
-        //    IBankLinkageService service = GetService<IBankLinkageService>(serviceHeader);
+            IBankLinkageService service = GetService<IBankLinkageService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankLinkageDTO> response = ((IBankLinkageService)result.AsyncState).EndFindBankLinkagesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankLinkageDTO> response = ((IBankLinkageService)result.AsyncState).EndFindBankLinkagesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBankLinkagesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBankLinkagesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<BankLinkageDTO> AddBankLinkageAsync(BankLinkageDTO bankLinkageDTO, ServiceHeader serviceHeader)
         {
@@ -25664,37 +25664,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region BudgetDTO
 
-        //public Task<PageCollectionInfo<BudgetDTO>> FindBudgetsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BudgetDTO>>();
+        public Task<PageCollectionInfo<BudgetDTO>> FindBudgetsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BudgetDTO>>();
 
-        //    IBudgetService service = GetService<IBudgetService>(serviceHeader);
+            IBudgetService service = GetService<IBudgetService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BudgetDTO> response = ((IBudgetService)result.AsyncState).EndFindBudgetsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BudgetDTO> response = ((IBudgetService)result.AsyncState).EndFindBudgetsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBudgetsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBudgetsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<List<BudgetDTO>> FindBudgetsAsync(ServiceHeader serviceHeader)
         {
@@ -25728,37 +25728,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<BudgetDTO>> FindBudgetsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BudgetDTO>>();
+        public Task<PageCollectionInfo<BudgetDTO>> FindBudgetsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BudgetDTO>>();
 
-        //    IBudgetService service = GetService<IBudgetService>(serviceHeader);
+            IBudgetService service = GetService<IBudgetService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BudgetDTO> response = ((IBudgetService)result.AsyncState).EndFindBudgetsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BudgetDTO> response = ((IBudgetService)result.AsyncState).EndFindBudgetsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBudgetsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBudgetsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<BudgetDTO> AddBudgetAsync(BudgetDTO budgetDTO, ServiceHeader serviceHeader)
         {
@@ -25921,37 +25921,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<BudgetEntryDTO>> FindBudgetEntriesByBudgetIdInPageAsync(Guid budgetId, int pageIndex, int pageSize, bool includeBalances, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BudgetEntryDTO>>();
+        public Task<PageCollectionInfo<BudgetEntryDTO>> FindBudgetEntriesByBudgetIdInPageAsync(Guid budgetId, int pageIndex, int pageSize, bool includeBalances, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BudgetEntryDTO>>();
 
-        //    IBudgetService service = GetService<IBudgetService>(serviceHeader);
+            IBudgetService service = GetService<IBudgetService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BudgetEntryDTO> response = ((IBudgetService)result.AsyncState).EndFindBudgetEntriesByBudgetIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BudgetEntryDTO> response = ((IBudgetService)result.AsyncState).EndFindBudgetEntriesByBudgetIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBudgetEntriesByBudgetIdInPage(budgetId, pageIndex, pageSize, includeBalances, asyncCallback, service);
+            service.BeginFindBudgetEntriesByBudgetIdInPage(budgetId, pageIndex, pageSize, includeBalances, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> RemoveBudgetEntriesAsync(ObservableCollection<BudgetEntryDTO> budgetEntries, ServiceHeader serviceHeader)
         {
@@ -26053,70 +26053,70 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region JournalVoucherDTO
 
-        //public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
+        public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
 
-        //    IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
+            IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalVouchersByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalVouchersByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
 
-        //public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
+        public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
 
-        //    IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
+            IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalVouchersByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalVouchersByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<JournalVoucherDTO>> FindJournalVouchersAsync(ServiceHeader serviceHeader)
         {
@@ -26151,69 +26151,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         }
 
 
-        //public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
+        public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
 
-        //    IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
+            IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalVouchersInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalVouchersInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
+        public Task<PageCollectionInfo<JournalVoucherDTO>> FindJournalVouchersByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherDTO>>();
 
-        //    IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
+            IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalVoucherDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVouchersByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalVouchersByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalVouchersByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<JournalVoucherEntryDTO>> FindJournalVoucherEntriesByJournalVoucherIdAsync(Guid journalVoucherId, ServiceHeader serviceHeader)
         {
@@ -26247,37 +26247,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<JournalVoucherEntryDTO>> FindJournalVoucherEntriesByJournalVoucherIdInPageAsync(Guid journalVoucherId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherEntryDTO>>();
+        public Task<PageCollectionInfo<JournalVoucherEntryDTO>> FindJournalVoucherEntriesByJournalVoucherIdInPageAsync(Guid journalVoucherId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalVoucherEntryDTO>>();
 
-        //    IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
+            IJournalVoucherService service = GetService<IJournalVoucherService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalVoucherEntryDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVoucherEntriesByJournalVoucherIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalVoucherEntryDTO> response = ((IJournalVoucherService)result.AsyncState).EndFindJournalVoucherEntriesByJournalVoucherIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalVoucherEntriesByJournalVoucherIdInPage(journalVoucherId, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalVoucherEntriesByJournalVoucherIdInPage(journalVoucherId, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<JournalVoucherDTO> AddJournalVoucherAsync(JournalVoucherDTO journalVoucherDTO, ServiceHeader serviceHeader)
         {
@@ -26571,37 +26571,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region TreasuryDTO
 
-        //public Task<PageCollectionInfo<TreasuryDTO>> FindTreasuriesByFilterInPageAsync(string text, int pageIndex, int pageSize, bool includeBalances, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<TreasuryDTO>>();
+        public Task<PageCollectionInfo<TreasuryDTO>> FindTreasuriesByFilterInPageAsync(string text, int pageIndex, int pageSize, bool includeBalances, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<TreasuryDTO>>();
 
-        //    ITreasuryService service = GetService<ITreasuryService>(serviceHeader);
+            ITreasuryService service = GetService<ITreasuryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<TreasuryDTO> response = ((ITreasuryService)result.AsyncState).EndFindTreasuriesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<TreasuryDTO> response = ((ITreasuryService)result.AsyncState).EndFindTreasuriesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindTreasuriesByFilterInPage(text, pageIndex, pageSize, includeBalances, asyncCallback, service);
+            service.BeginFindTreasuriesByFilterInPage(text, pageIndex, pageSize, includeBalances, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<TreasuryDTO> AddTreasuryAsync(TreasuryDTO treasuryDTO, ServiceHeader serviceHeader)
         {
@@ -26769,69 +26769,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region InsuranceCompanyDTO
 
-        //public Task<PageCollectionInfo<InsuranceCompanyDTO>> FindInsuranceCompaniesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InsuranceCompanyDTO>>();
+        public Task<PageCollectionInfo<InsuranceCompanyDTO>> FindInsuranceCompaniesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InsuranceCompanyDTO>>();
 
-        //    IInsuranceCompanyService service = GetService<IInsuranceCompanyService>(serviceHeader);
+            IInsuranceCompanyService service = GetService<IInsuranceCompanyService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InsuranceCompanyDTO> response = ((IInsuranceCompanyService)result.AsyncState).EndFindInsuranceCompaniesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InsuranceCompanyDTO> response = ((IInsuranceCompanyService)result.AsyncState).EndFindInsuranceCompaniesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInsuranceCompaniesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInsuranceCompaniesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<InsuranceCompanyDTO>> FindInsuranceCompaniesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InsuranceCompanyDTO>>();
+        public Task<PageCollectionInfo<InsuranceCompanyDTO>> FindInsuranceCompaniesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InsuranceCompanyDTO>>();
 
-        //    IInsuranceCompanyService service = GetService<IInsuranceCompanyService>(serviceHeader);
+            IInsuranceCompanyService service = GetService<IInsuranceCompanyService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InsuranceCompanyDTO> response = ((IInsuranceCompanyService)result.AsyncState).EndFindInsuranceCompaniesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InsuranceCompanyDTO> response = ((IInsuranceCompanyService)result.AsyncState).EndFindInsuranceCompaniesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInsuranceCompaniesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInsuranceCompaniesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<InsuranceCompanyDTO>> FindInsuranceCompaniesAsync(ServiceHeader serviceHeader)
         {
@@ -26965,69 +26965,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region UnPayReasonDTO
 
-        //public Task<PageCollectionInfo<UnPayReasonDTO>> FindUnPayReasonsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<UnPayReasonDTO>>();
+        public Task<PageCollectionInfo<UnPayReasonDTO>> FindUnPayReasonsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<UnPayReasonDTO>>();
 
-        //    IUnPayReasonService service = GetService<IUnPayReasonService>(serviceHeader);
+            IUnPayReasonService service = GetService<IUnPayReasonService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<UnPayReasonDTO> response = ((IUnPayReasonService)result.AsyncState).EndFindUnPayReasonsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<UnPayReasonDTO> response = ((IUnPayReasonService)result.AsyncState).EndFindUnPayReasonsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindUnPayReasonsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindUnPayReasonsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<UnPayReasonDTO>> FindUnPayReasonsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<UnPayReasonDTO>>();
+        public Task<PageCollectionInfo<UnPayReasonDTO>> FindUnPayReasonsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<UnPayReasonDTO>>();
 
-        //    IUnPayReasonService service = GetService<IUnPayReasonService>(serviceHeader);
+            IUnPayReasonService service = GetService<IUnPayReasonService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<UnPayReasonDTO> response = ((IUnPayReasonService)result.AsyncState).EndFindUnPayReasonsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<UnPayReasonDTO> response = ((IUnPayReasonService)result.AsyncState).EndFindUnPayReasonsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindUnPayReasonsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindUnPayReasonsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<UnPayReasonDTO> AddUnPayReasonAsync(UnPayReasonDTO unPayReasonDTO, ServiceHeader serviceHeader)
         {
@@ -27257,69 +27257,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ChequeBookDTO>> FindChequeBooksByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeBookDTO>>();
+        public Task<PageCollectionInfo<ChequeBookDTO>> FindChequeBooksByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeBookDTO>>();
 
-        //    IChequeBookService service = GetService<IChequeBookService>(serviceHeader);
+            IChequeBookService service = GetService<IChequeBookService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ChequeBookDTO> response = ((IChequeBookService)result.AsyncState).EndFindChequeBooksByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ChequeBookDTO> response = ((IChequeBookService)result.AsyncState).EndFindChequeBooksByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindChequeBooksByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindChequeBooksByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ChequeBookDTO>> FindChequeBooksByTypeAndFilterInPageAsync(int type, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeBookDTO>>();
+        public Task<PageCollectionInfo<ChequeBookDTO>> FindChequeBooksByTypeAndFilterInPageAsync(int type, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeBookDTO>>();
 
-        //    IChequeBookService service = GetService<IChequeBookService>(serviceHeader);
+            IChequeBookService service = GetService<IChequeBookService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ChequeBookDTO> response = ((IChequeBookService)result.AsyncState).EndFindChequeBooksByTypeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ChequeBookDTO> response = ((IChequeBookService)result.AsyncState).EndFindChequeBooksByTypeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindChequeBooksByTypeAndFilterInPage(type, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindChequeBooksByTypeAndFilterInPage(type, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ChequeBookDTO> FindChequeBookAsync(Guid chequeBookId, ServiceHeader serviceHeader)
         {
@@ -27418,37 +27418,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         }
 
 
-        //public Task<PageCollectionInfo<PaymentVoucherDTO>> FindPaymentVouchersByChequeBookIdAndFilterInPageAsync(Guid chequeBookId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PaymentVoucherDTO>>();
+        public Task<PageCollectionInfo<PaymentVoucherDTO>> FindPaymentVouchersByChequeBookIdAndFilterInPageAsync(Guid chequeBookId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PaymentVoucherDTO>>();
 
-        //    IChequeBookService service = GetService<IChequeBookService>(serviceHeader);
+            IChequeBookService service = GetService<IChequeBookService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PaymentVoucherDTO> response = ((IChequeBookService)result.AsyncState).EndFindPaymentVouchersByChequeBookIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PaymentVoucherDTO> response = ((IChequeBookService)result.AsyncState).EndFindPaymentVouchersByChequeBookIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPaymentVouchersByChequeBookIdAndFilterInPage(chequeBookId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindPaymentVouchersByChequeBookIdAndFilterInPage(chequeBookId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> FlagPaymentVoucherAsync(PaymentVoucherDTO paymentVoucherDTO, ServiceHeader serviceHeader)
         {
@@ -27876,101 +27876,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<StandingOrderDTO>> FindStandingOrdersInPageAsync(int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderDTO>>();
+        public Task<PageCollectionInfo<StandingOrderDTO>> FindStandingOrdersInPageAsync(int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderDTO>>();
 
-        //    IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
+            IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<StandingOrderDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrdersInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<StandingOrderDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrdersInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindStandingOrdersInPage(pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindStandingOrdersInPage(pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<StandingOrderDTO>> FindStandingOrdersByFilterInPageAsync(string text, int customerAccountFilter, int customerFilter, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderDTO>>();
+        public Task<PageCollectionInfo<StandingOrderDTO>> FindStandingOrdersByFilterInPageAsync(string text, int customerAccountFilter, int customerFilter, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderDTO>>();
 
-        //    IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
+            IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<StandingOrderDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrdersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<StandingOrderDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrdersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindStandingOrdersByFilterInPage(text, customerAccountFilter, customerFilter, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindStandingOrdersByFilterInPage(text, customerAccountFilter, customerFilter, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<StandingOrderDTO>> FindStandingOrdersByTriggerAndFilterInPageAsync(int trigger, string text, int customerAccountFilter, int customerFilter, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderDTO>>();
+        public Task<PageCollectionInfo<StandingOrderDTO>> FindStandingOrdersByTriggerAndFilterInPageAsync(int trigger, string text, int customerAccountFilter, int customerFilter, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderDTO>>();
 
-        //    IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
+            IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<StandingOrderDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrdersByTriggerAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<StandingOrderDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrdersByTriggerAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindStandingOrdersByTriggerAndFilterInPage(trigger, text, customerAccountFilter, customerFilter, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindStandingOrdersByTriggerAndFilterInPage(trigger, text, customerAccountFilter, customerFilter, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<StandingOrderDTO> AddStandingOrderAsync(StandingOrderDTO standingOrderDTO, ServiceHeader serviceHeader)
         {
@@ -28036,37 +28036,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<StandingOrderHistoryDTO>> FindStandingOrderHistoryByStandingOrderIdInPageAsync(Guid standingOrderId, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderHistoryDTO>>();
+        public Task<PageCollectionInfo<StandingOrderHistoryDTO>> FindStandingOrderHistoryByStandingOrderIdInPageAsync(Guid standingOrderId, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<StandingOrderHistoryDTO>>();
 
-        //    IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
+            IStandingOrderService service = GetService<IStandingOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<StandingOrderHistoryDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrderHistoryByStandingOrderIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<StandingOrderHistoryDTO> response = ((IStandingOrderService)result.AsyncState).EndFindStandingOrderHistoryByStandingOrderIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindStandingOrderHistoryByStandingOrderIdInPage(standingOrderId, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindStandingOrderHistoryByStandingOrderIdInPage(standingOrderId, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> FixSkippedStandingOrdersAsync(DateTime targetDate, int pageSize, ServiceHeader serviceHeader)
         {
@@ -28107,9 +28107,9 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         //public List<ChequeTypeDTO> FindChequeTypes()
         //{
-        //    var serviceHeader = CustomHeaderUtility.ReadHeader(OperationContext.Current);
+            //var serviceHeader = CustomHeaderUtility.ReadHeader(OperationContext.Current);
 
-        //    return _chequeTypeAppService.FindChequeTypes(serviceHeader);
+            //return _chequeTypeAppService.FindChequeTypes(serviceHeader);
         //}
 
         public Task<ObservableCollection<ChequeTypeDTO>> FindChequeTypesAsync(ServiceHeader serviceHeader)
@@ -28144,69 +28144,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ChequeTypeDTO>> FindChequeTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeTypeDTO>>();
+        public Task<PageCollectionInfo<ChequeTypeDTO>> FindChequeTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeTypeDTO>>();
 
-        //    IChequeTypeService service = GetService<IChequeTypeService>(serviceHeader);
+            IChequeTypeService service = GetService<IChequeTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ChequeTypeDTO> response = ((IChequeTypeService)result.AsyncState).EndFindChequeTypesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ChequeTypeDTO> response = ((IChequeTypeService)result.AsyncState).EndFindChequeTypesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindChequeTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindChequeTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ChequeTypeDTO>> FindChequeTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeTypeDTO>>();
+        public Task<PageCollectionInfo<ChequeTypeDTO>> FindChequeTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ChequeTypeDTO>>();
 
-        //    IChequeTypeService service = GetService<IChequeTypeService>(serviceHeader);
+            IChequeTypeService service = GetService<IChequeTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ChequeTypeDTO> response = ((IChequeTypeService)result.AsyncState).EndFindChequeTypesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ChequeTypeDTO> response = ((IChequeTypeService)result.AsyncState).EndFindChequeTypesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindChequeTypesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindChequeTypesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ChequeTypeDTO> AddChequeTypeAsync(ChequeTypeDTO chequeTypeDTO, ServiceHeader serviceHeader)
         {
@@ -28436,37 +28436,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region OverDeductionBatchDTO
 
-        //public Task<PageCollectionInfo<OverDeductionBatchDTO>> FindOverDeductionBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<OverDeductionBatchDTO>>();
+        public Task<PageCollectionInfo<OverDeductionBatchDTO>> FindOverDeductionBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<OverDeductionBatchDTO>>();
 
-        //    IOverDeductionBatchService service = GetService<IOverDeductionBatchService>(serviceHeader);
+            IOverDeductionBatchService service = GetService<IOverDeductionBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<OverDeductionBatchDTO> response = ((IOverDeductionBatchService)result.AsyncState).EndFindOverDeductionBatchesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<OverDeductionBatchDTO> response = ((IOverDeductionBatchService)result.AsyncState).EndFindOverDeductionBatchesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindOverDeductionBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindOverDeductionBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<OverDeductionBatchEntryDTO>> FindOverDeductionBatchEntriesByOverDeductionBatchIdAsync(Guid overDeductionBatchId, bool includeProductDescription, ServiceHeader serviceHeader)
         {
@@ -28500,37 +28500,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<OverDeductionBatchEntryDTO>> FindOverDeductionBatchEntriesByOverDeductionBatchIdInPageAsync(Guid overDeductionBatchId, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<OverDeductionBatchEntryDTO>>();
+        public Task<PageCollectionInfo<OverDeductionBatchEntryDTO>> FindOverDeductionBatchEntriesByOverDeductionBatchIdInPageAsync(Guid overDeductionBatchId, string text, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<OverDeductionBatchEntryDTO>>();
 
-        //    IOverDeductionBatchService service = GetService<IOverDeductionBatchService>(serviceHeader);
+            IOverDeductionBatchService service = GetService<IOverDeductionBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<OverDeductionBatchEntryDTO> response = ((IOverDeductionBatchService)result.AsyncState).EndFindOverDeductionBatchEntriesByOverDeductionBatchIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<OverDeductionBatchEntryDTO> response = ((IOverDeductionBatchService)result.AsyncState).EndFindOverDeductionBatchEntriesByOverDeductionBatchIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindOverDeductionBatchEntriesByOverDeductionBatchIdInPage(overDeductionBatchId, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindOverDeductionBatchEntriesByOverDeductionBatchIdInPage(overDeductionBatchId, text, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<OverDeductionBatchDTO> AddOverDeductionBatchAsync(OverDeductionBatchDTO overDeductionBatchDTO, ServiceHeader serviceHeader)
         {
@@ -28792,37 +28792,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region CreditTypeDTO
 
-        //public Task<PageCollectionInfo<CreditTypeDTO>> FindCreditTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CreditTypeDTO>>();
+        public Task<PageCollectionInfo<CreditTypeDTO>> FindCreditTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CreditTypeDTO>>();
 
-        //    ICreditTypeService service = GetService<ICreditTypeService>(serviceHeader);
+            ICreditTypeService service = GetService<ICreditTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CreditTypeDTO> response = ((ICreditTypeService)result.AsyncState).EndFindCreditTypesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CreditTypeDTO> response = ((ICreditTypeService)result.AsyncState).EndFindCreditTypesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCreditTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCreditTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
 
         public Task<CreditTypeDTO> FindCreditTypeAsync(Guid creditTypeId, ServiceHeader serviceHeader)
@@ -28889,37 +28889,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<CreditTypeDTO>> FindCreditTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CreditTypeDTO>>();
+        public Task<PageCollectionInfo<CreditTypeDTO>> FindCreditTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CreditTypeDTO>>();
 
-        //    ICreditTypeService service = GetService<ICreditTypeService>(serviceHeader);
+            ICreditTypeService service = GetService<ICreditTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CreditTypeDTO> response = ((ICreditTypeService)result.AsyncState).EndFindCreditTypesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CreditTypeDTO> response = ((ICreditTypeService)result.AsyncState).EndFindCreditTypesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCreditTypesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCreditTypesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<CreditTypeDTO> AddCreditTypeAsync(CreditTypeDTO creditTypeDTO, ServiceHeader serviceHeader)
         {
@@ -32513,134 +32513,134 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<RecurringBatchEntryDTO>> FindQueableRecurringBatchEntriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<RecurringBatchEntryDTO>>();
+        public Task<PageCollectionInfo<RecurringBatchEntryDTO>> FindQueableRecurringBatchEntriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<RecurringBatchEntryDTO>>();
 
-        //    IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
+            IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<RecurringBatchEntryDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindQueableRecurringBatchEntriesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<RecurringBatchEntryDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindQueableRecurringBatchEntriesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindQueableRecurringBatchEntriesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindQueableRecurringBatchEntriesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<RecurringBatchDTO>> FindRecurringBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<RecurringBatchDTO>>();
+        public Task<PageCollectionInfo<RecurringBatchDTO>> FindRecurringBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<RecurringBatchDTO>>();
 
-        //    IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
+            IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<RecurringBatchDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindRecurringBatchesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<RecurringBatchDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindRecurringBatchesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindRecurringBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindRecurringBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
 
         //public Task<ObservableCollection<RecurringBatchDTO>> FindRecurringBatchesAsync(ServiceHeader serviceHeader)
         //{
-        //    var tcs = new TaskCompletionSource<ObservableCollection<RecurringBatchDTO>>();
+            //var tcs = new TaskCompletionSource<ObservableCollection<RecurringBatchDTO>>();
 
-        //    IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
+            //IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //           ObservableCollection<RecurringBatchDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindRecurringBatches(result);
+            //AsyncCallback asyncCallback = (result =>
+            //{
+                //try
+                //{
+                   //ObservableCollection<RecurringBatchDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindRecurringBatches(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    //tcs.TrySetResult(response);
+                //}
+                //catch (Exception ex)
+                //{
+                    //HandleFault(ex, (msgcb) =>
+                    //{
+                        //if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    //});
+                //}
+                //finally
+                //{
+                    //DisposeService(service as IClientChannel);
+                //}
+            //});
 
-        //    service.BeginFindRecurringBatches(asyncCallback, service);
+            //service.BeginFindRecurringBatches(asyncCallback, service);
 
-        //    return tcs.Task;
+            //return tcs.Task;
         //}
 
-        //public Task<PageCollectionInfo<RecurringBatchEntryDTO>> FindRecurringBatchEntriesByRecurringBatchIdInPageAsync(Guid recurringBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<RecurringBatchEntryDTO>>();
+        public Task<PageCollectionInfo<RecurringBatchEntryDTO>> FindRecurringBatchEntriesByRecurringBatchIdInPageAsync(Guid recurringBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<RecurringBatchEntryDTO>>();
 
-        //    IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
+            IRecurringBatchService service = GetService<IRecurringBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<RecurringBatchEntryDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindRecurringBatchEntriesByRecurringBatchIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<RecurringBatchEntryDTO> response = ((IRecurringBatchService)result.AsyncState).EndFindRecurringBatchEntriesByRecurringBatchIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindRecurringBatchEntriesByRecurringBatchIdInPage(recurringBatchId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindRecurringBatchEntriesByRecurringBatchIdInPage(recurringBatchId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> NormalizeInvestmentBalancesAsync(string investmentNormalizationSets, int priority, bool enforceCeiling, ServiceHeader serviceHeader)
         {
@@ -33094,37 +33094,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LeaveTypeDTO>> FindLeaveTypesFilterInPageAsync(string filterText, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveTypeDTO>>();
+        public Task<PageCollectionInfo<LeaveTypeDTO>> FindLeaveTypesFilterInPageAsync(string filterText, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveTypeDTO>>();
 
-        //    ILeaveTypeService service = GetService<ILeaveTypeService>(serviceHeader);
+            ILeaveTypeService service = GetService<ILeaveTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LeaveTypeDTO> response = ((ILeaveTypeService)result.AsyncState).EndFindLeaveTypesFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LeaveTypeDTO> response = ((ILeaveTypeService)result.AsyncState).EndFindLeaveTypesFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLeaveTypesFilterInPage(filterText, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLeaveTypesFilterInPage(filterText, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LeaveTypeDTO> FindLeaveTypeAsync(Guid leaveTypeId, ServiceHeader serviceHeader)
         {
@@ -33162,101 +33162,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region LeaveApplicationDTO
 
-        //public Task<PageCollectionInfo<LeaveApplicationDTO>> FindLeaveApplicationsByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveApplicationDTO>>();
+        public Task<PageCollectionInfo<LeaveApplicationDTO>> FindLeaveApplicationsByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveApplicationDTO>>();
 
-        //    ILeaveApplicationService service = GetService<ILeaveApplicationService>(serviceHeader);
+            ILeaveApplicationService service = GetService<ILeaveApplicationService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LeaveApplicationDTO> response = ((ILeaveApplicationService)result.AsyncState).EndFindLeaveApplicationsByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LeaveApplicationDTO> response = ((ILeaveApplicationService)result.AsyncState).EndFindLeaveApplicationsByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLeaveApplicationsByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLeaveApplicationsByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LeaveApplicationDTO>> FindLeaveApplicationsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveApplicationDTO>>();
+        public Task<PageCollectionInfo<LeaveApplicationDTO>> FindLeaveApplicationsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveApplicationDTO>>();
 
-        //    ILeaveApplicationService service = GetService<ILeaveApplicationService>(serviceHeader);
+            ILeaveApplicationService service = GetService<ILeaveApplicationService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LeaveApplicationDTO> response = ((ILeaveApplicationService)result.AsyncState).EndFindLeaveApplicationsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LeaveApplicationDTO> response = ((ILeaveApplicationService)result.AsyncState).EndFindLeaveApplicationsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLeaveApplicationsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLeaveApplicationsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LeaveApplicationDTO>> FindLeaveApplicationsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveApplicationDTO>>();
+        public Task<PageCollectionInfo<LeaveApplicationDTO>> FindLeaveApplicationsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LeaveApplicationDTO>>();
 
-        //    ILeaveApplicationService service = GetService<ILeaveApplicationService>(serviceHeader);
+            ILeaveApplicationService service = GetService<ILeaveApplicationService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LeaveApplicationDTO> response = ((ILeaveApplicationService)result.AsyncState).EndFindLeaveApplicationsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LeaveApplicationDTO> response = ((ILeaveApplicationService)result.AsyncState).EndFindLeaveApplicationsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLeaveApplicationsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLeaveApplicationsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LeaveApplicationDTO> AddLeaveApplicationAsync(LeaveApplicationDTO leaveApplicationDTO, ServiceHeader serviceHeader)
         {
@@ -33550,37 +33550,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanDisbursementBatchDTO>> FindLoanDisbursementBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchDTO>>();
+        public Task<PageCollectionInfo<LoanDisbursementBatchDTO>> FindLoanDisbursementBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchDTO>>();
 
-        //    ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
+            ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanDisbursementBatchDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindLoanDisbursementBatchesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanDisbursementBatchDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindLoanDisbursementBatchesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanDisbursementBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanDisbursementBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<LoanDisbursementBatchEntryDTO>> FindLoanDisbursementBatchEntriesByLoanDisbursementBatchIdAsync(Guid loanDisbursementBatchId, ServiceHeader serviceHeader)
         {
@@ -33614,69 +33614,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanDisbursementBatchEntryDTO>> FindLoanDisbursementBatchEntriesByLoanDisbursementBatchIdInPageAsync(Guid loanDisbursementBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchEntryDTO>>();
+        public Task<PageCollectionInfo<LoanDisbursementBatchEntryDTO>> FindLoanDisbursementBatchEntriesByLoanDisbursementBatchIdInPageAsync(Guid loanDisbursementBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchEntryDTO>>();
 
-        //    ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
+            ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanDisbursementBatchEntryDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindLoanDisbursementBatchEntriesByLoanDisbursementBatchIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanDisbursementBatchEntryDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindLoanDisbursementBatchEntriesByLoanDisbursementBatchIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanDisbursementBatchEntriesByLoanDisbursementBatchIdInPage(loanDisbursementBatchId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanDisbursementBatchEntriesByLoanDisbursementBatchIdInPage(loanDisbursementBatchId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoanDisbursementBatchEntryDTO>> FindLoanDisbursementBatchEntriesByLoanDisbursementBatchTypeInPageAsync(int loanDisbursementBatchType, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchEntryDTO>>();
+        public Task<PageCollectionInfo<LoanDisbursementBatchEntryDTO>> FindLoanDisbursementBatchEntriesByLoanDisbursementBatchTypeInPageAsync(int loanDisbursementBatchType, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchEntryDTO>>();
 
-        //    ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
+            ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanDisbursementBatchEntryDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindLoanDisbursementBatchEntriesByLoanDisbursementBatchTypeInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanDisbursementBatchEntryDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindLoanDisbursementBatchEntriesByLoanDisbursementBatchTypeInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanDisbursementBatchEntriesByLoanDisbursementBatchTypeInPage(loanDisbursementBatchType, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanDisbursementBatchEntriesByLoanDisbursementBatchTypeInPage(loanDisbursementBatchType, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LoanDisbursementBatchDTO> AddLoanDisbursementBatchAsync(LoanDisbursementBatchDTO loanDisbursementBatchDTO, ServiceHeader serviceHeader)
         {
@@ -33998,37 +33998,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanDisbursementBatchEntryDTO>> FindQueableLoanDisbursementBatchEntriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchEntryDTO>>();
+        public Task<PageCollectionInfo<LoanDisbursementBatchEntryDTO>> FindQueableLoanDisbursementBatchEntriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanDisbursementBatchEntryDTO>>();
 
-        //    ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
+            ILoanDisbursementBatchService service = GetService<ILoanDisbursementBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanDisbursementBatchEntryDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindQueableLoanDisbursementBatchEntriesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanDisbursementBatchEntryDTO> response = ((ILoanDisbursementBatchService)result.AsyncState).EndFindQueableLoanDisbursementBatchEntriesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindQueableLoanDisbursementBatchEntriesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindQueableLoanDisbursementBatchEntriesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> ValidateLoanDisbursementBatchEntriesExceedTransactionThresholdAsync(Guid loanDisbursementBatchId, Guid designationId, int transactionThresholdType, ServiceHeader serviceHeader)
         {
@@ -34066,37 +34066,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region ApplicationDomainWrapper
 
-        //public Task<PageCollectionInfo<ApplicationDomainWrapper>> FindApplicationDomainsByFilterInPageAsync(int pageIndex, int pageSize, string filter, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ApplicationDomainWrapper>>();
+        public Task<PageCollectionInfo<ApplicationDomainWrapper>> FindApplicationDomainsByFilterInPageAsync(int pageIndex, int pageSize, string filter, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ApplicationDomainWrapper>>();
 
-        //    IUtilityService service = GetService<IUtilityService>(serviceHeader);
+            IUtilityService service = GetService<IUtilityService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ApplicationDomainWrapper> response = ((IUtilityService)result.AsyncState).EndFindApplicationDomainsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ApplicationDomainWrapper> response = ((IUtilityService)result.AsyncState).EndFindApplicationDomainsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindApplicationDomainsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindApplicationDomainsByFilterInPage(filter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> ConfigureApplicationDatabaseAsync(ServiceHeader serviceHeader, double timeoutMinutes)
         {
@@ -34230,69 +34230,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region BankReconciliationPeriodDTO
 
-        //public Task<PageCollectionInfo<BankReconciliationPeriodDTO>> FindBankReconciliationPeriodsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankReconciliationPeriodDTO>>();
+        public Task<PageCollectionInfo<BankReconciliationPeriodDTO>> FindBankReconciliationPeriodsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankReconciliationPeriodDTO>>();
 
-        //    IBankReconciliationPeriodService service = GetService<IBankReconciliationPeriodService>(serviceHeader);
+            IBankReconciliationPeriodService service = GetService<IBankReconciliationPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankReconciliationPeriodDTO> response = ((IBankReconciliationPeriodService)result.AsyncState).EndFindBankReconciliationPeriodsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankReconciliationPeriodDTO> response = ((IBankReconciliationPeriodService)result.AsyncState).EndFindBankReconciliationPeriodsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBankReconciliationPeriodsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBankReconciliationPeriodsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<BankReconciliationPeriodDTO>> FindBankReconciliationPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankReconciliationPeriodDTO>>();
+        public Task<PageCollectionInfo<BankReconciliationPeriodDTO>> FindBankReconciliationPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankReconciliationPeriodDTO>>();
 
-        //    IBankReconciliationPeriodService service = GetService<IBankReconciliationPeriodService>(serviceHeader);
+            IBankReconciliationPeriodService service = GetService<IBankReconciliationPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankReconciliationPeriodDTO> response = ((IBankReconciliationPeriodService)result.AsyncState).EndFindBankReconciliationPeriodsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankReconciliationPeriodDTO> response = ((IBankReconciliationPeriodService)result.AsyncState).EndFindBankReconciliationPeriodsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBankReconciliationPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBankReconciliationPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<BankReconciliationPeriodDTO> AddBankReconciliationPeriodAsync(BankReconciliationPeriodDTO bankReconciliationPeriodDTO, ServiceHeader serviceHeader)
         {
@@ -34390,37 +34390,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<BankReconciliationEntryDTO>> FindBankReconciliationEntriesByBankReconciliationPeriodIdAndFilterInPageAsync(Guid bankReconciliationPeriodId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankReconciliationEntryDTO>>();
+        public Task<PageCollectionInfo<BankReconciliationEntryDTO>> FindBankReconciliationEntriesByBankReconciliationPeriodIdAndFilterInPageAsync(Guid bankReconciliationPeriodId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankReconciliationEntryDTO>>();
 
-        //    IBankReconciliationPeriodService service = GetService<IBankReconciliationPeriodService>(serviceHeader);
+            IBankReconciliationPeriodService service = GetService<IBankReconciliationPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankReconciliationEntryDTO> response = ((IBankReconciliationPeriodService)result.AsyncState).EndFindBankReconciliationEntriesByBankReconciliationPeriodIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankReconciliationEntryDTO> response = ((IBankReconciliationPeriodService)result.AsyncState).EndFindBankReconciliationEntriesByBankReconciliationPeriodIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBankReconciliationEntriesByBankReconciliationPeriodIdAndFilterInPage(bankReconciliationPeriodId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBankReconciliationEntriesByBankReconciliationPeriodIdAndFilterInPage(bankReconciliationPeriodId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<BankReconciliationEntryDTO> AddBankReconciliationEntryAsync(BankReconciliationEntryDTO bankReconciliationEntryDTO, ServiceHeader serviceHeader)
         {
@@ -34522,37 +34522,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region JournalReversalBatchDTO
 
-        //public Task<PageCollectionInfo<JournalReversalBatchDTO>> FindJournalReversalBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalReversalBatchDTO>>();
+        public Task<PageCollectionInfo<JournalReversalBatchDTO>> FindJournalReversalBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalReversalBatchDTO>>();
 
-        //    IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
+            IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalReversalBatchDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindJournalReversalBatchesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalReversalBatchDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindJournalReversalBatchesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalReversalBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalReversalBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<JournalReversalBatchDTO> FindJournalReversalBatchByIdAsync(Guid journalReversalBatchId, ServiceHeader serviceHeader)
         {
@@ -34618,69 +34618,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<JournalReversalBatchEntryDTO>> FindJournalReversalBatchEntriesByJournalReversalBatchIdInPageAsync(Guid journalReversalBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalReversalBatchEntryDTO>>();
+        public Task<PageCollectionInfo<JournalReversalBatchEntryDTO>> FindJournalReversalBatchEntriesByJournalReversalBatchIdInPageAsync(Guid journalReversalBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalReversalBatchEntryDTO>>();
 
-        //    IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
+            IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalReversalBatchEntryDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindJournalReversalBatchEntriesByJournalReversalBatchIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalReversalBatchEntryDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindJournalReversalBatchEntriesByJournalReversalBatchIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalReversalBatchEntriesByJournalReversalBatchIdInPage(journalReversalBatchId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalReversalBatchEntriesByJournalReversalBatchIdInPage(journalReversalBatchId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<JournalEntryDTO>> FindJournalEntriesByJournalReversalBatchIdInPageAsync(Guid journalReversalBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalEntryDTO>>();
+        public Task<PageCollectionInfo<JournalEntryDTO>> FindJournalEntriesByJournalReversalBatchIdInPageAsync(Guid journalReversalBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalEntryDTO>>();
 
-        //    IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
+            IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalEntryDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindJournalEntriesByJournalReversalBatchIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalEntryDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindJournalEntriesByJournalReversalBatchIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindJournalEntriesByJournalReversalBatchIdInPage(journalReversalBatchId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindJournalEntriesByJournalReversalBatchIdInPage(journalReversalBatchId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<JournalReversalBatchDTO> AddJournalReversalBatchAsync(JournalReversalBatchDTO journalReversalBatchDTO, ServiceHeader serviceHeader)
         {
@@ -34906,37 +34906,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<JournalReversalBatchEntryDTO>> FindQueableJournalReversalBatchEntriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<JournalReversalBatchEntryDTO>>();
+        public Task<PageCollectionInfo<JournalReversalBatchEntryDTO>> FindQueableJournalReversalBatchEntriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<JournalReversalBatchEntryDTO>>();
 
-        //    IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
+            IJournalReversalBatchService service = GetService<IJournalReversalBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<JournalReversalBatchEntryDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindQueableJournalReversalBatchEntriesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<JournalReversalBatchEntryDTO> response = ((IJournalReversalBatchService)result.AsyncState).EndFindQueableJournalReversalBatchEntriesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindQueableJournalReversalBatchEntriesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindQueableJournalReversalBatchEntriesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<bool> PostJournalReversalBatchEntryAsync(Guid journalReversalBatchEntryId, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
@@ -34974,101 +34974,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region InterAccountTransferBatchDTO
 
-        //public Task<PageCollectionInfo<InterAccountTransferBatchDTO>> FindInterAccountTransferBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchDTO>>();
+        public Task<PageCollectionInfo<InterAccountTransferBatchDTO>> FindInterAccountTransferBatchesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchDTO>>();
 
-        //    IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
+            IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InterAccountTransferBatchDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InterAccountTransferBatchDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInterAccountTransferBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInterAccountTransferBatchesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<InterAccountTransferBatchDTO>> FindInterAccountTransferBatchesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchDTO>>();
+        public Task<PageCollectionInfo<InterAccountTransferBatchDTO>> FindInterAccountTransferBatchesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchDTO>>();
 
-        //    IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
+            IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InterAccountTransferBatchDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InterAccountTransferBatchDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInterAccountTransferBatchesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInterAccountTransferBatchesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<InterAccountTransferBatchDTO>> FindInterAccountTransferBatchesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchDTO>>();
+        public Task<PageCollectionInfo<InterAccountTransferBatchDTO>> FindInterAccountTransferBatchesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchDTO>>();
 
-        //    IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
+            IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InterAccountTransferBatchDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchesByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InterAccountTransferBatchDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchesByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInterAccountTransferBatchesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInterAccountTransferBatchesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<InterAccountTransferBatchEntryDTO>> FindInterAccountTransferBatchEntriesByInterAccountTransferBatchIdAsync(Guid interAccountTransferBatchId, ServiceHeader serviceHeader)
         {
@@ -35102,37 +35102,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<InterAccountTransferBatchEntryDTO>> FindInterAccountTransferBatchEntriesByInterAccountTransferBatchIdInPageAsync(Guid interAccountTransferBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchEntryDTO>>();
+        public Task<PageCollectionInfo<InterAccountTransferBatchEntryDTO>> FindInterAccountTransferBatchEntriesByInterAccountTransferBatchIdInPageAsync(Guid interAccountTransferBatchId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InterAccountTransferBatchEntryDTO>>();
 
-        //    IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
+            IInterAccountTransferBatchService service = GetService<IInterAccountTransferBatchService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InterAccountTransferBatchEntryDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchEntriesByInterAccountTransferBatchIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InterAccountTransferBatchEntryDTO> response = ((IInterAccountTransferBatchService)result.AsyncState).EndFindInterAccountTransferBatchEntriesByInterAccountTransferBatchIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInterAccountTransferBatchEntriesByInterAccountTransferBatchIdInPage(interAccountTransferBatchId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInterAccountTransferBatchEntriesByInterAccountTransferBatchIdInPage(interAccountTransferBatchId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<InterAccountTransferBatchDTO> AddInterAccountTransferBatchAsync(InterAccountTransferBatchDTO interAccountTransferBatchDTO, ServiceHeader serviceHeader)
         {
@@ -35458,132 +35458,132 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region ExpensePayableDTO
 
-        //public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
+        public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
 
-        //    IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
+            IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExpensePayablesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExpensePayablesByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
+        public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
 
-        //    IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
+            IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExpensePayablesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExpensePayablesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
-        //public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
+            return tcs.Task;
+        }
+        public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
 
-        //    IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
+            IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExpensePayablesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExpensePayablesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
+        public Task<PageCollectionInfo<ExpensePayableDTO>> FindExpensePayablesByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableDTO>>();
 
-        //    IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
+            IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExpensePayableDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayablesByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExpensePayablesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExpensePayablesByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<ExpensePayableEntryDTO>> FindExpensePayableEntriesByExpensePayableIdAsync(Guid expensePayableId, ServiceHeader serviceHeader)
         {
@@ -35617,37 +35617,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ExpensePayableEntryDTO>> FindExpensePayableEntriesByExpensePayableIdInPageAsync(Guid expensePayableId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableEntryDTO>>();
+        public Task<PageCollectionInfo<ExpensePayableEntryDTO>> FindExpensePayableEntriesByExpensePayableIdInPageAsync(Guid expensePayableId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ExpensePayableEntryDTO>>();
 
-        //    IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
+            IExpensePayableService service = GetService<IExpensePayableService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ExpensePayableEntryDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayableEntriesByExpensePayableIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ExpensePayableEntryDTO> response = ((IExpensePayableService)result.AsyncState).EndFindExpensePayableEntriesByExpensePayableIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindExpensePayableEntriesByExpensePayableIdInPage(expensePayableId, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindExpensePayableEntriesByExpensePayableIdInPage(expensePayableId, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ExpensePayableDTO> AddExpensePayableAsync(ExpensePayableDTO expensePayableDTO, ServiceHeader serviceHeader)
         {
@@ -35946,101 +35946,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region MobileToBankRequestDTO
 
-        //public Task<PageCollectionInfo<MobileToBankRequestDTO>> FindMobileToBankRequestsByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<MobileToBankRequestDTO>>();
+        public Task<PageCollectionInfo<MobileToBankRequestDTO>> FindMobileToBankRequestsByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<MobileToBankRequestDTO>>();
 
-        //    IMobileToBankRequestService service = GetService<IMobileToBankRequestService>(serviceHeader);
+            IMobileToBankRequestService service = GetService<IMobileToBankRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<MobileToBankRequestDTO> response = ((IMobileToBankRequestService)result.AsyncState).EndFindMobileToBankRequestsByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<MobileToBankRequestDTO> response = ((IMobileToBankRequestService)result.AsyncState).EndFindMobileToBankRequestsByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMobileToBankRequestsByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindMobileToBankRequestsByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<MobileToBankRequestDTO>> FindMobileToBankRequestsByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<MobileToBankRequestDTO>>();
+        public Task<PageCollectionInfo<MobileToBankRequestDTO>> FindMobileToBankRequestsByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<MobileToBankRequestDTO>>();
 
-        //    IMobileToBankRequestService service = GetService<IMobileToBankRequestService>(serviceHeader);
+            IMobileToBankRequestService service = GetService<IMobileToBankRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<MobileToBankRequestDTO> response = ((IMobileToBankRequestService)result.AsyncState).EndFindMobileToBankRequestsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<MobileToBankRequestDTO> response = ((IMobileToBankRequestService)result.AsyncState).EndFindMobileToBankRequestsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMobileToBankRequestsByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindMobileToBankRequestsByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<MobileToBankRequestDTO>> FindMobileToBankRequestsByStatusRecordStatusAndFilterInPageAsync(int status, int recordStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<MobileToBankRequestDTO>>();
+        public Task<PageCollectionInfo<MobileToBankRequestDTO>> FindMobileToBankRequestsByStatusRecordStatusAndFilterInPageAsync(int status, int recordStatus, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<MobileToBankRequestDTO>>();
 
-        //    IMobileToBankRequestService service = GetService<IMobileToBankRequestService>(serviceHeader);
+            IMobileToBankRequestService service = GetService<IMobileToBankRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<MobileToBankRequestDTO> response = ((IMobileToBankRequestService)result.AsyncState).EndFindMobileToBankRequestsByStatusRecordStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<MobileToBankRequestDTO> response = ((IMobileToBankRequestService)result.AsyncState).EndFindMobileToBankRequestsByStatusRecordStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindMobileToBankRequestsByStatusRecordStatusAndFilterInPage(status, recordStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindMobileToBankRequestsByStatusRecordStatusAndFilterInPage(status, recordStatus, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<MobileToBankRequestDTO> AddMobileToBankRequestAsync(MobileToBankRequestDTO mobileToBankRequestDTO, ServiceHeader serviceHeader)
         {
@@ -36174,69 +36174,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region BankToMobileRequestDTO
 
-        //public Task<PageCollectionInfo<BankToMobileRequestDTO>> FindBankToMobileRequestsByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankToMobileRequestDTO>>();
+        public Task<PageCollectionInfo<BankToMobileRequestDTO>> FindBankToMobileRequestsByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankToMobileRequestDTO>>();
 
-        //    IBankToMobileRequestService service = GetService<IBankToMobileRequestService>(serviceHeader);
+            IBankToMobileRequestService service = GetService<IBankToMobileRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankToMobileRequestDTO> response = ((IBankToMobileRequestService)result.AsyncState).EndFindBankToMobileRequestsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankToMobileRequestDTO> response = ((IBankToMobileRequestService)result.AsyncState).EndFindBankToMobileRequestsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBankToMobileRequestsByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBankToMobileRequestsByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<BankToMobileRequestDTO>> FindThirdPartyNotifiableBankToMobileRequestsByFilterInPageAsync(string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BankToMobileRequestDTO>>();
+        public Task<PageCollectionInfo<BankToMobileRequestDTO>> FindThirdPartyNotifiableBankToMobileRequestsByFilterInPageAsync(string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BankToMobileRequestDTO>>();
 
-        //    IBankToMobileRequestService service = GetService<IBankToMobileRequestService>(serviceHeader);
+            IBankToMobileRequestService service = GetService<IBankToMobileRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BankToMobileRequestDTO> response = ((IBankToMobileRequestService)result.AsyncState).EndFindThirdPartyNotifiableBankToMobileRequestsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BankToMobileRequestDTO> response = ((IBankToMobileRequestService)result.AsyncState).EndFindThirdPartyNotifiableBankToMobileRequestsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindThirdPartyNotifiableBankToMobileRequestsByFilterInPage(text, pageIndex, pageSize, daysCap, asyncCallback, service);
+            service.BeginFindThirdPartyNotifiableBankToMobileRequestsByFilterInPage(text, pageIndex, pageSize, daysCap, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<BankToMobileRequestDTO> AddBankToMobileRequestAsync(BankToMobileRequestDTO bankToMobileRequestDTO, ServiceHeader serviceHeader)
         {
@@ -36402,69 +36402,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region BrokerRequestDTO
 
-       // public Task<PageCollectionInfo<BrokerRequestDTO>> FindBrokerRequestsByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BrokerRequestDTO>>();
+        public Task<PageCollectionInfo<BrokerRequestDTO>> FindBrokerRequestsByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BrokerRequestDTO>>();
 
-        //    IBrokerRequestService service = GetService<IBrokerRequestService>(serviceHeader);
+            IBrokerRequestService service = GetService<IBrokerRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BrokerRequestDTO> response = ((IBrokerRequestService)result.AsyncState).EndFindBrokerRequestsByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BrokerRequestDTO> response = ((IBrokerRequestService)result.AsyncState).EndFindBrokerRequestsByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindBrokerRequestsByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindBrokerRequestsByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<BrokerRequestDTO>> FindThirdPartyNotifiableBrokerRequestsByFilterInPageAsync(string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<BrokerRequestDTO>>();
+        public Task<PageCollectionInfo<BrokerRequestDTO>> FindThirdPartyNotifiableBrokerRequestsByFilterInPageAsync(string text, int pageIndex, int pageSize, int daysCap, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<BrokerRequestDTO>>();
 
-        //    IBrokerRequestService service = GetService<IBrokerRequestService>(serviceHeader);
+            IBrokerRequestService service = GetService<IBrokerRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<BrokerRequestDTO> response = ((IBrokerRequestService)result.AsyncState).EndFindThirdPartyNotifiableBrokerRequestsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<BrokerRequestDTO> response = ((IBrokerRequestService)result.AsyncState).EndFindThirdPartyNotifiableBrokerRequestsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindThirdPartyNotifiableBrokerRequestsByFilterInPage(text, pageIndex, pageSize, daysCap, asyncCallback, service);
+            service.BeginFindThirdPartyNotifiableBrokerRequestsByFilterInPage(text, pageIndex, pageSize, daysCap, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<BrokerRequestDTO> AddBrokerRequestAsync(BrokerRequestDTO brokerRequestDTO, ServiceHeader serviceHeader)
         {
@@ -36762,37 +36762,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region EducationVenueDTO
 
-        //public Task<PageCollectionInfo<EducationVenueDTO>> FindEducationVenuesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EducationVenueDTO>>();
+        public Task<PageCollectionInfo<EducationVenueDTO>> FindEducationVenuesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EducationVenueDTO>>();
 
-        //    IEducationVenueService service = GetService<IEducationVenueService>(serviceHeader);
+            IEducationVenueService service = GetService<IEducationVenueService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EducationVenueDTO> response = ((IEducationVenueService)result.AsyncState).EndFindEducationVenuesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EducationVenueDTO> response = ((IEducationVenueService)result.AsyncState).EndFindEducationVenuesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEducationVenuesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEducationVenuesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<PageCollectionInfo<EducationVenueDTO>> FindEducationVenuesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
         {
@@ -36926,37 +36926,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region EducationRegisterDTO
 
-        //public Task<PageCollectionInfo<EducationRegisterDTO>> FindEducationRegistersByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EducationRegisterDTO>>();
+        public Task<PageCollectionInfo<EducationRegisterDTO>> FindEducationRegistersByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EducationRegisterDTO>>();
 
-        //    IEducationRegisterService service = GetService<IEducationRegisterService>(serviceHeader);
+            IEducationRegisterService service = GetService<IEducationRegisterService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EducationRegisterDTO> response = ((IEducationRegisterService)result.AsyncState).EndFindEducationRegistersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EducationRegisterDTO> response = ((IEducationRegisterService)result.AsyncState).EndFindEducationRegistersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEducationRegistersByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEducationRegistersByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<EducationRegisterDTO> AddEducationRegisterAsync(EducationRegisterDTO educationRegisterDTO, ServiceHeader serviceHeader)
         {
@@ -37086,37 +37086,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EducationAttendeeDTO>> FindEducationAttendeesByEducationRegisterIdInPageAsync(Guid educationRegisterId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EducationAttendeeDTO>>();
+        public Task<PageCollectionInfo<EducationAttendeeDTO>> FindEducationAttendeesByEducationRegisterIdInPageAsync(Guid educationRegisterId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EducationAttendeeDTO>>();
 
-        //    IEducationRegisterService service = GetService<IEducationRegisterService>(serviceHeader);
+            IEducationRegisterService service = GetService<IEducationRegisterService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EducationAttendeeDTO> response = ((IEducationRegisterService)result.AsyncState).EndFindEducationAttendeesByEducationRegisterIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EducationAttendeeDTO> response = ((IEducationRegisterService)result.AsyncState).EndFindEducationAttendeesByEducationRegisterIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEducationAttendeesByEducationRegisterIdInPage(educationRegisterId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEducationAttendeesByEducationRegisterIdInPage(educationRegisterId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<EducationAttendeeDTO> AddEducationAttendeeAsync(EducationAttendeeDTO educationAttendeeDTO, ServiceHeader serviceHeader)
         {
@@ -37218,101 +37218,101 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region GeneralLedgerDTO
 
-        //public Task<PageCollectionInfo<GeneralLedgerDTO>> FindGeneralLedgersByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerDTO>>();
+        public Task<PageCollectionInfo<GeneralLedgerDTO>> FindGeneralLedgersByStatusAndFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerDTO>>();
 
-        //    IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
+            IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgersByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgersByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgersByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindGeneralLedgersByStatusAndFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<GeneralLedgerDTO>> FindGeneralLedgersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerDTO>>();
+        public Task<PageCollectionInfo<GeneralLedgerDTO>> FindGeneralLedgersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerDTO>>();
 
-        //    IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
+            IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgersInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgersInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgersInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindGeneralLedgersInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<GeneralLedgerDTO>> FindGeneralLedgersByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerDTO>>();
+        public Task<PageCollectionInfo<GeneralLedgerDTO>> FindGeneralLedgersByDateRangeAndFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerDTO>>();
 
-        //    IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
+            IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgersByDateRangeAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgersByDateRangeAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgersByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindGeneralLedgersByDateRangeAndFilterInPage(startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<GeneralLedgerEntryDTO>> FindGeneralLedgerEntriesByGeneralLedgerIdAsync(Guid generalLedgerId, ServiceHeader serviceHeader)
         {
@@ -37346,37 +37346,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<GeneralLedgerEntryDTO>> FindGeneralLedgerEntriesByGeneralLedgerIdInPageAsync(Guid generalLedgerId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerEntryDTO>>();
+        public Task<PageCollectionInfo<GeneralLedgerEntryDTO>> FindGeneralLedgerEntriesByGeneralLedgerIdInPageAsync(Guid generalLedgerId, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<GeneralLedgerEntryDTO>>();
 
-        //    IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
+            IGeneralLedgerService service = GetService<IGeneralLedgerService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<GeneralLedgerEntryDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgerEntriesByGeneralLedgerIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<GeneralLedgerEntryDTO> response = ((IGeneralLedgerService)result.AsyncState).EndFindGeneralLedgerEntriesByGeneralLedgerIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindGeneralLedgerEntriesByGeneralLedgerIdInPage(generalLedgerId, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindGeneralLedgerEntriesByGeneralLedgerIdInPage(generalLedgerId, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<GeneralLedgerDTO> AddGeneralLedgerAsync(GeneralLedgerDTO generalLedgerDTO, ServiceHeader serviceHeader)
         {
@@ -37702,37 +37702,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ConditionalLendingDTO>> FindConditionalLendingsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ConditionalLendingDTO>>();
+        public Task<PageCollectionInfo<ConditionalLendingDTO>> FindConditionalLendingsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ConditionalLendingDTO>>();
 
-        //    IConditionalLendingService service = GetService<IConditionalLendingService>(serviceHeader);
+            IConditionalLendingService service = GetService<IConditionalLendingService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ConditionalLendingDTO> response = ((IConditionalLendingService)result.AsyncState).EndFindConditionalLendingsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ConditionalLendingDTO> response = ((IConditionalLendingService)result.AsyncState).EndFindConditionalLendingsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindConditionalLendingsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindConditionalLendingsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<ConditionalLendingEntryDTO>> FindConditionalLendingEntriesByConditionalLendingIdAsync(Guid conditionalLendingId, ServiceHeader serviceHeader)
         {
@@ -37766,37 +37766,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ConditionalLendingEntryDTO>> FindConditionalLendingEntriesByConditionalLendingIdInPageAsync(Guid conditionalLendingId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ConditionalLendingEntryDTO>>();
+        public Task<PageCollectionInfo<ConditionalLendingEntryDTO>> FindConditionalLendingEntriesByConditionalLendingIdInPageAsync(Guid conditionalLendingId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ConditionalLendingEntryDTO>>();
 
-        //    IConditionalLendingService service = GetService<IConditionalLendingService>(serviceHeader);
+            IConditionalLendingService service = GetService<IConditionalLendingService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ConditionalLendingEntryDTO> response = ((IConditionalLendingService)result.AsyncState).EndFindConditionalLendingEntriesByConditionalLendingIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ConditionalLendingEntryDTO> response = ((IConditionalLendingService)result.AsyncState).EndFindConditionalLendingEntriesByConditionalLendingIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindConditionalLendingEntriesByConditionalLendingIdInPage(conditionalLendingId, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindConditionalLendingEntriesByConditionalLendingIdInPage(conditionalLendingId, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ConditionalLendingDTO> AddConditionalLendingAsync(ConditionalLendingDTO conditionalLendingDTO, ServiceHeader serviceHeader)
         {
@@ -38027,69 +38027,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region AlternateChannelReconciliationPeriodDTO
 
-        //public Task<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>> FindAlternateChannelReconciliationPeriodsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>>();
+        public Task<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>> FindAlternateChannelReconciliationPeriodsByFilterInPageAsync(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>>();
 
-        //    IAlternateChannelReconciliationPeriodService service = GetService<IAlternateChannelReconciliationPeriodService>(serviceHeader);
+            IAlternateChannelReconciliationPeriodService service = GetService<IAlternateChannelReconciliationPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AlternateChannelReconciliationPeriodDTO> response = ((IAlternateChannelReconciliationPeriodService)result.AsyncState).EndFindAlternateChannelReconciliationPeriodsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AlternateChannelReconciliationPeriodDTO> response = ((IAlternateChannelReconciliationPeriodService)result.AsyncState).EndFindAlternateChannelReconciliationPeriodsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAlternateChannelReconciliationPeriodsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindAlternateChannelReconciliationPeriodsByFilterInPage(status, startDate, endDate, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>> FindAlternateChannelReconciliationPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>>();
+        public Task<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>> FindAlternateChannelReconciliationPeriodsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AlternateChannelReconciliationPeriodDTO>>();
 
-        //    IAlternateChannelReconciliationPeriodService service = GetService<IAlternateChannelReconciliationPeriodService>(serviceHeader);
+            IAlternateChannelReconciliationPeriodService service = GetService<IAlternateChannelReconciliationPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AlternateChannelReconciliationPeriodDTO> response = ((IAlternateChannelReconciliationPeriodService)result.AsyncState).EndFindAlternateChannelReconciliationPeriodsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AlternateChannelReconciliationPeriodDTO> response = ((IAlternateChannelReconciliationPeriodService)result.AsyncState).EndFindAlternateChannelReconciliationPeriodsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAlternateChannelReconciliationPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindAlternateChannelReconciliationPeriodsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<AlternateChannelReconciliationPeriodDTO> AddAlternateChannelReconciliationPeriodAsync(AlternateChannelReconciliationPeriodDTO alternateChannelReconciliationPeriodDTO, ServiceHeader serviceHeader)
         {
@@ -38187,37 +38187,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<AlternateChannelReconciliationEntryDTO>> FindAlternateChannelReconciliationEntriesByAlternateChannelReconciliationPeriodIdAndFilterInPageAsync(Guid alternateChannelReconciliationPeriodId, int status, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AlternateChannelReconciliationEntryDTO>>();
+        public Task<PageCollectionInfo<AlternateChannelReconciliationEntryDTO>> FindAlternateChannelReconciliationEntriesByAlternateChannelReconciliationPeriodIdAndFilterInPageAsync(Guid alternateChannelReconciliationPeriodId, int status, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AlternateChannelReconciliationEntryDTO>>();
 
-        //    IAlternateChannelReconciliationPeriodService service = GetService<IAlternateChannelReconciliationPeriodService>(serviceHeader);
+            IAlternateChannelReconciliationPeriodService service = GetService<IAlternateChannelReconciliationPeriodService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AlternateChannelReconciliationEntryDTO> response = ((IAlternateChannelReconciliationPeriodService)result.AsyncState).EndFindAlternateChannelReconciliationEntriesByAlternateChannelReconciliationPeriodIdAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AlternateChannelReconciliationEntryDTO> response = ((IAlternateChannelReconciliationPeriodService)result.AsyncState).EndFindAlternateChannelReconciliationEntriesByAlternateChannelReconciliationPeriodIdAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAlternateChannelReconciliationEntriesByAlternateChannelReconciliationPeriodIdAndFilterInPage(alternateChannelReconciliationPeriodId, status, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindAlternateChannelReconciliationEntriesByAlternateChannelReconciliationPeriodIdAndFilterInPage(alternateChannelReconciliationPeriodId, status, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<AlternateChannelReconciliationEntryDTO> AddAlternateChannelReconciliationEntryAsync(AlternateChannelReconciliationEntryDTO alternateChannelReconciliationEntryDTO, ServiceHeader serviceHeader)
         {
@@ -38644,69 +38644,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region FixedDepositTypeDTO
 
-        //public Task<PageCollectionInfo<FixedDepositTypeDTO>> FindFixedDepositTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositTypeDTO>>();
+        public Task<PageCollectionInfo<FixedDepositTypeDTO>> FindFixedDepositTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositTypeDTO>>();
 
-        //    IFixedDepositTypeService service = GetService<IFixedDepositTypeService>(serviceHeader);
+            IFixedDepositTypeService service = GetService<IFixedDepositTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FixedDepositTypeDTO> response = ((IFixedDepositTypeService)result.AsyncState).EndFindFixedDepositTypesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FixedDepositTypeDTO> response = ((IFixedDepositTypeService)result.AsyncState).EndFindFixedDepositTypesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFixedDepositTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFixedDepositTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<FixedDepositTypeDTO>> FindFixedDepositTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositTypeDTO>>();
+        public Task<PageCollectionInfo<FixedDepositTypeDTO>> FindFixedDepositTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<FixedDepositTypeDTO>>();
 
-        //    IFixedDepositTypeService service = GetService<IFixedDepositTypeService>(serviceHeader);
+            IFixedDepositTypeService service = GetService<IFixedDepositTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<FixedDepositTypeDTO> response = ((IFixedDepositTypeService)result.AsyncState).EndFindFixedDepositTypesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<FixedDepositTypeDTO> response = ((IFixedDepositTypeService)result.AsyncState).EndFindFixedDepositTypesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindFixedDepositTypesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindFixedDepositTypesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<FixedDepositTypeDTO> AddFixedDepositTypeAsync(FixedDepositTypeDTO fixedDepositTypeDTO, bool enforceFixedDepositBands, ServiceHeader serviceHeader)
         {
@@ -39036,37 +39036,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region WireTransferTypeDTO
 
-        //public Task<PageCollectionInfo<WireTransferTypeDTO>> FindWireTransferTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<WireTransferTypeDTO>>();
+        public Task<PageCollectionInfo<WireTransferTypeDTO>> FindWireTransferTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<WireTransferTypeDTO>>();
 
-        //    IWireTransferTypeService service = GetService<IWireTransferTypeService>(serviceHeader);
+            IWireTransferTypeService service = GetService<IWireTransferTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<WireTransferTypeDTO> response = ((IWireTransferTypeService)result.AsyncState).EndFindWireTransferTypesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<WireTransferTypeDTO> response = ((IWireTransferTypeService)result.AsyncState).EndFindWireTransferTypesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindWireTransferTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindWireTransferTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<WireTransferTypeDTO>> FindWireTransferTypesAsync(ServiceHeader serviceHeader)
         {
@@ -39100,37 +39100,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<WireTransferTypeDTO>> FindWireTransferTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<WireTransferTypeDTO>>();
+        public Task<PageCollectionInfo<WireTransferTypeDTO>> FindWireTransferTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<WireTransferTypeDTO>>();
 
-        //    IWireTransferTypeService service = GetService<IWireTransferTypeService>(serviceHeader);
+            IWireTransferTypeService service = GetService<IWireTransferTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<WireTransferTypeDTO> response = ((IWireTransferTypeService)result.AsyncState).EndFindWireTransferTypesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<WireTransferTypeDTO> response = ((IWireTransferTypeService)result.AsyncState).EndFindWireTransferTypesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindWireTransferTypesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindWireTransferTypesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<WireTransferTypeDTO> AddWireTransferTypeAsync(WireTransferTypeDTO wireTransferTypeDTO, ServiceHeader serviceHeader)
         {
@@ -39328,69 +39328,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ElectronicStatementOrderDTO>> FindElectronicStatementOrdersInPageAsync(int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicStatementOrderDTO>>();
+        public Task<PageCollectionInfo<ElectronicStatementOrderDTO>> FindElectronicStatementOrdersInPageAsync(int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicStatementOrderDTO>>();
 
-        //    IElectronicStatementOrderService service = GetService<IElectronicStatementOrderService>(serviceHeader);
+            IElectronicStatementOrderService service = GetService<IElectronicStatementOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ElectronicStatementOrderDTO> response = ((IElectronicStatementOrderService)result.AsyncState).EndFindElectronicStatementOrdersInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ElectronicStatementOrderDTO> response = ((IElectronicStatementOrderService)result.AsyncState).EndFindElectronicStatementOrdersInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindElectronicStatementOrdersInPage(pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindElectronicStatementOrdersInPage(pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<ElectronicStatementOrderDTO>> FindElectronicStatementOrdersByFilterInPageAsync(string text, int customerFilter, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicStatementOrderDTO>>();
+        public Task<PageCollectionInfo<ElectronicStatementOrderDTO>> FindElectronicStatementOrdersByFilterInPageAsync(string text, int customerFilter, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicStatementOrderDTO>>();
 
-        //    IElectronicStatementOrderService service = GetService<IElectronicStatementOrderService>(serviceHeader);
+            IElectronicStatementOrderService service = GetService<IElectronicStatementOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ElectronicStatementOrderDTO> response = ((IElectronicStatementOrderService)result.AsyncState).EndFindElectronicStatementOrdersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ElectronicStatementOrderDTO> response = ((IElectronicStatementOrderService)result.AsyncState).EndFindElectronicStatementOrdersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindElectronicStatementOrdersByFilterInPage(text, customerFilter, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindElectronicStatementOrdersByFilterInPage(text, customerFilter, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ElectronicStatementOrderDTO> AddElectronicStatementOrderAsync(ElectronicStatementOrderDTO electronicStatementOrderDTO, ServiceHeader serviceHeader)
         {
@@ -39456,37 +39456,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<ElectronicStatementOrderHistoryDTO>> FindElectronicStatementOrderHistoryByElectronicStatementOrderIdInPageAsync(Guid electronicStatementOrderId, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicStatementOrderHistoryDTO>>();
+        public Task<PageCollectionInfo<ElectronicStatementOrderHistoryDTO>> FindElectronicStatementOrderHistoryByElectronicStatementOrderIdInPageAsync(Guid electronicStatementOrderId, int pageIndex, int pageSize, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<ElectronicStatementOrderHistoryDTO>>();
 
-        //    IElectronicStatementOrderService service = GetService<IElectronicStatementOrderService>(serviceHeader);
+            IElectronicStatementOrderService service = GetService<IElectronicStatementOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<ElectronicStatementOrderHistoryDTO> response = ((IElectronicStatementOrderService)result.AsyncState).EndFindElectronicStatementOrderHistoryByElectronicStatementOrderIdInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<ElectronicStatementOrderHistoryDTO> response = ((IElectronicStatementOrderService)result.AsyncState).EndFindElectronicStatementOrderHistoryByElectronicStatementOrderIdInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindElectronicStatementOrderHistoryByElectronicStatementOrderIdInPage(electronicStatementOrderId, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
+            service.BeginFindElectronicStatementOrderHistoryByElectronicStatementOrderIdInPage(electronicStatementOrderId, pageIndex, pageSize, includeProductDescription, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ElectronicStatementOrderHistoryDTO> FindElectronicStatementOrderHistoryAsync(Guid electronicStatementOrderHistoryId, ServiceHeader serviceHeader)
         {
@@ -39556,37 +39556,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region EmployeeTypeDTO
 
-        //public Task<PageCollectionInfo<EmployeeTypeDTO>> FindEmployeeTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeTypeDTO>>();
+        public Task<PageCollectionInfo<EmployeeTypeDTO>> FindEmployeeTypesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeTypeDTO>>();
 
-        //    IEmployeeTypeService service = GetService<IEmployeeTypeService>(serviceHeader);
+            IEmployeeTypeService service = GetService<IEmployeeTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeTypeDTO> response = ((IEmployeeTypeService)result.AsyncState).EndFindEmployeeTypesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeTypeDTO> response = ((IEmployeeTypeService)result.AsyncState).EndFindEmployeeTypesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeTypesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeTypesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<EmployeeTypeDTO>> FindEmployeeTypesAsync(ServiceHeader serviceHeader)
         {
@@ -39620,37 +39620,37 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<EmployeeTypeDTO>> FindEmployeeTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeTypeDTO>>();
+        public Task<PageCollectionInfo<EmployeeTypeDTO>> FindEmployeeTypesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<EmployeeTypeDTO>>();
 
-        //    IEmployeeTypeService service = GetService<IEmployeeTypeService>(serviceHeader);
+            IEmployeeTypeService service = GetService<IEmployeeTypeService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<EmployeeTypeDTO> response = ((IEmployeeTypeService)result.AsyncState).EndFindEmployeeTypesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<EmployeeTypeDTO> response = ((IEmployeeTypeService)result.AsyncState).EndFindEmployeeTypesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindEmployeeTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindEmployeeTypesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<EmployeeTypeDTO> AddEmployeeTypeAsync(EmployeeTypeDTO employeeTypeDTO, ServiceHeader serviceHeader)
         {
@@ -39912,69 +39912,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanRequestDTO>> FindLoanRequestsByFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int loanRequestFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanRequestDTO>>();
+        public Task<PageCollectionInfo<LoanRequestDTO>> FindLoanRequestsByFilterInPageAsync(DateTime startDate, DateTime endDate, string text, int loanRequestFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanRequestDTO>>();
 
-        //    ILoanRequestService service = GetService<ILoanRequestService>(serviceHeader);
+            ILoanRequestService service = GetService<ILoanRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanRequestDTO> response = ((ILoanRequestService)result.AsyncState).EndFindLoanRequestsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanRequestDTO> response = ((ILoanRequestService)result.AsyncState).EndFindLoanRequestsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanRequestsByFilterInPage(startDate, endDate, text, loanRequestFilter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanRequestsByFilterInPage(startDate, endDate, text, loanRequestFilter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoanRequestDTO>> FindLoanRequestsByStatusAndFilterInPageAsync(DateTime startDate, DateTime endDate, int status, string text, int loanRequestFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanRequestDTO>>();
+        public Task<PageCollectionInfo<LoanRequestDTO>> FindLoanRequestsByStatusAndFilterInPageAsync(DateTime startDate, DateTime endDate, int status, string text, int loanRequestFilter, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanRequestDTO>>();
 
-        //    ILoanRequestService service = GetService<ILoanRequestService>(serviceHeader);
+            ILoanRequestService service = GetService<ILoanRequestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanRequestDTO> response = ((ILoanRequestService)result.AsyncState).EndFindLoanRequestsByStatusAndFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanRequestDTO> response = ((ILoanRequestService)result.AsyncState).EndFindLoanRequestsByStatusAndFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanRequestsByStatusAndFilterInPage(startDate, endDate, status, text, loanRequestFilter, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanRequestsByStatusAndFilterInPage(startDate, endDate, status, text, loanRequestFilter, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<ObservableCollection<LoanRequestDTO>> FindLoanRequestsByCustomerIdInProcessAsync(Guid customerId, ServiceHeader serviceHeader)
         {
@@ -40044,69 +40044,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<AdministrativeDivisionDTO>> FindAdministrativeDivisionsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AdministrativeDivisionDTO>>();
+        public Task<PageCollectionInfo<AdministrativeDivisionDTO>> FindAdministrativeDivisionsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AdministrativeDivisionDTO>>();
 
-        //    IAdministrativeDivisionService service = GetService<IAdministrativeDivisionService>(serviceHeader);
+            IAdministrativeDivisionService service = GetService<IAdministrativeDivisionService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AdministrativeDivisionDTO> response = ((IAdministrativeDivisionService)result.AsyncState).EndFindAdministrativeDivisionsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AdministrativeDivisionDTO> response = ((IAdministrativeDivisionService)result.AsyncState).EndFindAdministrativeDivisionsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAdministrativeDivisionsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindAdministrativeDivisionsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<AdministrativeDivisionDTO>> FindAdministrativeDivisionsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<AdministrativeDivisionDTO>>();
+        public Task<PageCollectionInfo<AdministrativeDivisionDTO>> FindAdministrativeDivisionsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<AdministrativeDivisionDTO>>();
 
-        //    IAdministrativeDivisionService service = GetService<IAdministrativeDivisionService>(serviceHeader);
+            IAdministrativeDivisionService service = GetService<IAdministrativeDivisionService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<AdministrativeDivisionDTO> response = ((IAdministrativeDivisionService)result.AsyncState).EndFindAdministrativeDivisionsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<AdministrativeDivisionDTO> response = ((IAdministrativeDivisionService)result.AsyncState).EndFindAdministrativeDivisionsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindAdministrativeDivisionsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindAdministrativeDivisionsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<AdministrativeDivisionDTO> AddAdministrativeDivisionAsync(AdministrativeDivisionDTO administrativeDivisionDTO, ServiceHeader serviceHeader)
         {
@@ -40240,69 +40240,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<DivisionDTO>> FindDivisionsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DivisionDTO>>();
+        public Task<PageCollectionInfo<DivisionDTO>> FindDivisionsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DivisionDTO>>();
 
-        //    IDivisionService service = GetService<IDivisionService>(serviceHeader);
+            IDivisionService service = GetService<IDivisionService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DivisionDTO> response = ((IDivisionService)result.AsyncState).EndFindDivisionsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DivisionDTO> response = ((IDivisionService)result.AsyncState).EndFindDivisionsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDivisionsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDivisionsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<DivisionDTO>> FindDivisionsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<DivisionDTO>>();
+        public Task<PageCollectionInfo<DivisionDTO>> FindDivisionsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<DivisionDTO>>();
 
-        //    IDivisionService service = GetService<IDivisionService>(serviceHeader);
+            IDivisionService service = GetService<IDivisionService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<DivisionDTO> response = ((IDivisionService)result.AsyncState).EndFindDivisionsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<DivisionDTO> response = ((IDivisionService)result.AsyncState).EndFindDivisionsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindDivisionsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindDivisionsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<DivisionDTO> AddDivisionAsync(DivisionDTO divisionDTO, ServiceHeader serviceHeader)
         {
@@ -40436,69 +40436,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<LoanProductAppraisalProductDTO>> FindLoanProductAppraisalProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductAppraisalProductDTO>>();
+        public Task<PageCollectionInfo<LoanProductAppraisalProductDTO>> FindLoanProductAppraisalProductsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductAppraisalProductDTO>>();
 
-        //    ILoanProductAppraisalProductService service = GetService<ILoanProductAppraisalProductService>(serviceHeader);
+            ILoanProductAppraisalProductService service = GetService<ILoanProductAppraisalProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanProductAppraisalProductDTO> response = ((ILoanProductAppraisalProductService)result.AsyncState).EndFindLoanProductAppraisalProductsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanProductAppraisalProductDTO> response = ((ILoanProductAppraisalProductService)result.AsyncState).EndFindLoanProductAppraisalProductsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanProductAppraisalProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanProductAppraisalProductsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<LoanProductAppraisalProductDTO>> FindLoanProductAppraisalProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductAppraisalProductDTO>>();
+        public Task<PageCollectionInfo<LoanProductAppraisalProductDTO>> FindLoanProductAppraisalProductsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<LoanProductAppraisalProductDTO>>();
 
-        //    ILoanProductAppraisalProductService service = GetService<ILoanProductAppraisalProductService>(serviceHeader);
+            ILoanProductAppraisalProductService service = GetService<ILoanProductAppraisalProductService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<LoanProductAppraisalProductDTO> response = ((ILoanProductAppraisalProductService)result.AsyncState).EndFindLoanProductAppraisalProductsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<LoanProductAppraisalProductDTO> response = ((ILoanProductAppraisalProductService)result.AsyncState).EndFindLoanProductAppraisalProductsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindLoanProductAppraisalProductsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindLoanProductAppraisalProductsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<LoanProductAppraisalProductDTO> AddLoanProductAppraisalProductAsync(LoanProductAppraisalProductDTO LoanProductAppraisalProductDTO, ServiceHeader serviceHeader)
         {
@@ -40599,69 +40599,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         #endregion
 
         #region SystemGeneralLedgerAccountMappingDTO
-        //public Task<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>> FindSystemGeneralLedgerAccountMappingsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>>();
+        public Task<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>> FindSystemGeneralLedgerAccountMappingsByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>>();
 
-        //    ISystemGeneralLedgerAccountMappingService service = GetService<ISystemGeneralLedgerAccountMappingService>(serviceHeader);
+            ISystemGeneralLedgerAccountMappingService service = GetService<ISystemGeneralLedgerAccountMappingService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO> response = ((ISystemGeneralLedgerAccountMappingService)result.AsyncState).EndFindSystemGeneralLedgerAccountMappingsByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO> response = ((ISystemGeneralLedgerAccountMappingService)result.AsyncState).EndFindSystemGeneralLedgerAccountMappingsByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSystemGeneralLedgerAccountMappingsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSystemGeneralLedgerAccountMappingsByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>> FindSystemGeneralLedgerAccountMappingsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>>();
+        public Task<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>> FindSystemGeneralLedgerAccountMappingsInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO>>();
 
-        //    ISystemGeneralLedgerAccountMappingService service = GetService<ISystemGeneralLedgerAccountMappingService>(serviceHeader);
+            ISystemGeneralLedgerAccountMappingService service = GetService<ISystemGeneralLedgerAccountMappingService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO> response = ((ISystemGeneralLedgerAccountMappingService)result.AsyncState).EndFindSystemGeneralLedgerAccountMappingsInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SystemGeneralLedgerAccountMappingDTO> response = ((ISystemGeneralLedgerAccountMappingService)result.AsyncState).EndFindSystemGeneralLedgerAccountMappingsInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSystemGeneralLedgerAccountMappingsInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSystemGeneralLedgerAccountMappingsInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<SystemGeneralLedgerAccountMappingDTO> AddSystemGeneralLedgerAccountMappingAsync(SystemGeneralLedgerAccountMappingDTO systemGeneralLedgerAccountMappingDTO, ServiceHeader serviceHeader)
         {
@@ -40799,69 +40799,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region CategoryDTO
 
-        //public Task<PageCollectionInfo<CategoryDTO>> FindCategoriesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CategoryDTO>>();
+        public Task<PageCollectionInfo<CategoryDTO>> FindCategoriesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CategoryDTO>>();
 
-        //    ICategoryService service = GetService<ICategoryService>(serviceHeader);
+            ICategoryService service = GetService<ICategoryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CategoryDTO> response = ((ICategoryService)result.AsyncState).EndFindCategoriesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CategoryDTO> response = ((ICategoryService)result.AsyncState).EndFindCategoriesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCategoriesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCategoriesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<CategoryDTO>> FindCategoryInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<CategoryDTO>>();
+        public Task<PageCollectionInfo<CategoryDTO>> FindCategoryInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<CategoryDTO>>();
 
-        //    ICategoryService service = GetService<ICategoryService>(serviceHeader);
+            ICategoryService service = GetService<ICategoryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<CategoryDTO> response = ((ICategoryService)result.AsyncState).EndFindCategoriesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<CategoryDTO> response = ((ICategoryService)result.AsyncState).EndFindCategoriesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindCategoriesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindCategoriesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<CategoryDTO> AddCategoryAsync(CategoryDTO categoryDTO, ServiceHeader serviceHeader)
         {
@@ -41028,69 +41028,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
             return tcs.Task;
         }
 
-        //public Task<PageCollectionInfo<InventoryDTO>> FindInventoriesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InventoryDTO>>();
+        public Task<PageCollectionInfo<InventoryDTO>> FindInventoriesByFilterInPageAsync(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InventoryDTO>>();
 
-        //    IInventoryService service = GetService<IInventoryService>(serviceHeader);
+            IInventoryService service = GetService<IInventoryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InventoryDTO> response = ((IInventoryService)result.AsyncState).EndFindInventoriesByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InventoryDTO> response = ((IInventoryService)result.AsyncState).EndFindInventoriesByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInventoriesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInventoriesByFilterInPage(text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<InventoryDTO>> FindInventoriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<InventoryDTO>>();
+        public Task<PageCollectionInfo<InventoryDTO>> FindInventoriesInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<InventoryDTO>>();
 
-        //    IInventoryService service = GetService<IInventoryService>(serviceHeader);
+            IInventoryService service = GetService<IInventoryService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<InventoryDTO> response = ((IInventoryService)result.AsyncState).EndFindInventoriesInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<InventoryDTO> response = ((IInventoryService)result.AsyncState).EndFindInventoriesInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindInventoriesInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindInventoriesInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<InventoryDTO> AddInventoryAsync(InventoryDTO inventoryDTO, ServiceHeader serviceHeader)
         {
@@ -41193,69 +41193,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region PurchaseOrderDTO
 
-        //public Task<PageCollectionInfo<PurchaseOrderDTO>> FindPurchaseOrderByFilterInPageAsync(int itemType, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PurchaseOrderDTO>>();
+        public Task<PageCollectionInfo<PurchaseOrderDTO>> FindPurchaseOrderByFilterInPageAsync(int itemType, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PurchaseOrderDTO>>();
 
-        //    IPurchaseOrderService service = GetService<IPurchaseOrderService>(serviceHeader);
+            IPurchaseOrderService service = GetService<IPurchaseOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PurchaseOrderDTO> response = ((IPurchaseOrderService)result.AsyncState).EndFindPurchaseOrdersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PurchaseOrderDTO> response = ((IPurchaseOrderService)result.AsyncState).EndFindPurchaseOrdersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPurchaseOrdersByFilterInPage(itemType, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindPurchaseOrdersByFilterInPage(itemType, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<PurchaseOrderDTO>> FindPurchaseOrderInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<PurchaseOrderDTO>>();
+        public Task<PageCollectionInfo<PurchaseOrderDTO>> FindPurchaseOrderInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<PurchaseOrderDTO>>();
 
-        //    IPurchaseOrderService service = GetService<IPurchaseOrderService>(serviceHeader);
+            IPurchaseOrderService service = GetService<IPurchaseOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<PurchaseOrderDTO> response = ((IPurchaseOrderService)result.AsyncState).EndFindPurchaseOrderInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<PurchaseOrderDTO> response = ((IPurchaseOrderService)result.AsyncState).EndFindPurchaseOrderInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindPurchaseOrderInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindPurchaseOrderInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<PurchaseOrderDTO> AddPurchaseOrderAsync(PurchaseOrderDTO purchaseOrderDTO, ServiceHeader serviceHeader = null)
         {
@@ -41485,69 +41485,69 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         #region SalesOrderDTO
 
-        //public Task<PageCollectionInfo<SalesOrderDTO>> FindSalesOrdersByFilterInPageAsync(int itemType, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalesOrderDTO>>();
+        public Task<PageCollectionInfo<SalesOrderDTO>> FindSalesOrdersByFilterInPageAsync(int itemType, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalesOrderDTO>>();
 
-        //    ISalesOrderService service = GetService<ISalesOrderService>(serviceHeader);
+            ISalesOrderService service = GetService<ISalesOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalesOrderDTO> response = ((ISalesOrderService)result.AsyncState).EndFindSalesOrdersByFilterInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalesOrderDTO> response = ((ISalesOrderService)result.AsyncState).EndFindSalesOrdersByFilterInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalesOrdersByFilterInPage(itemType, text, pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalesOrdersByFilterInPage(itemType, text, pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
-        //public Task<PageCollectionInfo<SalesOrderDTO>> FindSalesOrdersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
-        //{
-        //    var tcs = new TaskCompletionSource<PageCollectionInfo<SalesOrderDTO>>();
+        public Task<PageCollectionInfo<SalesOrderDTO>> FindSalesOrdersInPageAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader = null)
+        {
+            var tcs = new TaskCompletionSource<PageCollectionInfo<SalesOrderDTO>>();
 
-        //    ISalesOrderService service = GetService<ISalesOrderService>(serviceHeader);
+            ISalesOrderService service = GetService<ISalesOrderService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            PageCollectionInfo<SalesOrderDTO> response = ((ISalesOrderService)result.AsyncState).EndFindSalesOrdersInPage(result);
+            AsyncCallback asyncCallback = (result =>
+            {
+                try
+                {
+                    PageCollectionInfo<SalesOrderDTO> response = ((ISalesOrderService)result.AsyncState).EndFindSalesOrdersInPage(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    tcs.TrySetResult(response);
+                }
+                catch (Exception ex)
+                {
+                    HandleFault(ex, (msgcb) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    });
+                }
+                finally
+                {
+                    DisposeService(service as IClientChannel);
+                }
+            });
 
-        //    service.BeginFindSalesOrdersInPage(pageIndex, pageSize, asyncCallback, service);
+            service.BeginFindSalesOrdersInPage(pageIndex, pageSize, asyncCallback, service);
 
-        //    return tcs.Task;
-        //}
+            return tcs.Task;
+        }
 
         public Task<SalesOrderDTO> AddSalesOrderAsync(SalesOrderDTO salesOrderDTO, ServiceHeader serviceHeader = null)
         {
@@ -42530,38 +42530,38 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
 
         //public Task<SalesInvoiceDTO> FindSalesInvoiceAsync(Guid salesInvoiceId, ServiceHeader serviceHeader)
         //{
-        //    var tcs = new TaskCompletionSource<SalesInvoiceDTO>();
+            //var tcs = new TaskCompletionSource<SalesInvoiceDTO>();
 
-        //    ISalesInvoiceService service = GetService<ISalesInvoiceService>(serviceHeader);
+            //ISalesInvoiceService service = GetService<ISalesInvoiceService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
-        //        try
-        //        {
-        //            SalesInvoiceDTO response = ((ISalesInvoiceService)result.AsyncState).EndFindSalesInvoices(result);
+            //AsyncCallback asyncCallback = (result =>
+            //{
+                //try
+                //{
+                    //SalesInvoiceDTO response = ((ISalesInvoiceService)result.AsyncState).EndFindSalesInvoices(result);
 
-        //            tcs.SetResult(response);
-        //        }
+                    //tcs.SetResult(response);
+                //}
 
-        //        catch (Exception ex)
-        //        {
-        //            HandleFault(ex, (msgcb) =>
-        //            {
+                //catch (Exception ex)
+                //{
+                    //HandleFault(ex, (msgcb) =>
+                    //{
 
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
+                        //if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    //});
 
-        //        }
+                //}
 
-        //        finally
-        //        {
+                //finally
+                //{
 
-        //            DisposeService(service as IClientChannel);
-        //        }
-        //    });
+                    //DisposeService(service as IClientChannel);
+                //}
+            //});
 
-        //    service.BeginFindSalesInvoices(salesInvoiceId, asyncCallback, service);
-        //    return tcs.Task;
+            //service.BeginFindSalesInvoices(salesInvoiceId, asyncCallback, service);
+            //return tcs.Task;
         //}
 
         public Task<List<SalesInvoiceDTO>> FindSalesInvoicesAsync(ServiceHeader serviceHeader)
@@ -43672,44 +43672,44 @@ namespace SwiftFinancials.Presentation.Infrastructure.Services
         //public Task<JournalDTO> PayImprestAsync(PaymentVoucherDTO paymentVoucherDTO, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         //{
 
-        //    var tcs = new TaskCompletionSource<JournalDTO>();
+            //var tcs = new TaskCompletionSource<JournalDTO>();
 
-        //    IImprestService service = GetService<IImprestService>(serviceHeader);
+            //IImprestService service = GetService<IImprestService>(serviceHeader);
 
-        //    AsyncCallback asyncCallback = (result =>
-        //    {
+            //AsyncCallback asyncCallback = (result =>
+            //{
 
-        //        try
-        //        {
+                //try
+                //{
 
-        //            JournalDTO response = ((IImprestService)result.AsyncState).EndPayImprest(result);
+                    //JournalDTO response = ((IImprestService)result.AsyncState).EndPayImprest(result);
 
-        //            tcs.TrySetResult(response);
-        //        }
+                    //tcs.TrySetResult(response);
+                //}
 
-        //        catch (Exception ex)
-        //        {
-
-
-        //            HandleFault(ex, (msgcb) =>
-        //            {
-        //                if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
-        //            });
+                //catch (Exception ex)
+                //{
 
 
-        //        }
-
-        //        finally
-        //        {
-        //            DisposeService(service as IClientChannel);
-        //        }
+                    //HandleFault(ex, (msgcb) =>
+                    //{
+                        //if (!string.IsNullOrWhiteSpace(msgcb)) tcs.TrySetResult(null); else tcs.TrySetException(ex);
+                    //});
 
 
-        //    });
+                //}
 
-        //    service.BeginPayImprest(paymentVoucherDTO, moduleNavigationItemCode, asyncCallback, service);
+                //finally
+                //{
+                    //DisposeService(service as IClientChannel);
+                //}
 
-        //    return tcs.Task;
+
+            //});
+
+            //service.BeginPayImprest(paymentVoucherDTO, moduleNavigationItemCode, asyncCallback, service);
+
+            //return tcs.Task;
 
 
         //}

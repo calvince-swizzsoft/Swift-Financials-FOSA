@@ -1,7 +1,6 @@
 <Solution>
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/Application.Seedwork/Application.Seedwork.csproj" Id="97d7d298-0ea9-4aff-bef8-7b50b9339f80" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/Infrastructure.Crosscutting.Framework/Infrastructure.Crosscutting.Framework.csproj" Id="e839a387-3a87-49a7-9039-d114d02f05b1" />
-  <Project Path="../../../Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/SwiftFinancials.Presentation.Infrastructure/SwiftFinancials.Presentation.Infrastructure.csproj" Id="dcfca848-40ee-4f4e-a2d6-aa449c908cc5" />
+  <Project Path="Application.Seedwork/Application.Seedwork.csproj" Id="97d7d298-0ea9-4aff-bef8-7b50b9339f80" />
+  <Project Path="SwiftFinancials.Presentation.Infrastructure/SwiftFinancials.Presentation.Infrastructure.csproj" Id="dcfca848-40ee-4f4e-a2d6-aa449c908cc5" />
   <Project Path="Application.MainBoundedContext.DTO/Application.MainBoundedContext.DTO.csproj" Id="bc316b5e-4fb5-416d-a256-388e72fb14cc" />
   <Project Path="Application.MainBoundedContext/Application.MainBoundedContext.csproj" Id="2ef2ace9-b5db-4b61-a6ed-66f976783689" />
   <Project Path="DistributedServices.MainBoundedContext/DistributedServices.MainBoundedContext.csproj" Id="054da3e1-daad-4df5-95b7-0fc9096bec39" />
@@ -10,10 +9,34 @@
   <Project Path="Domain.Seedwork/Domain.Seedwork.csproj" Id="c477e3ae-850c-4681-b6c4-1a9928679cd4" />
   <Project Path="EntityFramework.Implementation/EntityFramework.Implementation.csproj" Id="e8e97372-82e1-417a-9e23-11106ad1ca16" />
   <Project Path="EntityFramework.Interfaces/EntityFramework.Interfaces.csproj" Id="159a5ab3-4bc6-4379-a5b5-168d0cb783cd" />
+  <Project Path="Infrastructure.Crosscutting.Framework/Infrastructure.Crosscutting.Framework.csproj" Id="e839a387-3a87-49a7-9039-d114d02f05b1" />
   <Project Path="Infrastructure.Data.MainBoundedContext/Infrastructure.Data.MainBoundedContext.csproj" Id="3167a4c1-44e6-499a-8fc7-682d875429f5" />
   <Project Path="SwiftApis/SwiftApis.csproj" />
+  <Project Path="SwiftFinancials.AccountAlertDispatcher/SwiftFinancials.AccountAlertDispatcher.csproj" Id="3ef92022-05ad-4123-95e1-1afbff7d149d" />
+  <Project Path="SwiftFinancials.ArrearsRecovery/SwiftFinancials.ArrearsRecovery.csproj" Id="efa1015e-b838-464d-acb3-7d590127ce1d" />
+  <Project Path="SwiftFinancials.AuditLogDispatcher/SwiftFinancials.AuditLogDispatcher.csproj" Id="58f264dc-28b4-4882-ac95-95cdf04c959c" />
+  <Project Path="SwiftFinancials.AuditTrailDispatcher/SwiftFinancials.AuditTrailDispatcher.csproj" Id="c0475a8c-9b80-487b-ba28-bfdb51ff20ee" />
+  <Project Path="SwiftFinancials.BankToMobileHostInterface/SwiftFinancials.BankToMobileHostInterface.csproj" Id="2522fd54-60a6-4c39-94fd-582acac4c6bf" />
+  <Project Path="SwiftFinancials.CreditBatchPosting/SwiftFinancials.CreditBatchPosting.csproj" Id="361033f6-c588-4490-880d-30ad96e140c8" />
+  <Project Path="SwiftFinancials.DebitBatchPosting/SwiftFinancials.DebitBatchPosting.csproj" Id="0099be5d-ad72-4ff4-bae8-d05379a7f5ab" />
+  <Project Path="SwiftFinancials.EmailAlertDispatcher/SwiftFinancials.EmailAlertDispatcher.csproj" Id="5c97f213-e630-4919-b164-0bad8c284e9d" />
+  <Project Path="SwiftFinancials.eStatementInvoker/SwiftFinancials.eStatementInvoker.csproj" Id="95e10a27-c4ab-49a6-8666-dda898de70f8" />
+  <Project Path="SwiftFinancials.FixedDepositLiquidationInvoker/SwiftFinancials.FixedDepositLiquidationInvoker.csproj" Id="5d0b863e-1593-4b29-afb9-8fe67a248f3c" />
+  <Project Path="SwiftFinancials.GuarantorReleasing/SwiftFinancials.GuarantorReleasing.csproj" Id="b3c449e0-5bcc-4ef1-8165-b761a99c171b" />
+  <Project Path="SwiftFinancials.InterestCapitalization/SwiftFinancials.InterestCapitalization.csproj" Id="479576dc-fdba-4fa4-928f-77dd34a2af4d" />
+  <Project Path="SwiftFinancials.InvestmentBalancesNormalizer/SwiftFinancials.InvestmentBalancesNormalizer.csproj" Id="d9a35814-9e5c-4e4a-98e6-ac0eb3401348" />
+  <Project Path="SwiftFinancials.JournalReversalPosting/SwiftFinancials.JournalReversalBatchPosting.csproj" Id="bf6ced7d-633d-457e-b580-038cb6f3ede4" />
+  <Project Path="SwiftFinancials.LoanDisbursementPosting/SwiftFinancials.LoanDisbursementBatchPosting.csproj" Id="841adbcb-2d7e-4f39-b670-d790d16c2d3d" />
+  <Project Path="SwiftFinancials.MobileToBankHostInterface/SwiftFinancials.MobileToBankHostInterface.csproj" Id="69d17cac-c357-44df-bb00-dc8b917055cb" />
+  <Project Path="SwiftFinancials.MobileWalletHostInterface/SwiftFinancials.MobileWalletHostInterface.csproj" Id="a3ae0c19-04c4-449d-982d-77c7b2e1054e" />
   <Project Path="SwiftFinancials.Presentation.Contracts/SwiftFinancials.Presentation.Contracts.csproj" Id="02619dc1-0a34-404d-9e52-82a9890377ab" />
   <Project Path="SwiftFinancials.Presentation.Shared/SwiftFinancials.Presentation.Shared.csproj" Id="b1ea34bf-3885-466f-aace-568ad3f24938" />
+  <Project Path="SwiftFinancials.RecurringBatchPosting/SwiftFinancials.RecurringBatchPosting.csproj" Id="940a1f56-da0f-444a-b3b9-b15c22626286" />
+  <Project Path="SwiftFinancials.SalaryPeriodPosting/SwiftFinancials.SalaryPeriodPosting.csproj" Id="07c5919f-fa4b-49ad-933f-7a47f8c9ba11" />
+  <Project Path="SwiftFinancials.SavingsProductLedgerFeeProcessor/SwiftFinancials.SavingsProductLedgerFeeProcessor.csproj" Id="7be7609d-528e-4772-a3a0-cd2255f6b3ce" />
+  <Project Path="SwiftFinancials.StandingOrderInvoker/SwiftFinancials.StandingOrderInvoker.csproj" Id="a156a23e-091a-4735-be60-5bb9f38e7559" />
+  <Project Path="SwiftFinancials.TextAlertDispatcher/SwiftFinancials.TextAlertDispatcher.Celcom.csproj" Id="660bae5c-4432-4b7c-8cb0-e860b8b3465d" />
   <Project Path="SwiftFinancials.Utility/SwiftFinancials.Utility.csproj" Id="617aad11-f940-4b14-878b-6d776b6fe0b4" />
+  <Project Path="SwiftFinancials.WindowsService/SwiftFinancials.WindowsService.csproj" Id="2fb8ea4c-6d83-44fb-b1d7-39086ad3071b" />
   <Project Path="WebApplication1/WebApplication1.csproj" Id="57d79552-8eae-457a-a51a-e9090b5816e5" />
 </Solution>

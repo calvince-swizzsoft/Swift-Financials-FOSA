@@ -449,13 +449,9 @@
     <Compile Include="UnitOfMeasurementDTO.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Application.Seedwork\Application.Seedwork.csproj">
+    <ProjectReference Include="..\Application.Seedwork\Application.Seedwork.csproj">
       <Project>{97D7D298-0EA9-4AFF-BEF8-7B50B9339F80}</Project>
       <Name>Application.Seedwork</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Desktop\source\SwiftFinancialsNew\SwiftFinancialsSolution\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
-      <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
-      <Name>Infrastructure.Crosscutting.Framework</Name>
     </ProjectReference>
     <ProjectReference Include="..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
       <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
@@ -464,6 +460,10 @@
     <ProjectReference Include="..\Domain.Seedwork\Domain.Seedwork.csproj">
       <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
       <Name>Domain.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
+      <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>
+      <Name>Infrastructure.Crosscutting.Framework</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
