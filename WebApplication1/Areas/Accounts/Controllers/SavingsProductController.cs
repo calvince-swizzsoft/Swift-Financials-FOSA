@@ -13,11 +13,11 @@ using WebApplication1.Helpers;
 
 
 
-namespace WebaPPLICATION1.Controllers
+namespace WebApplication1.Controllers
 {
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
-    [RoutePrefix("api/savingsproducts")]
+    //[EnableCors(origins: "*", headers: "*", methods: "*")]
+    //[AllowAnonymous]
+    [RoutePrefix("api/accounts/savingsproducts")]
     public class SavingsProductController : ApiController
     {
 
@@ -163,19 +163,10 @@ namespace WebaPPLICATION1.Controllers
             }
         }
 
-        public async Task<IHttpActionResult> Edit(Guid id)
-        {
-            // await ServeNavigationMenus();
 
-            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
-
-            var savingsProductDTO = _savingsProductAppService.FindSavingsProduct(id, Guid.NewGuid(), serviceHeader);
-
-            return Ok(savingsProductDTO);
-        }
-
-        [HttpPost]
-        public async Task<IHttpActionResult> Edit(Guid id, SavingsProductDTO savingsProductBindingModel)
+        [HttpPut]
+        [Route("")]
+        public async Task<IHttpActionResult> Edit(SavingsProductDTO savingsProductBindingModel)
         {
             if (ModelState.IsValid)
             {

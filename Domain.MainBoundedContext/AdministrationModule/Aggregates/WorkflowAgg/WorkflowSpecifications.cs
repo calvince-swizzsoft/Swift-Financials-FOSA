@@ -22,9 +22,13 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.WorkflowAgg
 
         public static Specification<Workflow> QueableWorkflows()
         {
-            var approved = (int)WorkflowRecordStatus.Approved;
+            //var approved = (int)WorkflowRecordStatus.Approved;
 
-            var rejected = (int)WorkflowRecordStatus.Rejected;
+            //var rejected = (int)WorkflowRecordStatus.Rejected;
+
+            var approved = (int)WorkflowApprovalOption.Approved;
+
+            var rejected = (int)WorkflowApprovalOption.Rejected;
 
             Specification<Workflow> specification = new DirectSpecification<Workflow>(c => (c.Status == approved || c.Status == rejected) && c.MatchedStatus == (int)WorkflowMatchedStatus.NotMatched);
 

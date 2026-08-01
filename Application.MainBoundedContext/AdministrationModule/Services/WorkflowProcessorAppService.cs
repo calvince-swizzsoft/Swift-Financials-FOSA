@@ -1,46 +1,78 @@
 ﻿using System;
 using Infrastructure.Crosscutting.Framework.Utils;
-using Application.MainBoundedContext.ControlModule.Services;
+//using Application.MainBoundedContext.ControlModule.Services;
 using System.Threading.Tasks;
+using Application.MainBoundedContext.FrontOfficeModule.Services;
+using Application.MainBoundedContext.RegistryModule.Services;
 
 namespace Application.MainBoundedContext.AdministrationModule.Services
 {
     public class WorkflowProcessorAppService : IWorkflowProcessorAppService
     {
-        private readonly IRequisitionAppService _requisitionAppService;
-        private readonly IPurchaseOrderAppService _purchaseOrderAppService;
-        private readonly IGoodsReceivedNoteAppService _goodsReceivedNoteAppService;
-        private readonly IInvoiceAppService _invoiceAppService;
+        //private readonly IRequisitionAppService _requisitionAppService;
+        //private readonly IPurchaseOrderAppService _purchaseOrderAppService;
+        //private readonly IGoodsReceivedNoteAppService _goodsReceivedNoteAppService;
+        //private readonly IInvoiceAppService _invoiceAppService;
         private readonly int _moduleNavigationCode;
 
+        private readonly ICashDepositRequestAppService _cashDepositRequestAppService;
+
+        private readonly ICashWithdrawalRequestAppService _cashWithdrawalRequestAppService;
+
+        private readonly IExpensePayableAppService _expensePayableAppService;
+
+        private readonly ISuperSaverPayableAppService _superSaverPayableAppService;
+
+        private readonly IFuneralRiderClaimAppService _funeralRiderClaimAppService;
+
+        private readonly IWorkflowAppService _workflowAppService;
 
         public WorkflowProcessorAppService(
-            IRequisitionAppService requisitionAppService,
-            IPurchaseOrderAppService purchaseOrderAppService,
-            IGoodsReceivedNoteAppService goodsReceivedNoteAppService,
-            IInvoiceAppService invoiceAppService)
+
+            ICashDepositRequestAppService cashDepositRequestAppService,
+
+            ICashWithdrawalRequestAppService cashWithdrawalRequestAppService,
+
+            IExpensePayableAppService expensePayableAppService,
+
+            ISuperSaverPayableAppService superSaverPayableAppService,
+
+            IFuneralRiderClaimAppService funeralRiderClaimAppService,
+
+            IWorkflowAppService workflowAppService
+            )
         {
-            if (requisitionAppService == null)
-                throw new ArgumentNullException(nameof(requisitionAppService));
+            if (cashDepositRequestAppService == null)
+                throw new ArgumentNullException(nameof(cashDepositRequestAppService));
 
-            if (purchaseOrderAppService == null)
-                throw new ArgumentNullException(nameof(purchaseOrderAppService));
+            if (cashWithdrawalRequestAppService == null)
+                throw new ArgumentNullException(nameof(cashWithdrawalRequestAppService));
 
-            if (goodsReceivedNoteAppService == null)
-                throw new ArgumentNullException(nameof(goodsReceivedNoteAppService));
+            if (expensePayableAppService == null)
+                throw new ArgumentNullException(nameof(expensePayableAppService));
 
-            if (invoiceAppService == null)
-                throw new ArgumentNullException(nameof(invoiceAppService));
+            if (superSaverPayableAppService == null)
+                throw new ArgumentNullException(nameof(superSaverPayableAppService));
 
-            _requisitionAppService = requisitionAppService;
+            if (funeralRiderClaimAppService == null)
+                throw new ArgumentNullException(nameof(funeralRiderClaimAppService));
 
-            _purchaseOrderAppService = purchaseOrderAppService;
+            if (workflowAppService == null)
+                throw new ArgumentNullException(nameof(workflowAppService));
 
-            _goodsReceivedNoteAppService = goodsReceivedNoteAppService;
+            _cashDepositRequestAppService = cashDepositRequestAppService;
 
-            _invoiceAppService = invoiceAppService;
+            _cashWithdrawalRequestAppService = cashWithdrawalRequestAppService;
 
-            _moduleNavigationCode = 0x9999;
+            _expensePayableAppService = expensePayableAppService;
+
+            _superSaverPayableAppService = superSaverPayableAppService;
+
+            _funeralRiderClaimAppService = funeralRiderClaimAppService;
+
+            _workflowAppService = workflowAppService;
+
+            _moduleNavigationCode = 0;
         }
 
         public async Task<bool> ProcessWorkflowQueueAsync(Guid recordId, int workflowRecordType, int workflowRecordStatus, ServiceHeader serviceHeader)
@@ -49,46 +81,138 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             var result = default(bool);
 
+            var approved = (WorkflowApprovalOption)workflowRecordStatus == WorkflowApprovalOption.Approved;
+
             switch (_workflowRecordType)
             {
                 #region Requisition
 
-                case SystemPermissionType.RequisitionOrigination:
+                //case SystemPermissionType.RequisitionOrigination:
 
-                    result = await _requisitionAppService.AuthorizeRequisitionAsync(recordId, workflowRecordStatus, serviceHeader);
+                //    result = await _requisitionAppService.AuthorizeRequisitionAsync(recordId, workflowRecordStatus, serviceHeader);
 
-                    break;
+                //    break;
 
+                //#endregion
+
+                //#region Purchase Order
+
+                //case SystemPermissionType.PurchaseOrderOrigination:
+
+                //    result = await _purchaseOrderAppService.AuthorizePurchaseOrderAsync(recordId, workflowRecordStatus, serviceHeader);
+
+                //    break;
+
+                //#endregion
+
+                //#region Goods Received Note
+
+                //case SystemPermissionType.GoodsReceivedNoteOrigination:
+
+                //    result = await _goodsReceivedNoteAppService.AuthorizeGoodsReceivedNoteAsync(recordId, workflowRecordStatus, serviceHeader);
+
+                //    break;
+
+                //#endregion
+
+                //#region Invoice
+
+                //case SystemPermissionType.InvoiceOrigination:
+
+                //    result = await _invoiceAppService.AuthorizeInvoiceAsync(recordId, workflowRecordStatus, _moduleNavigationCode, serviceHeader);
+
+                //    break;
                 #endregion
 
-                #region Purchase Order
+                case SystemPermissionType.CashDepositRequestAuthorization:
 
-                case SystemPermissionType.PurchaseOrderOrigination:
+                    var cashDepositRequestDTO = _cashDepositRequestAppService.FindCashDepositRequest(recordId, serviceHeader);
 
-                    result = await _purchaseOrderAppService.AuthorizePurchaseOrderAsync(recordId, workflowRecordStatus, serviceHeader);
+                    if (cashDepositRequestDTO != null)
+                    {
+                        var customerTransactionAuthOption = (int)(approved
+                            ? CustomerTransactionAuthOption.Authorize
+                            : CustomerTransactionAuthOption.Reject);
+
+                        result = _cashDepositRequestAppService.AuthorizeCashDepositRequest(cashDepositRequestDTO, customerTransactionAuthOption, serviceHeader);
+
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
+
+                    break;
+
+                case SystemPermissionType.CashWithdrawalRequestAuthorization:
+
+                    var cashWithdrawalRequestDTO = _cashWithdrawalRequestAppService.FindCashWithdrawalRequest(recordId, serviceHeader);
+
+                    if (cashWithdrawalRequestDTO != null)
+                    {
+                        var customerTransactionAuthOption = (int)(approved
+                            ? CustomerTransactionAuthOption.Authorize
+                            : CustomerTransactionAuthOption.Reject);
+
+                        result = _cashWithdrawalRequestAppService.AuthorizeCashWithdrawalRequest(cashWithdrawalRequestDTO, customerTransactionAuthOption, serviceHeader);
+
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
 
                     break;
 
-                #endregion
+                case SystemPermissionType.ExpensePayablesAuthorization:
 
-                #region Goods Received Note
+                    var expensePayableDTO = _expensePayableAppService.FindExpensePayable(recordId, serviceHeader);
 
-                case SystemPermissionType.GoodsReceivedNoteOrigination:
+                    if (expensePayableDTO != null)
+                    {
+                        var expensePayableAuthOption = (int)(approved
+                            ? ExpensePayableAuthOption.Post
+                            : ExpensePayableAuthOption.Reject);
 
-                    result = await _goodsReceivedNoteAppService.AuthorizeGoodsReceivedNoteAsync(recordId, workflowRecordStatus, serviceHeader);
+                        result = _expensePayableAppService.AuthorizeExpensePayable(expensePayableDTO, expensePayableAuthOption, _moduleNavigationCode, serviceHeader);
+
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
+
+                    break;
+
+                case SystemPermissionType.SuperSaverPayableAuthorization:
+
+                    var superSaverPayableDTO = _superSaverPayableAppService.FindSuperSaverPayable(recordId, serviceHeader);
+
+                    if (superSaverPayableDTO != null)
+                    {
+                        var superSaverPayableAuthOption = (int)(approved
+                            ? SuperSaverPayableAuthOption.Posted
+                            : SuperSaverPayableAuthOption.Rejected);
+
+                        result = _superSaverPayableAppService.AuthorizeSuperSaverPayable(superSaverPayableDTO, superSaverPayableAuthOption, _moduleNavigationCode, serviceHeader);
+
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
 
                     break;
 
-                #endregion
+                case SystemPermissionType.FuneralRiderClaimPayableAuthorization:
 
-                #region Invoice
+                    var funeralRiderClaimPayableDTO = await _funeralRiderClaimAppService.FindFuneralRiderClaimPayableAsync(recordId, serviceHeader);
 
-                case SystemPermissionType.InvoiceOrigination:
+                    if (funeralRiderClaimPayableDTO != null)
+                    {
+                        var authorizationOption = (int)(approved
+                            ? AuthorizationOption.Posted
+                            : AuthorizationOption.Rejected);
 
-                    result = await _invoiceAppService.AuthorizeInvoiceAsync(recordId, workflowRecordStatus, _moduleNavigationCode, serviceHeader);
+                        result = _funeralRiderClaimAppService.AuthorizeFuneralRiderClaimPayable(funeralRiderClaimPayableDTO, authorizationOption, _moduleNavigationCode, serviceHeader);
+
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
 
                     break;
-                    #endregion
             }
 
             return result;

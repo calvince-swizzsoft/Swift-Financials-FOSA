@@ -44,7 +44,7 @@ namespace WebApplication1.Controllers
 {
 
     //[EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    //[AllowAnonymous]
     [RoutePrefix("api/values")]
     public class ValuesController : ApiController
     {

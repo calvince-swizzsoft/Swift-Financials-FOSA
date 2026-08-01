@@ -905,16 +905,19 @@ namespace WebApplication1.Controllers
 
                                     var cashDepositRequestDTO = _cashDepositRequestAppService.AddNewCashDepositRequest(aboveMaxCashDepositRequestDTO, serviceHeader);
 
+                                    //var systemPermissionTypeInRoles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CashDepositRequestAuthorization, serviceHeader);
+                                    var rolesList = _authorizationAppService.GetRolesListForSystemPermissionType((int)SystemPermissionType.CashDepositRequestAuthorization, serviceHeader);
 
                                     WorkflowDTO workflowDto = new WorkflowDTO
                                     {
                                         RecordId = cashDepositRequestDTO.Id, 
                                         BranchId = transactionModel.BranchId,
                                         Status = (int)WorkflowRecordStatus.Pending,
-                                        SystemPermissionType = (int)SystemPermissionType.CashDepositRequestAuthorization
+                                        SystemPermissionType = (int)SystemPermissionType.CashDepositRequestAuthorization,
+                                        RequiredApprovals = rolesList.Sum(x => x.RequiredApprovers)
                                     };
 
-                                    var rolesList = _authorizationAppService.GetRolesListForSystemPermissionType((int)SystemPermissionType.CashDepositRequestAuthorization, serviceHeader);
+                                  
                                     _workflowAppService.AddNewWorkflow(workflowDto, rolesList, serviceHeader);
 
 

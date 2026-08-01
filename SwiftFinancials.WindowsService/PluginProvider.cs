@@ -26,15 +26,18 @@ namespace SwiftFinancials.WindowsService
 
         public void Initialize()
         {
+            var pluginDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
             var catalog = new AggregateCatalog();
 
-            catalog.Catalogs.Add(
-                       new DirectoryCatalog(
-                           Path.GetDirectoryName(
-                           Assembly.GetExecutingAssembly().Location
-                           )
-                       )
-                   );
+            // Restrict MEF's reflection scan to the assemblies that actually declare [Export(typeof(IPlugin))]
+            // or the services those plugins import (ILogger, ISmtpService, IMessageQueueService, IChannelService).
+            // Scanning every *.dll here (e.g. via a plain "*.dll" DirectoryCatalog) also reflects over transitively
+            // deployed dependencies (System.Web.Mvc, DistributedServices.MainBoundedContext, Unity.Interception, etc.)
+            // that throw ReflectionTypeLoadException outside a web/WCF host and abort composition for every plugin.
+            catalog.Catalogs.Add(new DirectoryCatalog(pluginDirectory, "SwiftFinancials.*.dll"));
+            catalog.Catalogs.Add(new DirectoryCatalog(pluginDirectory, "Infrastructure.Crosscutting.Framework.dll"));
+            catalog.Catalogs.Add(new DirectoryCatalog(pluginDirectory, "Application.MainBoundedContext.dll"));
 
             CompositionContainer container = new CompositionContainer(catalog);
 

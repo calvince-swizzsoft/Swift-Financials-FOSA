@@ -108,7 +108,7 @@ builder.Services.AddScoped<IBankAppService, BankAppService>();
 builder.Services.AddScoped<ICompanyAppService, CompanyAppService>();
 builder.Services.AddScoped<ILocationAppService, LocationAppService>();
 builder.Services.AddScoped<IWorkflowAppService, WorkflowAppService>();
-// builder.Services.AddScoped<IWorkflowProcessorAppService, WorkflowProcessorAppService>(); // left commented, same as Unity side
+builder.Services.AddScoped<IWorkflowProcessorAppService, WorkflowProcessorAppService>();
 
 builder.Services.AddScoped<IEmployerAppService, EmployerAppService>();
 builder.Services.AddScoped<IZoneAppService, ZoneAppService>();

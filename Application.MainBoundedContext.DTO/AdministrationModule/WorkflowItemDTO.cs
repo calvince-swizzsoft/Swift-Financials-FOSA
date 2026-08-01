@@ -68,7 +68,7 @@ namespace Application.MainBoundedContext.DTO.AdministrationModule
         {
             get
             {
-                return Enum.IsDefined(typeof(WorkflowRecordStatus), Status) ? EnumHelper.GetDescription((WorkflowRecordStatus)Status) : string.Empty;
+                return Enum.IsDefined(typeof(WorkflowApprovalOption), Status) ? EnumHelper.GetDescription((WorkflowApprovalOption)Status) : string.Empty;
             }
         }
 

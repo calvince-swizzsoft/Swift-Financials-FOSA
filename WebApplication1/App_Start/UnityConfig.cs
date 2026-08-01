@@ -166,7 +166,7 @@ namespace WebApplication1
             Current.RegisterType<ICompanyAppService, CompanyAppService>();
             Current.RegisterType<ILocationAppService, LocationAppService>();
             Current.RegisterType<IWorkflowAppService, WorkflowAppService>();
-            // Current.RegisterType<IWorkflowProcessorAppService, WorkflowProcessorAppService>();
+            Current.RegisterType<IWorkflowProcessorAppService, WorkflowProcessorAppService>();
 
             Current.RegisterType<IEmployerAppService, EmployerAppService>();
             Current.RegisterType<IZoneAppService, ZoneAppService>();

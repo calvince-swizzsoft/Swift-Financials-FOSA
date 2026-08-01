@@ -13,7 +13,7 @@ using WebApplication1.Helpers;
 
 namespace SwiftFinancials.Web.Areas.Accounts.Controllers
 {
-    [RoutePrefix("api/investmentsproducts")]
+    [RoutePrefix("api/accounts/investmentsproducts")]
     public class InvestmentsProductController : ApiController
     {
         private readonly IInvestmentProductAppService _investmentProductAppService;

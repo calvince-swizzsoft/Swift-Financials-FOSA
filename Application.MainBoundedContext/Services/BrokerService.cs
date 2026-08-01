@@ -763,7 +763,7 @@ namespace Application.MainBoundedContext.Services
 
         public bool ProcessWorkflow(DMLCommand command, ServiceHeader serviceHeader, WorkflowDTO data)
         {
-            var result = default(bool);
+           var result = default(bool);
 
             if (data != null)
             {
