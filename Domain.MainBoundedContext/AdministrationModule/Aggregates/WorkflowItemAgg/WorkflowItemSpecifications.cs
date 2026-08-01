@@ -2,6 +2,8 @@
 using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.WorkflowItemAgg
 {
@@ -35,7 +37,11 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.WorkflowItem
             return specification;
         }
 
-        public static Specification<WorkflowItem> WorkflowItemBySystemPermissionAndStatus(int systemPermissionType, int status, string text, DateTime startDate, DateTime endDate)
+        /// <summary>
+        /// callerRoleNames must be the caller's roles resolved server-side (e.g. from a validated auth token),
+        /// never a role name supplied directly by the client - only items belonging to one of these roles are returned.
+        /// </summary>
+        public static Specification<WorkflowItem> WorkflowItemBySystemPermissionAndStatus(int systemPermissionType, int status, string text, DateTime startDate, DateTime endDate, List<string> callerRoleNames)
         {
             endDate = UberUtil.AdjustTimeSpan(endDate);
 
@@ -65,6 +71,14 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.WorkflowItem
                     specification &= referenceNumberSpec;
                 }
             }
+
+            var roleNamesUpper = (callerRoleNames ?? new List<string>()).Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.ToUpper()).ToList();
+
+            var roleSpecification = roleNamesUpper.Any()
+                ? new DirectSpecification<WorkflowItem>(x => roleNamesUpper.Contains(x.RoleName.ToUpper()))
+                : new DirectSpecification<WorkflowItem>(x => false);
+
+            specification &= roleSpecification;
 
             return specification;
         }

@@ -68,21 +68,26 @@ namespace WebApplication1.Areas.Admin.Controllers
 
   
 
+        // The role to populate modules for is resolved server-side from the caller's validated identity -
+        // a client-supplied role name is never trusted here, even though one may still be present on the
+        // querystring for older callers.
         [HttpGet, Route("by-role")]
-        public async Task<IHttpActionResult> GetNavigationItemsByRole(string role)
+        public async Task<IHttpActionResult> GetNavigationItemsByRole(string role = null)
         {
-
-
             var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
 
-          
             try
             {
+                var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
 
-                var result = await _navigationItemInRoleAppService.GetNavigationItemsInRoleAsync(role, serviceHeader);
+                var itemsByRole = await Task.WhenAll(callerRoles.Select(r => _navigationItemInRoleAppService.GetNavigationItemsInRoleAsync(r, serviceHeader)));
 
-                //if (result)
-                //    await LoadModuleAccessRights(HttpContext.User.Identity.Name);
+                var result = itemsByRole
+                    .Where(items => items != null)
+                    .SelectMany(items => items)
+                    .GroupBy(item => item.NavigationItemId)
+                    .Select(group => group.First())
+                    .ToList();
 
                 return Json(result);
             }
@@ -91,7 +96,7 @@ namespace WebApplication1.Areas.Admin.Controllers
             {
                 return InternalServerError(ex);
             }
-       
+
         }
 
 
