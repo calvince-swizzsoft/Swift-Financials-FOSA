@@ -354,6 +354,14 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         public string Remarks { get; set; }
 
         [DataMember]
+        [Display(Name = "Bank Name")]
+        public string BankName { get; set; }
+
+        [DataMember]
+        [Display(Name = "Branch Name")]
+        public string BranchName { get; set; }
+
+        [DataMember]
         [Display(Name = "Is Defaulter?")]
         public bool IsDefaulter { get; set; }
 

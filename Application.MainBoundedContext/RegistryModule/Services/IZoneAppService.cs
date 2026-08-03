@@ -21,7 +21,13 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
         Task<ZoneDTO> FindZoneAsync(Guid zoneId, ServiceHeader serviceHeader);
 
+        Task<StationDTO> AddNewStationAsync(StationDTO stationDTO, ServiceHeader serviceHeader);
+
+        Task<bool> UpdateStationAsync(StationDTO stationDTO, ServiceHeader serviceHeader);
+
         Task<StationDTO> FindStationAsync(Guid stationId, ServiceHeader serviceHeader);
+
+        Task<PageCollectionInfo<StationDTO>> FindStationsAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader);
 
         Task<List<StationDTO>> FindStationsByZoneIdAsync(Guid zoneId, ServiceHeader serviceHeader);
 

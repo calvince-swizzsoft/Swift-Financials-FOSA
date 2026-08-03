@@ -33,6 +33,30 @@ namespace WebApplication1.Controllers
         }
 
         [HttpGet, Route("")]
+        public IHttpActionResult Get(
+            [FromUri] int pageIndex = 0,
+            [FromUri] int pageSize = 20,
+            [FromUri] string text = "",
+            [FromUri] int customerFilter = 0)
+        {
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var page = string.IsNullOrWhiteSpace(text)
+                    ? _customerAccountService.FindCustomerAccounts(pageIndex, pageSize, serviceHeader)
+                    : _customerAccountService.FindCustomerAccounts(text, customerFilter, pageIndex, pageSize, serviceHeader);
+
+                return ApiResponse(true, "Customer accounts retrieved successfully", page);
+            }
+            catch (Exception ex)
+            {
+                return Content(System.Net.HttpStatusCode.InternalServerError,
+                               new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet, Route("all")]
         public IHttpActionResult GetAll()
         {
             try
@@ -173,15 +197,14 @@ namespace WebApplication1.Controllers
             }
         }
 
-        // Optional: Additional endpoints for specific queries
         [HttpGet, Route("customer/{customerId:guid}")]
-        public IHttpActionResult GetByCustomerId(Guid customerId)
+        public IHttpActionResult GetByCustomerId(Guid customerId, [FromUri] int pageIndex = 0, [FromUri] int pageSize = 20)
         {
             try
             {
-                var accounts = _service.GetAll();
-                // Filter by customerId - you might want to implement a specific service method for this
-                return ApiResponse(true, "Customer accounts retrieved successfully", accounts);
+                var serviceHeader = Utils.CreateServiceHeader();
+                var page = _customerAccountService.FindCustomerAccountsByCustomerId(customerId, pageIndex, pageSize, serviceHeader);
+                return ApiResponse(true, "Customer accounts retrieved successfully", page);
             }
             catch (Exception ex)
             {
@@ -195,8 +218,14 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                // You'll need to implement logic to parse account number and query accordingly
-                return ApiResponse(true, "Endpoint not fully implemented", null);
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var account = _customerAccountService.FindCustomerAccountDTO(accountNumber, serviceHeader);
+                if (account == null)
+                    return Content(System.Net.HttpStatusCode.NotFound,
+                                   new { success = false, message = "Customer account not found" });
+
+                return ApiResponse(true, "Customer account retrieved successfully", account);
             }
             catch (Exception ex)
             {

@@ -5,7 +5,7 @@ namespace Domain.MainBoundedContext.RegistryModule.Aggregates.CustomerAgg
 {
     public static class CustomerFactory
     {
-        public static Customer CreateCustomer(int type, string personalIdentificationNumber, Individual individual, NonIndividual nonIndividual, Address address, Guid? stationId, string reference1, string reference2, string reference3, string remarks, DateTime? registrationDate, string recruitedBy, Guid? administrativeDivisionId)
+        public static Customer CreateCustomer(int type, string personalIdentificationNumber, Individual individual, NonIndividual nonIndividual, Address address, Guid? stationId, string reference1, string reference2, string reference3, string remarks, DateTime? registrationDate, string recruitedBy, Guid? administrativeDivisionId, string bankName = null, string branchName = null)
         {
             var customer = new Customer();
 
@@ -30,6 +30,10 @@ namespace Domain.MainBoundedContext.RegistryModule.Aggregates.CustomerAgg
             customer.Reference3 = !string.IsNullOrWhiteSpace(reference3) ? reference3 : null;
 
             customer.Remarks = remarks;
+
+            customer.BankName = !string.IsNullOrWhiteSpace(bankName) ? bankName : "NOT PROVIDED";
+
+            customer.BranchName = branchName ?? string.Empty;
 
             customer.RegistrationDate = registrationDate;
 
