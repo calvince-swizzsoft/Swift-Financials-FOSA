@@ -339,7 +339,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
-                var filter = WorkflowItemSpecifications.WorkflowItemBySystemPermissionAndStatus(systemPermissionType, status, text, startDate, endDate);
+                var filter = WorkflowItemSpecifications.WorkflowItemBySystemPermissionAndStatus(systemPermissionType, status, text, startDate, endDate, serviceHeader.ApplicationUserRoles);
 
                 ISpecification<WorkflowItem> spec = filter;
 
@@ -393,8 +393,6 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             if (workflowItemBindingModel.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, workflowItemBindingModel.ErrorMessages));
 
-            if (workflowItemDTO.IsLocked) throw new InvalidOperationException("Item already locked.");
-
             if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemDTO.Id, serviceHeader.ApplicationUserName, serviceHeader)) throw new InvalidOperationException("Maker-checker failure: the initiator and approver of a sequential process must be distinct!");
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -402,6 +400,16 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                 var persisted = _workflowItemRepository.Get(workflowItemDTO.Id, serviceHeader);
 
                 if (persisted == null || persisted.Status != (int)WorkflowRecordStatus.Pending) return false;
+
+                // Re-check against the persisted record, not the client-supplied DTO - a client could otherwise
+                // submit IsLocked=false regardless of the true state and approve an item that isn't its turn yet.
+                if (persisted.IsLocked) throw new InvalidOperationException("Item already locked.");
+
+                // The caller must actually hold the role this item is assigned to - never trust the client on this.
+                var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
+
+                if (!callerRoles.Any(r => string.Equals(r, persisted.RoleName, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException("Access denied: you do not hold the role required to action this approval item.");
 
                 switch ((WorkflowApprovalOption)workflowItemDTO.Status)
                 {

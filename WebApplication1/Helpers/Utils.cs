@@ -13,12 +13,18 @@ namespace WebApplication1.Helpers
         public static ServiceHeader CreateServiceHeader()
         {
 
-            var applicationUserName = (HttpContext.Current?.User as ClaimsPrincipal)?.Identity?.Name ?? "System";
+            var principal = HttpContext.Current?.User as ClaimsPrincipal;
+
+            var applicationUserName = principal?.Identity?.Name ?? "System";
+
+            // Roles come from the validated JWT's role claims, not any client-supplied value.
+            var applicationUserRoles = principal?.FindAll(ClaimTypes.Role)?.Select(c => c.Value).ToList() ?? new List<string>();
 
             return new ServiceHeader
             {
                 ApplicationDomainName = "SwiftApis",
                 ApplicationUserName = applicationUserName,   // was hardcoded — now pulled from the validated JWT
+                ApplicationUserRoles = applicationUserRoles,
                 EnvironmentDomainName = "SwiftApis",
                 EnvironmentIPAddress = HttpContext.Current?.Request?.UserHostAddress ?? "",
                 EnvironmentMACAddress = "",

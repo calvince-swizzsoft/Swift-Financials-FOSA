@@ -1,10 +1,18 @@
-﻿namespace Infrastructure.Crosscutting.Framework.Utils
+﻿using System.Collections.Generic;
+
+namespace Infrastructure.Crosscutting.Framework.Utils
 {
     public class ServiceHeader
     {
         public string ApplicationDomainName { get; set; }
 
         public string ApplicationUserName { get; set; }
+
+        /// <summary>
+        /// Roles held by the calling user, sourced server-side from the validated auth token/identity.
+        /// Never trust a client-supplied role name in its place.
+        /// </summary>
+        public List<string> ApplicationUserRoles { get; set; } = new List<string>();
 
         public string EnvironmentUserName { get; set; }
 
