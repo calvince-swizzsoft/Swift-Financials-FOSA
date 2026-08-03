@@ -500,7 +500,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 var sortFields = new List<string> { "SequentialId" };
 
-                var customerAccountPagedCollection = _customerAccountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+                var customerAccountPagedCollection = _customerAccountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader, x => x.Customer);
 
                 if (customerAccountPagedCollection != null)
                 {
@@ -524,7 +524,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 var sortFields = new List<string> { "SequentialId" };
 
-                var customerAccountPagedCollection = _customerAccountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+                var customerAccountPagedCollection = _customerAccountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader, x => x.Customer);
 
                 if (customerAccountPagedCollection != null)
                 {
@@ -598,7 +598,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     var sortFields = new List<string> { "SequentialId" };
 
-                    var customerAccountPagedCollection = _customerAccountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+                    var customerAccountPagedCollection = _customerAccountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader, x => x.Customer);
 
                     if (customerAccountPagedCollection != null)
                     {

@@ -27,5 +27,19 @@ namespace Domain.MainBoundedContext.RegistryModule.Aggregates.DivisionAgg
 
             return specification;
         }
+
+        public static Specification<Division> DivisionFullText(string text)
+        {
+            Specification<Division> specification = DefaultSpec();
+
+            if (!String.IsNullOrWhiteSpace(text))
+            {
+                var descriptionSpec = new DirectSpecification<Division>(c => c.Description.Contains(text));
+
+                specification &= descriptionSpec;
+            }
+
+            return specification;
+        }
     }
 }

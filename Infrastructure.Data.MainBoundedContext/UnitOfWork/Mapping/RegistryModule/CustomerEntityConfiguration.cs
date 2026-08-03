@@ -46,6 +46,8 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.RegistryModu
             Property(x => x.Reference3).HasMaxLength(256);
             Property(x => x.Remarks).HasMaxLength(256);
             Property(x => x.RecruitedBy).HasMaxLength(256);
+            Property(x => x.BankName).HasMaxLength(256);
+            Property(x => x.BranchName).HasMaxLength(256);
             Property(x => x.ModifiedBy).HasMaxLength(256);
             
             Property(x => x.RegistrationDate).HasColumnType("date");

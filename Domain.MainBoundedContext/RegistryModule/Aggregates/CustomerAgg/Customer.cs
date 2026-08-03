@@ -60,6 +60,10 @@ namespace Domain.MainBoundedContext.RegistryModule.Aggregates.CustomerAgg
 
         public string Remarks { get; set; }
 
+        public string BankName { get; set; }
+
+        public string BranchName { get; set; }
+
         public bool IsDefaulter { get; set; }
 
         public bool IsLocked { get; private set; }

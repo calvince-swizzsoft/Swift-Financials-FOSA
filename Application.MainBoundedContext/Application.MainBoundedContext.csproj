@@ -381,6 +381,8 @@
     <Compile Include="RegistryModule\Services\IDirectorAppService.cs" />
     <Compile Include="RegistryModule\Services\IEducationRegisterAppService.cs" />
     <Compile Include="RegistryModule\Services\IEducationVenueAppService.cs" />
+    <Compile Include="RegistryModule\Services\IDivisionAppService.cs" />
+    <Compile Include="RegistryModule\Services\DivisionAppService.cs" />
     <Compile Include="RegistryModule\Services\IEmployerAppService.cs" />
     <Compile Include="RegistryModule\Services\IFileRegisterAppService.cs" />
     <Compile Include="RegistryModule\Services\IFuneralRiderClaimAppService.cs" />

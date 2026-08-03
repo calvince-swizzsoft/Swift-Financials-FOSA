@@ -156,11 +156,68 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             }
         }
 
+        public async Task<StationDTO> AddNewStationAsync(StationDTO stationDTO, ServiceHeader serviceHeader)
+        {
+            stationDTO.ValidateAll();
+
+            if (stationDTO.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, stationDTO.ErrorMessages));
+
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+                var address = new Address(stationDTO.AddressAddressLine1, stationDTO.AddressAddressLine2, stationDTO.AddressStreet, stationDTO.AddressPostalCode, stationDTO.AddressCity, stationDTO.AddressEmail, stationDTO.AddressLandLine, stationDTO.AddressMobileLine);
+
+                var station = StationFactory.CreateStation(stationDTO.ZoneId, stationDTO.Description, address);
+
+                _stationRepository.Add(station, serviceHeader);
+
+                return await dbContextScope.SaveChangesAsync(serviceHeader) > 0 ? station.ProjectedAs<StationDTO>() : null;
+            }
+        }
+
+        public async Task<bool> UpdateStationAsync(StationDTO stationDTO, ServiceHeader serviceHeader)
+        {
+            stationDTO.ValidateAll();
+
+            if (stationDTO.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, stationDTO.ErrorMessages));
+
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+                var persisted = await _stationRepository.GetAsync(stationDTO.Id, serviceHeader);
+
+                if (persisted != null)
+                {
+                    var address = new Address(stationDTO.AddressAddressLine1, stationDTO.AddressAddressLine2, stationDTO.AddressStreet, stationDTO.AddressPostalCode, stationDTO.AddressCity, stationDTO.AddressEmail, stationDTO.AddressLandLine, stationDTO.AddressMobileLine);
+
+                    var current = StationFactory.CreateStation(stationDTO.ZoneId, stationDTO.Description, address);
+
+                    current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+
+                    _stationRepository.Merge(persisted, current, serviceHeader);
+                }
+
+                return await dbContextScope.SaveChangesAsync(serviceHeader) > 0;
+            }
+        }
+
         public async Task<StationDTO> FindStationAsync(Guid stationId, ServiceHeader serviceHeader)
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
                 return await _stationRepository.GetAsync<StationDTO>(stationId, serviceHeader);
+            }
+        }
+
+        public async Task<PageCollectionInfo<StationDTO>> FindStationsAsync(int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var filter = StationSpecifications.DefaultSpec();
+
+                ISpecification<Station> spec = filter;
+
+                var sortFields = new List<string> { "SequentialId" };
+
+                return await _stationRepository.AllMatchingPagedAsync<StationDTO>(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
             }
         }
 

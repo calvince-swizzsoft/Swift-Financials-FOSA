@@ -175,7 +175,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                 var nonIndividual = new NonIndividual(customerDTO.Type, customerDTO.NonIndividualDescription, customerDTO.NonIndividualRegistrationNumber, customerDTO.NonIndividualRegistrationSerialNumber, customerDTO.NonIndividualDateEstablished);
 
-                var customer = CustomerFactory.CreateCustomer(customerDTO.Type, customerDTO.PersonalIdentificationNumber, individual, nonIndividual, address, customerDTO.StationId, customerDTO.Reference1, customerDTO.Reference2, customerDTO.Reference3, customerDTO.Remarks, customerDTO.RegistrationDate, customerDTO.RecruitedBy, customerDTO.AdministrativeDivisionId);
+                var customer = CustomerFactory.CreateCustomer(customerDTO.Type, customerDTO.PersonalIdentificationNumber, individual, nonIndividual, address, customerDTO.StationId, customerDTO.Reference1, customerDTO.Reference2, customerDTO.Reference3, customerDTO.Remarks, customerDTO.RegistrationDate, customerDTO.RecruitedBy, customerDTO.AdministrativeDivisionId, customerDTO.BankName, customerDTO.BranchName);
 
                 customer.SerialNumber = _customerRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(SerialNumber),0) + 1 AS Expr1 FROM {0}Customers", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
                 customer.Reference2 =( _customerRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(Reference2),0) + 1 AS Expr1 FROM {0}Customers", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault()).ToString() ;
@@ -341,7 +341,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                     var nonIndividual = new NonIndividual(customerDTO.Type, customerDTO.NonIndividualDescription, customerDTO.NonIndividualRegistrationNumber, customerDTO.NonIndividualRegistrationSerialNumber, customerDTO.NonIndividualDateEstablished);
 
-                    var current = CustomerFactory.CreateCustomer(customerDTO.Type, customerDTO.PersonalIdentificationNumber, individual, nonIndividual, address, customerDTO.StationId, customerDTO.Reference1, customerDTO.Reference2, customerDTO.Reference3, customerDTO.Remarks, customerDTO.RegistrationDate, customerDTO.RecruitedBy, customerDTO.AdministrativeDivisionId);
+                    var current = CustomerFactory.CreateCustomer(customerDTO.Type, customerDTO.PersonalIdentificationNumber, individual, nonIndividual, address, customerDTO.StationId, customerDTO.Reference1, customerDTO.Reference2, customerDTO.Reference3, customerDTO.Remarks, customerDTO.RegistrationDate, customerDTO.RecruitedBy, customerDTO.AdministrativeDivisionId, customerDTO.BankName, customerDTO.BranchName);
 
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
                     current.SerialNumber = persisted.SerialNumber;
