@@ -392,7 +392,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (customerAccounts != null && customerAccounts.Any())
                 {
-                    return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+                    var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+
+                    FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
+                    return pageCollection;
                 }
                 else return null;
             }
@@ -482,7 +486,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccounts != null && customerAccounts.Any())
                     {
-                        return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>()[0];
+                        var customerAccountDto = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>()[0];
+
+                        FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccountDto }, serviceHeader, true);
+
+                        return customerAccountDto;
                     }
                     else return null;
                 }
@@ -505,6 +513,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 if (customerAccountPagedCollection != null)
                 {
                     var pageCollection = customerAccountPagedCollection.PageCollection.ProjectedAsCollection<CustomerAccountDTO>();
+
+                    FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
 
                     var itemsCount = customerAccountPagedCollection.ItemsCount;
 
@@ -530,6 +540,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 {
                     var pageCollection = customerAccountPagedCollection.PageCollection.ProjectedAsCollection<CustomerAccountDTO>();
 
+                    FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
                     var itemsCount = customerAccountPagedCollection.ItemsCount;
 
                     return new PageCollectionInfo<CustomerAccountDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
@@ -554,6 +566,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 {
                     var pageCollection = customerAccountPagedCollection.PageCollection.ProjectedAsCollection<CustomerAccountDTO>();
 
+                    FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
                     var itemsCount = customerAccountPagedCollection.ItemsCount;
 
                     return new PageCollectionInfo<CustomerAccountDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
@@ -577,6 +591,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 if (customerAccountPagedCollection != null)
                 {
                     var pageCollection = customerAccountPagedCollection.PageCollection.ProjectedAsCollection<CustomerAccountDTO>();
+
+                    FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
 
                     var itemsCount = customerAccountPagedCollection.ItemsCount;
 
@@ -603,6 +619,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     if (customerAccountPagedCollection != null)
                     {
                         var pageCollection = customerAccountPagedCollection.PageCollection.ProjectedAsCollection<CustomerAccountDTO>();
+
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
 
                         var itemsCount = customerAccountPagedCollection.ItemsCount;
 
@@ -632,6 +650,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     {
                         var pageCollection = customerAccountPagedCollection.PageCollection.ProjectedAsCollection<CustomerAccountDTO>();
 
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
                         var itemsCount = customerAccountPagedCollection.ItemsCount;
 
                         return new PageCollectionInfo<CustomerAccountDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
@@ -656,7 +676,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccounts != null && customerAccounts.Any())
                     {
-                        return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+                        var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
+                        return pageCollection;
                     }
                     else return null;
                 }
@@ -678,7 +702,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccounts != null && customerAccounts.Any())
                     {
-                        return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+                        var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
+                        return pageCollection;
                     }
                     else return null;
                 }
@@ -700,7 +728,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccounts != null && customerAccounts.Any())
                     {
-                        return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+                        var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
+                        return pageCollection;
                     }
                     else return null;
                 }
@@ -722,7 +754,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccounts != null && customerAccounts.Any())
                     {
-                        return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+                        var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
+                        return pageCollection;
                     }
                     else return null;
                 }
@@ -744,7 +780,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccounts != null && customerAccounts.Any())
                     {
-                        return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+                        var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
+                        return pageCollection;
                     }
                     else return null;
                 }
@@ -766,7 +806,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (customerAccounts != null && customerAccounts.Any())
                     {
-                        return customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+                        var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
+
+                        FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+
+                        return pageCollection;
                     }
                     else return null;
                 }
