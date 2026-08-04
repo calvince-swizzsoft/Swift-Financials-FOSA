@@ -1,16 +1,16 @@
 ﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
-using iTextSharp.xmp.impl;
+using Application.MainBoundedContext.RegistryModule.Services;
 using System;
 using System.Linq;
 using System.Web.Http;
 using System.Web.Http.Cors;
 
-using WebApplication.Services;
 using WebApplication1.Helpers;
 using Utils = WebApplication1.Helpers.Utils;
 
-namespace WebApplication1.Controllers
+namespace WebApplication1.Areas.Accounts.Controllers
 {
 
     [EnableCors(origins: "*", headers: "*", methods: "*")]
@@ -18,13 +18,21 @@ namespace WebApplication1.Controllers
     [RoutePrefix("api/accounts/customer-accounts")]
     public class CustomerAccountsController : ApiController
     {
-        private readonly CustomerAccountService _service = new CustomerAccountService();
+        private readonly ICustomerAccountAppService _customerAccountService;
+        private readonly ICustomerAppService _customerAppService;
+        private readonly IBranchAppService _branchAppService;
+        private readonly ICompanyAppService _companyAppService;
 
-        private readonly ICustomerAccountAppService _customerAccountService; 
-
-        public CustomerAccountsController(ICustomerAccountAppService customerAccountAppService)
+        public CustomerAccountsController(
+            ICustomerAccountAppService customerAccountAppService,
+            ICustomerAppService customerAppService,
+            IBranchAppService branchAppService,
+            ICompanyAppService companyAppService)
         {
-            _customerAccountService = customerAccountAppService;
+            _customerAccountService = customerAccountAppService ?? throw new ArgumentNullException(nameof(customerAccountAppService));
+            _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
+            _branchAppService = branchAppService ?? throw new ArgumentNullException(nameof(branchAppService));
+            _companyAppService = companyAppService ?? throw new ArgumentNullException(nameof(companyAppService));
         }
 
         private IHttpActionResult ApiResponse(bool success, string message, object data = null)
@@ -61,7 +69,8 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var accounts = _service.GetAll();
+                var serviceHeader = Utils.CreateServiceHeader();
+                var accounts = _customerAccountService.FindCustomerAccounts(serviceHeader);
                 return ApiResponse(true, "Customer accounts retrieved successfully", accounts);
             }
             catch (Exception ex)
@@ -76,7 +85,11 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var account = _service.GetById(id);
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                // FindCustomerAccounts (not FindCustomerAccountDTO) - a direct projection with no balance
+                // fetch, which calls raw stored procs that assume an established transaction history.
+                var account = _customerAccountService.FindCustomerAccounts(id, serviceHeader);
                 if (account == null)
                     return Content(System.Net.HttpStatusCode.NotFound,
                                    new { success = false, message = "Customer account not found" });
@@ -116,21 +129,22 @@ namespace WebApplication1.Controllers
                     return Content(System.Net.HttpStatusCode.BadRequest,
                                    new { success = false, message = "CustomerAccountTypeTargetProductId is required" });
 
-                var created = _service.Create(account);
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var created = _customerAccountService.AddNewCustomerAccount(account, serviceHeader);
+
+                if (created == null)
+                    return Content(System.Net.HttpStatusCode.InternalServerError,
+                                   new { success = false, message = "Failed to create customer account" });
+
+                // AddNewCustomerAccount doesn't throw for a duplicate customer/product combo - it returns the
+                // DTO with ErrorMessageResult set instead.
+                if (!string.IsNullOrEmpty(created.ErrorMessageResult))
+                    return Content(System.Net.HttpStatusCode.Conflict,
+                                   new { success = false, message = created.ErrorMessageResult });
+
                 return Content(System.Net.HttpStatusCode.Created,
                                new { success = true, message = "Customer account created successfully", data = created });
-            }
-            catch (ArgumentException ex)
-            {
-                // Bad input (missing customer, missing required field, etc.)
-                return Content(System.Net.HttpStatusCode.BadRequest,
-                               new { success = false, message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // Duplicate account for this customer/product combo
-                return Content(System.Net.HttpStatusCode.Conflict,
-                               new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -157,19 +171,39 @@ namespace WebApplication1.Controllers
                     return Content(System.Net.HttpStatusCode.BadRequest,
                                    new { success = false, message = "BranchId is required" });
 
-                var createdAccounts = _service.CreateAccountsForCustomer(customerId, branchId);
-                var createdList = createdAccounts.ToList();
+                var serviceHeader = Utils.CreateServiceHeader();
 
-                if (!createdList.Any())
-                    return ApiResponse(true, "No new accounts created (customer already has accounts for all attached products, or no products are attached)", createdList);
+                var customer = _customerAppService.FindCustomer(customerId, serviceHeader);
+                if (customer == null)
+                    return Content(System.Net.HttpStatusCode.NotFound,
+                                   new { success = false, message = "Customer not found" });
+
+                var branch = _branchAppService.FindBranch(branchId, serviceHeader);
+                if (branch == null)
+                    return Content(System.Net.HttpStatusCode.NotFound,
+                                   new { success = false, message = "Branch not found" });
+
+                customer.BranchId = branchId;
+
+                var attachedProducts = _companyAppService.FindCachedAttachedProducts(branch.CompanyId, serviceHeader);
+
+                var created = _customerAccountService.AddNewCustomerAccounts(
+                    customer,
+                    attachedProducts?.SavingsProductCollection,
+                    attachedProducts?.InvestmentProductCollection,
+                    attachedProducts?.LoanProductCollection,
+                    serviceHeader);
+
+                // AddNewCustomerAccounts only returns bool - re-fetch to give the caller the customer's
+                // current account list rather than nothing.
+                var accounts = _customerAccountService.FindCustomerAccountsByCustomerId(customerId, serviceHeader)
+                    ?? new System.Collections.Generic.List<CustomerAccountDTO>();
+
+                if (!created)
+                    return ApiResponse(true, "No new accounts created (customer already has accounts for all attached products, or no products are attached)", accounts);
 
                 return Content(System.Net.HttpStatusCode.Created,
-                               new { success = true, message = $"{createdList.Count} customer account(s) created successfully", data = createdList });
-            }
-            catch (ArgumentException ex)
-            {
-                return Content(System.Net.HttpStatusCode.BadRequest,
-                               new { success = false, message = ex.Message });
+                               new { success = true, message = "Customer account(s) created successfully", data = accounts });
             }
             catch (Exception ex)
             {
@@ -183,10 +217,8 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                //var customerAccountService = new CustomerAccountService();
                 var serviceHeader = Utils.CreateServiceHeader();
                 var accounts = _customerAccountService.FindCustomerAccountsByCustomerId(id, serviceHeader);
-                //var accounts = customerAccountService.GetByCustomerId(id);
 
                 return ApiResponse(true, "Customer accounts retrieved successfully", accounts);
             }

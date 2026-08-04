@@ -1,4 +1,6 @@
-﻿using Application.MainBoundedContext.DTO.RegistryModule;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.RegistryModule.Services;
 using System;
 using System.Collections.Generic;
@@ -20,9 +22,22 @@ namespace WebApplication1.Controllers
     [RoutePrefix("api/registry/customers")]
     public class CustomersController : ApiController
     {
-     
+
         private readonly CustomerService _service = new CustomerService();
         private readonly NextOfKinService _nextOfKinService = new NextOfKinService();
+        private readonly ICustomerAccountAppService _customerAccountAppService;
+        private readonly IBranchAppService _branchAppService;
+        private readonly ICompanyAppService _companyAppService;
+
+        public CustomersController(
+            ICustomerAccountAppService customerAccountAppService,
+            IBranchAppService branchAppService,
+            ICompanyAppService companyAppService)
+        {
+            _customerAccountAppService = customerAccountAppService ?? throw new ArgumentNullException(nameof(customerAccountAppService));
+            _branchAppService = branchAppService ?? throw new ArgumentNullException(nameof(branchAppService));
+            _companyAppService = companyAppService ?? throw new ArgumentNullException(nameof(companyAppService));
+        }
 
         private IHttpActionResult ApiResponse(bool success, string message, object data = null)
         {
@@ -266,11 +281,26 @@ bool exactMatch = false)
                 {
                     try
                     {
-                        var customerAccountService = new CustomerAccountService();
-                        var createdAccounts = customerAccountService.CreateAccountsForCustomer(
-                            createdCustomer.Id,
-                            customer.BranchId
-                        );
+                        var serviceHeader = Utils.CreateServiceHeader();
+
+                        var branch = _branchAppService.FindBranch(customer.BranchId, serviceHeader);
+
+                        var attachedProducts = branch != null
+                            ? _companyAppService.FindCachedAttachedProducts(branch.CompanyId, serviceHeader)
+                            : null;
+
+                        createdCustomer.BranchId = customer.BranchId;
+
+                        _customerAccountAppService.AddNewCustomerAccounts(
+                            createdCustomer,
+                            attachedProducts?.SavingsProductCollection,
+                            attachedProducts?.InvestmentProductCollection,
+                            attachedProducts?.LoanProductCollection,
+                            serviceHeader);
+
+                        // AddNewCustomerAccounts only returns bool - re-fetch to get the created accounts for the response.
+                        var createdAccounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(createdCustomer.Id, serviceHeader)
+                            ?? new List<Application.MainBoundedContext.DTO.AccountsModule.CustomerAccountDTO>();
 
                         // Create next of kins if provided
                         var createdNextOfKins = new System.Collections.Generic.List<NextOfKinDTO>();

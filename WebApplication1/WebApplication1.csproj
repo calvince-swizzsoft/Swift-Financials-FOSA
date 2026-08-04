@@ -306,9 +306,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\BranchService.cs" />
     <Compile Include="Services\CompanyAttachedProductService.cs" />
-    <Compile Include="Services\CustomerAccountService.cs" />
     <Compile Include="Services\CustomerService.cs" />
-    <Compile Include="Services\DataRecordExtensions.cs" />
     <Compile Include="Services\NextOfKinService.cs" />
     <Compile Include="Areas\Admin\Services\RoleManagerService.cs" />
     <Compile Include="Services\SavingsProductService.cs" />

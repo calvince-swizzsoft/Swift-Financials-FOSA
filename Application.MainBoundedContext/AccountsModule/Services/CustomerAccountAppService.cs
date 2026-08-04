@@ -250,7 +250,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             FinalizeSavingsAccountRecordStatus(createdCustomerAccountId, serviceHeader);
 
-                            return FindCustomerAccountDTO(createdCustomerAccountId, serviceHeader);
+                            // Re-fetch to reflect the finalized RecordStatus - deliberately not FindCustomerAccountDTO,
+                            // which also fetches balances via raw stored-proc calls that assume an established
+                            // transaction history and aren't needed here.
+                            return _customerAccountRepository.Get(createdCustomerAccountId, serviceHeader).ProjectedAs<CustomerAccountDTO>();
                         }
 
                         return customerAccount.ProjectedAs<CustomerAccountDTO>();
