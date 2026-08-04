@@ -2,6 +2,7 @@
 using Infrastructure.Crosscutting.Framework.Utils;
 //using Application.MainBoundedContext.ControlModule.Services;
 using System.Threading.Tasks;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.FrontOfficeModule.Services;
 using Application.MainBoundedContext.RegistryModule.Services;
 
@@ -27,6 +28,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
         private readonly IWorkflowAppService _workflowAppService;
 
+        private readonly ICustomerAccountAppService _customerAccountAppService;
+
         public WorkflowProcessorAppService(
 
             ICashDepositRequestAppService cashDepositRequestAppService,
@@ -39,7 +42,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             IFuneralRiderClaimAppService funeralRiderClaimAppService,
 
-            IWorkflowAppService workflowAppService
+            IWorkflowAppService workflowAppService,
+
+            ICustomerAccountAppService customerAccountAppService
             )
         {
             if (cashDepositRequestAppService == null)
@@ -60,6 +65,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             if (workflowAppService == null)
                 throw new ArgumentNullException(nameof(workflowAppService));
 
+            if (customerAccountAppService == null)
+                throw new ArgumentNullException(nameof(customerAccountAppService));
+
             _cashDepositRequestAppService = cashDepositRequestAppService;
 
             _cashWithdrawalRequestAppService = cashWithdrawalRequestAppService;
@@ -71,6 +79,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             _funeralRiderClaimAppService = funeralRiderClaimAppService;
 
             _workflowAppService = workflowAppService;
+
+            _customerAccountAppService = customerAccountAppService;
 
             _moduleNavigationCode = 0;
         }
@@ -189,6 +199,24 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                             : SuperSaverPayableAuthOption.Rejected);
 
                         result = _superSaverPayableAppService.AuthorizeSuperSaverPayable(superSaverPayableDTO, superSaverPayableAuthOption, _moduleNavigationCode, serviceHeader);
+
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
+
+                    break;
+
+                case SystemPermissionType.CustomerAccountVerification:
+
+                    var customerAccountDTO = _customerAccountAppService.FindCustomerAccountDTO(recordId, serviceHeader);
+
+                    if (customerAccountDTO != null)
+                    {
+                        var recordAuthOption = (int)(approved
+                            ? RecordAuthOption.Approve
+                            : RecordAuthOption.Reject);
+
+                        result = _customerAccountAppService.AuthorizeCustomerAccount(customerAccountDTO, recordAuthOption, serviceHeader);
 
                         if (result)
                             result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);

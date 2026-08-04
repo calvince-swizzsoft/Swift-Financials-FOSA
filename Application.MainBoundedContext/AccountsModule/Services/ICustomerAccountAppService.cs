@@ -19,6 +19,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         bool UpdateCustomerAccount(CustomerAccountDTO customerAccountDTO, ServiceHeader serviceHeader);
 
+        bool AuthorizeCustomerAccount(CustomerAccountDTO customerAccountDTO, int recordAuthOption, ServiceHeader serviceHeader);
+
         bool ManageCustomerAccount(Guid customerAccountId, int managementAction, string remarks, int remarkType, ServiceHeader serviceHeader);
 
         bool ChargeAccountActivationFee(Guid customerAccountId, string remarks, int moduleNavigationItemCode, ServiceHeader serviceHeader);
