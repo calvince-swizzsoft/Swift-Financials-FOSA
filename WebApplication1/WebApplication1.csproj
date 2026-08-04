@@ -289,7 +289,9 @@
     <Compile Include="Areas\Accounts\Controllers\InvestmentsProductsController.cs" />
     <Compile Include="Areas\Accounts\Controllers\SavingsProductController.cs" />
     <Compile Include="Areas\Accounts\Controllers\StandingOrderExecutionController.cs" />
-    <Compile Include="Controllers\StandingOrdersController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\StandingOrderController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\CustomerAccountStatementController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\GeneralLedgerStatementController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\TellerController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\TransfersController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\TreasurysController.cs" />
