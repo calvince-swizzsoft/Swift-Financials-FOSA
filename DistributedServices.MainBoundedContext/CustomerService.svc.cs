@@ -39,7 +39,13 @@ namespace DistributedServices.MainBoundedContext
         {
             var serviceHeader = CustomHeaderUtility.ReadHeader(OperationContext.Current);
 
-            return await _customerAppService.AddNewCustomerAsync(customerDTO, mandatoryDebitTypes,mandatoryInvestmentProducts,mandatorySavingsProducts, mandatoryProducts, moduleNavigationItemCode, serviceHeader);
+            // Company-mandatory debit types/products are now resolved server-side; fold this legacy
+            // contract's params (kept for wire compatibility) into the "additional" ones the new
+            // app-service signature expects.
+            var investmentProducts = mandatoryProducts?.InvestmentProductCollection ?? mandatoryInvestmentProducts;
+            var savingsProducts = mandatoryProducts?.SavingsProductCollection ?? mandatorySavingsProducts;
+
+            return await _customerAppService.AddNewCustomerAsync(customerDTO, mandatoryDebitTypes, investmentProducts, savingsProducts, moduleNavigationItemCode, serviceHeader);
         }
 
         public async Task<bool> UpdateCustomerAsync(CustomerDTO customerDTO)

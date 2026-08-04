@@ -343,10 +343,9 @@ namespace WebApplication1.Controllers
 
                 var createdCustomer = await _customerAppService.AddNewCustomerAsync(
                     request.Customer,
-                    request.MandatoryDebitTypes ?? new List<DebitTypeDTO>(),
-                    request.MandatoryInvestmentProducts ?? new List<InvestmentProductDTO>(),
-                    request.MandatorySavingsProducts ?? new List<SavingsProductDTO>(),
-                    request.MandatoryProducts ?? new ProductCollectionInfo(),
+                    request.AdditionalDebitTypes ?? new List<DebitTypeDTO>(),
+                    request.AdditionalInvestmentProducts ?? new List<InvestmentProductDTO>(),
+                    request.AdditionalSavingsProducts ?? new List<SavingsProductDTO>(),
                     request.ModuleNavigationItemCode,
                     serviceHeader);
 
@@ -464,10 +463,12 @@ namespace WebApplication1.Controllers
     public class CreateCustomerRequest
     {
         public CustomerDTO Customer { get; set; }
-        public List<DebitTypeDTO> MandatoryDebitTypes { get; set; }
-        public List<InvestmentProductDTO> MandatoryInvestmentProducts { get; set; }
-        public List<SavingsProductDTO> MandatorySavingsProducts { get; set; }
-        public ProductCollectionInfo MandatoryProducts { get; set; }
+
+        // Company-mandatory debit types/savings/investment products are resolved and attached
+        // server-side automatically. These are extras the caller wants attached on top of those.
+        public List<DebitTypeDTO> AdditionalDebitTypes { get; set; }
+        public List<InvestmentProductDTO> AdditionalInvestmentProducts { get; set; }
+        public List<SavingsProductDTO> AdditionalSavingsProducts { get; set; }
         public int ModuleNavigationItemCode { get; set; }
     }
 }

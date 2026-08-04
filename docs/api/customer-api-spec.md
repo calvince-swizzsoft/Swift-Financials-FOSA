@@ -188,26 +188,28 @@ All take `id` (GUID) as the path segment:
 ```ts
 interface CreateCustomerRequest {
   customer: CustomerDTO;                       // required
-  mandatoryDebitTypes?: DebitTypeDTO[];
-  mandatoryInvestmentProducts?: InvestmentProductDTO[];
-  mandatorySavingsProducts?: SavingsProductDTO[];
-  mandatoryProducts?: ProductCollectionInfo;
+  additionalDebitTypes?: DebitTypeDTO[];
+  additionalInvestmentProducts?: InvestmentProductDTO[];
+  additionalSavingsProducts?: SavingsProductDTO[];
   moduleNavigationItemCode?: number;
 }
 ```
 
-`400` if `customer` is missing. Otherwise the request is passed straight
-through to `ICustomerAppService.AddNewCustomerAsync` — **the controller does
-not compute mandatory products for you.** In the legacy MVC/plural controller
-this resolution happened server-side from branch/company config; that logic
-was not ported. Until it is, the frontend is responsible for sourcing the
-branch's mandatory debit types / savings / investment products (e.g. via the
-`Accounts` area's product endpoints) and supplying them explicitly, or for
-accepting that new customers are created with no auto-attached products. Get
-alignment with backend before building a "create customer" screen that
-depends on auto-attached products — right now this is a straight pass-through,
-not the full onboarding behavior the old MVC app had (no duplicate
-identity-card/registration-number check, no welcome SMS).
+`400` if `customer` is missing. `customer.branchId` must resolve to a real
+branch — `ICustomerAppService.AddNewCustomerAsync` silently skips all
+debit-type/account/product creation (and the welcome SMS) if the branch
+lookup fails, so an invalid/empty `branchId` looks like a successful create
+with nothing attached.
+
+Debit types and savings/investment products the company has configured as
+mandatory (`ICompanyAppService.FindCachedDebitTypes` /
+`FindCachedAttachedProducts`, keyed off the customer's branch's company) are
+resolved and attached **server-side automatically** — the frontend does not
+need to source or send them. `additionalDebitTypes` /
+`additionalInvestmentProducts` / `additionalSavingsProducts` are only for
+items the user explicitly wants attached *on top of* the mandatory set (e.g.
+checkboxes the user opted into beyond what's pre-selected); omit them
+entirely for the common case.
 
 `moduleNavigationItemCode` gates which module-nav permission check the
 service applies; source the correct value from
@@ -247,8 +249,10 @@ the whole object is required and `id`/`customer.id` must match.
    which fields the `Type` value requires — the API itself does not validate
    type-specific required fields; the old plural controller did this
    validation and this one does not, so the frontend must).
-3. `POST /` with `{ customer }` (plus mandatory product lists if that
-   business rule applies — see §5.12 caveat).
+3. `POST /` with `{ customer }` — mandatory debit types/products attach
+   automatically; only add `additionalDebitTypes` /
+   `additionalInvestmentProducts` / `additionalSavingsProducts` if the user
+   picked extras beyond the mandatory set (see §5.12).
 4. On `201`, use `data.id` to immediately fetch next-of-kin/account-alert
    sub-resources if the onboarding flow collects them in a later step.
 

@@ -52,6 +52,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
         private readonly ISqlCommandAppService _sqlCommandAppService;
         private readonly ICommissionAppService _commissionAppService;
         private readonly IBrokerService _brokerService;
+        private readonly ICompanyAppService _companyAppService;
         private readonly IAppCache _appCache;
 
         public CustomerAppService(
@@ -73,6 +74,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             ISqlCommandAppService sqlCommandAppService,
             ICommissionAppService commissionAppService,
             IBrokerService brokerService,
+            ICompanyAppService companyAppService,
             IAppCache appCache)
         {
             if (dbContextScopeFactory == null)
@@ -129,6 +131,9 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             if (brokerService == null)
                 throw new ArgumentNullException(nameof(brokerService));
 
+            if (companyAppService == null)
+                throw new ArgumentNullException(nameof(companyAppService));
+
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
@@ -150,10 +155,11 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             _sqlCommandAppService = sqlCommandAppService;
             _commissionAppService = commissionAppService;
             _brokerService = brokerService;
+            _companyAppService = companyAppService;
             _appCache = appCache;
         }
 
-        public async Task<CustomerDTO> AddNewCustomerAsync(CustomerDTO customerDTO, List<DebitTypeDTO> mandatoryDebitTypes, List<InvestmentProductDTO> mandatoryInvestmentProducts, List<SavingsProductDTO> mandatorySavingsProducts, ProductCollectionInfo mandatoryProducts, int moduleNavigationItemCode, ServiceHeader serviceHeader)
+        public async Task<CustomerDTO> AddNewCustomerAsync(CustomerDTO customerDTO, List<DebitTypeDTO> additionalDebitTypes, List<InvestmentProductDTO> investmentProducts, List<SavingsProductDTO> savingsProducts, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
             var customerBindingModel = customerDTO.ProjectedAs<CustomerBindingModel>();
 
@@ -276,20 +282,33 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                     }
                     #endregion
 
-                    #region Auto-Create Mandatory Accounts
-                    if (mandatoryProducts != null)
-                    {
-                        customerDTO.BranchId = currrentBranch.Id;
-                        customerDTO.BranchDescription = currrentBranch.Description;
-                        _customerAccountAppService.AddNewCustomerAccounts(customerDTO, mandatoryProducts.SavingsProductCollection, mandatoryProducts.InvestmentProductCollection, mandatoryProducts.LoanProductCollection, serviceHeader);
-                    
-                    }
+                    #region Auto-Create Mandatory + Additional Accounts
+                    customerDTO.BranchId = currrentBranch.Id;
+                    customerDTO.BranchDescription = currrentBranch.Description;
+
+                    var companyAttachedProducts = _companyAppService.FindCachedAttachedProducts(currrentBranch.CompanyId, serviceHeader);
+
+                    var savingsProductsToCreate = new List<SavingsProductDTO>(companyAttachedProducts?.SavingsProductCollection ?? new List<SavingsProductDTO>());
+                    if (savingsProducts != null)
+                        savingsProductsToCreate.AddRange(savingsProducts.Where(p => !savingsProductsToCreate.Any(existing => existing.Id == p.Id)));
+
+                    var investmentProductsToCreate = new List<InvestmentProductDTO>(companyAttachedProducts?.InvestmentProductCollection ?? new List<InvestmentProductDTO>());
+                    if (investmentProducts != null)
+                        investmentProductsToCreate.AddRange(investmentProducts.Where(p => !investmentProductsToCreate.Any(existing => existing.Id == p.Id)));
+
+                    _customerAccountAppService.AddNewCustomerAccounts(customerDTO, savingsProductsToCreate, investmentProductsToCreate, new List<LoanProductDTO>(), serviceHeader);
                     #endregion
 
-                    #region Effect Mandatory Debit Types
-                    if (mandatoryDebitTypes != null && mandatoryDebitTypes.Any())
+                    #region Effect Mandatory + Additional Debit Types
+                    var companyDebitTypes = _companyAppService.FindCachedDebitTypes(currrentBranch.CompanyId, serviceHeader);
+
+                    var debitTypesToEffect = new List<DebitTypeDTO>(companyDebitTypes ?? new List<DebitTypeDTO>());
+                    if (additionalDebitTypes != null)
+                        debitTypesToEffect.AddRange(additionalDebitTypes.Where(dt => !debitTypesToEffect.Any(existing => existing.Id == dt.Id)));
+
+                    if (debitTypesToEffect.Any())
                     {
-                        foreach (var item in mandatoryDebitTypes)
+                        foreach (var item in debitTypesToEffect)
                         {
                             var customerAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(customerDTO.Id, item.CustomerAccountTypeTargetProductId, serviceHeader);
                             var customerAccountDTO = customerAccounts?.FirstOrDefault() ?? new CustomerAccountDTO

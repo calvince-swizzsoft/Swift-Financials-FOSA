@@ -10,7 +10,8 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 {
     public interface ICustomerAppService
     {
-        Task<CustomerDTO> AddNewCustomerAsync(CustomerDTO customerDTO, List<DebitTypeDTO> mandatoryDebitTypes, List<InvestmentProductDTO> mandatoryInvestmentProducts, List<SavingsProductDTO> mandatorySavingsProducts, ProductCollectionInfo mandatoryProducts, int moduleNavigationItemCode, ServiceHeader serviceHeader);
+        // Company-mandatory debit types/products are resolved and attached server-side; the List<> params here are additional ones the caller wants attached on top of those.
+        Task<CustomerDTO> AddNewCustomerAsync(CustomerDTO customerDTO, List<DebitTypeDTO> additionalDebitTypes, List<InvestmentProductDTO> investmentProducts, List<SavingsProductDTO> savingsProducts, int moduleNavigationItemCode, ServiceHeader serviceHeader);
 
         Task<bool> UpdateCustomerAsync(CustomerDTO customerDTO, ServiceHeader serviceHeader);
 
