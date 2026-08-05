@@ -269,6 +269,7 @@
     <Compile Include="Areas\Admin\Controllers\CompanyController.cs" />
     <Compile Include="Areas\Workflows\Controllers\WorkflowController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashDepositController.cs" />
+    <Compile Include="Areas\Messaging\Controllers\TextAlertController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashManagementController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashWithdrawalController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\ChequesController.cs" />

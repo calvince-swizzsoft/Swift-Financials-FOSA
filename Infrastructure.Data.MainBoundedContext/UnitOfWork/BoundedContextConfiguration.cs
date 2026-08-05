@@ -8,6 +8,8 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork
         public BoundedContextConfiguration()
         {
             SetMigrationSqlGenerator("System.Data.SqlClient", () => new NonClusteredPrimaryKeySqlMigrationSqlGenerator());
+
+            SetDatabaseInitializer(new AutoConfiguration(true));
         }
     }
 }

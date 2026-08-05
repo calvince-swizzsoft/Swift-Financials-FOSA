@@ -126,3 +126,4 @@ drift out of sync with the actual code.
 - `Areas/Registry/Controllers/EmployerController.cs`
 - `Areas/Registry/Controllers/StationController.cs` (extended `IZoneAppService`)
 - `Areas/Admin/Controllers/CompanyController.cs`
+- `Areas/Messaging/Controllers/TextAlertController.cs` (existing `ITextAlertAppService`)

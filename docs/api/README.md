@@ -37,11 +37,20 @@ what to go update.
 | Standing order execution (batch triggers) | `api/accounts/standingorders/execution` | [`standing-order-execution-api-spec.md`](standing-order-execution-api-spec.md) |
 | Companies | `api/administration/companies` | [`company-api-spec.md`](company-api-spec.md) |
 | Branches | `api/administration/branches` | [`branch-api-spec.md`](branch-api-spec.md) |
+| Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Text Alert API — new
+
+`api/messaging/textalert` — list/search, get-by-id, and manually create a
+text alert, routed through the existing `ITextAlertAppService` (no new
+backend service needed). No update/delete — see
+`textalert-api-spec.md` for why, and for the DTO's server-assigned fields
+on create.
 
 ### Workflow reference numbers — fixed, were always `0`
 

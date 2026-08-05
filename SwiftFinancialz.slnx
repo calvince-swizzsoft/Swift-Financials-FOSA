@@ -38,5 +38,6 @@
   <Project Path="SwiftFinancials.TextAlertDispatcher/SwiftFinancials.TextAlertDispatcher.Celcom.csproj" Id="660bae5c-4432-4b7c-8cb0-e860b8b3465d" />
   <Project Path="SwiftFinancials.Utility/SwiftFinancials.Utility.csproj" Id="617aad11-f940-4b14-878b-6d776b6fe0b4" />
   <Project Path="SwiftFinancials.WindowsService/SwiftFinancials.WindowsService.csproj" Id="2fb8ea4c-6d83-44fb-b1d7-39086ad3071b" />
+  <Project Path="SwiftFinancials.WorkflowProcessorDispatcher/SwiftFinancials.WorkflowProcessorDispatcher.csproj" Id="7f796805-9a1b-4294-bea2-0c017408e8fa" />
   <Project Path="WebApplication1/WebApplication1.csproj" Id="57d79552-8eae-457a-a51a-e9090b5816e5" />
 </Solution>

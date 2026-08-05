@@ -541,7 +541,7 @@ namespace WebApplication1.Controllers
 
                         var customerAccount = _customerAccountAppService.FindCustomerAccountDTO(cashDepositRequestDTO.CustomerAccountId, serviceHeader);
 
-                        var currentTellerDTO = _tellerAppService.FindTeller(Guid.Parse(cashDepositRequestDTO.Remarks), serviceHeader);
+                        var currentTellerDTO = GetCurrentTeller(serviceHeader);
 
                         if (customerAccount != null && currentTellerDTO != null)
                         {
@@ -570,8 +570,9 @@ namespace WebApplication1.Controllers
 
                             model.CreditChartOfAccountId = selectedProduct.ChartOfAccountId;
 
-                            await ProcessCustomerTransactionAsync(model, currentTellerDTO, customerAccount, SelectedCustomer, selectedProduct);
+                            var postResult = await ProcessCustomerTransactionAsync(model, currentTellerDTO, customerAccount, SelectedCustomer, selectedProduct);
 
+                            return postResult.Success ? Ok(postResult.Message) : (IHttpActionResult)BadRequest(postResult.Message);
                         }
 
 
@@ -594,7 +595,7 @@ namespace WebApplication1.Controllers
 
                         var customerAccount = _customerAccountAppService.FindCustomerAccountDTO((Guid)cashWithdrawalRequestDTO.CustomerAccountId, serviceHeader);
 
-                        var currentTellerDTO = _tellerAppService.FindTeller(Guid.Parse(cashWithdrawalRequestDTO.Remarks), serviceHeader);
+                        var currentTellerDTO = GetCurrentTeller(serviceHeader);
 
                         if (customerAccount != null && currentTellerDTO != null)
                         {
@@ -623,7 +624,9 @@ namespace WebApplication1.Controllers
 
                             model.DebitChartOfAccountId = selectedProduct.ChartOfAccountId;
 
-                            await ProcessCustomerTransactionAsync(model, currentTellerDTO, customerAccount, SelectedCustomer, selectedProduct);
+                            var postResult = await ProcessCustomerTransactionAsync(model, currentTellerDTO, customerAccount, SelectedCustomer, selectedProduct);
+
+                            return postResult.Success ? Ok(postResult.Message) : (IHttpActionResult)BadRequest(postResult.Message);
                         }
 
 
@@ -752,9 +755,16 @@ namespace WebApplication1.Controllers
 
                                 if (updateWithinLimitResult)
                                 {
+                                    if (transactionModel.CashDepositRequestId != Guid.Empty)
+                                    {
+                                        var originatingCashDepositRequest = _cashDepositRequestAppService.FindCashDepositRequest(transactionModel.CashDepositRequestId, serviceHeader);
+
+                                        if (originatingCashDepositRequest != null)
+                                            _cashDepositRequestAppService.PostCashDepositRequest(originatingCashDepositRequest, serviceHeader);
+                                    }
 
                                     string message = $"Operation success: Customer's new balance is {SelectedCustomerAccount.NewAvailableBalance}";
-                                    
+
                                     string cashDepositTextTemplate = "Dear customer, your account has been credited with a cash deposit of KES {0} at {1} Branch {2}.";
                                     await SendTextNotificationAsync(cashDepositTextTemplate, SelectedCustomer, SelectedCustomerAccount, transactionModel.TotalValue, transactionModel.Reference, transactionModel.PrimaryDescription, _textAlertAppService);
 
@@ -1121,19 +1131,25 @@ namespace WebApplication1.Controllers
                           
                                     if (updateWithinLimitResult)
                                     {
+                                        if (transactionModel.CashWithdrawalRequestId != Guid.Empty)
+                                        {
+                                            var originatingCashWithdrawalRequest = _cashWithdrawalRequestAppService.FindCashWithdrawalRequest(transactionModel.CashWithdrawalRequestId, serviceHeader);
 
-                                        CashWithdrawalRequestDTO withinLimitsCashWithdrawalRequest = new CashWithdrawalRequestDTO();
+                                            if (originatingCashWithdrawalRequest != null)
+                                                _cashWithdrawalRequestAppService.PayCashWithdrawalRequest(originatingCashWithdrawalRequest, null, serviceHeader);
+                                        }
+                                        else
+                                        {
+                                            CashWithdrawalRequestDTO withinLimitsCashWithdrawalRequest = new CashWithdrawalRequestDTO();
 
-                                        withinLimitsCashWithdrawalRequest.Amount = transactionModel.TotalValue;
-                                        withinLimitsCashWithdrawalRequest.BranchId = transactionModel.BranchId;
-                                        withinLimitsCashWithdrawalRequest.AuthorizedDate = DateTime.Today;
-                                        withinLimitsCashWithdrawalRequest.Status = (int)CashWithdrawalRequestAuthStatus.Paid;
-                                        withinLimitsCashWithdrawalRequest.AuthorizedBy = SelectedTeller.Description;
+                                            withinLimitsCashWithdrawalRequest.Amount = transactionModel.TotalValue;
+                                            withinLimitsCashWithdrawalRequest.BranchId = transactionModel.BranchId;
+                                            withinLimitsCashWithdrawalRequest.AuthorizedDate = DateTime.Today;
+                                            withinLimitsCashWithdrawalRequest.Status = (int)CashWithdrawalRequestAuthStatus.Paid;
+                                            withinLimitsCashWithdrawalRequest.AuthorizedBy = SelectedTeller.Description;
 
-
-                                        _cashWithdrawalRequestAppService.AddNewCashWithdrawalRequest(withinLimitsCashWithdrawalRequest, serviceHeader);
-
-
+                                            _cashWithdrawalRequestAppService.AddNewCashWithdrawalRequest(withinLimitsCashWithdrawalRequest, serviceHeader);
+                                        }
 
                                         string message = $"Operation success: Customer's new balance is {transactionModel.CustomerAccount.NewAvailableBalance}";
 
