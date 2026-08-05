@@ -1,4 +1,5 @@
-﻿using Domain.Seedwork;
+﻿using Domain.MainBoundedContext.AdministrationModule.Aggregates.BranchAgg;
+using Domain.Seedwork;
 using System;
 
 namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.WorkflowAgg
@@ -10,6 +11,8 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.WorkflowAgg
         public int ReferenceNumber { get; set; }
 
         public Guid BranchId { get; set; }
+
+        public virtual Branch Branch { get; private set; }
 
         public byte Status { get; set; }
 

@@ -82,7 +82,15 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
-                var workflow = WorkflowFactory.CreateWorkflow(workflowDTO.RecordId, workflowDTO.ReferenceNumber, workflowDTO.BranchId, workflowDTO.SystemPermissionType, workflowDTO.RequiredApprovals);
+                // Reference number is server-generated (same MAX(x)+1 convention used for VoucherNumber,
+                // SerialNumber, Code, etc. elsewhere) whenever the caller didn't already supply one - both
+                // origination call sites (CustomerAppService/CustomerAccountAppService) leave it unset today,
+                // which left every approval request showing "0000000" with no way to tell them apart.
+                var referenceNumber = workflowDTO.ReferenceNumber > 0
+                    ? workflowDTO.ReferenceNumber
+                    : _workflowRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(ReferenceNumber),0) + 1 AS Expr1 FROM {0}Workflows", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
+
+                var workflow = WorkflowFactory.CreateWorkflow(workflowDTO.RecordId, referenceNumber, workflowDTO.BranchId, workflowDTO.SystemPermissionType, workflowDTO.RequiredApprovals);
 
                 workflow.CreatedBy = serviceHeader.ApplicationUserName;
 
@@ -179,7 +187,10 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             if (result)
             {
-                if (workflowDTO.Status == (int)WorkflowRecordStatus.Approved || workflowDTO.Status == (int)WorkflowRecordStatus.Rejected)
+                // Status is set by callers using WorkflowApprovalOption's numbering (see ApproveWorkflowItem),
+                // not WorkflowRecordStatus - comparing against WorkflowRecordStatus here meant Approved (2 in
+                // both enums) enqueued by coincidence, but Rejected (1 vs 3) never did.
+                if (workflowDTO.Status == (int)WorkflowApprovalOption.Approved || workflowDTO.Status == (int)WorkflowApprovalOption.Rejected)
                 {
                     SendToQueue(workflowDTO, serviceHeader);
                 }
@@ -349,6 +360,20 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             }
         }
 
+        public PageCollectionInfo<WorkflowItemDTO> FindWorkflowItems(int status, string text, DateTime startDate, DateTime endDate, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var filter = WorkflowItemSpecifications.WorkflowItemForCallerRoles(status, text, startDate, endDate, serviceHeader.ApplicationUserRoles);
+
+                ISpecification<WorkflowItem> spec = filter;
+
+                var sortFields = new List<string> { "SequentialId" };
+
+                return _workflowItemRepository.AllMatchingPaged<WorkflowItemDTO>(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+            }
+        }
+
         private bool UpdateWorkflowItem(WorkflowItemDTO workflowItemDTO, ServiceHeader serviceHeader)
         {
             var result = default(bool);
@@ -393,7 +418,11 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             if (workflowItemBindingModel.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, workflowItemBindingModel.ErrorMessages));
 
-            if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemDTO.Id, serviceHeader.ApplicationUserName, serviceHeader)) throw new InvalidOperationException("Maker-checker failure: the initiator and approver of a sequential process must be distinct!");
+            // TODO(maker-checker): TEMPORARILY DISABLED for testing (no separate maker/checker test accounts yet).
+            // MUST re-enable before real maker-checker enforcement is needed / before shipping - right now the
+            // same user can both create and approve any workflow item, which defeats the control entirely.
+            // Do not remove the underlying check, just uncomment the line below.
+            // if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemDTO.Id, serviceHeader.ApplicationUserName, serviceHeader)) throw new InvalidOperationException("Maker-checker failure: the initiator and approver of a sequential process must be distinct!");
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {

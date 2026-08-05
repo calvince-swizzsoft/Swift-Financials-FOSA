@@ -238,5 +238,26 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                 return FindBranch(branchId, serviceHeader);
             });
         }
+
+        public List<BranchDTO> FindBranchesByCompanyId(Guid companyId, ServiceHeader serviceHeader)
+        {
+            if (companyId == Guid.Empty)
+                return null;
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var filter = BranchSpecifications.BranchWithCompanyId(companyId);
+
+                ISpecification<Branch> spec = filter;
+
+                var branches = _branchRepository.AllMatching(spec, serviceHeader);
+
+                if (branches != null && branches.Any())
+                {
+                    return branches.ProjectedAsCollection<BranchDTO>();
+                }
+                else return null;
+            }
+        }
     }
 }

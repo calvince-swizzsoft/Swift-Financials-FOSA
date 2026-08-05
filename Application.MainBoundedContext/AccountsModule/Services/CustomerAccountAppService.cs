@@ -158,10 +158,17 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         // that only populate once re-fetched through the repository (same as Activate()/Deactivate() rely on).
         private void OriginateCustomerAccountVerificationWorkflowIfRequired(Guid customerAccountId, ServiceHeader serviceHeader)
         {
-            var persisted = _customerAccountRepository.Get(customerAccountId, serviceHeader);
+            Guid branchId;
 
-            if (persisted == null || persisted.Branch == null || persisted.Branch.Company == null || !persisted.Branch.Company.EnforceCustomerAccountMakerChecker)
-                return;
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var persisted = _customerAccountRepository.Get(customerAccountId, serviceHeader);
+
+                if (persisted == null || persisted.Branch == null || persisted.Branch.Company == null || !persisted.Branch.Company.EnforceCustomerAccountMakerChecker)
+                    return;
+
+                branchId = persisted.BranchId;
+            }
 
             var rolesInSystemPermissionType = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CustomerAccountVerification, serviceHeader);
 
@@ -170,9 +177,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             var workflowDTO = new WorkflowDTO
             {
-                RecordId = persisted.Id,
+                RecordId = customerAccountId,
                 SystemPermissionType = (int)SystemPermissionType.CustomerAccountVerification,
-                BranchId = persisted.BranchId,
+                BranchId = branchId,
                 RequiredApprovals = rolesInSystemPermissionType.Count(x => x.ApprovalPriority > 0)
             };
 

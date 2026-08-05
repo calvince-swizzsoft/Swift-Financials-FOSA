@@ -57,6 +57,18 @@ checker's action. The API filters by the caller's roles server-side (see
 `WorkflowController.GetItems` → `IWorkflowAppService.FindWorkflowItems`) —
 you only see items assigned to a role you actually hold.
 
+**Building a unified "my approvals" inbox that spans every permission
+type** (not just this one)? Don't loop this endpoint over every
+`systemPermissionType` value client-side — use
+`GET /api/administration/workflows/items/mine` instead (same query params,
+minus `systemPermissionType`). It resolves scope purely from the caller's
+roles server-side and returns items across every permission type those
+roles can act on in one call. See
+`WorkflowItemSpecifications.WorkflowItemForCallerRoles` for why
+`systemPermissionType` isn't a parameter there — a `WorkflowItem` can only
+exist under a role name that was actually mapped to its permission type, so
+the role filter alone is already sufficient.
+
 Each returned `WorkflowItemDTO.WorkflowRecordId` is the `CustomerId` of the
 pending customer — cross-reference with
 `GET /api/registry/customer/{id}` to show the checker what they're
@@ -102,6 +114,31 @@ webhook/callback — poll `GET /api/registry/customer/{id}` and check
 running, approvals will appear to succeed but the customer will never
 actually unlock** — this is infrastructure to confirm is deployed/running,
 not something the API can detect or report on.
+
+Also note: a `Workflow` only ever gets queued for the dispatcher at all once
+every required approval step is done (`Workflow.Status` reaches
+`Approved`/`Rejected`) — check `GET /by-record?recordId=...&systemPermissionType=44858`
+first if nothing seems to be happening; a `Workflow` still sitting at
+`Pending` with `currentApprovals < requiredApprovals` means the chain isn't
+finished yet, not that anything is broken.
+
+**Recovery for a workflow stuck at `matchedStatus: 0` (NotMatched)** despite
+already being `Approved`/`Rejected` (dispatcher not running, queue message
+lost, etc.): `POST /api/administration/workflows/{workflowId}/match` — an
+admin-only manual trigger that runs the exact same processing the
+dispatcher would have (`IWorkflowProcessorAppService.ProcessWorkflowQueueAsync`)
+synchronously, bypassing the queue entirely. `404` if the workflow id
+doesn't resolve; `400` if it hasn't reached a final Approved/Rejected status
+yet; returns `{ success: true, message: "Workflow was already matched..." }`
+harmlessly if it's already matched. Works for any permission type on the
+generic engine, not just this one.
+
+**Known temporary state**: `WorkflowAppService.ApproveWorkflowItem`'s
+same-user maker-checker guard ("the initiator and approver of a sequential
+process must be distinct") is currently commented out for testing — the
+first bullet in §3 does not actually apply right now. It's marked
+`TODO(maker-checker)` in source and must be re-enabled before relying on
+that control.
 
 ## 4. `RecordStatus` reference
 

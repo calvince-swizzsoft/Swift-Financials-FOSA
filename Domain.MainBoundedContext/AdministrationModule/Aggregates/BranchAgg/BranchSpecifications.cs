@@ -36,5 +36,12 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.BranchAgg
 
             return specification;
         }
+
+        public static Specification<Branch> BranchWithCompanyId(Guid companyId)
+        {
+            Specification<Branch> specification = new DirectSpecification<Branch>(x => x.CompanyId == companyId);
+
+            return specification;
+        }
     }
 }

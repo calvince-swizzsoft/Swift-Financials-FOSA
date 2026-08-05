@@ -26,5 +26,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
         BranchDTO FindBranch(int branchCode, ServiceHeader serviceHeader);
 
         BranchDTO FindCachedBranch(Guid branchId, ServiceHeader serviceHeader);
+
+        List<BranchDTO> FindBranchesByCompanyId(Guid companyId, ServiceHeader serviceHeader);
     }
 }

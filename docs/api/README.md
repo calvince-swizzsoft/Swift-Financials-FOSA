@@ -36,11 +36,91 @@ what to go update.
 | Standing orders | `api/accounts/standingorders` | [`standing-order-api-spec.md`](standing-order-api-spec.md) |
 | Standing order execution (batch triggers) | `api/accounts/standingorders/execution` | [`standing-order-execution-api-spec.md`](standing-order-execution-api-spec.md) |
 | Companies | `api/administration/companies` | [`company-api-spec.md`](company-api-spec.md) |
+| Branches | `api/administration/branches` | [`branch-api-spec.md`](branch-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Workflow reference numbers — fixed, were always `0`
+
+Every approval request (`Workflow`) created via `CustomerVerification` or
+`CustomerAccountVerification` origination was left with `referenceNumber: 0`
+(`paddedReferenceNumber: "0000000"`) — nothing populated it, so every
+pending item in a checker inbox looked identical on that field, and
+searching `GET /items?text=...` by reference number matched everything.
+`WorkflowAppService.AddNewWorkflow` now server-generates a real sequential
+reference number (`MAX(x)+1`, same convention as every other
+auto-numbered field in this API) whenever the caller doesn't supply one.
+Existing `Workflow` rows created before this fix still show `0` — this
+only affects newly created ones.
+
+### Workflow manual-match recovery endpoint — new
+
+`POST /api/administration/workflows/{workflowId}/match` — for a `Workflow`
+that's reached `Approved`/`Rejected` but is still stuck at
+`matchedStatus: 0` (the async dispatcher never processed it — not running,
+queue message lost, etc.). Runs the same processing the dispatcher would
+have, synchronously, bypassing the queue. `404` unknown id, `400` if the
+workflow hasn't reached a final status yet, no-op success if already
+matched. Applies to any permission type on the generic workflow engine.
+
+**Fixed, only affected rejections**: `WorkflowAppService.UpdateWorkflow`
+only enqueued a workflow for the dispatcher when
+`workflowDTO.Status == (int)WorkflowRecordStatus.Approved || ... .Rejected`
+— but `Status` is actually set using a *different* enum,
+`WorkflowApprovalOption`. `Approved` happens to be `2` in both enums, so
+approvals enqueued fine by coincidence; `WorkflowRecordStatus.Rejected` was
+`3` while `WorkflowApprovalOption.Rejected` is `1`, so **a rejected
+workflow never got enqueued at all** and sat at `matchedStatus: 0` forever.
+The guard now compares against `WorkflowApprovalOption` correctly. Any
+already-rejected workflow from before this fix that's still stuck can be
+cleared with the manual-match endpoint above; new rejections enqueue
+correctly going forward.
+
+### Workflow checker/queueable endpoints — paging bug fixed
+
+`GET /items`, `/items/mine`, and `/queueable` under
+`api/administration/workflows` all defaulted `pageIndex` to `1`, but
+`AllMatchingPaged` is 0-based (`Skip(pageSize * pageIndex)`) everywhere
+else in this API — same as every other paged endpoint. Practical effect:
+call any of these three without an explicit `pageIndex` and, with the
+default `pageSize=20`, anything up to 20 matching rows silently came back
+as an **empty `pageCollection` with a correct nonzero `itemsCount`** (the
+count is computed before the skip/take, so it wasn't wrong — just
+misleadingly paired with zero rows). Fixed to default `pageIndex = 0`. If
+you were explicitly passing `pageIndex=1` to work around/mimic this,
+switch to `pageIndex=0`; if you were relying on the default, no client
+change needed.
+
+### Workflow checker inbox — new unified endpoint
+
+`GET /api/administration/workflows/items/mine` — a superadmin/checker inbox
+across **every** permission type the caller's role(s) can act on in one
+call, with no `systemPermissionType` param. If you were calling the
+existing `GET /items` endpoint with `systemPermissionType=0` (or looping it
+over every known permission type) to build a general "my approvals" screen,
+**switch to `/items/mine`** — same query params (`status`, `text`,
+`startDate`, `endDate`, `pageIndex`, `pageSize`), just drop
+`systemPermissionType`. `GET /items?systemPermissionType=X` is unchanged
+and still the right call for a single-type/tabbed view. See
+`customer-verification-api-spec.md` §2 or
+`customer-account-verification-api-spec.md` §2 for the full shape (both
+apply equally to `/items/mine`).
+
+### Branch API — rebuilt on the domain layer, breaking changes
+
+`BranchController` (was `BranchesController`) has been rebuilt from scratch
+against `IBranchAppService` — the old controller routed through a raw-SQL
+class (`WebApplication1/Services/BranchService.cs`, now **deleted**) that
+bypassed validation, audit trails, and auth entirely. If you integrated
+against the old one: **auth is now required** (it was previously
+`[AllowAnonymous]` with wildcard CORS), **`DELETE /{id}` is gone** — use the
+new `PATCH /{id}/toggle-lock` instead, matching the lock/unlock convention
+every other aggregate here uses, and **`POST`/`PUT` now validate** and
+reject with `400` instead of silently accepting bad data. Full reference:
+`branch-api-spec.md`.
 
 ### Company API — new
 

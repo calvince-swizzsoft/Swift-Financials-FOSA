@@ -36,6 +36,10 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
         PageCollectionInfo<WorkflowItemDTO> FindWorkflowItems(int systemPermissionType, int status, string text, DateTime startDate, DateTime endDate, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 
+        // Unified "my approvals" inbox across every permission type the caller's role(s) can act on -
+        // deliberately has no systemPermissionType parameter; see WorkflowItemSpecifications.WorkflowItemForCallerRoles.
+        PageCollectionInfo<WorkflowItemDTO> FindWorkflowItems(int status, string text, DateTime startDate, DateTime endDate, int pageIndex, int pageSize, ServiceHeader serviceHeader);
+
         #endregion
 
         #region WorkflowItemEntryDTO

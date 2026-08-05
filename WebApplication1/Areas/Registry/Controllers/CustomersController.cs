@@ -699,8 +699,7 @@ bool exactMatch = false)
         {
             try
             {
-                var branchService = new BranchService();
-                var branch = branchService.GetById(branchId);
+                var branch = _branchAppService.FindBranch(branchId, Utils.CreateServiceHeader());
 
                 if (branch == null)
                     return Content(System.Net.HttpStatusCode.NotFound,
