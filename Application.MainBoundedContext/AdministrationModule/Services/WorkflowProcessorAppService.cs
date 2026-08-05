@@ -30,6 +30,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
         private readonly ICustomerAccountAppService _customerAccountAppService;
 
+        private readonly ICustomerAppService _customerAppService;
+
         public WorkflowProcessorAppService(
 
             ICashDepositRequestAppService cashDepositRequestAppService,
@@ -44,7 +46,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             IWorkflowAppService workflowAppService,
 
-            ICustomerAccountAppService customerAccountAppService
+            ICustomerAccountAppService customerAccountAppService,
+
+            ICustomerAppService customerAppService
             )
         {
             if (cashDepositRequestAppService == null)
@@ -68,6 +72,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             if (customerAccountAppService == null)
                 throw new ArgumentNullException(nameof(customerAccountAppService));
 
+            if (customerAppService == null)
+                throw new ArgumentNullException(nameof(customerAppService));
+
             _cashDepositRequestAppService = cashDepositRequestAppService;
 
             _cashWithdrawalRequestAppService = cashWithdrawalRequestAppService;
@@ -81,6 +88,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             _workflowAppService = workflowAppService;
 
             _customerAccountAppService = customerAccountAppService;
+
+            _customerAppService = customerAppService;
 
             _moduleNavigationCode = 0;
         }
@@ -217,6 +226,24 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                             : RecordAuthOption.Reject);
 
                         result = _customerAccountAppService.AuthorizeCustomerAccount(customerAccountDTO, recordAuthOption, serviceHeader);
+
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
+
+                    break;
+
+                case SystemPermissionType.CustomerVerification:
+
+                    var customerDTO = _customerAppService.FindCustomer(recordId, serviceHeader);
+
+                    if (customerDTO != null)
+                    {
+                        var customerRecordAuthOption = (int)(approved
+                            ? RecordAuthOption.Approve
+                            : RecordAuthOption.Reject);
+
+                        result = _customerAppService.AuthorizeCustomer(customerDTO, customerRecordAuthOption, serviceHeader);
 
                         if (result)
                             result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);

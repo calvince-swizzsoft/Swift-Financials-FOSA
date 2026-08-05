@@ -26,6 +26,7 @@ what to go update.
 | Area | Base path | Doc |
 |---|---|---|
 | Customers | `api/registry/customer` | [`customer-api-spec.md`](customer-api-spec.md) |
+| Customer verification (maker-checker) | `api/administration/workflows` (generic engine, used with a specific permission type) | [`customer-verification-api-spec.md`](customer-verification-api-spec.md) |
 | Customer accounts (base resource) | `api/accounts/customer-accounts` | [`customer-accounts-api-spec.md`](customer-accounts-api-spec.md) |
 | Customer account management (activate/freeze/close/remark) | `api/accounts/customer-accounts/{id}/...` | [`customer-account-management-api-spec.md`](customer-account-management-api-spec.md) |
 | Customer account signatories | `api/accounts/customer-accounts/{id}/signatories` | [`customer-account-signatory-api-spec.md`](customer-account-signatory-api-spec.md) |
@@ -34,11 +35,33 @@ what to go update.
 | General ledger statements | `api/accounts/statements/gl-account` | [`general-ledger-statement-api-spec.md`](general-ledger-statement-api-spec.md) |
 | Standing orders | `api/accounts/standingorders` | [`standing-order-api-spec.md`](standing-order-api-spec.md) |
 | Standing order execution (batch triggers) | `api/accounts/standingorders/execution` | [`standing-order-execution-api-spec.md`](standing-order-execution-api-spec.md) |
+| Companies | `api/administration/companies` | [`company-api-spec.md`](company-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Company API — new
+
+`CompanyController` documented for the first time (the controller itself
+isn't new, the doc was just missing). List/search/create/update a company,
+plus its two sub-resources: mandatory debit types and mandatory attached
+(savings/investment) products. Note the old MVC admin screen silently
+forced every new company's `recoveryPriority` to `"DirectDebits"` — that
+hack was **not** carried forward into this API; set it explicitly in your
+create payload if you need it. Full reference: `company-api-spec.md`.
+
+### Customer verification (maker-checker) — new
+
+Sibling to customer account verification below, but for the *customer*
+record itself (`Customer.recordStatus`, independent of any of their
+accounts). Controlled by a new, separate per-company flag,
+`Company.enforceCustomerMakerChecker` (set via the Company API above) —
+off by default, same "nothing to build" story as customer account
+verification when off. When on, build a checker-inbox screen against the
+same generic workflow API filtered to `systemPermissionType=44858`. Full
+reference: `customer-verification-api-spec.md`.
 
 ### Customer accounts — bug fixes + one response shape change
 

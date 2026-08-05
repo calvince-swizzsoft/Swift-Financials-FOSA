@@ -83,6 +83,9 @@ namespace Application.MainBoundedContext.DTO.AdministrationModule
         [Display(Name = "Enforce customer account maker/checker?")]
         public bool EnforceCustomerAccountMakerChecker { get; set; }
 
+        [Display(Name = "Enforce customer maker/checker?")]
+        public bool EnforceCustomerMakerChecker { get; set; }
+
         [Display(Name = "Bypass journal voucher verification?")]
         public bool BypassJournalVoucherAudit { get; set; }
 

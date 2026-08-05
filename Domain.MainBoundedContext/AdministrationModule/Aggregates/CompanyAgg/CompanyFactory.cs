@@ -6,7 +6,7 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.CompanyAgg
     public static class CompanyFactory
     {
         public static Company CreateCompany(string description, string vision, string mission, string motto, string registrationNumber, string personalIdentificationNumber, string applicationDisplayName,
-            int transactionReceiptTopIndentation, int transactionReceiptLeftIndentation, string transactionReceiptFooter, int fingerprintBiometricThreshold, bool applicationMembershipTextAlertsEnabled, bool enforceCustomerAccountMakerChecker,
+            int transactionReceiptTopIndentation, int transactionReceiptLeftIndentation, string transactionReceiptFooter, int fingerprintBiometricThreshold, bool applicationMembershipTextAlertsEnabled, bool enforceCustomerAccountMakerChecker, bool enforceCustomerMakerChecker,
             bool bypassJournalVoucherAudit, bool bypassCreditBatchAudit, bool bypassDebitBatchAudit, bool bypassRefundBatchAudit, bool bypassWireTransferBatchAudit, bool bypassLoanDisbursementBatchAudit, bool bypassJournalReversalBatchAudit,
             bool bypassInterAccountTransferBatchAudit, bool bypassExpensePayableAudit, bool bypassGeneralLedgerAudit, bool excludeChargesInTransactionReceipt, int membershipTerminationNoticePeriod,
             bool excludeChequeMaturityDateInTransactionReceipt, bool trackGuarantorCommittedInvestments, bool transferNetRefundableAmountToSavingsAccountOnDeathClaimSettlement, bool receiveLoanRequestBeforeLoanRegistration,
@@ -29,6 +29,7 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.CompanyAgg
                 FingerprintBiometricThreshold = fingerprintBiometricThreshold,
                 ApplicationMembershipTextAlertsEnabled = applicationMembershipTextAlertsEnabled,
                 EnforceCustomerAccountMakerChecker = enforceCustomerAccountMakerChecker,
+                EnforceCustomerMakerChecker = enforceCustomerMakerChecker,
                 BypassJournalVoucherAudit = bypassJournalVoucherAudit,
                 BypassCreditBatchAudit = bypassCreditBatchAudit,
                 BypassDebitBatchAudit = bypassDebitBatchAudit,

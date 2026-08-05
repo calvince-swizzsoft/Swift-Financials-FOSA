@@ -41,6 +41,8 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.CompanyAgg
 
         public bool EnforceCustomerAccountMakerChecker { get; set; }
 
+        public bool EnforceCustomerMakerChecker { get; set; }
+
         public bool BypassJournalVoucherAudit { get; set; }
 
         public bool BypassCreditBatchAudit { get; set; }

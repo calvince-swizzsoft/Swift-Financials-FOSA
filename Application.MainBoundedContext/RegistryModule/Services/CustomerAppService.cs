@@ -2,6 +2,7 @@
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.MessagingModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.MessagingModule.Services;
@@ -54,6 +55,8 @@ namespace Application.MainBoundedContext.RegistryModule.Services
         private readonly IBrokerService _brokerService;
         private readonly ICompanyAppService _companyAppService;
         private readonly IAppCache _appCache;
+        private readonly IWorkflowAppService _workflowAppService;
+        private readonly IAuthorizationAppService _authorizationAppService;
 
         public CustomerAppService(
             IDbContextScopeFactory dbContextScopeFactory,
@@ -75,7 +78,9 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             ICommissionAppService commissionAppService,
             IBrokerService brokerService,
             ICompanyAppService companyAppService,
-            IAppCache appCache)
+            IAppCache appCache,
+            IWorkflowAppService workflowAppService,
+            IAuthorizationAppService authorizationAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -137,6 +142,12 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
+            if (workflowAppService == null)
+                throw new ArgumentNullException(nameof(workflowAppService));
+
+            if (authorizationAppService == null)
+                throw new ArgumentNullException(nameof(authorizationAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _customerRepository = customerRepository;
             _nextOfKinRepository = nextOfKinRepository;
@@ -157,6 +168,55 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             _brokerService = brokerService;
             _companyAppService = companyAppService;
             _appCache = appCache;
+            _workflowAppService = workflowAppService;
+            _authorizationAppService = authorizationAppService;
+        }
+
+        // Only a company that has opted into maker-checker for customer registration (EnforceCustomerMakerChecker)
+        // gets this gate - otherwise the customer is auto-approved, mirroring CustomerAccountAppService's
+        // OriginateCustomerAccountVerificationWorkflowIfRequired/FinalizeSavingsAccountRecordStatus pair. Customer
+        // has no Branch navigation property (only Station), so branchId/companyId are passed in from the caller,
+        // which has already resolved them via IBranchAppService.
+        private bool FinalizeCustomerRecordStatus(Guid customerId, Guid branchId, Guid companyId, ServiceHeader serviceHeader)
+        {
+            var company = _companyAppService.FindCompany(companyId, serviceHeader);
+
+            var requiresVerification = company != null && company.EnforceCustomerMakerChecker;
+
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+                var persisted = _customerRepository.Get(customerId, serviceHeader);
+
+                if (persisted == null)
+                    return requiresVerification;
+
+                persisted.RecordStatus = requiresVerification ? (byte)RecordStatus.New : (byte)RecordStatus.Approved;
+
+                dbContextScope.SaveChanges(serviceHeader);
+            }
+
+            if (requiresVerification)
+                OriginateCustomerVerificationWorkflowIfRequired(customerId, branchId, serviceHeader);
+
+            return requiresVerification;
+        }
+
+        private void OriginateCustomerVerificationWorkflowIfRequired(Guid customerId, Guid branchId, ServiceHeader serviceHeader)
+        {
+            var rolesInSystemPermissionType = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CustomerVerification, serviceHeader);
+
+            if (rolesInSystemPermissionType == null || !rolesInSystemPermissionType.Any())
+                return;
+
+            var workflowDTO = new WorkflowDTO
+            {
+                RecordId = customerId,
+                SystemPermissionType = (int)SystemPermissionType.CustomerVerification,
+                BranchId = branchId,
+                RequiredApprovals = rolesInSystemPermissionType.Count(x => x.ApprovalPriority > 0)
+            };
+
+            _workflowAppService.AddNewWorkflow(workflowDTO, rolesInSystemPermissionType, serviceHeader);
         }
 
         public async Task<CustomerDTO> AddNewCustomerAsync(CustomerDTO customerDTO, List<DebitTypeDTO> additionalDebitTypes, List<InvestmentProductDTO> investmentProducts, List<SavingsProductDTO> savingsProducts, int moduleNavigationItemCode, ServiceHeader serviceHeader)
@@ -262,6 +322,13 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                 var currrentBranch = _branchAppService.FindBranch(branchId, serviceHeader);
                 if (currrentBranch != null)
                 {
+                    #region Customer Verification Workflow
+
+                    var requiresCustomerVerification = FinalizeCustomerRecordStatus(customerDTO.Id, currrentBranch.Id, currrentBranch.CompanyId, serviceHeader);
+                    customerDTO.RecordStatus = requiresCustomerVerification ? (byte)RecordStatus.New : (byte)RecordStatus.Approved;
+
+                    #endregion
+
                     #region Send Text Notification
                     if (currrentBranch.CompanyApplicationMembershipTextAlertsEnabled && !string.IsNullOrWhiteSpace(customerDTO.AddressMobileLine) && Regex.IsMatch(customerDTO.AddressMobileLine, @"^\+(?:[0-9]??){6,14}[0-9]$") && customerDTO.AddressMobileLine.Length >= 13)
                     {
@@ -777,6 +844,41 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                 return _customerAccountAppService.UpdateCustomerAccountsBranch(customerAccountDTOs, serviceHeader);
             }
             else return false;
+        }
+
+        public bool AuthorizeCustomer(CustomerDTO customerDTO, int recordAuthOption, ServiceHeader serviceHeader)
+        {
+            var result = default(bool);
+
+            if (customerDTO != null && Enum.IsDefined(typeof(RecordAuthOption), recordAuthOption))
+            {
+                using (var dbContextScope = _dbContextScopeFactory.Create())
+                {
+                    var persisted = _customerRepository.Get(customerDTO.Id, serviceHeader);
+
+                    if (persisted != null)
+                    {
+                        switch ((RecordAuthOption)recordAuthOption)
+                        {
+                            case RecordAuthOption.Approve:
+                                persisted.RecordStatus = (byte)RecordStatus.Approved;
+                                break;
+                            case RecordAuthOption.Reject:
+                                persisted.RecordStatus = (byte)RecordStatus.Rejected;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        persisted.ModifiedBy = serviceHeader.ApplicationUserName;
+                        persisted.ModifiedDate = DateTime.Now;
+
+                        result = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                    }
+                }
+            }
+
+            return result;
         }
 
         public async Task<bool> UpdateCreditTypesAsync(Guid customerId, List<CreditTypeDTO> creditTypeDTOs, ServiceHeader serviceHeader)

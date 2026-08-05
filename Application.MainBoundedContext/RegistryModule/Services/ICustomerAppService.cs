@@ -31,6 +31,8 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
         bool UpdateCustomerBranch(CustomerDTO customerDTO, ServiceHeader serviceHeader);
 
+        bool AuthorizeCustomer(CustomerDTO customerDTO, int recordAuthOption, ServiceHeader serviceHeader);
+
         Task<bool> UpdateCreditTypesAsync(Guid customerId, List<CreditTypeDTO> creditTypeDTOs, ServiceHeader serviceHeader);
 
         Task<List<CustomerDTO>> FindCustomersAsync(ServiceHeader serviceHeader);
