@@ -25,8 +25,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
-    //[EnableCors(origins: "*", headers: "*", methods: "*")]
-    //[AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/frontoffice/requests")]
     public class CashDepositController : ApiController
     {
@@ -99,20 +98,23 @@ namespace WebApplication1.Controllers
 
         [HttpGet]
         [Route("")]
-        public async Task<IHttpActionResult> Index(int? type)
+        public async Task<IHttpActionResult> Index(int? type, int? status, string text = "", DateTime? startDate = null, DateTime? endDate = null, int pageIndex = 0, int pageSize = 20)
         {
             try
             {
-
-                var emptyList = Enumerable.Empty<object>();
-
                 var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
 
-                if (type ==  (int)FrontOfficeTransactionType.CashDeposit)
-                {
-                    var cashDeposits = _cashDepositRequestAppService.FindCashDepositRequests(serviceHeader);
+                var rangeStart = startDate ?? DateTime.MinValue;
+                var rangeEnd = endDate ?? DateTime.MaxValue;
+                // Default to the pending queue — this endpoint's primary use is a checker/teller
+                // work queue, not a full audit browse; pass status explicitly for other states.
+                var statusFilter = status ?? (int)CashDepositRequestAuthStatus.Pending;
 
-                    foreach (var cdp in cashDeposits)
+                if (type == (int)FrontOfficeTransactionType.CashDeposit)
+                {
+                    var cashDeposits = _cashDepositRequestAppService.FindCashDepositRequests(rangeStart, rangeEnd, statusFilter, text ?? "", 0, pageIndex, pageSize, serviceHeader);
+
+                    foreach (var cdp in cashDeposits.PageCollection)
                     {
                         var customeracc = _customerAccountAppService.FindCustomerAccountDTO(cdp.CustomerAccountId, serviceHeader);
 
@@ -121,14 +123,14 @@ namespace WebApplication1.Controllers
                         cdp.CustomerName = customer.IndividualFirstName + " " + customer.IndividualLastName;
                     }
 
-                    return Ok(cashDeposits);
-                } 
+                    return Ok(new { success = true, message = "", data = cashDeposits });
+                }
 
                 else if (type == (int)FrontOfficeTransactionType.CashWithdrawal)
                 {
-                    var cashWithdrawals = _cashWithdrawalRequestAppService.FindCashWithdrawalRequests(serviceHeader);
+                    var cashWithdrawals = _cashWithdrawalRequestAppService.FindCashWithdrawalRequests(rangeStart, rangeEnd, statusFilter, text ?? "", 0, pageIndex, pageSize, serviceHeader);
 
-                    foreach (var cwl in cashWithdrawals)
+                    foreach (var cwl in cashWithdrawals.PageCollection)
                     {
                         var customeracc = _customerAccountAppService.FindCustomerAccountDTO((Guid)cwl.CustomerAccountId, serviceHeader);
 
@@ -137,10 +139,10 @@ namespace WebApplication1.Controllers
                         cwl.CustomerName = customer.IndividualFirstName + " " + customer.IndividualLastName;
                     }
 
-                    return Ok(cashWithdrawals);
+                    return Ok(new { success = true, message = "", data = cashWithdrawals });
                 }
 
-                return Ok(emptyList);
+                return Ok(new { success = true, message = "", data = new PageCollectionInfo<object> { PageCollection = new List<object>(), ItemsCount = 0 } });
             }
 
             catch (Exception ex)
@@ -169,6 +171,7 @@ namespace WebApplication1.Controllers
                 {
                     success = false,
                     message = "Please select a customer account",
+                    data = (object)null
                 };
                 return Json(response);
             }
@@ -179,6 +182,7 @@ namespace WebApplication1.Controllers
                 {
                     success = false,
                     message = "Sorry, account is not approved yet",
+                    data = (object)null
                 };
 
                 return Json(response);
@@ -197,6 +201,7 @@ namespace WebApplication1.Controllers
                 {
                     success = false,
                     message = "Teller is missing",
+                    data = (object)null
                 };
                 return Json(response);
             }
@@ -244,6 +249,7 @@ namespace WebApplication1.Controllers
                         {
                             success = false,
                             message = "Sorry, the transaction will reduce teller's balance below limit",
+                            data = (object)null
                         };
 
                         return Json(response);
@@ -279,6 +285,7 @@ namespace WebApplication1.Controllers
 
                             success = false,
                             message = "Sorry, this transaction will reduce the customer's balance below the minimum balance for product",
+                            data = (object)null
 
                         };
 
@@ -313,6 +320,7 @@ namespace WebApplication1.Controllers
 
                             success = false,
                             message = "Sorry, this transaction will reduce the customer balance below the allowed minimum balance for product",
+                            data = (object)null
 
                         };
 
@@ -326,6 +334,7 @@ namespace WebApplication1.Controllers
                         {
                             success = false,
                             message = "Sorry, the transaction will reduce teller's balance below limit",
+                            data = (object)null
                         };
 
                         return Json(response);
@@ -361,7 +370,8 @@ namespace WebApplication1.Controllers
                 var responseLast = new
                 {
                     success = false,
-                    message = $"Transaction Error: {combinedErrorMessage}"
+                    message = $"Transaction Error: {combinedErrorMessage}",
+                    data = (object)null
                 };
 
                 return Json(responseLast);
@@ -380,8 +390,8 @@ namespace WebApplication1.Controllers
                     var response = new
                     {
                         success = true,
-                        message = "Operation Success"
-
+                        message = "Operation Success",
+                        data = result.TransactionJournal
                     };
 
                     return Json(response);
@@ -393,15 +403,18 @@ namespace WebApplication1.Controllers
 
                         var response = new
                         {
-                            isCashDepositRequest = true,
                             success = false,
-                            dialog = true,
                             message = result.Message,
-                            selectedCustomerAccountId = result.TransactionData.CreditCustomerAccountId,
-                            transactionTotalValue = result.TransactionData.TotalValue,
-                            transactionReference = result.TransactionData.Reference,
-                            cashTransactionRequestId = result.TransactionData.CashDepositRequestId,
-                            transactionCategory = result.TransactionData.CashDepositCategory
+                            data = new
+                            {
+                                isCashDepositRequest = true,
+                                dialog = true,
+                                selectedCustomerAccountId = result.TransactionData.CreditCustomerAccountId,
+                                transactionTotalValue = result.TransactionData.TotalValue,
+                                transactionReference = result.TransactionData.Reference,
+                                cashTransactionRequestId = result.TransactionData.CashDepositRequestId,
+                                transactionCategory = result.TransactionData.CashDepositCategory
+                            }
                         };
 
                         return Json(response);
@@ -412,19 +425,22 @@ namespace WebApplication1.Controllers
                     {
                         var response = new
                         {
-                            isCashWithdrawalRequest = true,
                             success = false,
-                            dialog = true,
                             message = result.Message,
-                            selectedCustomerAccountId = result.TransactionData.DebitCustomerAccountId,
-                            transactionTotalValue = result.TransactionData.TotalValue,
-                            transactionReference = result.TransactionData.Reference,
-                            cashTransactionRequestId = result.TransactionData.CashWithdrawalRequestId,
-                            transactionCategory = result.TransactionData.CashWithdrawalCategory,
-                            paymentVoucherId = result.TransactionData.PaymentVoucherId,
-                            paymentVoucherPayee = result.TransactionData.PaymentVoucherPayee,
-                            paymentVoucherChequeBookId = result.TransactionData.ChequeBookId,
-                            paymentVoucherWriteDate = result.TransactionData.PaymentVoucherWriteDate
+                            data = new
+                            {
+                                isCashWithdrawalRequest = true,
+                                dialog = true,
+                                selectedCustomerAccountId = result.TransactionData.DebitCustomerAccountId,
+                                transactionTotalValue = result.TransactionData.TotalValue,
+                                transactionReference = result.TransactionData.Reference,
+                                cashTransactionRequestId = result.TransactionData.CashWithdrawalRequestId,
+                                transactionCategory = result.TransactionData.CashWithdrawalCategory,
+                                paymentVoucherId = result.TransactionData.PaymentVoucherId,
+                                paymentVoucherPayee = result.TransactionData.PaymentVoucherPayee,
+                                paymentVoucherChequeBookId = result.TransactionData.ChequeBookId,
+                                paymentVoucherWriteDate = result.TransactionData.PaymentVoucherWriteDate
+                            }
                         };
 
                         return Json(response);
@@ -434,8 +450,8 @@ namespace WebApplication1.Controllers
                     return Json(new
                     {
                         success = false,
-                        dialog = false,
-                        message = "No valid transaction data found."
+                        message = "No valid transaction data found.",
+                        data = new { dialog = false }
                     });
                 }
 
@@ -446,6 +462,7 @@ namespace WebApplication1.Controllers
 
                         success = false,
                         message = result.Message,
+                        data = (object)null
                     };
 
                     return Json(response);
@@ -460,7 +477,8 @@ namespace WebApplication1.Controllers
                 {
 
                     success = false,
-                    message = ex.Message
+                    message = ex.Message,
+                    data = (object)null
 
                 };
 
@@ -470,47 +488,12 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpPost]
-        [Route("authorize")]
-        public async Task<IHttpActionResult> AuthorizeCashDepositRequest(Guid id, int opt)
-        {
-            Guid parseId;
-
-            try
-            {
-                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
-              
-                if (id == Guid.Empty || !Guid.TryParse(id.ToString(), out parseId))
-                {
-                    return BadRequest("Invalid Id");
-                }
-
-                var cashDepositRequestDTO = _cashDepositRequestAppService.FindCashDepositRequest(id, serviceHeader);
-
-                if (cashDepositRequestDTO != null)
-                {
-                    var AuthorizedCashDepositRequest = _cashDepositRequestAppService.AuthorizeCashDepositRequest(cashDepositRequestDTO, opt, serviceHeader);
-
-                    return Ok(AuthorizedCashDepositRequest);
-                }
-
-                var cashWithdrawalRequestDTO = _cashWithdrawalRequestAppService.FindCashWithdrawalRequest(id, serviceHeader);
-
-                if (cashWithdrawalRequestDTO != null)
-                {
-                    var AuthorizedCashWithdrawalRequest = _cashWithdrawalRequestAppService.AuthorizeCashWithdrawalRequest(cashWithdrawalRequestDTO, opt, serviceHeader);
-
-                    return Ok(AuthorizedCashWithdrawalRequest);
-                }
-                return BadRequest();                 
-            }
-
-            catch (Exception ex)
-            {
-
-                return InternalServerError(ex);
-            }
-        }
+        // Checker approval for cash deposit/withdrawal requests goes through the generic
+        // maker-checker engine now — POST /api/administration/workflows/items/approve —
+        // not a front-office-specific endpoint. That route drives WorkflowProcessorAppService,
+        // which calls AuthorizeCashDepositRequest/AuthorizeCashWithdrawalRequest itself with
+        // correct multi-level approval counting and a WorkflowItem audit row, which this
+        // endpoint never did. See WebApplication1/Areas/FrontOffice/WORKFLOW.md.
 
 
         [HttpPost]
@@ -572,7 +555,10 @@ namespace WebApplication1.Controllers
 
                             var postResult = await ProcessCustomerTransactionAsync(model, currentTellerDTO, customerAccount, SelectedCustomer, selectedProduct);
 
-                            return postResult.Success ? Ok(postResult.Message) : (IHttpActionResult)BadRequest(postResult.Message);
+                            if (!postResult.Success)
+                                return BadRequest(postResult.Message);
+
+                            return Ok(new { success = true, message = postResult.Message, data = postResult.TransactionJournal });
                         }
 
 
@@ -626,7 +612,10 @@ namespace WebApplication1.Controllers
 
                             var postResult = await ProcessCustomerTransactionAsync(model, currentTellerDTO, customerAccount, SelectedCustomer, selectedProduct);
 
-                            return postResult.Success ? Ok(postResult.Message) : (IHttpActionResult)BadRequest(postResult.Message);
+                            if (!postResult.Success)
+                                return BadRequest(postResult.Message);
+
+                            return Ok(new { success = true, message = postResult.Message, data = postResult.TransactionJournal });
                         }
 
 
@@ -913,6 +902,17 @@ namespace WebApplication1.Controllers
 
                                     aboveMaxCashDepositRequestDTO.Remarks = SelectedTeller.Id.ToString();
 
+                                    aboveMaxCashDepositRequestDTO.ValidateAll();
+                                    if (aboveMaxCashDepositRequestDTO.HasErrors)
+                                    {
+                                        return new OperationResult
+                                        {
+                                            Success = false,
+                                            Dialog = false,
+                                            Message = string.Join("; ", aboveMaxCashDepositRequestDTO.ErrorMessages)
+                                        };
+                                    }
+
                                     var cashDepositRequestDTO = _cashDepositRequestAppService.AddNewCashDepositRequest(aboveMaxCashDepositRequestDTO, serviceHeader);
 
                                     //var systemPermissionTypeInRoles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CashDepositRequestAuthorization, serviceHeader);
@@ -1090,14 +1090,35 @@ namespace WebApplication1.Controllers
                                         aboveLimitsCashWithdrawalRequest.CustomerAccountId = SelectedCustomerAccount.Id;
                                         aboveLimitsCashWithdrawalRequest.Remarks = selectedTellerDTO.Id.ToString();
                                         aboveLimitsCashWithdrawalRequest.TransactionType = (int)FrontOfficeTransactionType.CashWithdrawal;
-                                        //   aboveLimitsCashWithdrawalRequest.
-                                        //   aboveLimitsCashWithdrawalRequest.AuthorizedDate = DateTime.Today;
-                                        //aboveLimitsCashWithdrawalRequest.Status = (int)CustomerTransactionAuthOption.;
-                                        //  aboveLimitsCashWithdrawalRequest.AuthorizedBy = SelectedTeller.Description
+                                        aboveLimitsCashWithdrawalRequest.Status = (int)CashWithdrawalRequestAuthStatus.Pending;
 
-                                        _cashWithdrawalRequestAppService.AddNewCashWithdrawalRequest(aboveLimitsCashWithdrawalRequest, serviceHeader);
-                                        string message = string.Format("{0}.\nSuccessfully plsced cash withdrawal authorization request?",EnumHelper.GetDescription(cashWithdrawalCategory)
-             );
+                                        aboveLimitsCashWithdrawalRequest.ValidateAll();
+                                        if (aboveLimitsCashWithdrawalRequest.HasErrors)
+                                        {
+                                            return new OperationResult
+                                            {
+                                                Success = false,
+                                                Dialog = false,
+                                                Message = string.Join("; ", aboveLimitsCashWithdrawalRequest.ErrorMessages)
+                                            };
+                                        }
+
+                                        var cashWithdrawalRequestDTO = _cashWithdrawalRequestAppService.AddNewCashWithdrawalRequest(aboveLimitsCashWithdrawalRequest, serviceHeader);
+
+                                        var withdrawalRolesList = _authorizationAppService.GetRolesListForSystemPermissionType((int)SystemPermissionType.CashWithdrawalRequestAuthorization, serviceHeader);
+
+                                        WorkflowDTO withdrawalWorkflowDto = new WorkflowDTO
+                                        {
+                                            RecordId = cashWithdrawalRequestDTO.Id,
+                                            BranchId = transactionModel.BranchId,
+                                            Status = (int)WorkflowRecordStatus.Pending,
+                                            SystemPermissionType = (int)SystemPermissionType.CashWithdrawalRequestAuthorization,
+                                            RequiredApprovals = withdrawalRolesList.Sum(x => x.RequiredApprovers)
+                                        };
+
+                                        _workflowAppService.AddNewWorkflow(withdrawalWorkflowDto, withdrawalRolesList, serviceHeader);
+
+                                        string message = string.Format("{0}.\nSuccessfully placed cash withdrawal authorization request", EnumHelper.GetDescription(cashWithdrawalCategory));
 
 
                                         return new OperationResult
@@ -1147,6 +1168,21 @@ namespace WebApplication1.Controllers
                                             withinLimitsCashWithdrawalRequest.AuthorizedDate = DateTime.Today;
                                             withinLimitsCashWithdrawalRequest.Status = (int)CashWithdrawalRequestAuthStatus.Paid;
                                             withinLimitsCashWithdrawalRequest.AuthorizedBy = SelectedTeller.Description;
+                                            withinLimitsCashWithdrawalRequest.CustomerAccountId = SelectedCustomerAccount.Id;
+                                            withinLimitsCashWithdrawalRequest.CustomerName = SelectedCustomer.FullName;
+                                            withinLimitsCashWithdrawalRequest.TransactionType = (int)FrontOfficeTransactionType.CashWithdrawal;
+                                            withinLimitsCashWithdrawalRequest.Remarks = SelectedTeller.Id.ToString();
+
+                                            withinLimitsCashWithdrawalRequest.ValidateAll();
+                                            if (withinLimitsCashWithdrawalRequest.HasErrors)
+                                            {
+                                                return new OperationResult
+                                                {
+                                                    Success = false,
+                                                    Dialog = false,
+                                                    Message = string.Join("; ", withinLimitsCashWithdrawalRequest.ErrorMessages)
+                                                };
+                                            }
 
                                             _cashWithdrawalRequestAppService.AddNewCashWithdrawalRequest(withinLimitsCashWithdrawalRequest, serviceHeader);
                                         }

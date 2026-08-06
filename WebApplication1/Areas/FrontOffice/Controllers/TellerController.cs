@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/frontoffice/tellers")]
     public class TellerController : ApiController
     {
@@ -36,20 +36,7 @@ namespace WebApplication1.Controllers
             try
 
             {
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 //var tellers = await _channelService.FindTellersByTypeAsync(tellerDTO.Type, tellerDTO.Reference, true, GetServiceHeader());
 
@@ -81,20 +68,7 @@ namespace WebApplication1.Controllers
             try
             {
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 tellerDTO.ValidateAll();
 
@@ -130,20 +104,7 @@ namespace WebApplication1.Controllers
             try
             {
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
 
                 var updatedTellerDTO = _tellerAppService.UpdateTeller(tellerDTO, serviceHeader);
@@ -165,20 +126,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 var teller = _tellerAppService.FindTeller(tellerId, serviceHeader);
             
@@ -247,20 +195,7 @@ namespace WebApplication1.Controllers
             try
             {
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
                 includeBalance = true;
 
                 //var teller = await _channelService.FindTellerByEmployeeIdAsync(employeeId, includeBalance, GetServiceHeader());

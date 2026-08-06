@@ -13,12 +13,12 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
 
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    [Authorize]
 
     [RoutePrefix("api/frontoffice/cashmanagement")]
     public class CashManagementController : ApiController
@@ -78,20 +78,7 @@ namespace WebApplication1.Controllers
            // bool IncludeBalance = false;
             fiscalCountDTO.ValidateAll();
 
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
+            var serviceHeader = Utils.CreateServiceHeader();
 
             if (!fiscalCountDTO.HasErrors)
             {

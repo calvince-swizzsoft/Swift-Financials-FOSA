@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/frontoffice/treasurys")]
     public class TreasurysController : ApiController
     {
@@ -36,20 +36,7 @@ namespace WebApplication1.Controllers
             try
             {
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 //if (branchId == Guid.Empty || !Guid.TryParse(branchId.ToString(), out parseId))
                 //{
@@ -85,20 +72,7 @@ namespace WebApplication1.Controllers
                 treasuryDTO.ValidateAll();
 
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 if (!treasuryDTO.HasErrors)
                 {
@@ -132,20 +106,7 @@ namespace WebApplication1.Controllers
             try
             {
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
               
                 var updatedTreasuryDTO = _treasuryAppService.UpdateTreasury(treasuryDTO, serviceHeader);
 

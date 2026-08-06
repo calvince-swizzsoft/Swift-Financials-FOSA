@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
 using Application.MainBoundedContext.FrontOfficeModule.Services;
@@ -7,16 +7,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Runtime.Remoting.Channels;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/frontoffice/transfers")]
     public class TransfersController : ApiController
     {
@@ -65,27 +65,10 @@ namespace WebApplication1.Controllers
         {
             var model = new CashTransferRequestDTO();
 
-            //            var currentUser = await _applicationUserManager.FindByIdAsync(User.Identity.GetUserId());
+            var serviceHeader = Utils.CreateServiceHeader();
 
-            // _selectedTeller = await GetCurrentTeller();
+            _selectedTeller = await GetCurrentTeller();
 
-
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
-
-            
             var untransferredChequesList = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId((Guid)TellerId, "", serviceHeader);
 
             var untransferredChequesValue = untransferredChequesList.Sum(cheque => cheque.Amount);
@@ -99,7 +82,6 @@ namespace WebApplication1.Controllers
             model.ClosingBalance = _selectedTeller.ClosingBalance;
 
             model.UntransferredChequesValue = untransferredChequesValue;
-            // return View(model);
             return Ok(model);
         }
 
@@ -110,23 +92,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
-
-                //var cashtransferrequsts = await _channelService.FindCashTransferRequestsAsync(GetServiceHeader());
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 var cashTransferRequests = _cashTransferRequestAppService.FindCashTransferRequestsAsync(serviceHeader);
                 return Ok(cashTransferRequests);
@@ -172,23 +138,8 @@ namespace WebApplication1.Controllers
 
             if (!cashTransferRequestDTO.HasErrors)
             {
+                var serviceHeader = Utils.CreateServiceHeader();
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
-
-                
                 var successRequest = _cashTransferRequestAppService.AddNewCashTransferRequestAsync(cashTransferRequestDTO, serviceHeader);
 
                 if (successRequest != null)
@@ -221,26 +172,10 @@ namespace WebApplication1.Controllers
 
             try
             {
-
-
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 List<ExternalChequeDTO> selectedCheques = new List<ExternalChequeDTO>(cheques);
 
-                //var currentUser = await _applicationUserManager.FindByIdAsync(User.Identity.GetUserId());
                 _selectedTeller = await GetCurrentTeller();
 
 
@@ -248,8 +183,6 @@ namespace WebApplication1.Controllers
 
                 if (SelectedTeller != null && SelectedTeller.ChartOfAccountId.HasValue && chequesInHandChartOfAccountId != Guid.Empty)
                 {
-
-                    //var transferred = await _channelService.TransferExternalChequesAsync(selectedCheques, SelectedTeller, 0, GetServiceHeader());
 
                     var transferred = _externalChequeAppService.TransferExternalCheques(selectedCheques, SelectedTeller, 0, serviceHeader);
 
@@ -260,18 +193,9 @@ namespace WebApplication1.Controllers
 
 
                     var untransferredCheques = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId(SelectedTeller.Id, "", serviceHeader);
-                    
+
                     var untransferredChequesValue = untransferredCheques.Sum(cheque => cheque.Amount);
 
-                    //model.EmployeeId = SelectedTeller.EmployeeId;
-                    //model.TotalCredits = SelectedTeller.TotalCredits;
-                    //model.TotalDebits = SelectedTeller.TotalDebits;
-                    //model.BookBalance = SelectedTeller.BookBalance;
-
-                    //model.OpeningBalance = SelectedTeller.OpeningBalance;
-                    //model.ClosingBalance = SelectedTeller.ClosingBalance;
-
-                    //model.UntransferredChequesValue = untransferredChequesValue;
                     // Construct a JSON response directly
                     var response = new
                     {
@@ -279,7 +203,6 @@ namespace WebApplication1.Controllers
                         message = "Cheques transferred successfully.",
                         data = new
                         {
-                            //EmployeeId = SelectedTeller.EmployeeId,
                             TotalCredits = SelectedTeller.TotalCredits,
                             TotalDebits = SelectedTeller.TotalDebits,
                             BookBalance = SelectedTeller.BookBalance,
@@ -310,37 +233,17 @@ namespace WebApplication1.Controllers
         }
 
 
-
-
         private async Task<TellerDTO> GetCurrentTeller()
         {
-           // bool includeBalance = true;
+            var serviceHeader = Utils.CreateServiceHeader();
 
+            var employeeIdClaim = (HttpContext.Current?.User as ClaimsPrincipal)?.FindFirst("EmployeeId");
 
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
+            if (employeeIdClaim == null || !Guid.TryParse(employeeIdClaim.Value, out var employeeId))
+                throw new InvalidOperationException("Current user has no linked employee/teller record.");
 
+            var teller = _tellerAppService.FindTellerByEmployeeId(employeeId, serviceHeader);
 
-
-            // Get the current user
-            //var user = await _applicationUserManager.FindByIdAsync(User.Identity.GetUserId());
-            // var teller = await _channelService.FindTellerByEmployeeIdAsync(Guid.Parse("50BDE4A6-1F50-F111-9B87-C8E2651EF92A"), includeBalance, GetServiceHeader());
-
-            var teller = _tellerAppService.FindTellerByEmployeeId(Guid.Parse("50BDE4A6-1F50-F111-9B87-C8E2651EF92A"), serviceHeader);
-            
-                       
             return teller;
         }
 
@@ -354,20 +257,7 @@ namespace WebApplication1.Controllers
 
             var missingParameters = new List<string>();
 
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
+            var serviceHeader = Utils.CreateServiceHeader();
 
 
             if (selectedTeller == null)
@@ -387,9 +277,6 @@ namespace WebApplication1.Controllers
 
             if (!cashTransferRequestDTO.HasErrors)
             {
-                //var successRequest = await _channelService.AddCashTransferRequestAsync(cashTransferRequestDTO, GetServiceHeader());
-
-            
                 var successRequest = await _cashTransferRequestAppService.AcknowledgeCashTransferRequestAsync(cashTransferRequestDTO, option, serviceHeader);
 
                 if (successRequest)
@@ -416,24 +303,10 @@ namespace WebApplication1.Controllers
         {
             try
             {
-
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 var cashTransferRequests = await _cashTransferRequestAppService.FindCashTransferRequestsAsync(serviceHeader);
-              
+
                 return Ok(cashTransferRequests);
             }
 
@@ -457,21 +330,7 @@ namespace WebApplication1.Controllers
 
             try
             {
-
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 var cashTransferRequest = await _cashTransferRequestAppService.FindCashTransferRequestAsync(request, serviceHeader);
 
