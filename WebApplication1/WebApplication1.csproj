@@ -274,6 +274,9 @@
     <Compile Include="Areas\FrontOffice\Controllers\ExpensePayableController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\SundryPaymentsController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CustomerReceiptsController.cs" />
+    <Compile Include="Areas\FrontOffice\Controllers\InHouseController.cs" />
+    <Compile Include="Areas\FrontOffice\Controllers\AutomatedClearingController.cs" />
+    <Compile Include="Areas\FrontOffice\Controllers\FiscalCountController.cs" />
     <Compile Include="Areas\Messaging\Controllers\TextAlertController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashManagementController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\ChequesController.cs" />
