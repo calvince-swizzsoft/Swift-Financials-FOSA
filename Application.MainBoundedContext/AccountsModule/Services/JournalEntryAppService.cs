@@ -144,6 +144,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             return new PageCollectionInfo<GeneralLedgerTransaction>
             {
                 PageCollection = transactionsList,
+                ItemsCount = itemsCount,
                 BookBalanceBroughtFoward = openingBookBalance,
                 BookBalanceCarriedForward = closingBookBalance,
                 AvailableBalanceBroughtFoward = openingAvailableBalance,
@@ -216,6 +217,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             var pageCollectionInfo = new PageCollectionInfo<GeneralLedgerTransaction>
             {
                 PageCollection = transactionsList,
+                ItemsCount = itemsCount,
                 BookBalanceBroughtFoward = openingBookBalance,
                 BookBalanceCarriedForward = closingBookBalance,
                 AvailableBalanceBroughtFoward = openingAvailableBalance,
