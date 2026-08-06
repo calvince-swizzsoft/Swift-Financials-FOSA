@@ -334,3 +334,78 @@ That drives `WorkflowProcessorAppService`, which calls the underlying
 to approve a request; there isn't one (the one that used to exist,
 `CashDepositController`'s `POST /authorize`, was removed for bypassing
 this engine — see WORKFLOW.md §11).
+
+---
+
+## 19. Navigation item codes (reference)
+
+For menu/permission-registration purposes — deciding whether to show a
+front-office menu entry and what to check against
+`GET /api/administration/modules` (same caveat as `customer-api-spec.md`
+§5.12 and `textalert-api-spec.md` §5) — the closest equivalents in the
+reference app's seeded navigation
+(`Infrastructure.Crosscutting.Framework/Utils/NavigationMenu.cs`, seeded
+one-time by `SwiftFinancials.Utility/Program.cs`, not computed live) are
+below. **Don't hardcode these hex-sum codes** — they belong to the old
+app's own `NavigationMenu` seed list, not a table this API shares by
+direct migration. Source the current code for each screen from
+`GET /api/administration/modules` instead; use this table only to find
+which seeded entry (if any) corresponds to which controller here.
+
+### Front-Office module tree (legacy root `0x000061A8`)
+
+| Menu path | Screen (this API) | Legacy code |
+|---|---|---|
+| Front-Office | *(root module)* | `0x000061A8` |
+| Front-Office → Operations | *(submenu)* | `0x000061A8 + 1` |
+| → Operations → Treasury | *(submenu)* | `0x000061A8 + 2` |
+| → → Treasury → Cash Management | §5 `CashManagementController` | `0x000061A8 + 3` |
+| → → Treasury → Authorizations | §4 cash withdrawal approvals (superseded — see §18, this now goes through the generic workflow inbox, not a dedicated screen) | `0x000061A8 + 4` |
+| → Operations → Teller | *(submenu)* | `0x000061A8 + 5` |
+| → → Teller → Savings Receipts/Payments | §4 `CashDepositController` (deposit/withdrawal) | `0x000061A8 + 6` |
+| → → Teller → Sundry Receipts/Payments | §14 `SundryPaymentsController` | `0x000061A8 + 7` |
+| → → Teller → Customer Receipts | §14 `CustomerReceiptsController` | `0x000061A8 + 8` |
+| → → Teller → Cheques/Cash Transfer | §8 `TransfersController` | `0x000061A8 + 9` |
+| → → Teller → End-Of-Day | §10 `EndOfDayController` | `0x000061A8 + 10` |
+| → Operations → Cheques | §9 `ChequesController` | `0x000061A8 + 11` |
+| → Operations → Fixed Deposits | §12 `FixedDepositController` | `0x000061A8 + 12` |
+| → Operations → Expense Payables | §13 `ExpensePayableController` | `0x000061A8 + 13` |
+| → Operations → Account Closure | §11 `AccountClosureController` | `0x000061A8 + 14` |
+
+### Seeded elsewhere (under the Accounts → Setup tree, not the Front-Office tree)
+
+Two front-office master-data screens are seeded under `Accounts → Setup`
+in the reference app rather than under `Front-Office → Operations` —
+same controllers, different parent menu:
+
+| Menu path | Screen (this API) | Legacy code |
+|---|---|---|
+| Accounts → Setup → Tellers | §7 `TellerController` | `0x000059D8 + 21` |
+| Accounts → Setup → Treasuries | §6 `TreasurysController` | `0x000059D8 + 20` |
+
+### Not seeded in the reference app — no legacy code exists
+
+These screens' reference-app menu entries were never finished — they're
+commented out in `NavigationMenu.cs` with a placeholder
+`ControllerName = "Controller"` that was never wired to a real controller,
+so **no legacy code exists to map them to at all**:
+
+- §16 `AutomatedClearingController` (planned nodes: Journals, Processing,
+  Catalogue — commented out under a never-activated "Automated Clearing"
+  submenu)
+- §15 `InHouseController` (planned nodes: Writing, Printing, Catalogue —
+  commented out under a never-activated "In-House" submenu)
+- §17 `FiscalCountController` (no submenu was ever drafted, standalone or
+  otherwise)
+- The more granular sub-steps that were drafted but never activated for
+  Fixed Deposits (Fixing/Verification/Termination/Liquidation/Catalogue),
+  Expense Payables (Origination/Verification/Authorization), and Account
+  Closure (Registration/Approval/Verification) — each of those *processes*
+  has an active top-level code above (`+12`/`+13`/`+14`), just not the
+  finer-grained per-action breakdown that was sketched and abandoned in
+  the comments around it
+
+If any of these need a real menu entry in the new system, register it
+fresh via whatever seeds `GET /api/administration/modules` today — don't
+resurrect the commented-out block, since its `ControllerName`/`ActionName`
+values were never finished either.
