@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
@@ -10,22 +10,19 @@ using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Drawing;
-using System.Drawing.Printing;
 using System.Linq;
 using System.Runtime.Remoting.Channels;
-using System.Text;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
 
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/frontoffice/endofday")]
     public class EndOfDayController : ApiController
     {
@@ -147,8 +144,6 @@ namespace WebApplication1.Controllers
 
         private bool IsBusy { get; set; } // Property to indicate if an operation is in progress
 
-        private string receiptContent;
-
         [HttpPost]
         [Route("")]
         public async Task<IHttpActionResult> Create([FromBody] CashTransferRequestDTO cashTransferRequestDTO)
@@ -158,23 +153,17 @@ namespace WebApplication1.Controllers
                 return BadRequest("Some validations failed - make sure all fields are included");
 
 
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
+            var serviceHeader = Utils.CreateServiceHeader();
 
-            _selectedTeller = _tellerAppService.FindTeller(cashTransferRequestDTO.TellerId, serviceHeader);
-            
+            // Resolve the teller closing out the day from the caller's own JWT identity,
+            // not a client-supplied TellerId — otherwise any authenticated caller could
+            // close out someone else's till by passing a different id.
+            _selectedTeller = await GetCurrentTeller();
+
+            if (_selectedTeller == null)
+                return BadRequest("Current user has no linked employee/teller record.");
+
+            cashTransferRequestDTO.TellerId = SelectedTeller.Id;
             cashTransferRequestDTO.EmployeeId = SelectedTeller.EmployeeId;
             _selectedTeller.TellerTotalCheques = cashTransferRequestDTO.UntransferredChequesValue;
 
@@ -183,8 +172,8 @@ namespace WebApplication1.Controllers
             _selectedBranch = _branchAppService.FindBranch(SelectedEmployee.BranchId, serviceHeader);
 
             _selectedPostingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
-            
- 
+
+
             _selectedTreasury = _treasuryAppService.FindTreasuryByBranchId(SelectedBranch.Id, serviceHeader);
 
             try
@@ -269,8 +258,6 @@ namespace WebApplication1.Controllers
                     NewFiscalCount.TotalValue = model.TotalValue;
 
 
-                    //NewFiscalCount.DestinationBranchId = Guid.NewGuid(); /*for passing validation*/
-
                     NewFiscalCount.DestinationBranchId = SelectedTreasury.BranchId;
                     NewFiscalCount.ValidateAll();
 
@@ -292,9 +279,6 @@ namespace WebApplication1.Controllers
 
 
                         var cashManagementResult = _journalAppService.AddNewJournal(null, NewFiscalCount.BranchId, null, model.TotalValue, model.PrimaryDescription, model.SecondaryDescription, model.Reference, 0, model.TransactionCode, model.ValueDate, model.CreditChartOfAccountId, model.DebitChartOfAccountId, serviceHeader, true);
-
-
-                        //  var cashManagementResult = await _channelService.AddCashManagementJournalAsync(NewFiscalCount, model, GetServiceHeader());
 
                         if (cashManagementResult != null)
                         {
@@ -331,28 +315,16 @@ namespace WebApplication1.Controllers
 
                                 var resultJournal = _journalAppService.AddNewJournal(null, NewFiscalCount.BranchId, null, model.TotalValue, model.PrimaryDescription, model.SecondaryDescription, model.Reference, 0, model.TransactionCode, model.ValueDate, model.CreditChartOfAccountId, model.DebitChartOfAccountId, serviceHeader, true);
 
-                               // var resultJournal = await _channelService.AddJournalAsync(model, null, GetServiceHeader());
-
-
                         #endregion
+                                // resultJournal carries everything a receipt needs (id, sequential id,
+                                // branch/posting-period/user descriptions, amount, reference, date) — the
+                                // React client renders/prints its own receipt from this instead of the
+                                // server driving a local printer.
                                 var response = new
                                 {
-
                                     success = true,
-
-
-                                    message = "Operation Success:" + "End of Day Operation Completed Successfully",
-
-                                    journalId = resultJournal.Id,
-                                    journalSequentialId = resultJournal.SequentialId,
-                                    journalBranchDescription = resultJournal.BranchDescription,
-                                    journalPrimaryDescription = resultJournal.PrimaryDescription,
-                                    journalSecondaryDescription = resultJournal.SecondaryDescription,
-                                    journalPostingPeriodDescription = resultJournal.PostingPeriodDescription,
-                                    journalApplicationUserName = resultJournal.ApplicationUserName,
-                                    journalCreatedDate = resultJournal.CreatedDate,
-                                    journalTotalValue = resultJournal.TotalValue,
-                                    journalReference = resultJournal.Reference
+                                    message = "Operation Success: End of Day Operation Completed Successfully",
+                                    data = resultJournal
                                 };
 
                                 return Json(response);
@@ -360,13 +332,13 @@ namespace WebApplication1.Controllers
 
                             else
                             {
-                                return Json(new { success = false, message = "postExcessOrShortage boolean was false." });
+                                return Json(new { success = false, message = "postExcessOrShortage boolean was false.", data = (object)null });
                             }
                         }
 
                         else
                         {
-                            return Json(new { success = false, message = "Failed to add a cash management journal. " });
+                            return Json(new { success = false, message = "Failed to add a cash management journal. ", data = (object)null });
                         }
                     }
                 }
@@ -374,7 +346,7 @@ namespace WebApplication1.Controllers
 
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Operation error: " + ex.Message });
+                return Json(new { success = false, message = "Operation error: " + ex.Message, data = (object)null });
             }
         }
 
@@ -382,105 +354,17 @@ namespace WebApplication1.Controllers
 
         private async Task<TellerDTO> GetCurrentTeller()
         {
+            var serviceHeader = Utils.CreateServiceHeader();
 
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
+            var employeeIdClaim = (HttpContext.Current?.User as ClaimsPrincipal)?.FindFirst("EmployeeId");
 
-            // Get the current user
-            //var user = await _applicationUserManager.FindByIdAsync(User.Identity.GetUserId());
+            if (employeeIdClaim == null || !Guid.TryParse(employeeIdClaim.Value, out var employeeId))
+                throw new InvalidOperationException("Current user has no linked employee/teller record.");
 
-            var teller =  _tellerAppService.FindTellerByEmployeeId(Guid.Parse("50BDE4A6-1F50-F111-9B87-C8E2651EF92A"), serviceHeader);
-           
+            var teller = _tellerAppService.FindTellerByEmployeeId(employeeId, serviceHeader);
+
             return teller;
-
         }
-
-
-        [HttpPost]
-        public IHttpActionResult PrintReceipt(JournalDTO journal)
-        {
-            try
-            {
-                var printerName = ConfigurationManager.AppSettings["ReceiptPrinterName"];
-
-                if (string.IsNullOrWhiteSpace(printerName))
-                    return BadRequest("Printer name is not configured.");
-
-                var receiptContent = BuildReceiptContent(journal);
-
-                using (var printDocument = new PrintDocument())
-                {
-                    printDocument.PrinterSettings = new PrinterSettings
-                    {
-                        PrinterName = printerName
-                    };
-
-                    printDocument.PrintPage += (sender, e) =>
-                    {
-                        e.Graphics.DrawString(
-                            receiptContent,
-                            new Font("Courier New", 10),
-                            Brushes.Black,
-                            new RectangleF(0, 0, e.PageBounds.Width, e.PageBounds.Height)
-                        );
-                    };
-
-                    printDocument.Print();
-                }
-
-                return Ok(new { success = true, message = "Receipt printed successfully." });
-            }
-            catch (Exception ex)
-            {
-                return InternalServerError(ex);
-            }
-        }
-
-
-        // Helper method to build the receipt content
-        private string BuildReceiptContent(JournalDTO journal)
-        {
-            var builder = new StringBuilder();
-
-            // Add headers
-            builder.AppendLine("===== Transaction Receipt =====");
-            builder.AppendLine($"Transaction ID: {journal.Id}");
-            builder.AppendLine($"Sequential ID: {journal.SequentialId}");
-            builder.AppendLine($"Branch: {journal.BranchDescription}");
-            builder.AppendLine($"Posting Period: {journal.PostingPeriodDescription}");
-            builder.AppendLine($"Total Value: {journal.TotalValue:C}"); // Format as currency
-            builder.AppendLine($"Primary Description: {journal.PrimaryDescription}");
-            builder.AppendLine($"Secondary Description: {journal.SecondaryDescription}");
-            builder.AppendLine($"Reference: {journal.Reference}");
-
-            //this format cld have issue
-            builder.AppendLine($"Transaction Date: {journal.CreatedDate:yyyy-MM-dd HH:mm:ss}");
-
-            // Add environment details
-            builder.AppendLine("\n===== Environment Details =====");
-            builder.AppendLine($"User: {journal.ApplicationUserName}");
-            //builder.AppendLine($"Machine Name: {journal.EnvironmentMachineName}");
-            //builder.AppendLine($"IP Address: {journal.EnvironmentIPAddress}");
-
-            // Add a footer
-            builder.AppendLine("\n===============================");
-            builder.AppendLine("Thank you for using our services!");
-
-            return builder.ToString();
-        }
-
 
 
     }

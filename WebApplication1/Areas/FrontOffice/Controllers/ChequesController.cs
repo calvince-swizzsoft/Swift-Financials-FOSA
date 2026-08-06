@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
 
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/frontoffice/cheques")]
     public class ChequesController : ApiController
     {
@@ -32,29 +32,15 @@ namespace WebApplication1.Controllers
       
         [HttpGet]
         [Route("")]
-        public async Task<IHttpActionResult> Index()
+        public async Task<IHttpActionResult> Index(string text = "", int pageIndex = 0, int pageSize = 20)
         {
             try
             {
+                var serviceHeader = Utils.CreateServiceHeader();
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var cheques = _externalChequeAppService.FindExternalCheques(text, pageIndex, pageSize, serviceHeader);
 
-                var cheques = _externalChequeAppService.FindExternalCheques(serviceHeader);
-
-                return Ok(cheques);
+                return Ok(new { success = true, message = "", data = cheques });
             }
 
             catch (Exception ex)
@@ -85,20 +71,7 @@ namespace WebApplication1.Controllers
                 });
             }
 
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
+            var serviceHeader = Utils.CreateServiceHeader();
             bool isSuccess = true;
             string errorMessage = string.Empty;
 
@@ -174,22 +147,8 @@ namespace WebApplication1.Controllers
                 return Json(new { success = false, message = "No cheques selected." });
             }
 
-            var serviceHeader = new ServiceHeader
-            {
-                ApplicationDomainName = "SwiftApis",
-                ApplicationUserName = "Admin",
-                EnvironmentDomainName = "SwiftApis",
-                //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                EnvironmentIPAddress = "",
-                EnvironmentMACAddress = "",
-                EnvironmentMachineName = Environment.MachineName,
-                EnvironmentMotherboardSerialNumber = "",
-                EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
-            };
+            var serviceHeader = Utils.CreateServiceHeader();
 
-           
             bool isSuccess = true;
             string errorMessage = string.Empty;
 
@@ -310,24 +269,10 @@ namespace WebApplication1.Controllers
 
             try
             {
-
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 var cheques = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId(teller, "", serviceHeader);
-                return Ok(cheques);
+                return Ok(new { success = true, message = "", data = cheques });
             }
 
             catch (Exception ex)

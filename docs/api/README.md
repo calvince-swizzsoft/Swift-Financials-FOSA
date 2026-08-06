@@ -38,11 +38,52 @@ what to go update.
 | Companies | `api/administration/companies` | [`company-api-spec.md`](company-api-spec.md) |
 | Branches | `api/administration/branches` | [`branch-api-spec.md`](branch-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
+| Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Front Office API — new, plus breaking fixes to what already existed
+
+All 15 front-office functional areas (teller transactions, treasury, cheque
+banking/clearance, end of day, account closure, fixed deposits, expense
+payables, sundry payments/customer receipts, in-house cheques, automated
+clearing, fiscal counts) now have a documented `ApiController`. Full
+reference: `frontoffice-api-spec.md`; functional/process design:
+`WebApplication1/Areas/FrontOffice/WORKFLOW.md`.
+
+If you already integrated against the 7 controllers that existed before
+this pass (`api/frontoffice/{requests,cashmanagement,cheques,transfers,
+tellers,treasurys,endofday}`), several things changed under you:
+
+- **Auth is now required** on all of them (was `[AllowAnonymous]` with
+  wildcard CORS on 6 of the 7 — local-testing scaffolding that shipped by
+  mistake). Send a bearer JWT or every call now `401`s.
+- **`POST /api/frontoffice/requests/authorize` is gone.** It bypassed the
+  generic maker-checker engine. Approve/reject a pending cash deposit or
+  withdrawal request through `POST /api/administration/workflows/items/approve`
+  instead — see `frontoffice-api-spec.md` §18.
+- **`GET /api/frontoffice/requests` and `GET /api/frontoffice/cheques` are
+  now paged.** Both used to return the full unpaged table in `data` as a
+  bare array; they now return `PageCollectionInfo<T>` under `data`, and
+  `requests` defaults to the `Pending` queue unless you pass `status`
+  explicitly.
+- **`CashDepositController.Create`'s dialog response is now nested under
+  `data`.** Fields like `cashTransactionRequestId`/`transactionCategory`
+  used to sit at the top level of the JSON response alongside `success`;
+  they're now under `data`, matching every other endpoint's envelope.
+- **Receipts**: there is no server-side print endpoint anymore (the old
+  one drove `System.Drawing.Printing` against a hardcoded local printer
+  name, which only worked if the API process and the printer were on the
+  same machine — never true for a browser client). Deposit/withdrawal
+  posting and End of Day close now return the full journal in `data`;
+  render/print the receipt client-side from that.
+- If you called `TransfersController`/`EndOfDayController` and relied on
+  "current teller" resolving to a specific fixed identity: it no longer
+  does — both now resolve the teller from the caller's own JWT, same as
+  every other endpoint in this area.
 
 ### Text Alert API — new
 

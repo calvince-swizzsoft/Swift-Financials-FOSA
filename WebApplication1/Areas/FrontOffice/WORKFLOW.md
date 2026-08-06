@@ -3,7 +3,7 @@
 Audience: anyone building or reviewing the `Areas/FrontOffice` API surface
 who needs to understand *what the front office is supposed to do*, not just
 what one endpoint returns. This is a functional/process reference, not an
-API spec — see `docs/api/*.md` (once written, see §10) for request/response
+API spec — see `docs/api/frontoffice-api-spec.md` for request/response
 shapes.
 
 Source of truth:
@@ -264,7 +264,7 @@ each has its own multi-stage maker-checker shape:
 
 | Process | Stages | Purpose |
 |---|---|---|
-| Account closure | Create → **Verify** → Approve → **Settle** | Pays out remaining balance and closes a customer account (4 stages — the only front-office flow with a distinct verify *and* approve step, plus a final settlement) |
+| Account closure | Create → **Approve** → **Verify** → **Settle** | Pays out remaining balance and closes a customer account (4 stages — the only front-office flow with a distinct approve *and* verify step, plus a final settlement). Note: this is the order `AccountClosureRequestAppService` actually enforces via its status gating (Approve only accepts Registered/Deferred, Verify/Audit only accepts Approved, Settle only accepts Audited) — the reference MVC controller's action naming order (Create→Verify→Approve→Settle) does not match |
 | Expense payable | Create → Verify → Approve | Petty-cash / expense voucher with multiple GL lines (header + entries pattern) |
 | Fixed deposit | Create → Verify → **Terminate** (early, batch-capable) or **Liquidate** (at maturity, batch-capable) | Counter-originated fixed deposit product lifecycle |
 | Sundry payments / credit batches | Single-stage entry | General GL voucher postings; also surfaces `CreditBatchType.Payout`/`CheckOff` batch entries (e.g. payroll check-off) |
@@ -273,44 +273,84 @@ each has its own multi-stage maker-checker shape:
 
 ## 10. Implementation status in this repo
 
-| Functional area | Old MVC controller (reference) | This repo | Status |
+All 15 functional areas now have a live `ApiController`. Every controller
+requires `[Authorize]` (a valid JWT); the six that were `[AllowAnonymous]`
+with wildcard CORS, plus `CashDepositController` (anonymous by omission),
+were locked down as part of the fidelity pass described in §11.
+
+| Functional area | Old MVC controller (reference) | This repo | Notes |
 |---|---|---|---|
-| Teller master data | `TellerController` | `Areas/FrontOffice/Controllers/TellerController.cs` | Live — `[AllowAnonymous]`, wildcard CORS, delete unimplemented |
-| Deposit/withdrawal transaction + request queue | `CashDepositController`, `CashWithdrawalController`, `CashWithdrawalRequestController` | `Areas/FrontOffice/Controllers/CashDepositController.cs` (unified) | Live — most recently touched by `b2ec977` (posting/state-transition bug fixes) |
-| — dead duplicate | `CashWithdrawalController` | `Areas/FrontOffice/Controllers/CashWithdrawalController.cs` | **Fully commented out**, not compiled — superseded by the unified controller above; flag before deleting per root `CLAUDE.md`'s "don't delete without confirming nothing depends on it" guidance |
+| Teller master data | `TellerController` | `Areas/FrontOffice/Controllers/TellerController.cs` | Live |
+| Deposit/withdrawal transaction + request queue | `CashDepositController`, `CashWithdrawalController`, `CashWithdrawalRequestController` | `Areas/FrontOffice/Controllers/CashDepositController.cs` (unified) | Live. Maker-checker fully routes through the generic `Workflow` engine now (§11) |
 | Treasury cash movement | `CashManagementController` | `Areas/FrontOffice/Controllers/CashManagementController.cs` | Live |
 | Treasury master data | `TreasuryController` | `Areas/FrontOffice/Controllers/TreasurysController.cs` | Live |
 | Cash transfer requests + cheque transfer batch | `CashTransferController`, `TransfersController` | `Areas/FrontOffice/Controllers/TransfersController.cs` (both folded in) | Live |
 | Cheque banking & clearance | `ChequesController` | `Areas/FrontOffice/Controllers/ChequesController.cs` | Live |
-| End of day close | `EndOfDayController` | `Areas/FrontOffice/Controllers/EndOfDayController.cs` | Live — `PrintReceipt` still uses `System.Drawing.Printing`/hardcoded printer name, meaningless server-side (see §11) |
-| Automated/image cheque clearing | `AutomatedClearingController` | — | Not ported |
-| Account closure | `AccountClosureController` | — | Not ported |
-| Expense payable | `ExpensePayableController` | — | Not ported |
-| Fixed deposit | `FixedDepositController` | — | Not ported |
-| Sundry payments / credit batches | `SundryPaymentsController` | — | Not ported |
-| Customer receipts | `CustomerReceiptsController` | — | Not ported |
-| In-house cheque issuance/printing | `InHouseController` | — | Not ported |
-| Standalone fiscal count CRUD | `FiscalCountController` | — | Not ported (denomination counting still works inline via `FiscalCountDTO` on treasury/EOD posts) |
+| End of day close | `EndOfDayController` | `Areas/FrontOffice/Controllers/EndOfDayController.cs` | Live — local-printer `PrintReceipt` removed, journal returned in `data` for client-side receipt rendering |
+| Automated/image cheque clearing | `AutomatedClearingController` | `Areas/FrontOffice/Controllers/AutomatedClearingController.cs` | Live |
+| Account closure | `AccountClosureController` | `Areas/FrontOffice/Controllers/AccountClosureController.cs` | Live |
+| Expense payable | `ExpensePayableController` | `Areas/FrontOffice/Controllers/ExpensePayableController.cs` | Live — Verify enqueues into the generic `Workflow` engine (was already wired in `WorkflowProcessorAppService`, just never enqueued into) |
+| Fixed deposit | `FixedDepositController` | `Areas/FrontOffice/Controllers/FixedDepositController.cs` | Live |
+| Sundry payments / credit batches | `SundryPaymentsController` | `Areas/FrontOffice/Controllers/SundryPaymentsController.cs` | Live — single-line GL voucher only (see §11, credit-batch-entry queue not reproduced) |
+| Customer receipts | `CustomerReceiptsController` | `Areas/FrontOffice/Controllers/CustomerReceiptsController.cs` | Live — single-line only, multi-account apportionment not reproduced (§11, real gap) |
+| In-house cheque issuance/printing | `InHouseController` | `Areas/FrontOffice/Controllers/InHouseController.cs` | Live — printing posts status+journal only, no local print driver |
+| Standalone fiscal count CRUD | `FiscalCountController` | `Areas/FrontOffice/Controllers/FiscalCountController.cs` | Live |
 
-Domain aggregates and app services for every row above already exist,
+Domain aggregates and app services for every row above already existed,
 byte-identical to the old repo, under `Domain.MainBoundedContext/FrontOfficeModule`
-and `Application.MainBoundedContext/FrontOfficeModule/Services` — the "not
-ported" rows are purely missing `ApiController`s, not missing business logic.
+and `Application.MainBoundedContext/FrontOfficeModule/Services` before any of
+this controller work started — none of it required app-service or domain
+changes, only new `ApiController`s (plus the `Workflow`-engine wiring fix in
+§11, which touched an existing controller, not the domain layer).
 
-## 11. Known gaps worth flagging
+Full request/response reference: `docs/api/frontoffice-api-spec.md`.
 
-- **No `docs/api/*.md` spec exists yet for any front-office endpoint**,
-  despite 7 controllers being live and two of the most recent commits
-  touching this area. Once endpoint shapes stabilize, write
-  `frontoffice-*-api-spec.md` docs following the pattern in
-  `docs/api/textalert-api-spec.md`, and add them to `docs/api/README.md`.
-- `EndOfDayController.PrintReceipt` (and `CashDepositController`'s receipt
-  printing) still build a plain-text receipt and drive
-  `System.Drawing.Printing.PrintDocument` against a hardcoded local printer
-  name (`"EPSON L3250 Series"`) — this was a same-machine assumption valid
-  for a desktop MVC app, but doesn't work from a server-side Web API. Needs
-  a real design decision (return receipt data/PDF to the caller for
-  client-side printing?) before it's relied on.
-- Root `CLAUDE.md`'s "Controllers adapted so far" list doesn't mention any
-  front-office controller — worth updating alongside whichever controller
-  you touch next, since the list is meant to track what's been adapted.
+## 11. Fidelity pass — what was fixed (2026-08-06)
+
+A deeper pass compared what was live against both the reference app's
+*intent* and this repo's own web-API conventions, and found the front
+office was a half-migration. Fixed, on branch `feature/frontoffice-fidelity`:
+
+- **Maker-checker consistency.** Cash *deposit* requests already enqueued
+  into the generic `Workflow` engine on creation; cash *withdrawal*
+  requests never did, despite `WorkflowProcessorAppService` already having
+  a ready `CashWithdrawalRequestAuthorization` case. Both now enqueue.
+  `ExpensePayableController.Verify` does the same for expense payables.
+  The ad-hoc `POST .../authorize` endpoint on `CashDepositController`
+  (which bypassed the `Workflow` engine — no multi-level approval
+  counting, no audit row) was removed; checkers approve through the
+  existing generic `POST /api/administration/workflows/items/approve`.
+- **Teller identity.** `TransfersController`/`EndOfDayController` resolved
+  "current teller" from a hardcoded GUID; both now read the `EmployeeId`
+  claim off the caller's JWT, like `CashDepositController` already did.
+  `EndOfDayController.Create` no longer trusts a client-supplied
+  `TellerId` either.
+- **Auth.** `[Authorize]` added everywhere; wildcard CORS/`[AllowAnonymous]`
+  removed (was local-testing scaffolding — pending cash-request data was
+  readable with zero authentication before this).
+- **Receipts.** Local-printer code (`System.Drawing.Printing` against a
+  hardcoded printer name, only reachable from the same machine as the
+  process) removed from `EndOfDayController`. Deposit/withdrawal/EOD
+  posting endpoints now return the full `JournalDTO` under `data`,
+  which is what the React client renders/prints from — see
+  `docs/api/frontoffice-api-spec.md` for the exact fields.
+- **Web-consumption shape.** Every list endpoint now returns real paging
+  (`PageCollectionInfo<T>`) instead of a bare unpaged array, and every
+  response uses the standard `{ success, message, data }` envelope.
+- **Known, documented gap, not silently dropped:**
+  `CustomerReceiptsController` posts a single-line GL voucher only. The
+  reference MVC controller split one receipt total across multiple
+  chart-of-account lines (`AddJournalWithApportionmentsAsync`), but
+  `IJournalAppService` has no apportioned-posting overload in this repo —
+  adding real multi-line apportionment support is app-service/domain
+  work, not a controller-layer port. Same caveat applies to
+  `SundryPaymentsController`'s credit-batch-entry queue (`CreditBatchType`
+  browse/pickup screens) — not reproduced, since the underlying batch
+  browse endpoints live outside `IJournalAppService`/`ITellerAppService`
+  and weren't in scope for this pass.
+- Two reference-controller bugs fixed rather than ported forward:
+  `AutomatedClearingController` and `FiscalCountController`'s reference
+  MVC grid actions both called `FindTreasuriesByFilterInPageAsync` (the
+  wrong service — copy-paste from a sibling controller) and, in
+  `AutomatedClearingController`'s case, never even returned the query
+  result to the view. Both now call their correct respective app services.
