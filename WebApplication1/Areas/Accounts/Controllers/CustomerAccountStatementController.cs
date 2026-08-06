@@ -1,6 +1,8 @@
 using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.Services;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Net;
 using System.Net.Http;
@@ -55,6 +57,12 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 if (customerAccount == null)
                     return ErrorResponse(HttpStatusCode.NotFound, "Customer account not found");
 
+                // FindCustomerAccountDTO doesn't populate product chart-of-account fields
+                // (CustomerAccountTypeTargetProductChartOfAccountId etc.) — without this,
+                // JournalEntryAppService's statement-building code filters "other
+                // transactions" on a null Guid and silently returns none.
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
+
                 var statement = _journalEntryAppService.FindLastXGeneralLedgerTransactionsByCustomerAccountId(customerAccount, lastXDays, lastXItems, tallyDebitsCredits, serviceHeader);
 
                 return ApiResponse(true, "Mini statement retrieved successfully", statement);
@@ -84,6 +92,12 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var customerAccount = _customerAccountAppService.FindCustomerAccountDTO(customerAccountId, serviceHeader);
                 if (customerAccount == null)
                     return ErrorResponse(HttpStatusCode.NotFound, "Customer account not found");
+
+                // FindCustomerAccountDTO doesn't populate product chart-of-account fields
+                // (CustomerAccountTypeTargetProductChartOfAccountId etc.) — without this,
+                // JournalEntryAppService's statement-building code filters "other
+                // transactions" on a null Guid and silently returns none.
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
 
                 var effectiveStartDate = startDate ?? DateTime.Today.AddMonths(-1);
                 var effectiveEndDate = endDate ?? DateTime.Today;
@@ -117,6 +131,12 @@ namespace WebApplication1.Areas.Accounts.Controllers
             var customerAccount = _customerAccountAppService.FindCustomerAccountDTO(customerAccountId, serviceHeader);
             if (customerAccount == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Customer account not found");
+
+            // FindCustomerAccountDTO doesn't populate product chart-of-account fields
+            // (CustomerAccountTypeTargetProductChartOfAccountId etc.) — without this,
+            // JournalEntryAppService's statement-building code filters "other
+            // transactions" on a null Guid and silently returns none.
+            _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
 
             var effectiveStartDate = startDate ?? DateTime.Today.AddMonths(-1);
             var effectiveEndDate = endDate ?? DateTime.Today;
