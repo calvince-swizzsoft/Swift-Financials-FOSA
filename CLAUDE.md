@@ -127,3 +127,8 @@ drift out of sync with the actual code.
 - `Areas/Registry/Controllers/StationController.cs` (extended `IZoneAppService`)
 - `Areas/Admin/Controllers/CompanyController.cs`
 - `Areas/Messaging/Controllers/TextAlertController.cs` (existing `ITextAlertAppService`)
+- `Areas/FrontOffice/Controllers/*` — teller transactions, treasury, cheques,
+  end of day, account closure, fixed deposits, expense payables, sundry
+  payments/customer receipts, in-house cheques, automated clearing, fiscal
+  counts. See `Areas/FrontOffice/WORKFLOW.md` for the functional design and
+  `docs/api/frontoffice-api-spec.md` for the endpoint reference.
