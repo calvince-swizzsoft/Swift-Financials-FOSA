@@ -118,8 +118,40 @@ Controller: `CashManagementController.cs`.
 Body: `FiscalCountDTO` — `TransactionType` (`TreasuryTransactionType`:
 `BankToTreasury`/`TreasuryToBank`/`TreasuryToTeller`/`TreasuryToTreasury`),
 denomination breakdown fields (`DenominationOneThousandValue` ... down to
-50-cent), `TotalValue`. `400` if outgoing and the treasury's book balance
-is insufficient.
+50-cent), `TotalValue`. `400` if outgoing (`TreasuryToTeller`/
+`TreasuryToBank`/`TreasuryToTreasury`) and the treasury's book balance is
+insufficient — `BankToTreasury` (incoming) has no such check.
+
+The denomination fields and `TotalValue` **are cross-validated**: each
+denomination field holds that denomination's own monetary subtotal (not a
+raw note/coin piece count — e.g. `DenominationOneThousandValue` is "how
+much was counted in 1000-notes"), and the eleven subtotals must sum to
+exactly `TotalValue` (`Utils.SumDenominationValues`) or the call returns
+`400` before anything is posted. The denomination breakdown is then
+persisted as a separate physical-count audit record
+(`FiscalCountAppService.AddNewFiscalCounts`) alongside the GL journal.
+
+`Id` is overloaded depending on `TransactionType` — it isn't the fiscal
+count's own id on the way in:
+
+| `TransactionType` | What `Id` must be |
+|---|---|
+| `BankToTreasury` / `TreasuryToBank` | The `Bank` id |
+| `TreasuryToTreasury` | The **destination** `Treasury` id |
+| `TreasuryToTeller` | Unused — send `TellerId` instead |
+
+`DestinationBranchId` is only meaningful for `TreasuryToTreasury` — the
+receiving branch. That call writes **two** `FiscalCount` records in one
+request (source and destination sides), which is also why `TreasuryToTreasury`
+is the one case where two chart-of-account ids matter: the source
+treasury's (credited) and the destination treasury's (debited, resolved
+from the `Id` you sent).
+
+`BranchId` and `ChartOfAccountId` sent by the client are both overwritten
+server-side regardless of value — `BranchId` is used once to resolve the
+caller's own treasury (`FindTreasuryByBranchId`), then reset to that
+treasury's own branch; `ChartOfAccountId` is always replaced with the
+resolved treasury's chart of account. Don't bother populating either.
 
 Treasury *master data* (creating/editing the `Treasury` vault record
 itself) is no longer part of this area — it's pure admin CRUD, not
@@ -162,6 +194,19 @@ Controller: `TransfersController.cs`.
 | `/` | GET | All cash transfer requests |
 | `/cash/utilize?request={id}` | POST | Mark a cash transfer request `Utilized` |
 
+`POST /cash` requires a denomination breakdown that reconciles to `Amount`,
+same as treasury cash movement (§5) — `CashTransferRequestDTO` carries the
+same eleven `Denomination*Value` fields as `FiscalCountDTO`. `400` if the
+subtotals don't sum to `Amount`.
+
+`CashTransferRequest` itself has no columns for a denomination breakdown —
+on success, the counted denominations are written as a **companion**
+`FiscalCount` record (`TransactionCode = TellerCashTransfer`,
+`ChartOfAccountId` = the caller's own teller account), not onto the
+request record. There's no endpoint to fetch that companion record back
+via the transfer request itself; query it through
+`GET /api/frontoffice/fiscalcounts` (§16) if needed.
+
 ---
 
 ## 8. Cheque banking & clearance — `api/frontoffice/cheques`
@@ -185,10 +230,16 @@ Controller: `EndOfDayController.cs`.
 
 Body: `CashTransferRequestDTO` — `UntransferredChequesValue`,
 `TellerCashBalanceStatusValue` (`TellerCashBalanceStatus`:
-`Balanced`/`Shortage`/`Excess`), `ClosingBalance`, `BookBalance`. The
-teller is always the caller's own (§3) — any `TellerId` in the body is
-overwritten. Enforces, in order: cheques transferred (`400` if not),
-EOD not already run today (`400` if it has), then posts the close journal
+`Balanced`/`Shortage`/`Excess`), `ClosingBalance`, `BookBalance`, plus the
+eleven `Denomination*Value` fields (same shape as `FiscalCountDTO`) — their
+sum must equal `ClosingBalance` or the call returns `400` before anything
+is checked/posted. The teller is always the caller's own (§3) — any
+`TellerId` in the body is overwritten. Enforces, in order: denomination
+reconciliation, cheques transferred (`400` if not), EOD not already run
+today (`400` if it has), then writes a `FiscalCount` record
+(`TransactionCode = TellerEndOfDay` — this is also what
+`IsEndOfDayExecutedAsync` checks for, so a closed day actually stays
+closed) before posting the close journal
 (+ suspense entry to `Teller.ShortageChartOfAccountId`/
 `ExcessChartOfAccountId` if unbalanced). Success: `data` is the closing
 `JournalDTO` — render/print the EOD receipt from this; there is no
@@ -328,12 +379,14 @@ string, and PGP key paths/passphrase entirely from server config
 
 Controller: `FiscalCountController.cs`. A browse/manual-entry view over
 denomination-count records — normal posting happens inline via treasury
-cash movement (§5) or EOD close (§9), both of which build their own
-`FiscalCountDTO`.
+cash movement (§5), EOD close (§9), or a cash transfer request (§7), all of
+which build/persist their own `FiscalCountDTO`.
 
 - `GET /?text=&startDate=&endDate=&pageIndex=&pageSize=` — paged list.
 - `GET /{id}` — single record.
-- `POST /` — manual entry (`FiscalCountDTO`).
+- `POST /` — manual entry (`FiscalCountDTO`). Same reconciliation rule as
+  every other entry point into `FiscalCount`: the eleven
+  `Denomination*Value` subtotals must sum to `TotalValue`, `400` otherwise.
 
 ---
 

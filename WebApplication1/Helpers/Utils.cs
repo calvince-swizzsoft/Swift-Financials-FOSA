@@ -36,7 +36,19 @@ namespace WebApplication1.Helpers
             };
         }
 
-
+        // Denomination fields on FiscalCountDTO/CashTransferRequestDTO each hold that
+        // denomination's own monetary subtotal (not a raw note/coin piece count) — e.g.
+        // DenominationOneThousandValue is "how much was counted in 1000-notes", already
+        // in currency terms. Reconciling against a transaction total is therefore a plain
+        // sum, not a count-times-face-value calculation.
+        public static decimal SumDenominationValues(
+            decimal oneThousandValue, decimal fiveHundredValue, decimal twoHundredValue, decimal oneHundredValue,
+            decimal fiftyValue, decimal fourtyValue, decimal twentyValue, decimal tenValue, decimal fiveValue,
+            decimal oneValue, decimal fiftyCentValue)
+        {
+            return oneThousandValue + fiveHundredValue + twoHundredValue + oneHundredValue + fiftyValue
+                 + fourtyValue + twentyValue + tenValue + fiveValue + oneValue + fiftyCentValue;
+        }
 
     }
 }

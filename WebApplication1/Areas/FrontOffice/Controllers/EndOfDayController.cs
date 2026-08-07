@@ -152,6 +152,18 @@ namespace WebApplication1.Controllers
             if (cashTransferRequestDTO.HasErrors)
                 return BadRequest("Some validations failed - make sure all fields are included");
 
+            var countedTotal = Utils.SumDenominationValues(
+                cashTransferRequestDTO.DenominationOneThousandValue, cashTransferRequestDTO.DenominationFiveHundredValue,
+                cashTransferRequestDTO.DenominationTwoHundredValue, cashTransferRequestDTO.DenominationOneHundredValue,
+                cashTransferRequestDTO.DenominationFiftyValue, cashTransferRequestDTO.DenominationFourtyValue,
+                cashTransferRequestDTO.DenominationTwentyValue, cashTransferRequestDTO.DenominationTenValue,
+                cashTransferRequestDTO.DenominationFiveValue, cashTransferRequestDTO.DenominationOneValue,
+                cashTransferRequestDTO.DenominationFiftyCentValue);
+
+            if (countedTotal != cashTransferRequestDTO.ClosingBalance)
+            {
+                return BadRequest($"Counted denominations ({countedTotal}) do not match the closing balance ({cashTransferRequestDTO.ClosingBalance}).");
+            }
 
             var serviceHeader = Utils.CreateServiceHeader();
 
@@ -191,7 +203,7 @@ namespace WebApplication1.Controllers
 
                 if ((TellerCashBalanceStatus)cashTransferRequestDTO.TellerCashBalanceStatusValue == TellerCashBalanceStatus.Balanced)
                     model.Reference = TellerCashBalanceStatus.Balanced.ToString();
-                else if ((TellerCashBalanceStatus)cashTransferRequestDTO.TellerCashBalanceStatusValue == TellerCashBalanceStatus.Balanced)
+                else if ((TellerCashBalanceStatus)cashTransferRequestDTO.TellerCashBalanceStatusValue == TellerCashBalanceStatus.Shortage)
                     model.Reference = TellerCashBalanceStatus.Shortage.ToString();
                 else if ((TellerCashBalanceStatus)cashTransferRequestDTO.TellerCashBalanceStatusValue == TellerCashBalanceStatus.Excess)
                     model.Reference = TellerCashBalanceStatus.Excess.ToString();
@@ -257,6 +269,17 @@ namespace WebApplication1.Controllers
 
                     NewFiscalCount.TotalValue = model.TotalValue;
 
+                    NewFiscalCount.DenominationOneThousandValue = cashTransferRequestDTO.DenominationOneThousandValue;
+                    NewFiscalCount.DenominationFiveHundredValue = cashTransferRequestDTO.DenominationFiveHundredValue;
+                    NewFiscalCount.DenominationTwoHundredValue = cashTransferRequestDTO.DenominationTwoHundredValue;
+                    NewFiscalCount.DenominationOneHundredValue = cashTransferRequestDTO.DenominationOneHundredValue;
+                    NewFiscalCount.DenominationFiftyValue = cashTransferRequestDTO.DenominationFiftyValue;
+                    NewFiscalCount.DenominationFourtyValue = cashTransferRequestDTO.DenominationFourtyValue;
+                    NewFiscalCount.DenominationTwentyValue = cashTransferRequestDTO.DenominationTwentyValue;
+                    NewFiscalCount.DenominationTenValue = cashTransferRequestDTO.DenominationTenValue;
+                    NewFiscalCount.DenominationFiveValue = cashTransferRequestDTO.DenominationFiveValue;
+                    NewFiscalCount.DenominationOneValue = cashTransferRequestDTO.DenominationOneValue;
+                    NewFiscalCount.DenominationFiftyCentValue = cashTransferRequestDTO.DenominationFiftyCentValue;
 
                     NewFiscalCount.DestinationBranchId = SelectedTreasury.BranchId;
                     NewFiscalCount.ValidateAll();
@@ -267,6 +290,14 @@ namespace WebApplication1.Controllers
                         return Json(new { success = false, message = "Operation error: " + NewFiscalCount.ErrorMessages });
 
 
+                    }
+                    // Previously built but never saved — IsEndOfDayExecutedAsync (the
+                    // "already closed your day" guard) queries for a FiscalCount row
+                    // created today, so without this the guard could never trigger.
+                    else if (!_fiscalCountAppService.AddNewFiscalCounts(new List<FiscalCountDTO> { NewFiscalCount }, serviceHeader))
+                    {
+                        IsBusy = false;
+                        return Json(new { success = false, message = "Operation error: Failed to record the fiscal count." });
                     }
                     else
                     {

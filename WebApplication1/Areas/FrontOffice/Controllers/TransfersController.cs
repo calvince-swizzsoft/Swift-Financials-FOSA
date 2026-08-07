@@ -25,18 +25,24 @@ namespace WebApplication1.Controllers
         private readonly IExternalChequeAppService _externalChequeAppService;
         private readonly IChartOfAccountAppService _chartOfAccountAppService;
         private readonly ITellerAppService _tellerAppService;
+        private readonly IFiscalCountAppService _fiscalCountAppService;
+        private readonly IPostingPeriodAppService _postingPeriodAppService;
 
         public TransfersController(
             ICashTransferRequestAppService cashTransferRequestAppService,
             IExternalChequeAppService externalChequeAppService,
             IChartOfAccountAppService chartOfAccountAppService,
-            ITellerAppService tellerAppService
+            ITellerAppService tellerAppService,
+            IFiscalCountAppService fiscalCountAppService,
+            IPostingPeriodAppService postingPeriodAppService
             )
         {
             _cashTransferRequestAppService = cashTransferRequestAppService;
             _externalChequeAppService = externalChequeAppService;
             _chartOfAccountAppService = chartOfAccountAppService;
             _tellerAppService = tellerAppService;
+            _fiscalCountAppService = fiscalCountAppService;
+            _postingPeriodAppService = postingPeriodAppService;
         }
 
 
@@ -138,12 +144,55 @@ namespace WebApplication1.Controllers
 
             if (!cashTransferRequestDTO.HasErrors)
             {
+                var countedTotal = Utils.SumDenominationValues(
+                    cashTransferRequestDTO.DenominationOneThousandValue, cashTransferRequestDTO.DenominationFiveHundredValue,
+                    cashTransferRequestDTO.DenominationTwoHundredValue, cashTransferRequestDTO.DenominationOneHundredValue,
+                    cashTransferRequestDTO.DenominationFiftyValue, cashTransferRequestDTO.DenominationFourtyValue,
+                    cashTransferRequestDTO.DenominationTwentyValue, cashTransferRequestDTO.DenominationTenValue,
+                    cashTransferRequestDTO.DenominationFiveValue, cashTransferRequestDTO.DenominationOneValue,
+                    cashTransferRequestDTO.DenominationFiftyCentValue);
+
+                if (countedTotal != cashTransferRequestDTO.Amount)
+                {
+                    return Json(new { success = false, message = $"Operation Failed: Counted denominations ({countedTotal}) do not match the transfer amount ({cashTransferRequestDTO.Amount})." });
+                }
+
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 var successRequest = _cashTransferRequestAppService.AddNewCashTransferRequestAsync(cashTransferRequestDTO, serviceHeader);
 
                 if (successRequest != null)
                 {
+                    // CashTransferRequest itself has nowhere to persist a denomination
+                    // breakdown (no such columns on that aggregate) — record the physical
+                    // count as a companion FiscalCount instead, same pattern used by
+                    // treasury cash movement and End of Day close.
+                    var currentPostingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
+
+                    var fiscalCount = new FiscalCountDTO
+                    {
+                        TransactionCode = (int)SystemTransactionCode.TellerCashTransfer,
+                        PostingPeriodId = currentPostingPeriod?.Id ?? Guid.Empty,
+                        BranchId = selectedTeller.EmployeeBranchId,
+                        ChartOfAccountId = selectedTeller.ChartOfAccountId ?? Guid.Empty,
+                        PrimaryDescription = "Cash Transfer Request",
+                        SecondaryDescription = selectedTeller.Description,
+                        Reference = cashTransferRequestDTO.Reference,
+                        TotalValue = cashTransferRequestDTO.Amount,
+                        DenominationOneThousandValue = cashTransferRequestDTO.DenominationOneThousandValue,
+                        DenominationFiveHundredValue = cashTransferRequestDTO.DenominationFiveHundredValue,
+                        DenominationTwoHundredValue = cashTransferRequestDTO.DenominationTwoHundredValue,
+                        DenominationOneHundredValue = cashTransferRequestDTO.DenominationOneHundredValue,
+                        DenominationFiftyValue = cashTransferRequestDTO.DenominationFiftyValue,
+                        DenominationFourtyValue = cashTransferRequestDTO.DenominationFourtyValue,
+                        DenominationTwentyValue = cashTransferRequestDTO.DenominationTwentyValue,
+                        DenominationTenValue = cashTransferRequestDTO.DenominationTenValue,
+                        DenominationFiveValue = cashTransferRequestDTO.DenominationFiveValue,
+                        DenominationOneValue = cashTransferRequestDTO.DenominationOneValue,
+                        DenominationFiftyCentValue = cashTransferRequestDTO.DenominationFiftyCentValue
+                    };
+
+                    _fiscalCountAppService.AddNewFiscalCount(fiscalCount, serviceHeader);
 
                     return Json(new { success = true, message = "Operation Success" });
                 }

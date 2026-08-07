@@ -20,9 +20,11 @@ namespace WebApplication1.Controllers
     //
     // Posting a fiscal count directly here is for ad-hoc/manual denomination
     // records only — the normal path is inline, as part of a treasury cash
-    // movement (CashManagementController) or an End of Day close
-    // (EndOfDayController), both of which already build/post their own
-    // FiscalCountDTO.
+    // movement (CashManagementController), an End of Day close
+    // (EndOfDayController), or a cash transfer request (TransfersController,
+    // which has nowhere of its own to persist a denomination breakdown and
+    // writes a companion FiscalCount instead) — all three already build/post
+    // their own FiscalCountDTO.
     [Authorize]
     [RoutePrefix("api/frontoffice/fiscalcounts")]
     public class FiscalCountController : ApiController
@@ -85,6 +87,17 @@ namespace WebApplication1.Controllers
             fiscalCountDTO.ValidateAll();
             if (fiscalCountDTO.HasErrors)
                 return BadRequest(string.Join("; ", fiscalCountDTO.ErrorMessages));
+
+            var countedTotal = Utils.SumDenominationValues(
+                fiscalCountDTO.DenominationOneThousandValue, fiscalCountDTO.DenominationFiveHundredValue,
+                fiscalCountDTO.DenominationTwoHundredValue, fiscalCountDTO.DenominationOneHundredValue,
+                fiscalCountDTO.DenominationFiftyValue, fiscalCountDTO.DenominationFourtyValue,
+                fiscalCountDTO.DenominationTwentyValue, fiscalCountDTO.DenominationTenValue,
+                fiscalCountDTO.DenominationFiveValue, fiscalCountDTO.DenominationOneValue,
+                fiscalCountDTO.DenominationFiftyCentValue);
+
+            if (countedTotal != fiscalCountDTO.TotalValue)
+                return BadRequest($"Counted denominations ({countedTotal}) do not match the total value ({fiscalCountDTO.TotalValue}).");
 
             try
             {

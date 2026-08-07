@@ -280,6 +280,53 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         [Display(Name = "Closing Balance Status")]
         public string ClosingBalanceStatus { get; set; }
 
+        // Denomination breakdown of the physical cash counted for this request/close —
+        // same shape and meaning (each field is that denomination's own monetary
+        // subtotal, not a piece count) as FiscalCountDTO's fields. Reconciled against
+        // ClosingBalance (End of Day) or Amount (cash transfer request) by the caller.
+        [DataMember]
+        [Display(Name = "One-Thousands")]
+        public decimal DenominationOneThousandValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Five-Hundreds")]
+        public decimal DenominationFiveHundredValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Two-Hundreds")]
+        public decimal DenominationTwoHundredValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "One-Hundreds")]
+        public decimal DenominationOneHundredValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Fifties")]
+        public decimal DenominationFiftyValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Fourties")]
+        public decimal DenominationFourtyValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Twenties")]
+        public decimal DenominationTwentyValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Tens")]
+        public decimal DenominationTenValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Fives")]
+        public decimal DenominationFiveValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Ones")]
+        public decimal DenominationOneValue { get; set; }
+
+        [DataMember]
+        [Display(Name = "Fifty-Cents")]
+        public decimal DenominationFiftyCentValue { get; set; }
 
     }
 }

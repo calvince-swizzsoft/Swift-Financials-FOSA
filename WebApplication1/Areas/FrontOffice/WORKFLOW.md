@@ -197,10 +197,29 @@ directions, all through one screen (`CashManagementController.Create`,
 `TreasuryTransactionType`): `BankToTreasury`, `TreasuryToBank`,
 `TreasuryToTeller`, `TreasuryToTreasury`. Outgoing transfers are blocked if
 `ActiveTreasury.BookBalance` is insufficient. Every movement — and every EOD
-close (§8) — is recorded with a **denomination breakdown**
-(`FiscalCountDTO`: 1000/500/200/100/50/40/20/10/5/1/50-cent note+coin
-counts), not just a total, so physical cash counted at the counter can be
-reconciled against the GL figure.
+close (§8), and every teller-to-teller cash transfer request (§9 of
+`docs/api/frontoffice-api-spec.md`) — is recorded with a **denomination
+breakdown** (`FiscalCountDTO`/`CashTransferRequestDTO`:
+1000/500/200/100/50/40/20/10/5/1/50-cent note+coin subtotals), not just a
+total, and the API **rejects the request outright** if the denomination
+subtotals don't sum to the transaction total
+(`Utils.SumDenominationValues`, `WebApplication1/Helpers/Utils.cs`) — so
+physical cash counted at the counter is guaranteed to reconcile against
+the GL figure by construction, not just by convention.
+
+`FiscalCount` also carries a duplicate-submission guard:
+`SystemTraceAuditNumber` is a SHA1 hash of the record's own fields
+(`FiscalCountExtensions.GenerateSystemTraceAuditNumber`), computed for
+`BankToTreasury`/`TreasuryToBank`/`TreasuryToTeller`/`TellerEndOfDay`/
+`TellerCashTransfer` specifically to block accidental duplicate
+submissions of the same cash movement/close (double-click, retry, etc.).
+
+`CashTransferRequest` (the teller-to-teller request aggregate behind
+`TransfersController`'s `/cash` endpoint) has no columns of its own for a
+denomination breakdown, so its physical count is recorded as a companion
+`FiscalCount` row (`TransactionCode = TellerCashTransfer`) rather than on
+the request itself — same pattern as treasury movement and EOD, not a
+schema change to `CashTransferRequest`.
 
 ```mermaid
 flowchart LR

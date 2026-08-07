@@ -82,18 +82,26 @@ namespace WebApplication1.Controllers
 
             if (!fiscalCountDTO.HasErrors)
             {
+                var countedTotal = Utils.SumDenominationValues(
+                    fiscalCountDTO.DenominationOneThousandValue, fiscalCountDTO.DenominationFiveHundredValue,
+                    fiscalCountDTO.DenominationTwoHundredValue, fiscalCountDTO.DenominationOneHundredValue,
+                    fiscalCountDTO.DenominationFiftyValue, fiscalCountDTO.DenominationFourtyValue,
+                    fiscalCountDTO.DenominationTwentyValue, fiscalCountDTO.DenominationTenValue,
+                    fiscalCountDTO.DenominationFiveValue, fiscalCountDTO.DenominationOneValue,
+                    fiscalCountDTO.DenominationFiftyCentValue);
+
+                if (countedTotal != fiscalCountDTO.TotalValue)
+                {
+                    return Json(new { success = false, message = $"Operation Failed: Counted denominations ({countedTotal}) do not match the total value ({fiscalCountDTO.TotalValue})." });
+                }
+
                 int treasuryTransactionType = fiscalCountDTO.TransactionType;
                 TransactionModel transactionModel = new TransactionModel();
 
 
                 var CurrentPostingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
-                //var userId = User.Identity.GetUserId();
-
-                //var ActiveTreasury = await _channelService.FindTreasuryByBranchIdAsync(fiscalCountDTO.BranchId, true, GetServiceHeader());
 
                 var ActiveTreasury = _treasuryAppService.FindTreasuryByBranchId(fiscalCountDTO.BranchId, serviceHeader);
-
-
 
                 var missingParameters = new List<string>();
 
@@ -105,11 +113,6 @@ namespace WebApplication1.Controllers
                 {
                     fiscalCountDTO.PostingPeriodId = CurrentPostingPeriod.Id;
                 }
-
-                //if (activeUser == null)
-                //{
-                //    missingParameters.Add("Active User");
-                //}
 
                 if (ActiveTreasury == null)
                 {
@@ -124,7 +127,6 @@ namespace WebApplication1.Controllers
                 if (missingParameters.Any())
                 {
                     var missingMessage = $"The transaction won't proceed. Unable to retrieve {string.Join(", ", missingParameters)}.";
-
                     return BadRequest(missingMessage);
                 }
 
@@ -393,7 +395,10 @@ namespace WebApplication1.Controllers
 
                     newFiscalCountDTO.PostingPeriodId = fiscalCountDTO.PostingPeriodId;
                     newFiscalCountDTO.BranchId = fiscalCountDTO.DestinationBranchId;
-                    newFiscalCountDTO.ChartOfAccountId = fiscalCountDTO.ChartOfAccountId;
+                    // fiscalCountDTO.ChartOfAccountId is the *source* treasury's G/L account by
+                    // this point (set in Create()) — the destination fiscal count needs the
+                    // destination treasury's account, which is what got debited.
+                    newFiscalCountDTO.ChartOfAccountId = model.DebitChartOfAccountId;
                     newFiscalCountDTO.DestinationBranchId = fiscalCountDTO.DestinationBranchId;
                     newFiscalCountDTO.PrimaryDescription = string.Format("{0} (Destination)", model.PrimaryDescription);
                     newFiscalCountDTO.SecondaryDescription = string.Format("From {0}", sourceBranch.Description);
