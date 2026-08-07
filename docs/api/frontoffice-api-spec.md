@@ -31,6 +31,14 @@ same as `docs/api/README.md`. Paged list endpoints return
 under `data`. `pageIndex` is 0-based, defaults to `0`; `pageSize` defaults
 to `20` unless noted.
 
+**Several controllers in this area report business-rule failures as
+`success: false` inside a `200 OK`, not a `4xx` status** —
+`CashManagementController` (§5), `TransfersController` (§7), and
+`EndOfDayController` (§9) all do this for most of their failure paths,
+reserving real `400`s for only a couple of early guard checks each. Check
+`success` in the body on every call to these three; each section below
+states exactly which of its failures are genuine `400`s.
+
 ## 3. Current-teller resolution
 
 Any endpoint described as "resolves the current teller" reads the
@@ -118,17 +126,24 @@ Controller: `CashManagementController.cs`.
 Body: `FiscalCountDTO` — `TransactionType` (`TreasuryTransactionType`:
 `BankToTreasury`/`TreasuryToBank`/`TreasuryToTeller`/`TreasuryToTreasury`),
 denomination breakdown fields (`DenominationOneThousandValue` ... down to
-50-cent), `TotalValue`. `400` if outgoing (`TreasuryToTeller`/
-`TreasuryToBank`/`TreasuryToTreasury`) and the treasury's book balance is
-insufficient — `BankToTreasury` (incoming) has no such check.
+50-cent), `TotalValue`.
+
+**Status codes, checked directly against every `return` in `Create`/
+`DoSomething`**: only a missing posting period or treasury returns a real
+`400` (`BadRequest`). Every other failure on this endpoint — insufficient
+book balance on an outgoing transfer (`TreasuryToTeller`/`TreasuryToBank`/
+`TreasuryToTreasury`; `BankToTreasury` has no such check), bank/treasury
+not found, a denomination mismatch, an unhandled exception — returns HTTP
+`200` with `success: false` in the body. **Check `success`, not HTTP
+status, everywhere on this endpoint except that one case.**
 
 The denomination fields and `TotalValue` **are cross-validated**: each
 denomination field holds that denomination's own monetary subtotal (not a
 raw note/coin piece count — e.g. `DenominationOneThousandValue` is "how
 much was counted in 1000-notes"), and the eleven subtotals must sum to
-exactly `TotalValue` (`Utils.SumDenominationValues`) or the call returns
-`400` before anything is posted. The denomination breakdown is then
-persisted as a separate physical-count audit record
+exactly `TotalValue` (`Utils.SumDenominationValues`) or the call fails
+(`success: false`, HTTP `200`) before anything is posted. The denomination
+breakdown is then persisted as a separate physical-count audit record
 (`FiscalCountAppService.AddNewFiscalCounts`) alongside the GL journal.
 
 `Id` is overloaded depending on `TransactionType` — it isn't the fiscal
@@ -196,8 +211,11 @@ Controller: `TransfersController.cs`.
 
 `POST /cash` requires a denomination breakdown that reconciles to `Amount`,
 same as treasury cash movement (§5) — `CashTransferRequestDTO` carries the
-same eleven `Denomination*Value` fields as `FiscalCountDTO`. `400` if the
-subtotals don't sum to `Amount`.
+same eleven `Denomination*Value` fields as `FiscalCountDTO`. As with §5,
+this controller reports the mismatch — and every other business-rule
+failure on `/cash` — as `success: false` with HTTP `200`, not `400`; check
+`success` in the body. The only real `400` on `TransfersController` at all
+is `POST /cash/utilize` with a missing `request` id.
 
 `CashTransferRequest` itself has no columns for a denomination breakdown —
 on success, the counted denominations are written as a **companion**
@@ -232,18 +250,28 @@ Body: `CashTransferRequestDTO` — `UntransferredChequesValue`,
 `TellerCashBalanceStatusValue` (`TellerCashBalanceStatus`:
 `Balanced`/`Shortage`/`Excess`), `ClosingBalance`, `BookBalance`, plus the
 eleven `Denomination*Value` fields (same shape as `FiscalCountDTO`) — their
-sum must equal `ClosingBalance` or the call returns `400` before anything
-is checked/posted. The teller is always the caller's own (§3) — any
-`TellerId` in the body is overwritten. Enforces, in order: denomination
-reconciliation, cheques transferred (`400` if not), EOD not already run
-today (`400` if it has), then writes a `FiscalCount` record
-(`TransactionCode = TellerEndOfDay` — this is also what
-`IsEndOfDayExecutedAsync` checks for, so a closed day actually stays
-closed) before posting the close journal
-(+ suspense entry to `Teller.ShortageChartOfAccountId`/
-`ExcessChartOfAccountId` if unbalanced). Success: `data` is the closing
-`JournalDTO` — render/print the EOD receipt from this; there is no
-server-side print endpoint (removed — see WORKFLOW.md §11).
+sum must equal `ClosingBalance` or the call returns a real `400` before
+anything else runs. The teller is always the caller's own (§3) — any
+`TellerId` in the body is overwritten.
+
+Enforces, in order: malformed input (`400`) → denomination reconciliation
+(`400`) → caller has a linked teller record (`400`) → posting-model
+validation → cheques transferred → EOD not already run today → writes a
+`FiscalCount` record (`TransactionCode = TellerEndOfDay` — this is also
+what `IsEndOfDayExecutedAsync` checks for, so a closed day actually stays
+closed) → posts the close journal (+ suspense entry to
+`Teller.ShortageChartOfAccountId`/`ExcessChartOfAccountId` if unbalanced).
+
+**Only the first three checks are real `400`s.** Everything from
+posting-model validation onward — including "you need to transfer your
+cheques first" and "you have already closed your day" — reports failure
+as `success: false` with HTTP `200`, checked directly against every
+`return` in `Create`. Check `success` in the body for those, not status
+code.
+
+Success: `data` is the closing `JournalDTO` — render/print the EOD receipt
+from this; there is no server-side print endpoint (removed — see
+WORKFLOW.md §11).
 
 ---
 
