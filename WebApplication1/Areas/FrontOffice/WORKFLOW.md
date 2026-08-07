@@ -273,17 +273,25 @@ each has its own multi-stage maker-checker shape:
 
 ## 10. Implementation status in this repo
 
-All 15 functional areas now have a live `ApiController`. Every controller
+All 14 functional areas now have a live `ApiController`. Every controller
 requires `[Authorize]` (a valid JWT); the six that were `[AllowAnonymous]`
 with wildcard CORS, plus `CashDepositController` (anonymous by omission),
 were locked down as part of the fidelity pass described in §11.
+
+Treasury *master data* (create/list/update a `Treasury` vault itself) isn't
+in this table — despite the reference app's version living under
+`Areas/FrontOffice/Controllers/TreasuryController.cs`, it's pure admin
+CRUD with no teller/cash-cycle behavior, so this repo's equivalent now lives
+at `Areas/Accounts/Controllers/TreasurysController.cs`
+(`api/accounts/treasurys` — see `docs/api/treasury-api-spec.md`). Treasury
+*cash movement* (the row below) stays here — that's the actual front-office
+behavior.
 
 | Functional area | Old MVC controller (reference) | This repo | Notes |
 |---|---|---|---|
 | Teller master data | `TellerController` | `Areas/FrontOffice/Controllers/TellerController.cs` | Live |
 | Deposit/withdrawal transaction + request queue | `CashDepositController`, `CashWithdrawalController`, `CashWithdrawalRequestController` | `Areas/FrontOffice/Controllers/CashDepositController.cs` (unified) | Live. Maker-checker fully routes through the generic `Workflow` engine now (§11) |
 | Treasury cash movement | `CashManagementController` | `Areas/FrontOffice/Controllers/CashManagementController.cs` | Live |
-| Treasury master data | `TreasuryController` | `Areas/FrontOffice/Controllers/TreasurysController.cs` | Live |
 | Cash transfer requests + cheque transfer batch | `CashTransferController`, `TransfersController` | `Areas/FrontOffice/Controllers/TransfersController.cs` (both folded in) | Live |
 | Cheque banking & clearance | `ChequesController` | `Areas/FrontOffice/Controllers/ChequesController.cs` | Live |
 | End of day close | `EndOfDayController` | `Areas/FrontOffice/Controllers/EndOfDayController.cs` | Live — local-printer `PrintReceipt` removed, journal returned in `data` for client-side receipt rendering |

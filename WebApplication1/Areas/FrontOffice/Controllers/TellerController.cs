@@ -4,6 +4,7 @@ using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Runtime.Remoting.Channels;
 using System.Threading.Tasks;
 using System.Web;
@@ -31,16 +32,14 @@ namespace WebApplication1.Controllers
         [HttpGet]
 
         [Route("")]
-        public async Task<IHttpActionResult> Index()
+        public async Task<IHttpActionResult> Index(int tellerType = 0, string text = "", int pageIndex = 0, int pageSize = 20)
         {
             try
 
             {
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                //var tellers = await _channelService.FindTellersByTypeAsync(tellerDTO.Type, tellerDTO.Reference, true, GetServiceHeader());
-
-                var tellers = _tellerAppService.FindTellers(serviceHeader);
+                var tellers = _tellerAppService.FindTellers(tellerType, text ?? "", pageIndex, pageSize, serviceHeader);
 
 
                 if (tellers == null)
@@ -49,7 +48,7 @@ namespace WebApplication1.Controllers
                     return NotFound();
                 }
 
-                return Ok(tellers);
+                return Ok(new { success = true, message = "", data = tellers });
 
             }
 
@@ -79,12 +78,12 @@ namespace WebApplication1.Controllers
 
                     var createdTellerDTO = _tellerAppService.AddNewTeller(tellerDTO, serviceHeader);
 
-                    return Ok(createdTellerDTO);
+                    return Ok(new { success = true, message = "Operation Success", data = createdTellerDTO });
                 }
 
                 else
                 {
-                    return BadRequest(tellerDTO.ErrorMessages.ToString());
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", tellerDTO.ErrorMessages), data = (object)null });
                 }
 
             }
@@ -99,17 +98,38 @@ namespace WebApplication1.Controllers
 
         [HttpPut]
         [Route("{id}")]
-        public async Task<IHttpActionResult> UpdateTeller(TellerDTO tellerDTO)
+        public async Task<IHttpActionResult> UpdateTeller(Guid id, TellerDTO tellerDTO)
         {
             try
             {
 
                 var serviceHeader = Utils.CreateServiceHeader();
 
+                tellerDTO.Id = id;
+                tellerDTO.ValidateAll();
 
-                var updatedTellerDTO = _tellerAppService.UpdateTeller(tellerDTO, serviceHeader);
+                UpdateTellerAccounts(tellerDTO);
 
-                return Ok(updatedTellerDTO);
+                if (!tellerDTO.HasErrors)
+                {
+                    // UpdateTeller returns bool, not the updated entity — re-fetch
+                    // so `data` reflects what was actually saved.
+                    var updated = _tellerAppService.UpdateTeller(tellerDTO, serviceHeader);
+
+                    if (!updated)
+                    {
+                        return NotFound();
+                    }
+
+                    var refreshedTellerDTO = _tellerAppService.FindTeller(id, serviceHeader);
+
+                    return Ok(new { success = true, message = "Operation Success", data = refreshedTellerDTO });
+                }
+
+                else
+                {
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", tellerDTO.ErrorMessages), data = (object)null });
+                }
             }
 
             catch (Exception ex)
@@ -122,15 +142,20 @@ namespace WebApplication1.Controllers
 
         [HttpGet]
         [Route("{id}")]
-        public async Task<IHttpActionResult> GetTeller(Guid tellerId)
+        public async Task<IHttpActionResult> GetTeller(Guid id)
         {
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                var teller = _tellerAppService.FindTeller(tellerId, serviceHeader);
-            
-                return Ok(teller);
+                var teller = _tellerAppService.FindTeller(id, serviceHeader);
+
+                if (teller == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(new { success = true, message = "", data = teller });
             }
 
             catch (Exception ex)
@@ -140,34 +165,6 @@ namespace WebApplication1.Controllers
 
             }
         }
-
-
-        [HttpDelete]
-
-        //public async Task<IHttpActionResult> DeleteTeller(Guid id)
-        //{
-        //    Guid parseId;
-
-        //    try
-        //    {
-
-        //        if (id == Guid.Empty || !Guid.TryParse(id.ToString(), out parseId))
-        //        {
-
-        //            return BadRequest("Invalid Id");
-
-        //        }
-
-        //    }
-
-        //    catch (Exception ex)
-        //    {
-
-        //        return InternalServerError(ex);
-
-        //    }
-        //}
-
 
         private void UpdateTellerAccounts(TellerDTO tellerDTO)
         {
@@ -198,9 +195,8 @@ namespace WebApplication1.Controllers
                 var serviceHeader = Utils.CreateServiceHeader();
                 includeBalance = true;
 
-                //var teller = await _channelService.FindTellerByEmployeeIdAsync(employeeId, includeBalance, GetServiceHeader());
                 var teller = _tellerAppService.FindTellerByEmployeeId(employeeId, serviceHeader);
-                return Ok(teller);
+                return Ok(new { success = true, message = "", data = teller });
 
             }
 

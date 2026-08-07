@@ -126,7 +126,7 @@ namespace WebApplication1.Controllers
                     return Ok(new { success = true, message = "", data = cashDeposits });
                 }
 
-                else if (type == (int)FrontOfficeTransactionType.CashWithdrawal)
+                if (type == (int)FrontOfficeTransactionType.CashWithdrawal)
                 {
                     var cashWithdrawals = _cashWithdrawalRequestAppService.FindCashWithdrawalRequests(rangeStart, rangeEnd, statusFilter, text ?? "", 0, pageIndex, pageSize, serviceHeader);
 
@@ -142,7 +142,45 @@ namespace WebApplication1.Controllers
                     return Ok(new { success = true, message = "", data = cashWithdrawals });
                 }
 
-                return Ok(new { success = true, message = "", data = new PageCollectionInfo<object> { PageCollection = new List<object>(), ItemsCount = 0 } });
+                if (type.HasValue)
+                {
+                    // ChequeDeposit posts directly (no request row) and CashWithdrawalPaymentVoucher
+                    // is stored as TransactionType == CashWithdrawal (see the merge branch below) —
+                    // neither has its own request queue to page through.
+                    return Ok(new { success = true, message = "", data = new PageCollectionInfo<object> { PageCollection = new List<object>(), ItemsCount = 0 } });
+                }
+
+                // No type filter: merge the deposit and withdrawal request queues into one
+                // date-sorted page instead of returning nothing. Each row keeps its own native
+                // shape (CashDepositRequestDTO or CashWithdrawalRequestDTO) including
+                // TransactionType, so the frontend can filter client-side by type if it wants
+                // a single-type view instead of the combined one.
+                var allDeposits = _cashDepositRequestAppService.FindCashDepositRequests(rangeStart, rangeEnd, statusFilter, text ?? "", 0, 0, int.MaxValue, serviceHeader);
+                var allWithdrawals = _cashWithdrawalRequestAppService.FindCashWithdrawalRequests(rangeStart, rangeEnd, statusFilter, text ?? "", 0, 0, int.MaxValue, serviceHeader);
+
+                foreach (var cdp in allDeposits.PageCollection)
+                {
+                    var customeracc = _customerAccountAppService.FindCustomerAccountDTO(cdp.CustomerAccountId, serviceHeader);
+                    var customer = _customerAppService.FindCustomer(customeracc.CustomerId, serviceHeader);
+                    cdp.CustomerName = customer.IndividualFirstName + " " + customer.IndividualLastName;
+                }
+
+                foreach (var cwl in allWithdrawals.PageCollection)
+                {
+                    var customeracc = _customerAccountAppService.FindCustomerAccountDTO((Guid)cwl.CustomerAccountId, serviceHeader);
+                    var customer = _customerAppService.FindCustomer(customeracc.CustomerId, serviceHeader);
+                    cwl.CustomerName = customer.IndividualFirstName + " " + customer.IndividualLastName;
+                }
+
+                var merged = allDeposits.PageCollection.Select(d => (sortDate: d.CreatedDate, item: (object)d))
+                    .Concat(allWithdrawals.PageCollection.Select(w => (sortDate: w.CreatedDate, item: (object)w)))
+                    .OrderByDescending(x => x.sortDate)
+                    .Select(x => x.item)
+                    .ToList();
+
+                var mergedPage = merged.Skip(pageIndex * pageSize).Take(pageSize).ToList();
+
+                return Ok(new { success = true, message = "", data = new PageCollectionInfo<object> { PageCollection = mergedPage, ItemsCount = merged.Count } });
             }
 
             catch (Exception ex)
@@ -210,7 +248,15 @@ namespace WebApplication1.Controllers
             transactionModel.PostingPeriodId = postingPeriod.Id;
             transactionModel.PrimaryDescription = "ok";
             transactionModel.SecondaryDescription = string.Format("B{0}/T{1}/#{2}", SelectedBranch.Code, SelectedTeller.Code, SelectedTeller.ItemsCount);
-            transactionModel.Reference = string.Format("{0}", SelectedCustomerAccount.CustomerReference1);
+
+            // ChequeDeposit reads Reference back out as the cheque number
+            // (NewExternalCheque.Number = transactionModel.Reference below) —
+            // it must stay whatever the caller sent. Every other type's
+            // Reference is derived from the customer's own reference.
+            if ((FrontOfficeTransactionType)transactionModel.Type != FrontOfficeTransactionType.ChequeDeposit)
+            {
+                transactionModel.Reference = string.Format("{0}", SelectedCustomerAccount.CustomerReference1);
+            }
 
             var targetSavingsProduct = _savingsProductAppService.FindSavingsProduct(SelectedCustomerAccount.CustomerAccountTypeTargetProductId, transactionModel.BranchId, serviceHeader);
            

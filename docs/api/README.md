@@ -35,6 +35,9 @@ what to go update.
 | General ledger statements | `api/accounts/statements/gl-account` | [`general-ledger-statement-api-spec.md`](general-ledger-statement-api-spec.md) |
 | Standing orders | `api/accounts/standingorders` | [`standing-order-api-spec.md`](standing-order-api-spec.md) |
 | Standing order execution (batch triggers) | `api/accounts/standingorders/execution` | [`standing-order-execution-api-spec.md`](standing-order-execution-api-spec.md) |
+| Treasury master data | `api/accounts/treasurys` | [`treasury-api-spec.md`](treasury-api-spec.md) |
+| Chart of accounts (+ system G/L account mapping) | `api/accounts/chartofaccounts` | [`chartofaccount-api-spec.md`](chartofaccount-api-spec.md) |
+| Cost centers | `api/accounts/costcenters` | [`costcenter-api-spec.md`](costcenter-api-spec.md) |
 | Companies | `api/administration/companies` | [`company-api-spec.md`](company-api-spec.md) |
 | Branches | `api/administration/branches` | [`branch-api-spec.md`](branch-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
@@ -44,6 +47,56 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Chart of Accounts + Cost Centers — new
+
+Two new controllers under `api/accounts`. Both follow the same envelope,
+paging, and business-rule-reporting conventions established for Treasury
+(§ above): duplicate-key failures on create return `409` with `data: null`
+rather than a false `success: true`, and `PUT` returns the freshly
+re-fetched entity rather than a bare boolean.
+
+- **`api/accounts/chartofaccounts`** — the reference app split this across
+  three screens (`ChartOfAccountController` plus two near-duplicates,
+  `GLAccountController`/`SystemGeneralLedgerAccountMappingController`, that
+  both just wrapped the same system→G/L-account mapping calls). This API
+  folds the mapping concept into one controller as a sub-resource
+  (`GET`/`PUT /systemgeneralledgermappings/...`), matching how the
+  app-service layer already groups them. Also exposes `GET /tree` — a
+  separate, correctly depth-populated hierarchical read model, since the
+  flat CRUD endpoints never maintain `Depth`/`Children`. Full reference:
+  `chartofaccount-api-spec.md`.
+- **`api/accounts/costcenters`** — small CRUD, a FK dependency of chart of
+  accounts (`ChartOfAccountDTO.CostCenterId`). Full reference:
+  `costcenter-api-spec.md`.
+
+Deliberately **not** covered by either: the reference app's
+`AddGeneralLedgerController`/`JournalVoucherController` and the
+`BatchOrigination_*`/`BatchAuthorization_*`/`BatchVerification_*` family —
+multi-line GL/journal-voucher batches with their own maker-checker
+lifecycle, a separate and substantially larger feature, not part of chart
+of account master data. Flagged as a future pass, not started.
+
+### Treasury master data — moved out of Front Office, breaking route change
+
+`TreasurysController` moved from `Areas/FrontOffice/Controllers` to
+`Areas/Accounts/Controllers` — it's pure admin CRUD for the `Treasury`
+vault record itself (no teller/cash-cycle behavior), so it belongs with the
+other Accounts-area master data, not front office. **Route changed:
+`api/frontoffice/treasurys` → `api/accounts/treasurys`.** If you already
+integrated against the old path, update it. Two response-shape fixes came
+out of writing the full spec for this move, so check these even if you
+already wired up the old routes:
+- `POST /` now returns `409` (not a false `200 success:true`) when the
+  branch already has a treasury or the description isn't unique — it used
+  to always report success even when creation silently failed.
+- `PUT /{id}` now returns the updated `TreasuryDTO` in `data` — it used to
+  return a bare `true`/`false`.
+
+Full reference, including the field table and business rules a create/edit
+screen needs: `treasury-api-spec.md`. `frontoffice-api-spec.md` §5 (Treasury
+*cash movement*, `CashManagementController`) is unaffected and stays put;
+only the master-data CRUD moved. New doc: `treasury-api-spec.md`.
 
 ### Front Office API — new, plus breaking fixes to what already existed
 

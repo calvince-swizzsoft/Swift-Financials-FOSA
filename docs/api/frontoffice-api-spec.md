@@ -50,12 +50,24 @@ request.
 
 ### 4.1 List pending/authorized requests — `GET /`
 
-Query params: `type` (`2` = CashDeposit, `1` = CashWithdrawal — required to
-get results), `status` (optional, defaults to `Pending` — pass explicitly
-for `Authorized`/`Posted`/`Paid`/`Rejected`), `text`, `startDate`, `endDate`,
-`pageIndex`, `pageSize`. Returns `PageCollectionInfo<CashDepositRequestDTO>`
-or `PageCollectionInfo<CashWithdrawalRequestDTO>` under `data`, each row's
-`CustomerName` populated server-side.
+Query params: `type` (optional — `2` = CashDeposit, `1` = CashWithdrawal),
+`status` (optional, defaults to `Pending` — pass explicitly for
+`Authorized`/`Posted`/`Paid`/`Rejected`), `text`, `startDate`, `endDate`,
+`pageIndex`, `pageSize`.
+
+- `type=2` or `type=1` → `data` is `PageCollectionInfo<CashDepositRequestDTO>`
+  or `PageCollectionInfo<CashWithdrawalRequestDTO>` respectively, each row's
+  `CustomerName` populated server-side.
+- `type` omitted → `data` is `PageCollectionInfo<object>`: the deposit and
+  withdrawal queues merged into one page, sorted by `CreatedDate` descending
+  and paged as a combined set (`pageSize` applies to the merged total, not
+  per source). Each row keeps its own native DTO shape — inspect
+  `TransactionType` (`1`/`2`) client-side to tell which one you got, or to
+  filter down to a single type without a second call.
+- `type=3` (ChequeDeposit) or `type=4` (CashWithdrawalPaymentVoucher) →
+  always empty; neither has its own request row (cheque deposits post
+  directly; payment-voucher withdrawals are stored under `type=1` with
+  `Category = PaymentVoucher`).
 
 ### 4.2 Post a transaction — `POST /`
 
@@ -75,7 +87,7 @@ Response shape varies by outcome:
   selectedCustomerAccountId, transactionTotalValue, transactionReference,
   transactionCategory, ...paymentVoucher fields for withdrawals }`. The
   request is now `Pending` and enqueued into the generic workflow engine
-  (§7 below) — nothing further to call here until a checker approves it.
+  (§17 below) — nothing further to call here until a checker approves it.
 - **Blocked/failed**: `success: false`, `message` explains why (teller
   locked, account not approved, below minimum balance, teller range limit,
   validation errors), `data: null`.
@@ -83,7 +95,7 @@ Response shape varies by outcome:
 ### 4.3 Post an authorized request — `POST /post?id={requestId}`
 
 Call once a checker has approved the request (via the generic workflow
-endpoint, §7). Re-derives the transaction from the now-`Authorized` request
+endpoint, §17). Re-derives the transaction from the now-`Authorized` request
 and posts the GL journal. `400` if the request isn't `Authorized` yet.
 Response: `data` is the `JournalDTO` on success.
 
@@ -93,7 +105,7 @@ Flips an `Authorized` request straight to `Posted`/`Paid` without building a
 new journal — only use this if the journal was already posted through
 another path and this is purely a status correction.
 
-There is **no** `POST /authorize` endpoint — see §7.
+There is **no** `POST /authorize` endpoint — see §17.
 
 ---
 
@@ -109,25 +121,34 @@ denomination breakdown fields (`DenominationOneThousandValue` ... down to
 50-cent), `TotalValue`. `400` if outgoing and the treasury's book balance
 is insufficient.
 
----
-
-## 6. Treasury master data — `api/frontoffice/treasurys`
-
-Controller: `TreasurysController.cs`. `GET /` (list), `POST /` (create),
-`PUT /{id}` (update) against `TreasuryDTO`.
+Treasury *master data* (creating/editing the `Treasury` vault record
+itself) is no longer part of this area — it's pure admin CRUD, not
+front-office cash-cycle behavior, and now lives at
+`api/accounts/treasurys`; see `docs/api/treasury-api-spec.md`.
 
 ---
 
-## 7. Teller master data — `api/frontoffice/tellers`
+## 6. Teller master data — `api/frontoffice/tellers`
 
-Controller: `TellerController.cs`. `GET /` (list), `POST /` (create — GL
-wiring auto-derived from `TellerType`), `PUT /{id}` (update),
-`GET /{id}` (single), `GET /teller?employeeId={id}` (lookup by employee —
-an admin/support lookup, not the "who am I" pattern in §3).
+Controller: `TellerController.cs`. All responses use the standard
+`{ success, message, data }` envelope.
+
+- `GET /?tellerType=&text=&pageIndex=&pageSize=` — paged/filtered list
+  against `TellerDTO` (`tellerType` optional `TellerType` filter, defaults
+  to `0`/all; `pageIndex` 0-based, `pageSize` default `20`). `data` is
+  `PageCollectionInfo<TellerDTO>`.
+- `GET /{id}` — single teller. `404` if not found.
+- `POST /` — create (`TellerDTO`, GL wiring auto-derived from `TellerType`).
+  `400` with `data: null` and a semicolon-joined `message` on validation
+  failure.
+- `PUT /{id}` — update. Same route-`id`-is-authoritative behavior as
+  Treasury above.
+- `GET /teller?employeeId={id}` — lookup by employee (an admin/support
+  lookup, not the "who am I" pattern in §3).
 
 ---
 
-## 8. Cash transfers & cheque transfer batch — `api/frontoffice/transfers`
+## 7. Cash transfers & cheque transfer batch — `api/frontoffice/transfers`
 
 Controller: `TransfersController.cs`.
 
@@ -143,7 +164,7 @@ Controller: `TransfersController.cs`.
 
 ---
 
-## 9. Cheque banking & clearance — `api/frontoffice/cheques`
+## 8. Cheque banking & clearance — `api/frontoffice/cheques`
 
 Controller: `ChequesController.cs`.
 
@@ -156,7 +177,7 @@ Controller: `ChequesController.cs`.
 
 ---
 
-## 10. End of Day close — `api/frontoffice/endofday`
+## 9. End of Day close — `api/frontoffice/endofday`
 
 Controller: `EndOfDayController.cs`.
 
@@ -175,7 +196,7 @@ server-side print endpoint (removed — see WORKFLOW.md §11).
 
 ---
 
-## 11. Account closure — `api/frontoffice/accountclosures`
+## 10. Account closure — `api/frontoffice/accountclosures`
 
 Controller: `AccountClosureController.cs`. Real sequence:
 **Create → Approve → Verify → Settle** (WORKFLOW.md §9 — this is the order
@@ -201,7 +222,7 @@ client-side from the already-documented customer-accounts endpoints.
 
 ---
 
-## 12. Fixed deposits — `api/frontoffice/fixeddeposits`
+## 11. Fixed deposits — `api/frontoffice/fixeddeposits`
 
 Controller: `FixedDepositController.cs`.
 
@@ -221,11 +242,11 @@ Controller: `FixedDepositController.cs`.
 
 ---
 
-## 13. Expense payables — `api/frontoffice/expensepayables`
+## 12. Expense payables — `api/frontoffice/expensepayables`
 
 Controller: `ExpensePayableController.cs`. Sequence: Create (`Pending`) →
 add entry lines → Verify (`Audited`/`Rejected`/`Deferred`) → **approval
-happens through the generic workflow engine, not this controller** (§7 —
+happens through the generic workflow engine, not this controller** (§17 —
 Verify enqueues automatically when the option is `Post`).
 
 | Route | Method | Purpose |
@@ -240,7 +261,7 @@ Verify enqueues automatically when the option is `Post`).
 
 ---
 
-## 14. Sundry payments & customer receipts
+## 13. Sundry payments & customer receipts
 
 Controllers: `SundryPaymentsController.cs`
 (`api/frontoffice/sundrypayments`), `CustomerReceiptsController.cs`
@@ -249,7 +270,7 @@ journal against the caller's own teller cash account — no dedicated app
 service backs either (same as the reference controllers, which posted
 straight through the shared journal service).
 
-### 14.1 `POST /` (both controllers)
+### 13.1 `POST /` (both controllers)
 
 Body: `{ chartOfAccountId, totalValue, reference, primaryDescription,
 moduleNavigationItemCode }`. Sundry payments additionally take
@@ -268,7 +289,7 @@ post.
 
 ---
 
-## 15. In-house cheques — `api/frontoffice/inhousecheques`
+## 14. In-house cheques — `api/frontoffice/inhousecheques`
 
 Controller: `InHouseController.cs`.
 
@@ -282,7 +303,7 @@ Controller: `InHouseController.cs`.
 
 ---
 
-## 16. Automated (image-based) clearing — `api/frontoffice/automatedclearing`
+## 15. Automated (image-based) clearing — `api/frontoffice/automatedclearing`
 
 Controller: `AutomatedClearingController.cs`.
 
@@ -303,11 +324,11 @@ string, and PGP key paths/passphrase entirely from server config
 
 ---
 
-## 17. Fiscal counts (standalone) — `api/frontoffice/fiscalcounts`
+## 16. Fiscal counts (standalone) — `api/frontoffice/fiscalcounts`
 
 Controller: `FiscalCountController.cs`. A browse/manual-entry view over
 denomination-count records — normal posting happens inline via treasury
-cash movement (§5) or EOD close (§10), both of which build their own
+cash movement (§5) or EOD close (§9), both of which build their own
 `FiscalCountDTO`.
 
 - `GET /?text=&startDate=&endDate=&pageIndex=&pageSize=` — paged list.
@@ -316,7 +337,7 @@ cash movement (§5) or EOD close (§10), both of which build their own
 
 ---
 
-## 18. Maker-checker — the generic workflow engine
+## 17. Maker-checker — the generic workflow engine
 
 Cash deposit/withdrawal requests and expense payables enqueue into the
 **generic** maker-checker engine documented in
