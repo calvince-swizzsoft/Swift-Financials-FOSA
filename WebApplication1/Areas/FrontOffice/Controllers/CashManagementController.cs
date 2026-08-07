@@ -48,10 +48,11 @@ namespace WebApplication1.Controllers
             ITreasuryAppService treasuryAppService,
             IBankAppService bankAppService,
             ITellerAppService tellerAppService,
-            IChartOfAccountAppService chartOfAccountAppService, 
-            IFiscalCountAppService fiscalCountAppService, 
+            IChartOfAccountAppService chartOfAccountAppService,
+            IFiscalCountAppService fiscalCountAppService,
            IJournalAppService journalAppService,
-           IBranchAppService branchAppService
+           IBranchAppService branchAppService,
+           IBankLinkageAppService bankLinkageAppService
 
             )
         {
@@ -63,6 +64,7 @@ namespace WebApplication1.Controllers
             _fiscalCountAppService = fiscalCountAppService;
             _journalAppService = journalAppService;
             _branchAppService = branchAppService;
+            _bankLinkageAppService = bankLinkageAppService;
         }
 
 

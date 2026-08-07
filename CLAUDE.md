@@ -126,6 +126,11 @@ drift out of sync with the actual code.
 - `Areas/Registry/Controllers/EmployerController.cs`
 - `Areas/Registry/Controllers/StationController.cs` (extended `IZoneAppService`)
 - `Areas/Admin/Controllers/CompanyController.cs`
+- `Areas/Admin/Controllers/BankController.cs` (existing `IBankAppService`)
+- `Areas/Accounts/Controllers/BankLinkageController.cs` (existing
+  `IBankLinkageAppService`; also split `BankLinkageDTO`'s fields off of
+  `BankDTO`, which had been sharing them, and fixed a dead/unassigned
+  `IBankLinkageAppService` field in `CashManagementController`)
 - `Areas/Messaging/Controllers/TextAlertController.cs` (existing `ITextAlertAppService`)
 - `Areas/FrontOffice/Controllers/*` — teller transactions, treasury, cheques,
   end of day, account closure, fixed deposits, expense payables, sundry

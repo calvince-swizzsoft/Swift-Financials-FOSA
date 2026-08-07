@@ -266,6 +266,7 @@
     <Compile Include="Areas\Identity\Services\UserManagerService.cs" />
     <Compile Include="Areas\Admin\Controllers\RolesController.cs" />
     <Compile Include="Areas\Admin\Controllers\BranchController.cs" />
+    <Compile Include="Areas\Admin\Controllers\BankController.cs" />
     <Compile Include="Areas\Admin\Controllers\CompanyController.cs" />
     <Compile Include="Areas\Workflows\Controllers\WorkflowController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashDepositController.cs" />
@@ -307,6 +308,7 @@
     <Compile Include="Areas\Accounts\Controllers\TreasurysController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChartOfAccountController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

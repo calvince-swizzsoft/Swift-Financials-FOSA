@@ -857,15 +857,16 @@ namespace WebApplication1.Controllers
 
         [HttpPost]
         [Route("AddBankWithLinkages")]
-        public async Task<IHttpActionResult> AddBankWithLinkages([FromBody] BankDTO bankDTO)
+        public async Task<IHttpActionResult> AddBankWithLinkages([FromBody] AddBankWithLinkagesRequest request)
         {
 
 
             var serviceHeader = CreateServiceHeader();
 
-            if (bankDTO == null || bankDTO == null)
+            if (request?.Bank == null || request.BankLinkage == null)
                 return Json(new ApiResponse<object> { Success = false, Message = "Invalid data.", Data = null });
 
+            var bankDTO = request.Bank;
 
             bankDTO.ValidateAll();
             if (bankDTO.HasErrors)
@@ -898,22 +899,8 @@ namespace WebApplication1.Controllers
            // await master._channelService.UpdateBankBranchesByBankIdAsync(result.Id, bankDTO.BankBranchesDTO, serviceHeader);
 
 
-            var bankLinkageDTO = new BankLinkageDTO
-            {
-                BankAccountNumber = bankDTO.BankAccountNumber,
-                BankId = result.Id,
-                BankBranchName = bankDTO.BankBranchName,
-                BankName = bankDTO.BankName,
-                BranchDescription = bankDTO.BranchDescription,
-                BranchId = bankDTO.BranchId,
-                ChartOfAccountAccountCode = bankDTO.ChartOfAccountAccountCode,
-                ChartOfAccountAccountName = bankDTO.ChartOfAccountAccountName,
-                ChartOfAccountId = bankDTO.ChartOfAccountId,
-                ChartOfAccountAccountType = bankDTO.ChartOfAccountAccountType,
-                ChartOfAccountCostCenterId = bankDTO.ChartOfAccountCostCenterId,
-                ChartOfAccountCostCenterDescription = bankDTO.ChartOfAccountCostCenterDescription
-            };
-
+            var bankLinkageDTO = request.BankLinkage;
+            bankLinkageDTO.BankId = result.Id;
 
             var linkageResult = _bankLinkageAppService.AddNewBankLinkage(bankLinkageDTO, serviceHeader);
             if (linkageResult.ErrorMessages.Count != 0)
@@ -933,6 +920,12 @@ namespace WebApplication1.Controllers
                 Message = "Bank and linkages created successfully.",
                 Data = bankDTO
             });
+        }
+
+        public class AddBankWithLinkagesRequest
+        {
+            public BankDTO Bank { get; set; }
+            public BankLinkageDTO BankLinkage { get; set; }
         }
 
 

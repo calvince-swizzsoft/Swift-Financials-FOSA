@@ -40,6 +40,8 @@ what to go update.
 | Cost centers | `api/accounts/costcenters` | [`costcenter-api-spec.md`](costcenter-api-spec.md) |
 | Companies | `api/administration/companies` | [`company-api-spec.md`](company-api-spec.md) |
 | Branches | `api/administration/branches` | [`branch-api-spec.md`](branch-api-spec.md) |
+| Banks (+ bank branches) | `api/administration/banks` | [`bank-api-spec.md`](bank-api-spec.md) |
+| Bank linkages (branch ↔ external bank ↔ G/L account) | `api/accounts/banklinkages` | [`bank-linkage-api-spec.md`](bank-linkage-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -47,6 +49,41 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Bank + Bank Linkage APIs — new, plus a DTO split and a dead-dependency fix
+
+`BankController` (`api/administration/banks`) and `BankLinkageController`
+(`api/accounts/banklinkages`) documented for the first time. A "bank" here
+is an external institution a customer's bank account/cheque is held at —
+not the same thing as `branch-api-spec.md` (this SACCO's own operating
+branches). A "bank linkage" maps one of this SACCO's own branches to an
+external bank account + G/L account, used by front-office cash movement
+between a teller/treasury and an external bank.
+
+Three things to know if you touch either area:
+- **`BankDTO` and `BankLinkageDTO` used to be one overloaded type.**
+  `BankDTO` carried a pasted-in copy of every linkage field
+  (`bankName`, `branchId`, `chartOfAccountId`, ...), which meant its
+  `[Required]` attributes didn't match what a real "create a bank" payload
+  looks like. They're now separate DTOs — send bank fields to
+  `api/administration/banks`, linkage fields to
+  `api/accounts/banklinkages`. If you previously worked around the mixed
+  DTO client-side, you can drop that workaround.
+- **`CashManagementController`'s bank-linkage lookups were previously
+  guaranteed to `500`** (a `NullReferenceException` from an unassigned
+  `IBankLinkageAppService` field) on the `BankToTreasury`/`TreasuryToBank`
+  cash-movement paths in `POST api/frontoffice/cashmanagement/...`. Fixed;
+  no client-side change needed, but if you had a workaround for those
+  calls always failing, it's no longer necessary.
+- The reference MVC controllers' raw-SQL `DeleteBank` (which actually
+  deleted a *branch* row despite its name, bypassing the domain layer) and
+  session-based branch-staging (`Session["bankBranches"]`,
+  `Session["chartOfAccountId"]`, ...) were **not** carried forward for
+  either controller — branches/linkage fields are now just part of the
+  create/update request body, and neither controller has a delete endpoint
+  (neither `IBankAppService` nor `IBankLinkageAppService` expose one).
+
+Full reference: `bank-api-spec.md`, `bank-linkage-api-spec.md`.
 
 ### Chart of Accounts + Cost Centers — new
 
