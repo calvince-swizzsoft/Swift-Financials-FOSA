@@ -405,16 +405,97 @@ string, and PGP key paths/passphrase entirely from server config
 
 ## 16. Fiscal counts (standalone) — `api/frontoffice/fiscalcounts`
 
-Controller: `FiscalCountController.cs`. A browse/manual-entry view over
-denomination-count records — normal posting happens inline via treasury
-cash movement (§5), EOD close (§9), or a cash transfer request (§7), all of
-which build/persist their own `FiscalCountDTO`.
+Controller: `FiscalCountController.cs`. Nav: Front-Office → Treasury →
+"Fiscal Counts", alongside "Cash Management" and "Authorizations" — a
+*sibling* screen to those two, not a child of either.
 
-- `GET /?text=&startDate=&endDate=&pageIndex=&pageSize=` — paged list.
-- `GET /{id}` — single record.
-- `POST /` — manual entry (`FiscalCountDTO`). Same reconciliation rule as
-  every other entry point into `FiscalCount`: the eleven
-  `Denomination*Value` subtotals must sum to `TotalValue`, `400` otherwise.
+**Frontend scope: this is a read-only catalogue, not a CRUD screen.**
+Every `FiscalCount` row that matters is written implicitly by treasury cash
+movement (§5, `CashManagementController` — `BankToTreasury`/
+`TreasuryToBank`/`TreasuryToTeller`/`TreasuryToTreasury`), EOD close (§9,
+`TellerEndOfDay`), or a cash transfer request (§7, `TellerCashTransfer`) —
+each of those posts its own GL journal and, alongside it, a `FiscalCount`
+denomination-audit row. The catalogue's job is to let a user pick one of
+those transaction types and see every row it ever produced, with the
+denomination breakdown, not to let them create or edit rows by hand. Build
+list (§16.1) and detail (§16.2) only — skip create/update UI for this
+screen; §16.3 exists (parity with every other `FiscalCount` entry point)
+but isn't part of the intended flow.
+
+### 16.1 List — `GET /?text=&startDate=&endDate=&transactionCode=&pageIndex=&pageSize=`
+
+Paged list, `data: PageCollectionInfo<FiscalCountDTO>`
+(`{ pageIndex, pageSize, pageCollection, itemsCount }`). All params
+optional. `text` does a case-sensitive `Contains` against
+`ChartOfAccount.AccountName`, `PrimaryDescription`, `SecondaryDescription`,
+`Reference`, or `CreatedBy` (any one matches). Supplying either `startDate`
+or `endDate` switches to the date-ranged query — the bound you didn't
+supply defaults to `DateTime.MinValue`/`MaxValue`, so a lone `startDate`
+means "from then through now" and a lone `endDate` means "everything up to
+then". `pageIndex` is 0-based, `pageSize` defaults to `20`.
+
+`transactionCode` is the "select a transaction type" filter — pass a
+`SystemTransactionCode` int value to see only that type's rows; omit it (or
+send `0`) for all types. This is the field to drive a type-selector
+control (tabs/dropdown/chips) on the catalogue grid:
+
+| Filter label | `transactionCode` value |
+|---|---|
+| Bank to Treasury | `SystemTransactionCode.BankToTreasury` |
+| Treasury to Bank | `SystemTransactionCode.TreasuryToBank` |
+| Treasury to Teller | `SystemTransactionCode.TreasuryToTeller` |
+| Treasury to Treasury | `SystemTransactionCode.TreasuryToTreasury` |
+| Teller End-of-Day | `SystemTransactionCode.TellerEndOfDay` |
+| Teller Cash Transfer | `SystemTransactionCode.TellerCashTransfer` |
+
+Filter by `TransactionCode`, never `TransactionType` — see §16.4, the
+latter is always `0` on a read.
+
+### 16.2 Get one — `GET /{id}`
+
+Single `FiscalCountDTO`. `404` if not found.
+
+### 16.3 Manual entry — `POST /` (not needed for the catalogue build)
+
+Body: `FiscalCountDTO`. `400` (message = semicolon-joined validation
+errors) on binding-model validation failure; `400` if the eleven
+`Denomination*Value` subtotals don't sum to `TotalValue` — same
+reconciliation rule as every other `FiscalCount` entry point (§5, §7, §9).
+Unlike those three controllers, this endpoint has **no** `success:
+false`/`200` failure path for business rules — validation and
+reconciliation failures are real `400`s here. Exists for ad-hoc/manual
+denomination records outside the normal flow; the catalogue screen itself
+doesn't need a create form — every row it displays already came from §5/§7/
+§9.
+
+### 16.4 Which fields actually come back on a read
+
+`FiscalCountDTO` is shared with the *write* side (§5/§7/§9 build one to
+post a movement), so it carries fields the `FiscalCount` entity itself
+doesn't have — `AutoMapper`'s `FiscalCount → FiscalCountDTO` map
+(`FrontOfficeModuleProfile.cs`) only fills what the entity actually owns or
+navigates to. On `GET`/list responses from this controller:
+
+**Populated:** `Id`, `BranchId`/`BranchDescription`,
+`PostingPeriodId`/`PostingPeriodDescription`, `ChartOfAccountId` and its
+`ChartOfAccountAccountType`/`AccountCode`/`AccountName`/`ChartOfAccountName`
+(pre-formatted `"type-code name"`) and, if set, `ChartOfAccountCostCenterId`/
+`Description`, `PrimaryDescription`, `SecondaryDescription`, `Reference`,
+`TotalValue` (server-computed sum of the denomination fields, not a stored
+column), the eleven `Denomination*Value` fields, `TransactionCode` /
+`TransactionCodeDescription` (`SystemTransactionCode` — what actually
+persisted, e.g. `TreasuryToTeller`/`TellerEndOfDay`/`TellerCashTransfer`),
+`SystemTraceAuditNumber`, `CreatedBy`, `CreatedDate`.
+
+**Always default/empty on read** — don't build grid columns for these:
+`TellerId`/`TellerDescription`, `TreasuryId`/`TreasuryDescription`,
+`DestinationBranchId`, `Description` (a generic field distinct from
+`PrimaryDescription`/`SecondaryDescription`), `SavingsProduct`, `Teller`,
+and `TransactionType`/`TransactionTypeDescription` (`TreasuryTransactionType`
+— only meaningful as *input* to `POST /api/frontoffice/cashmanagement`,
+§5; the entity has no matching column, so it's always `0` here). If you
+need to distinguish "which kind of movement wrote this row," use
+`TransactionCode`, not `TransactionType`.
 
 ---
 

@@ -64,7 +64,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                 {
                     var parentNavigationItem = await FindNavigationItemAsync(item.AreaCode, serviceHeader);
 
-                    item.ParentId = parentNavigationItem.Id;
+                    item.ParentId = parentNavigationItem?.Id;
 
                     subParentNavigationItems.Add(item);
                 }
@@ -80,11 +80,11 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                 {
                     foreach (var item in childrenNavigationItems)
                     {
-                        var matchedNavigationItems = await FindNavigationItemByControllerNameAndActionNameAsync(item.ControllerName, item.ActionName, serviceHeader);
+                        var matchedNavigationItem = await FindNavigationItemAsync(item.Code, serviceHeader);
 
                         var parentNavigationItem = await FindNavigationItemAsync(item.AreaCode, serviceHeader);
 
-                        if (matchedNavigationItems == null || !matchedNavigationItems.Any())
+                        if (matchedNavigationItem == null)
                         {
                             var navigationItem = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.Id, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, item.AreaCode, item.AreaName);
 
@@ -96,20 +96,17 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                         }
                         else
                         {
-                            foreach (var matchedNavigationItem in matchedNavigationItems)
-                            {
-                                var persisted = _navigationItemRepository.Get(matchedNavigationItem.Id, serviceHeader);
+                            var persisted = _navigationItemRepository.Get(matchedNavigationItem.Id, serviceHeader);
 
-                                var current = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.Id, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, parentNavigationItem.Code, item.AreaName);
+                            var current = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.Id, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, parentNavigationItem?.Code ?? item.AreaCode, item.AreaName);
 
-                                current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+                            current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
 
-                                current.IsArea = item.IsArea;
+                            current.IsArea = item.IsArea;
 
-                                current.CreatedBy = serviceHeader.ApplicationUserName;
+                            current.CreatedBy = serviceHeader.ApplicationUserName;
 
-                                _navigationItemRepository.Merge(persisted, current, serviceHeader);
-                            }
+                            _navigationItemRepository.Merge(persisted, current, serviceHeader);
                         }
                     }
 
@@ -122,17 +119,29 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
         private async Task<bool> AddParentNavigationItemsAsync(List<NavigationItemDTO> navigationItems, ServiceHeader serviceHeader)
         {
+            var result = default(bool);
+
             if (navigationItems == null) return false;
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            // Area items can nest under other area items (module -> "Setup"/"Operations" ->
+            // sub-area, e.g. Front-Office -> Operations -> Treasury). NavigationMenu.cs never
+            // sets ParentId on these — it only sets AreaCode (the parent's Code) and expects it
+            // to be resolved. Each item is committed individually, in NavigationMenu.cs's
+            // declaration order (parents always declared before their children), so a later
+            // item's AreaCode lookup can find an earlier sibling that was just saved — a single
+            // batched SaveChanges at the end can't see not-yet-persisted parents from earlier in
+            // the same run.
+            foreach (var item in navigationItems)
             {
-                foreach (var item in navigationItems)
+                using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
-                    var matchedNavigationItems = await FindModuleNavigationActionByDescription(item.Description, serviceHeader);
+                    var matchedNavigationItem = await FindNavigationItemAsync(item.Code, serviceHeader);
 
-                    if (matchedNavigationItems == null || !matchedNavigationItems.Any())
+                    var parentNavigationItem = await FindNavigationItemAsync(item.AreaCode, serviceHeader);
+
+                    if (matchedNavigationItem == null)
                     {
-                        var navigationItem = NavigationItemFactory.CreateNavigationItem(item.ParentId, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, item.AreaCode, item.AreaName);
+                        var navigationItem = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.Id, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, item.AreaCode, item.AreaName);
 
                         navigationItem.IsArea = item.IsArea;
 
@@ -142,27 +151,27 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                     }
                     else
                     {
-                        foreach (var matchedNavigationItem in matchedNavigationItems)
+                        var persisted = _navigationItemRepository.Get(matchedNavigationItem.Id, serviceHeader);
+
+                        if (persisted != null)
                         {
-                            var persisted = _navigationItemRepository.Get(matchedNavigationItem.Id, serviceHeader);
+                            var current = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.Id, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, item.AreaCode, item.AreaName);
 
-                            if (persisted != null)
-                            {
-                                var current = NavigationItemFactory.CreateNavigationItem(item.ParentId, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, item.AreaCode, item.AreaName);
+                            current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
 
-                                current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+                            current.IsArea = item.IsArea;
 
-                                current.IsArea = item.IsArea;
+                            current.CreatedBy = serviceHeader.ApplicationUserName;
 
-                                current.CreatedBy = serviceHeader.ApplicationUserName;
-
-                                _navigationItemRepository.Merge(persisted, current, serviceHeader);
-                            }
+                            _navigationItemRepository.Merge(persisted, current, serviceHeader);
                         }
                     }
+
+                    result = await dbContextScope.SaveChangesAsync(serviceHeader) >= 0;
                 }
-                return await dbContextScope.SaveChangesAsync(serviceHeader) >= 0;
             }
+
+            return result;
         }
 
         private async Task<bool> AddSubParentNavigationItemsAsync(List<NavigationItemDTO> navigationItems, ServiceHeader serviceHeader)
@@ -177,11 +186,11 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
-                    var matchedNavigationItems = await FindModuleNavigationActionByDescription(item.Description, serviceHeader);
+                    var matchedNavigationItem = await FindNavigationItemAsync(item.Code, serviceHeader);
 
                     var parentNavigationItem = await FindNavigationItemAsync(item.AreaCode, serviceHeader);
 
-                    if (matchedNavigationItems == null || !matchedNavigationItems.Any())
+                    if (matchedNavigationItem == null)
                     {
                         var navigationItem = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.ParentId, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, item.AreaCode, item.AreaName);
 
@@ -193,22 +202,19 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                     }
                     else
                     {
-                        foreach (var matchedNavigationItem in matchedNavigationItems)
+                        var persisted = await _navigationItemRepository.GetAsync(matchedNavigationItem.Id, serviceHeader);
+
+                        if (persisted != null)
                         {
-                            var persisted = await _navigationItemRepository.GetAsync(matchedNavigationItem.Id, serviceHeader);
+                            var current = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.ParentId, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, parentNavigationItem?.Code ?? item.AreaCode, item.AreaName);
 
-                            if (persisted != null)
-                            {
-                                var current = NavigationItemFactory.CreateNavigationItem(parentNavigationItem?.ParentId, item.Description, item.Icon, item.Code, item.ControllerName, item.ActionName, parentNavigationItem.Code, item.AreaName);
+                            current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
 
-                                current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+                            current.IsArea = item.IsArea;
 
-                                current.IsArea = item.IsArea;
+                            current.CreatedBy = serviceHeader.ApplicationUserName;
 
-                                current.CreatedBy = serviceHeader.ApplicationUserName;
-
-                                _navigationItemRepository.Merge(persisted, current, serviceHeader);
-                            }
+                            _navigationItemRepository.Merge(persisted, current, serviceHeader);
                         }
                     }
 

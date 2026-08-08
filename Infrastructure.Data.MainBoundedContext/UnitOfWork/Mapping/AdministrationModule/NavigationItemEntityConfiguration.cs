@@ -26,6 +26,8 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.Administrati
 
             Property(x => x.AreaName).HasMaxLength(256);
 
+            Property(t => t.Code).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute("IX_NavigationItem_Code") { IsUnique = true }));
+
             ToTable(string.Format("{0}NavigationItems", DefaultSettings.Instance.TablePrefix));
         }
     }

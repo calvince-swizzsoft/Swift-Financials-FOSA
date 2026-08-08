@@ -55,6 +55,54 @@ namespace Domain.MainBoundedContext.FrontOfficeModule.Aggregates.FiscalCountAgg
             return specification;
         }
 
+        public static ISpecification<FiscalCount> FiscalCountFullTextAndTransactionCode(string text, int transactionCode)
+        {
+            Specification<FiscalCount> specification = DefaultSpec();
+
+            if (!String.IsNullOrWhiteSpace(text))
+            {
+                var chartOfAccountSpec = new DirectSpecification<FiscalCount>(c => c.ChartOfAccount.AccountName.Contains(text));
+                var primaryDescriptionSpec = new DirectSpecification<FiscalCount>(c => c.PrimaryDescription.Contains(text));
+                var secondaryDescriptionSpec = new DirectSpecification<FiscalCount>(c => c.SecondaryDescription.Contains(text));
+                var referenceSpec = new DirectSpecification<FiscalCount>(c => c.Reference.Contains(text));
+                var createdBySpec = new DirectSpecification<FiscalCount>(c => c.CreatedBy.Contains(text));
+
+                specification &= (chartOfAccountSpec | primaryDescriptionSpec | secondaryDescriptionSpec | createdBySpec | referenceSpec);
+            }
+
+            if (transactionCode > 0)
+            {
+                specification &= new DirectSpecification<FiscalCount>(x => x.TransactionCode == transactionCode);
+            }
+
+            return specification;
+        }
+
+        public static ISpecification<FiscalCount> FiscalCountWithDateRangeAndFullTextAndTransactionCode(DateTime startDate, DateTime endDate, string text, int transactionCode)
+        {
+            endDate = UberUtil.AdjustTimeSpan(endDate);
+
+            Specification<FiscalCount> specification = new DirectSpecification<FiscalCount>(x => x.CreatedDate >= startDate && x.CreatedDate <= endDate);
+
+            if (!String.IsNullOrWhiteSpace(text))
+            {
+                var chartOfAccountSpec = new DirectSpecification<FiscalCount>(c => c.ChartOfAccount.AccountName.Contains(text));
+                var primaryDescriptionSpec = new DirectSpecification<FiscalCount>(c => c.PrimaryDescription.Contains(text));
+                var secondaryDescriptionSpec = new DirectSpecification<FiscalCount>(c => c.SecondaryDescription.Contains(text));
+                var referenceSpec = new DirectSpecification<FiscalCount>(c => c.Reference.Contains(text));
+                var createdBySpec = new DirectSpecification<FiscalCount>(c => c.CreatedBy.Contains(text));
+
+                specification &= (chartOfAccountSpec | primaryDescriptionSpec | secondaryDescriptionSpec | createdBySpec | referenceSpec);
+            }
+
+            if (transactionCode > 0)
+            {
+                specification &= new DirectSpecification<FiscalCount>(x => x.TransactionCode == transactionCode);
+            }
+
+            return specification;
+        }
+
         public static ISpecification<FiscalCount> FiscalCountWithDateRangeAndTransactionCodeAndApplicationUserName(DateTime startDate, DateTime endDate, int transactionCode, string applicationUserName)
         {
             Specification<FiscalCount> specification = DefaultSpec();

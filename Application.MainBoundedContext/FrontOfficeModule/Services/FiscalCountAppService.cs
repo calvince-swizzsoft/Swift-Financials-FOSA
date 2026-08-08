@@ -175,6 +175,54 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 return null;
         }
 
+        public PageCollectionInfo<FiscalCountDTO> FindFiscalCounts(int transactionCode, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var filter = FiscalCountSpecifications.FiscalCountFullTextAndTransactionCode(text, transactionCode);
+
+                ISpecification<FiscalCount> spec = filter;
+
+                var sortFields = new List<string> { "SequentialId" };
+
+                var fiscalCountPagedCollection = _fiscalCountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+
+                if (fiscalCountPagedCollection != null)
+                {
+                    var pageCollection = fiscalCountPagedCollection.PageCollection.ProjectedAsCollection<FiscalCountDTO>();
+
+                    var itemsCount = fiscalCountPagedCollection.ItemsCount;
+
+                    return new PageCollectionInfo<FiscalCountDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
+                }
+                else return null;
+            }
+        }
+
+        public PageCollectionInfo<FiscalCountDTO> FindFiscalCounts(int transactionCode, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var filter = FiscalCountSpecifications.FiscalCountWithDateRangeAndFullTextAndTransactionCode(startDate, endDate, text, transactionCode);
+
+                ISpecification<FiscalCount> spec = filter;
+
+                var sortFields = new List<string> { "SequentialId" };
+
+                var fiscalCountPagedCollection = _fiscalCountRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+
+                if (fiscalCountPagedCollection != null)
+                {
+                    var pageCollection = fiscalCountPagedCollection.PageCollection.ProjectedAsCollection<FiscalCountDTO>();
+
+                    var itemsCount = fiscalCountPagedCollection.ItemsCount;
+
+                    return new PageCollectionInfo<FiscalCountDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
+                }
+                else return null;
+            }
+        }
+
         public FiscalCountDTO FindFiscalCount(Guid fiscalCountId, ServiceHeader serviceHeader)
         {
             if (fiscalCountId != Guid.Empty)

@@ -22,6 +22,10 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
         PageCollectionInfo<FiscalCountDTO> FindFiscalCounts(DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 
+        PageCollectionInfo<FiscalCountDTO> FindFiscalCounts(int transactionCode, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader);
+
+        PageCollectionInfo<FiscalCountDTO> FindFiscalCounts(int transactionCode, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader);
+
         FiscalCountDTO FindFiscalCount(Guid fiscalCountId, ServiceHeader serviceHeader);
         
         bool IsEndOfDayExecuted(EmployeeDTO employeeDTO, ServiceHeader serviceHeader);

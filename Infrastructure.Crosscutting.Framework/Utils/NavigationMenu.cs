@@ -59,8 +59,8 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                     Code = 0x00004E20 + 13 },
                 new NavigationMenu { AreaCode = 0x00004E20 + 2, IsArea = false, Description = "Workflow", Icon = "fa fa-table", ControllerName = "Workflow", ActionName = "Create",
                     AreaName = "Admin", Code = 0x00004E20 + 14 },
-                   //new NavigationMenu { AreaCode = 0x00004E20 + 2, IsArea = false, Description = "Report Setting", Icon = "fa fa-table", ControllerName = "SSRSReportSetting", ActionName = "Create",
-                   // AreaName = "Admin", Code = 0x00004E20 + 14 }
+                new NavigationMenu { AreaCode = 0x00004E20 + 2, IsArea = false, Description = "Report Setting", Icon = "fa fa-table", ControllerName = "SSRSReportSetting", ActionName = "Create",
+                    AreaName = "Admin", Code = 0x00004E20 + 15 },
                 #endregion
 
                 #region Accounts Module
@@ -480,7 +480,9 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                     Code =  0x000061A8 + 3},
                 new NavigationMenu { AreaCode = 0x000061A8 + 2, IsArea = false, Description = "Authorizations", Icon = "fa fa-cogs", ControllerName = "CashWithdrawalRequest", ActionName = "Create", AreaName = "FrontOffice",
                     Code =  0x000061A8 + 4},
-               
+                new NavigationMenu { AreaCode = 0x000061A8 + 2, IsArea = false, Description = "Fiscal Counts", Icon = "fa fa-table", ControllerName = "FiscalCount", ActionName = "Index", AreaName = "FrontOffice",
+                    Code =  0x000061A8 + 15},
+
 
                 //..Teller
                 new NavigationMenu { AreaCode = 0x000061A8 + 1, IsArea = true, Description = "Teller", Icon = "", Code = 0x000061A8 + 5 },
@@ -512,23 +514,13 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                 //new NavigationMenu { AreaCode = 0x000061A8 + 23, IsArea = false, Description = "Catalogue", Icon = "fa fa-cogs", ControllerName = "Controller", ActionName = "Index", AreaName = "FrontOffice",
                 //    Code =  0x000061A8 + 26},
 
-                ////..In-House
-                //new NavigationMenu { AreaCode = 0x000061A8 + 22, IsArea = true, Description = "In-House", Icon = "", Code = 0x000061A8 + 27 },
-                //new NavigationMenu { AreaCode = 0x000061A8 + 27, IsArea = false, Description = "Writing", Icon = "fa fa-university", ControllerName = "Controller", ActionName = "Index", AreaName = "FrontOffice",
-                //    Code =  0x000061A8 + 28},
-                //new NavigationMenu { AreaCode = 0x000061A8 + 27, IsArea = false, Description = "Printing", Icon = "fa fa-eraser", ControllerName = "Controller", ActionName = "Index", AreaName = "FrontOffice",
-                //    Code =  0x000061A8 + 29},
-                //new NavigationMenu { AreaCode = 0x000061A8 + 27, IsArea = false, Description = "Catalogue", Icon = "fa fa-cogs", ControllerName = "Controller", ActionName = "Index", AreaName = "FrontOffice",
-                //    Code =  0x000061A8 + 30},
+                //..In-House
+                new NavigationMenu{AreaCode = 0x000061A8 + 1, IsArea = false, Description = "In-House Cheques", Icon = "fa fa-print", ControllerName = "InHouse", ActionName = "Index", AreaName = "FrontOffice",
+                    Code = 0x000061A8 + 16},
 
-                ////..Automated Clearing
-                //new NavigationMenu { AreaCode = 0x000061A8 + 22, IsArea = true, Description = "Automated Clearing", Icon = "", Code = 0x000061A8 + 31 },
-                //new NavigationMenu { AreaCode = 0x000061A8 + 31, IsArea = false, Description = "Journals", Icon = "fa fa-book", ControllerName = "Controller", ActionName = "Index", AreaName = "FrontOffice",
-                //    Code =  0x000061A8 + 32},
-                //new NavigationMenu { AreaCode = 0x000061A8 + 31, IsArea = false, Description = "Processing", Icon = "fa fa-cogs", ControllerName = "Controller", ActionName = "Index", AreaName = "FrontOffice",
-                //    Code =  0x000061A8 + 33},
-                //new NavigationMenu { AreaCode = 0x000061A8 + 31, IsArea = false, Description = "Catalogue", Icon = "fa fa-cogs", ControllerName = "Controller", ActionName = "Index", AreaName = "FrontOffice",
-                //    Code =  0x000061A8 + 34},
+                //..Automated Clearing
+                new NavigationMenu{AreaCode = 0x000061A8 + 1, IsArea = false, Description = "Automated Clearing", Icon = "fa fa-refresh", ControllerName = "AutomatedClearing", ActionName = "Index", AreaName = "FrontOffice",
+                    Code = 0x000061A8 + 17},
 
                 //...Fixed Deposits
                 //new NavigationMenu { AreaCode = 0x000061A8 + 1, IsArea = true, Description = "Fixed Deposits", Icon = "", Code = 0x000061A8 + 35 },

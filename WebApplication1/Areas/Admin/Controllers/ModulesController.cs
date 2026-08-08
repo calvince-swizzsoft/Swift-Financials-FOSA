@@ -82,11 +82,47 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 var itemsByRole = await Task.WhenAll(callerRoles.Select(r => _navigationItemInRoleAppService.GetNavigationItemsInRoleAsync(r, serviceHeader)));
 
-                var result = itemsByRole
+                var grantedRows = itemsByRole
                     .Where(items => items != null)
                     .SelectMany(items => items)
                     .GroupBy(item => item.NavigationItemId)
                     .Select(group => group.First())
+                    .ToList();
+
+                // Role grants only ever cover the concrete items an admin explicitly checked -
+                // never their ancestor "IsArea" folder nodes automatically. But the client
+                // rebuilds its tree purely from each item's own Code/AreaCode links within
+                // whatever array it's handed (it never trusts a server-computed Children field),
+                // so a granted leaf whose ancestor folder was never itself granted has nothing to
+                // attach to and renders as a false top-level root - the client-side tree only
+                // ever cascades correctly when the array it's given is a subset of the FULL
+                // Code/AreaCode graph, not a disconnected bag of leaves.
+                //
+                // Fix: treat the grant list as a prune over the full catalogue rather than the
+                // final answer. Walk every granted item's ParentId chain up through the full
+                // catalogue and splice in every ancestor it passes through, so what's returned
+                // is exactly the full list's own graph with everything NOT on a path to a
+                // granted item removed - "as if it was the whole list, only pruned."
+                var allItems = await _navigationItemAppService.FindNavigationItemsAsync(serviceHeader);
+                var byId = allItems.ToDictionary(i => i.Id);
+
+                var includedIds = new HashSet<Guid>(grantedRows.Select(g => g.NavigationItemId));
+                var ancestorQueue = new Queue<Guid>(includedIds);
+
+                while (ancestorQueue.Count > 0)
+                {
+                    var id = ancestorQueue.Dequeue();
+                    if (!byId.TryGetValue(id, out var item) || !item.ParentId.HasValue) continue;
+
+                    var parentId = item.ParentId.Value;
+                    if (includedIds.Add(parentId)) ancestorQueue.Enqueue(parentId);
+                }
+
+                var grantedById = grantedRows.ToDictionary(g => g.NavigationItemId);
+
+                var result = includedIds
+                    .Where(id => byId.ContainsKey(id))
+                    .Select(id => grantedById.TryGetValue(id, out var granted) ? granted : ToAncestorRow(byId[id]))
                     .ToList();
 
                 return Json(result);
@@ -97,6 +133,32 @@ namespace WebApplication1.Areas.Admin.Controllers
                 return InternalServerError(ex);
             }
 
+        }
+
+        // An ancestor folder pulled in only to keep the tree connected, not an actual
+        // grant - no real NavigationItemInRole row backs it, so Id/RoleName/CreatedBy
+        // are synthetic. The client only ever reads the NavigationItem* fields to
+        // rebuild its tree (Code/AreaCode/Description/IsArea/ControllerName/ActionName),
+        // never these, so their placeholder values are safe.
+        private static NavigationItemInRoleDTO ToAncestorRow(NavigationItemDTO item)
+        {
+            return new NavigationItemInRoleDTO
+            {
+                Id = Guid.Empty,
+                NavigationItemId = item.Id,
+                NavigationItemDescription = item.Description,
+                navigationItemCode = item.Code,
+                NavigationItemIcon = item.Icon,
+                NavigationItemControllerName = item.ControllerName,
+                NavigationItemActionName = item.ActionName,
+                NavigationItemParentId = item.ParentId,
+                NavigationItemAreaName = item.AreaName,
+                NavigationItemAreaCode = item.AreaCode,
+                NavigationItemIsArea = item.IsArea,
+                RoleName = "(ancestor)",
+                CreatedBy = "system",
+                CreatedDate = item.CreatedDate,
+            };
         }
 
 

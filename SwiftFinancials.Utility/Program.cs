@@ -18,7 +18,7 @@ namespace SwiftFinancials.Utility
 
             IChannelService channelService = new ChannelService(logger);
 
-           // var navigationItems = GetAvailableNavigationMenus();
+            var navigationItems = GetAvailableNavigationMenus();
 
             try
             {
@@ -46,8 +46,8 @@ namespace SwiftFinancials.Utility
                         result = await channelService.ConfigureApplicationDatabaseAsync(serviceHeader, 180d);
                         Console.WriteLine("ConfigureApplicationDatabaseAsync>{0}", result);
 
-                        //result = await channelService.AddNavigationItemsAsync(navigationItems, serviceHeader);
-                        //Console.WriteLine("AddNavigationItemsAsync>{0}", result);
+                        result = await channelService.AddNavigationItemsAsync(navigationItems, serviceHeader);
+                        Console.WriteLine("AddNavigationItemsAsync>{0}", result);
 
                         if (result)
                         {

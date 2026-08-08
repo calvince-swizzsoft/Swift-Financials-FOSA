@@ -38,15 +38,15 @@ namespace WebApplication1.Controllers
 
         [HttpGet]
         [Route("")]
-        public IHttpActionResult Index(string text = "", DateTime? startDate = null, DateTime? endDate = null, int pageIndex = 0, int pageSize = 20)
+        public IHttpActionResult Index(string text = "", DateTime? startDate = null, DateTime? endDate = null, int transactionCode = 0, int pageIndex = 0, int pageSize = 20)
         {
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 var fiscalCounts = (startDate.HasValue || endDate.HasValue)
-                    ? _fiscalCountAppService.FindFiscalCounts(startDate ?? DateTime.MinValue, endDate ?? DateTime.MaxValue, text ?? "", pageIndex, pageSize, serviceHeader)
-                    : _fiscalCountAppService.FindFiscalCounts(text ?? "", pageIndex, pageSize, serviceHeader);
+                    ? _fiscalCountAppService.FindFiscalCounts(transactionCode, startDate ?? DateTime.MinValue, endDate ?? DateTime.MaxValue, text ?? "", pageIndex, pageSize, serviceHeader)
+                    : _fiscalCountAppService.FindFiscalCounts(transactionCode, text ?? "", pageIndex, pageSize, serviceHeader);
 
                 return Ok(new { success = true, message = "", data = fiscalCounts });
             }

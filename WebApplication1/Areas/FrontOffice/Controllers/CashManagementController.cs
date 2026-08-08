@@ -144,6 +144,7 @@ namespace WebApplication1.Controllers
                     {
                         case TreasuryTransactionType.BankToTreasury:
 
+                         
                             var sendingBank = _bankAppService.FindBank(fiscalCountDTO.Id, serviceHeader);
                             if (sendingBank == null)
                             {
@@ -151,8 +152,8 @@ namespace WebApplication1.Controllers
                                 return Json(new { success = false, message = "Operation Failed: Sending bank not found" });
                             }
 
-                            var bankLinkages = _bankLinkageAppService.FindBankLinkages(serviceHeader);
-                            var matchingBankLinkage = bankLinkages.FirstOrDefault(li => li.BankName == sendingBank.Description);
+                            var matchingBankLinkage = _bankLinkageAppService.FindBankLinkageByBankAccountId(fiscalCountDTO.Id, serviceHeader);
+                           // var matchingBankLinkage = bankLinkages.FirstOrDefault(li => li.BankName == sendingBank.Description);
                             if (matchingBankLinkage == null)
                             {
                                 return Json(new { success = false, message = "Operation Failed: No matching bank linkage found for selected bank account" });
