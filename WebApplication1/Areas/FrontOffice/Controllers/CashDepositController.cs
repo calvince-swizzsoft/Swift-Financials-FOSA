@@ -323,7 +323,7 @@ namespace WebApplication1.Controllers
                     transactionModel.TransactionCode = (int)SystemTransactionCode.CashWithdrawal;
 
                     // is it available balance or book balance
-                    if ((SelectedCustomerAccount.AvailableBalance) - transactionModel.TotalValue < SelectedCustomerAccount.CustomerAccountTypeTargetProductMinimumBalance)
+                    if ((SelectedCustomerAccount.AvailableBalance) - transactionModel.TotalValue < targetSavingsProduct.MinimumBalance)
                     {
 
                         var response = new
@@ -358,7 +358,7 @@ namespace WebApplication1.Controllers
 
                     transactionModel.TransactionCode = (int)SystemTransactionCode.CashWithdrawalPaymentVoucher;
 
-                    if (SelectedCustomerAccount.BookBalance - transactionModel.TotalValue < SelectedCustomerAccount.CustomerAccountTypeTargetProductMinimumBalance)
+                    if (SelectedCustomerAccount.BookBalance - transactionModel.TotalValue < targetSavingsProduct.MinimumBalance)
                     {
 
                         var response = new
@@ -812,6 +812,7 @@ namespace WebApplication1.Controllers
                                         {
 
                                             Id = withinLimitsCashDepositJournal.Id,
+                                            TransactionCode = withinLimitsCashDepositJournal.TransactionCode,
                                             SequentialId = withinLimitsCashDepositJournal.SequentialId,
                                             BranchDescription = withinLimitsCashDepositJournal.BranchDescription,
                                             PrimaryDescription = withinLimitsCashDepositJournal.PrimaryDescription,
@@ -896,6 +897,7 @@ namespace WebApplication1.Controllers
                                                     {
 
                                                         Id = authorizedCashDepositJournal.Id,
+                                                        TransactionCode = authorizedCashDepositJournal.TransactionCode,
                                                         SequentialId = authorizedCashDepositJournal.SequentialId,
                                                         BranchDescription = authorizedCashDepositJournal.BranchDescription,
                                                         PrimaryDescription = authorizedCashDepositJournal.PrimaryDescription,
@@ -1033,17 +1035,17 @@ namespace WebApplication1.Controllers
                             {
                                 cashWithdrawalCategory = CashWithdrawalCategory.PaymentVoucher;
                             }
-                            else if (transactionModel.TotalValue > SelectedCustomerAccount.CustomerAccountTypeTargetProductMaximumAllowedWithdrawal)
+                            else if (transactionModel.TotalValue > targetProduct.MaximumAllowedWithdrawal)
                             {
                                 cashWithdrawalCategory = CashWithdrawalCategory.AboveMaximumAllowed;
                             }
-                            else if (((transactionModel.TotalValue + tariffs.Where(x => x.ChargeBenefactor == (int)ChargeBenefactor.Customer).Sum(x => x.Amount)) > SelectedCustomerAccount.AvailableBalance) && ((transactionModel.TotalValue + tariffs.Sum(x => x.Amount)) <= (SelectedCustomerAccount.AvailableBalance + SelectedCustomerAccount.CustomerAccountTypeTargetProductMinimumBalance)))
+                            else if (((transactionModel.TotalValue + tariffs.Where(x => x.ChargeBenefactor == (int)ChargeBenefactor.Customer).Sum(x => x.Amount)) > SelectedCustomerAccount.AvailableBalance) && ((transactionModel.TotalValue + tariffs.Sum(x => x.Amount)) <= (SelectedCustomerAccount.AvailableBalance + targetProduct.MinimumBalance)))
                             {
                                 cashWithdrawalCategory = CashWithdrawalCategory.BelowMinimumBalance;
                             }
 
-                            //TODO: maybe u want to Check for OverDraw earlier 
-                            else if ((transactionModel.TotalValue + tariffs.Where(x => x.ChargeBenefactor == (int)ChargeBenefactor.Customer).Sum(x => x.Amount)) > (SelectedCustomerAccount.AvailableBalance + SelectedCustomerAccount.CustomerAccountTypeTargetProductMinimumBalance))
+                            //TODO: maybe u want to Check for OverDraw earlier
+                            else if ((transactionModel.TotalValue + tariffs.Where(x => x.ChargeBenefactor == (int)ChargeBenefactor.Customer).Sum(x => x.Amount)) > (SelectedCustomerAccount.AvailableBalance + targetProduct.MinimumBalance))
                             {
                                 cashWithdrawalCategory = CashWithdrawalCategory.Overdraw;
                             }
@@ -1093,6 +1095,7 @@ namespace WebApplication1.Controllers
                                                         {
 
                                                             Id = authorizedCashWithdrawalJournal.Id,
+                                                            TransactionCode = authorizedCashWithdrawalJournal.TransactionCode,
                                                             SequentialId = authorizedCashWithdrawalJournal.SequentialId,
                                                             BranchDescription = authorizedCashWithdrawalJournal.BranchDescription,
                                                             PrimaryDescription = authorizedCashWithdrawalJournal.PrimaryDescription,
@@ -1247,6 +1250,7 @@ namespace WebApplication1.Controllers
                                             {
 
                                                 Id = withinLimitsJournal.Id,
+                                                TransactionCode = withinLimitsJournal.TransactionCode,
                                                 SequentialId = withinLimitsJournal.SequentialId,
                                                 BranchDescription = withinLimitsJournal.BranchDescription,
                                                 PrimaryDescription = withinLimitsJournal.PrimaryDescription,
@@ -1426,6 +1430,7 @@ namespace WebApplication1.Controllers
                                     {
 
                                         Id = chequeDepositJournal.Id,
+                                        TransactionCode = chequeDepositJournal.TransactionCode,
                                         SequentialId = chequeDepositJournal.SequentialId,
                                         BranchDescription = chequeDepositJournal.BranchDescription,
                                         PrimaryDescription = chequeDepositJournal.PrimaryDescription,

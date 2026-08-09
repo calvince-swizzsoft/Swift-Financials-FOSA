@@ -112,7 +112,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (dbContextScope.SaveChanges(serviceHeader) >= 0)
                     {
-                        return journal.ProjectedAs<JournalDTO>();
+                        // journal is a freshly `new`-ed entity, not one materialized by a
+                        // query, so its private-set PostingPeriod navigation can never lazy
+                        // load — AutoMapper's flattening would leave PostingPeriodDescription
+                        // blank without this; postingPeriod (the DTO) is already in hand.
+                        var journalDTO = journal.ProjectedAs<JournalDTO>();
+                        journalDTO.PostingPeriodDescription = postingPeriod.Description;
+                        return journalDTO;
                     }
                     else return null;
                 }
@@ -155,7 +161,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (dbContextScope.SaveChanges(serviceHeader) >= 0)
                     {
-                        return journal.ProjectedAs<JournalDTO>();
+                        var journalDTO = journal.ProjectedAs<JournalDTO>();
+                        journalDTO.PostingPeriodDescription = postingPeriod.Description;
+                        return journalDTO;
                     }
                     else return null;
                 }
@@ -179,7 +187,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (dbContextScope.SaveChanges(serviceHeader) >= 0)
                     {
-                        return journal.ProjectedAs<JournalDTO>();
+                        var journalDTO = journal.ProjectedAs<JournalDTO>();
+                        journalDTO.PostingPeriodDescription = postingPeriod.Description;
+                        return journalDTO;
                     }
                     else return null;
                 }

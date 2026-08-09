@@ -1351,6 +1351,10 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         BankToTreasury = 4,
         [Description("Treasury to Teller")]
         TreasuryToTeller = 8,
+        [Description("Teller to Treasury")]
+        TellerToTreasury = 16,
+        [Description("Teller Cash Transfer")]
+        TellerCashTransfer = 32,
     }
 
     [Flags]
@@ -2651,7 +2655,9 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         [Description("Promotional Account Alert")]
         PromotionalAccountAlert = 90,
         [Description("Customer Registration Alert")]
-        CustomerRegistration = 91
+        CustomerRegistration = 91,
+        [Description("External Cheque (Deposit Charge)")]
+        ExternalChequeDepositCharge = 92
     }
 
     public enum ChargeBenefactor

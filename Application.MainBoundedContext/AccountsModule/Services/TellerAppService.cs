@@ -285,7 +285,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                         if (teller != null)
                         {
-                            return teller.ProjectedAs<TellerDTO>();
+                            var tellerDTO = teller.ProjectedAs<TellerDTO>();
+                            FetchTellerBalances(new List<TellerDTO> { tellerDTO }, serviceHeader);
+                            return tellerDTO;
                         }
                         else return null;
                     }

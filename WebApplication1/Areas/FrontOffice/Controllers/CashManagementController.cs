@@ -124,6 +124,13 @@ namespace WebApplication1.Controllers
                 {
                     fiscalCountDTO.ChartOfAccountId = ActiveTreasury.ChartOfAccountId;
                     fiscalCountDTO.BranchId = ActiveTreasury.BranchId;
+
+                    // FindTreasuryByBranchId doesn't populate BookBalance (Treasury has no
+                    // balance column of its own) — without this, every outgoing-transfer
+                    // check below (ActiveTreasury.BookBalance < TotalValue) sees 0 and
+                    // rejects the transfer as "Insufficient Balance" regardless of the
+                    // real GL balance.
+                    _treasuryAppService.FetchTreasuryBalances(new List<TreasuryDTO> { ActiveTreasury }, serviceHeader);
                 }
 
                 if (missingParameters.Any())
@@ -407,6 +414,7 @@ namespace WebApplication1.Controllers
                     newFiscalCountDTO.SecondaryDescription = string.Format("From {0}", sourceBranch.Description);
                     newFiscalCountDTO.Reference = fiscalCountDTO.Reference;
                     newFiscalCountDTO.TransactionCode = fiscalCountDTO.TransactionCode;
+                    newFiscalCountDTO.TransactionType = fiscalCountDTO.TransactionType;
 
                     newFiscalCountDTO.DenominationOneThousandValue = fiscalCountDTO.DenominationOneThousandValue;
                     newFiscalCountDTO.DenominationFiveHundredValue = fiscalCountDTO.DenominationFiveHundredValue;

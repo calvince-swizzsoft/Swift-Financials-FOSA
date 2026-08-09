@@ -259,6 +259,7 @@ namespace WebApplication1.Controllers
                     var NewFiscalCount = new FiscalCountDTO();
 
                     NewFiscalCount.TransactionCode = (int)SystemTransactionCode.TellerEndOfDay;
+                    NewFiscalCount.TransactionType = (int)TreasuryTransactionType.TellerToTreasury;
                     NewFiscalCount.PostingPeriodId = model.PostingPeriodId;
                     NewFiscalCount.BranchId = model.BranchId;
                     NewFiscalCount.ChartOfAccountId = model.DebitChartOfAccountId;

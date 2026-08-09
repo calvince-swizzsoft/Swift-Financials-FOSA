@@ -309,6 +309,10 @@
     <Compile Include="Areas\Accounts\Controllers\ChartOfAccountController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\ChequeTypeController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\CommissionController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\LoanProductController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\LevyController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

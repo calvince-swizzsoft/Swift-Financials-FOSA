@@ -172,6 +172,7 @@ namespace WebApplication1.Controllers
                     var fiscalCount = new FiscalCountDTO
                     {
                         TransactionCode = (int)SystemTransactionCode.TellerCashTransfer,
+                        TransactionType = (int)TreasuryTransactionType.TellerCashTransfer,
                         PostingPeriodId = currentPostingPeriod?.Id ?? Guid.Empty,
                         BranchId = selectedTeller.EmployeeBranchId,
                         ChartOfAccountId = selectedTeller.ChartOfAccountId ?? Guid.Empty,

@@ -88,7 +88,11 @@ for cheque deposits, `PaymentVoucher` for voucher withdrawals).
 Response shape varies by outcome:
 - **Posted directly** (within limits): `data` is the `JournalDTO` (id,
   sequential id, branch/posting-period/user descriptions, amount,
-  reference, created date) — everything needed to render a receipt.
+  reference, created date, `TransactionCode`/`TransactionCodeDescription` —
+  render the transaction label from `TransactionCodeDescription`, not a
+  client-side guess; it's `SystemTransactionCode.CashDeposit`/
+  `CashWithdrawal`/`ChequeDeposit`/`CashWithdrawalPaymentVoucher` depending
+  on `Type`) — everything needed to render a receipt.
 - **Authorization required** (above limit/below minimum/overdraft/voucher):
   `success: false`, `data: { dialog: true, isCashDepositRequest |
   isCashWithdrawalRequest: true, cashTransactionRequestId,
@@ -137,6 +141,13 @@ not found, a denomination mismatch, an unhandled exception — returns HTTP
 `200` with `success: false` in the body. **Check `success`, not HTTP
 status, everywhere on this endpoint except that one case.**
 
+The book-balance check reads the resolved treasury's real GL balance —
+`Create` calls `ITreasuryAppService.FetchTreasuryBalances` right after
+resolving `ActiveTreasury` (via `FindTreasuryByBranchId`, which doesn't
+populate `BookBalance` on its own; `Treasury` has no balance column of its
+own, only a `ChartOfAccountId`) to fill it in before any outgoing-transfer
+check runs.
+
 The denomination fields and `TotalValue` **are cross-validated**: each
 denomination field holds that denomination's own monetary subtotal (not a
 raw note/coin piece count — e.g. `DenominationOneThousandValue` is "how
@@ -144,7 +155,9 @@ much was counted in 1000-notes"), and the eleven subtotals must sum to
 exactly `TotalValue` (`Utils.SumDenominationValues`) or the call fails
 (`success: false`, HTTP `200`) before anything is posted. The denomination
 breakdown is then persisted as a separate physical-count audit record
-(`FiscalCountAppService.AddNewFiscalCounts`) alongside the GL journal.
+(`FiscalCountAppService.AddNewFiscalCounts`) alongside the GL journal —
+the `TransactionType` you sent is persisted on that record too (§16.4),
+including on the destination-side record `TreasuryToTreasury` writes.
 
 `Id` is overloaded depending on `TransactionType` — it isn't the fiscal
 count's own id on the way in:
@@ -220,6 +233,7 @@ is `POST /cash/utilize` with a missing `request` id.
 `CashTransferRequest` itself has no columns for a denomination breakdown —
 on success, the counted denominations are written as a **companion**
 `FiscalCount` record (`TransactionCode = TellerCashTransfer`,
+`TransactionType = TreasuryTransactionType.TellerCashTransfer`,
 `ChartOfAccountId` = the caller's own teller account), not onto the
 request record. There's no endpoint to fetch that companion record back
 via the transfer request itself; query it through
@@ -259,7 +273,8 @@ Enforces, in order: malformed input (`400`) → denomination reconciliation
 validation → cheques transferred → EOD not already run today → writes a
 `FiscalCount` record (`TransactionCode = TellerEndOfDay` — this is also
 what `IsEndOfDayExecutedAsync` checks for, so a closed day actually stays
-closed) → posts the close journal (+ suspense entry to
+closed; `TransactionType = TreasuryTransactionType.TellerToTreasury`) →
+posts the close journal (+ suspense entry to
 `Teller.ShortageChartOfAccountId`/`ExcessChartOfAccountId` if unbalanced).
 
 **Only the first three checks are real `400`s.** Everything from
@@ -448,8 +463,8 @@ control (tabs/dropdown/chips) on the catalogue grid:
 | Teller End-of-Day | `SystemTransactionCode.TellerEndOfDay` |
 | Teller Cash Transfer | `SystemTransactionCode.TellerCashTransfer` |
 
-Filter by `TransactionCode`, never `TransactionType` — see §16.4, the
-latter is always `0` on a read.
+Filter by `TransactionCode` — this endpoint has no `TransactionType`
+filter — see §16.4 for what `TransactionType` means on a read.
 
 ### 16.2 Get one — `GET /{id}`
 
@@ -485,17 +500,22 @@ navigates to. On `GET`/list responses from this controller:
 column), the eleven `Denomination*Value` fields, `TransactionCode` /
 `TransactionCodeDescription` (`SystemTransactionCode` — what actually
 persisted, e.g. `TreasuryToTeller`/`TellerEndOfDay`/`TellerCashTransfer`),
-`SystemTraceAuditNumber`, `CreatedBy`, `CreatedDate`.
+`TransactionType`/`TransactionTypeDescription` (`TreasuryTransactionType` —
+the entity has a matching column and every fiscal-count-creating flow always
+sets it: `BankToTreasury`/`TreasuryToBank`/`TreasuryToTeller`/
+`TreasuryToTreasury` from §5's client-supplied value, `TellerToTreasury` from
+§9 (End of Day), `TellerCashTransfer` from §7 (cash transfer request); §16.3's
+manual-entry endpoint persists whatever the caller sends, including `0` if
+omitted), `SystemTraceAuditNumber`, `CreatedBy`, `CreatedDate`.
 
 **Always default/empty on read** — don't build grid columns for these:
 `TellerId`/`TellerDescription`, `TreasuryId`/`TreasuryDescription`,
 `DestinationBranchId`, `Description` (a generic field distinct from
-`PrimaryDescription`/`SecondaryDescription`), `SavingsProduct`, `Teller`,
-and `TransactionType`/`TransactionTypeDescription` (`TreasuryTransactionType`
-— only meaningful as *input* to `POST /api/frontoffice/cashmanagement`,
-§5; the entity has no matching column, so it's always `0` here). If you
-need to distinguish "which kind of movement wrote this row," use
-`TransactionCode`, not `TransactionType`.
+`PrimaryDescription`/`SecondaryDescription`), `SavingsProduct`, `Teller`.
+If you need to distinguish "which kind of movement wrote this row" for
+filtering, use `TransactionCode` — this endpoint has no `TransactionType`
+filter — but `TransactionType` itself is a reliable read field now, not
+merely a write-side input.
 
 ---
 

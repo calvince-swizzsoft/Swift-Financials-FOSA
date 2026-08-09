@@ -31,5 +31,7 @@ namespace Domain.MainBoundedContext.FrontOfficeModule.Aggregates.FiscalCountAgg
         public string SystemTraceAuditNumber { get; set; }
 
         public short TransactionCode { get; set; }
+
+        public short TransactionType { get; set; }
     }
 }

@@ -42,7 +42,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 {
                     var denomination = new Denomination(fiscalCountDTO.DenominationOneThousandValue, fiscalCountDTO.DenominationFiveHundredValue, fiscalCountDTO.DenominationTwoHundredValue, fiscalCountDTO.DenominationOneHundredValue, fiscalCountDTO.DenominationFiftyValue, fiscalCountDTO.DenominationFourtyValue, fiscalCountDTO.DenominationTwentyValue, fiscalCountDTO.DenominationTenValue, fiscalCountDTO.DenominationFiveValue, fiscalCountDTO.DenominationOneValue, fiscalCountDTO.DenominationFiftyCentValue);
 
-                    var fiscalCount = FiscalCountFactory.CreateFiscalCount(fiscalCountDTO.PostingPeriodId, fiscalCountDTO.BranchId, fiscalCountDTO.ChartOfAccountId, fiscalCountDTO.PrimaryDescription, fiscalCountDTO.SecondaryDescription, fiscalCountDTO.Reference, denomination, fiscalCountDTO.TransactionCode);
+                    var fiscalCount = FiscalCountFactory.CreateFiscalCount(fiscalCountDTO.PostingPeriodId, fiscalCountDTO.BranchId, fiscalCountDTO.ChartOfAccountId, fiscalCountDTO.PrimaryDescription, fiscalCountDTO.SecondaryDescription, fiscalCountDTO.Reference, denomination, fiscalCountDTO.TransactionCode, fiscalCountDTO.TransactionType);
 
                     fiscalCount.CreatedBy = serviceHeader.ApplicationUserName;
 
@@ -68,7 +68,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                     {
                         var denomination = new Denomination(fiscalCountDTO.DenominationOneThousandValue, fiscalCountDTO.DenominationFiveHundredValue, fiscalCountDTO.DenominationTwoHundredValue, fiscalCountDTO.DenominationOneHundredValue, fiscalCountDTO.DenominationFiftyValue, fiscalCountDTO.DenominationFourtyValue, fiscalCountDTO.DenominationTwentyValue, fiscalCountDTO.DenominationTenValue, fiscalCountDTO.DenominationFiveValue, fiscalCountDTO.DenominationOneValue, fiscalCountDTO.DenominationFiftyCentValue);
 
-                        var fiscalCount = FiscalCountFactory.CreateFiscalCount(fiscalCountDTO.PostingPeriodId, fiscalCountDTO.BranchId, fiscalCountDTO.ChartOfAccountId, fiscalCountDTO.PrimaryDescription, fiscalCountDTO.SecondaryDescription, fiscalCountDTO.Reference, denomination, fiscalCountDTO.TransactionCode);
+                        var fiscalCount = FiscalCountFactory.CreateFiscalCount(fiscalCountDTO.PostingPeriodId, fiscalCountDTO.BranchId, fiscalCountDTO.ChartOfAccountId, fiscalCountDTO.PrimaryDescription, fiscalCountDTO.SecondaryDescription, fiscalCountDTO.Reference, denomination, fiscalCountDTO.TransactionCode, fiscalCountDTO.TransactionType);
 
                         fiscalCount.CreatedBy = serviceHeader.ApplicationUserName;
 

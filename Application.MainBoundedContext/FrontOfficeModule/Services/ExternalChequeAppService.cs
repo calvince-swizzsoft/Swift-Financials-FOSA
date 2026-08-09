@@ -30,6 +30,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         private readonly IJournalEntryPostingService _journalEntryPostingService;
         private readonly IPostingPeriodAppService _postingPeriodAppService;
         private readonly IRecurringBatchAppService _recurringBatchAppService;
+        private readonly IChequeTypeAppService _chequeTypeAppService;
 
         public ExternalChequeAppService(
            IDbContextScopeFactory dbContextScopeFactory,
@@ -42,7 +43,8 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
            ISqlCommandAppService sqlCommandAppService,
            IJournalEntryPostingService journalEntryPostingService,
            IPostingPeriodAppService postingPeriodAppService,
-           IRecurringBatchAppService recurringBatchAppService)
+           IRecurringBatchAppService recurringBatchAppService,
+           IChequeTypeAppService chequeTypeAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -77,6 +79,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             if (recurringBatchAppService == null)
                 throw new ArgumentNullException(nameof(recurringBatchAppService));
 
+            if (chequeTypeAppService == null)
+                throw new ArgumentNullException(nameof(chequeTypeAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _externalChequeRepository = externalChequeRepository;
             _externalChequePayableRepository = externalChequePayableRepository;
@@ -88,15 +93,26 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             _journalEntryPostingService = journalEntryPostingService;
             _postingPeriodAppService = postingPeriodAppService;
             _recurringBatchAppService = recurringBatchAppService;
+            _chequeTypeAppService = chequeTypeAppService;
         }
 
         public ExternalChequeDTO AddNewExternalCheque(ExternalChequeDTO externalChequeDTO, ServiceHeader serviceHeader)
         {
             if (externalChequeDTO != null)
             {
+                var chequeType = (externalChequeDTO.ChequeTypeId != null && externalChequeDTO.ChequeTypeId != Guid.Empty)
+                    ? _chequeTypeAppService.FindChequeType(externalChequeDTO.ChequeTypeId.Value, serviceHeader)
+                    : null;
+
+                // MaturityDate is always server-derived from the chosen cheque type's
+                // MaturityPeriod (days from deposit to expected clearance) — callers can't
+                // set it directly; no cheque type selected (or one with MaturityPeriod = 0)
+                // matures the same day it's deposited.
+                var maturityDate = DateTime.Today.AddDays(chequeType?.MaturityPeriod ?? 0);
+
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
-                    var externalCheque = ExternalChequeFactory.CreateExternalCheque(externalChequeDTO.TellerId, externalChequeDTO.ChequeTypeId, externalChequeDTO.CustomerAccountId, externalChequeDTO.Number, externalChequeDTO.Amount, externalChequeDTO.Drawer, externalChequeDTO.DrawerBank, externalChequeDTO.DrawerBankBranch, externalChequeDTO.WriteDate, externalChequeDTO.MaturityDate);
+                    var externalCheque = ExternalChequeFactory.CreateExternalCheque(externalChequeDTO.TellerId, externalChequeDTO.ChequeTypeId, externalChequeDTO.CustomerAccountId, externalChequeDTO.Number, externalChequeDTO.Amount, externalChequeDTO.Drawer, externalChequeDTO.DrawerBank, externalChequeDTO.DrawerBankBranch, externalChequeDTO.WriteDate, maturityDate);
 
                     externalCheque.CreatedBy = serviceHeader.ApplicationUserName;
 
@@ -104,10 +120,46 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                     dbContextScope.SaveChanges(serviceHeader);
 
+                    if (chequeType != null && chequeType.ChargeRecoveryMode == (int)ChequeTypeChargeRecoveryMode.OnChequeDeposit)
+                    {
+                        ChargeChequeTypeCommissionOnDeposit(chequeType, externalChequeDTO, serviceHeader);
+                    }
+
                     return externalCheque.ProjectedAs<ExternalChequeDTO>();
                 }
             }
             else return null;
+        }
+
+        // Mirrors the OnChequeClearance tariff-posting pattern in ClearExternalCheque
+        // (Pay/Savings branch) — same ComputeTariffsByChequeType + one journal per tariff
+        // shape — just triggered at deposit time instead, and not scoped to a Pay/UnPay or
+        // Savings-only branch since a deposit has neither of those distinctions.
+        private void ChargeChequeTypeCommissionOnDeposit(ChequeTypeDTO chequeType, ExternalChequeDTO externalChequeDTO, ServiceHeader serviceHeader)
+        {
+            if (externalChequeDTO.CustomerAccountId == null || externalChequeDTO.CustomerAccountId == Guid.Empty)
+                return;
+
+            var customerAccountDTO = _customerAccountAppService.FindCustomerAccountDTO(externalChequeDTO.CustomerAccountId.Value, serviceHeader);
+
+            if (customerAccountDTO == null)
+                return;
+
+            var chequeTypeTariffs = _commissionAppService.ComputeTariffsByChequeType(chequeType.Id, externalChequeDTO.Amount, customerAccountDTO, serviceHeader);
+
+            if (chequeTypeTariffs == null || !chequeTypeTariffs.Any())
+                return;
+
+            var branchId = externalChequeDTO.TellerEmployeeBranchId != Guid.Empty ? externalChequeDTO.TellerEmployeeBranchId : customerAccountDTO.BranchId;
+
+            var secondaryDescription = customerAccountDTO.CustomerAccountTypeTargetProductDescription;
+
+            var reference = string.Format("Cheque #{0}", externalChequeDTO.Number);
+
+            chequeTypeTariffs.ForEach(tariff =>
+            {
+                _journalAppService.AddNewJournal(branchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, 0, (int)SystemTransactionCode.ExternalChequeDepositCharge, null, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+            });
         }
 
         public bool MarkExternalChequeCleared(Guid externalChequeId, ServiceHeader serviceHeader)
@@ -658,6 +710,14 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
         public bool UpdateExternalChequePayables(Guid externalChequeId, List<ExternalChequePayableDTO> externalChequePayables, ServiceHeader serviceHeader)
         {
+            var externalCheque = FindExternalCheque(externalChequeId, serviceHeader);
+
+            if (externalCheque == null)
+                return false;
+
+            if (!ValidateChequePayablesAgainstAttachedProducts(externalCheque, externalChequePayables, serviceHeader))
+                return false;
+
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var existingExternalChequePayables = FindExternalChequePayablesByExternalChequeId(externalChequeId, serviceHeader);
@@ -707,6 +767,60 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                 return dbContextScope.SaveChanges(serviceHeader) > 0;
             }
+        }
+
+        // ChequeTypeAttachedProduct was previously stored (admin-configurable) but never
+        // consulted anywhere in the deposit/clearance flow — see
+        // CHEQUE-TYPE-FUNCTIONAL-REQUIREMENTS.md §3.4. This enforces it, conservatively:
+        // if the cheque's type has specific loan/investment products attached, every payee
+        // other than the cheque's own deposit account must target one of those products. A
+        // cheque type with no attached products configured stays fully unrestricted, so this
+        // can't retroactively break any cheque type nobody has opted into this for — including
+        // the deposit-time self-referencing payable CashDepositController always creates
+        // (CustomerAccountId == the cheque's own deposit account), which is exempt by design:
+        // it isn't a "which product should this cheque's proceeds recover" selection at all.
+        private bool ValidateChequePayablesAgainstAttachedProducts(ExternalChequeDTO externalCheque, List<ExternalChequePayableDTO> externalChequePayables, ServiceHeader serviceHeader)
+        {
+            if (externalCheque.ChequeTypeId == null || externalCheque.ChequeTypeId == Guid.Empty)
+                return true;
+
+            if (externalChequePayables == null || !externalChequePayables.Any())
+                return true;
+
+            var attachedProducts = _chequeTypeAppService.FindAttachedProducts(externalCheque.ChequeTypeId.Value, serviceHeader, true);
+
+            var hasLoanRestriction = attachedProducts?.LoanProductCollection != null && attachedProducts.LoanProductCollection.Any();
+            var hasInvestmentRestriction = attachedProducts?.InvestmentProductCollection != null && attachedProducts.InvestmentProductCollection.Any();
+
+            if (!hasLoanRestriction && !hasInvestmentRestriction)
+                return true;
+
+            foreach (var payable in externalChequePayables)
+            {
+                if (payable.CustomerAccountId == externalCheque.CustomerAccountId)
+                    continue;
+
+                var payeeAccount = _customerAccountAppService.FindCustomerAccountDTO(payable.CustomerAccountId, serviceHeader);
+
+                if (payeeAccount == null)
+                    continue;
+
+                switch ((ProductCode)payeeAccount.CustomerAccountTypeProductCode)
+                {
+                    case ProductCode.Loan:
+                        if (hasLoanRestriction && !attachedProducts.LoanProductCollection.Any(p => p.Id == payeeAccount.CustomerAccountTypeTargetProductId))
+                            return false;
+                        break;
+                    case ProductCode.Investment:
+                        if (hasInvestmentRestriction && !attachedProducts.InvestmentProductCollection.Any(p => p.Id == payeeAccount.CustomerAccountTypeTargetProductId))
+                            return false;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return true;
         }
 
         private decimal RecoverAttachedLoans(Guid? parentJournalId, ExternalChequeDTO externalChequeDTO, PostingPeriodDTO postingPeriod, List<ExternalChequePayableDTO> externalChequePayables, List<Journal> journals, CustomerAccountDTO externalChequeCustomerAccount, decimal savingsAccountAvailableBalance, decimal totalRecoveryDeductions, string secondaryDescription, string reference, int moduleNavigationItemCode, ServiceHeader serviceHeader)

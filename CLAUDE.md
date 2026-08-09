@@ -131,6 +131,23 @@ drift out of sync with the actual code.
   `IBankLinkageAppService`; also split `BankLinkageDTO`'s fields off of
   `BankDTO`, which had been sharing them, and fixed a dead/unassigned
   `IBankLinkageAppService` field in `CashManagementController`)
+- `Areas/Accounts/Controllers/ChequeTypeController.cs` (existing
+  `IChequeTypeAppService`; reference controller's session-staged
+  charges/products wizard collapsed into one `CreateChequeTypeRequest` body —
+  see `docs/api/cheque-type-api-spec.md`)
+- `Areas/Accounts/Controllers/LoanProductController.cs` (existing
+  `ILoanProductAppService`; read-only list endpoint added to unblock
+  `ChequeTypeController`'s Create picker — no working route existed before,
+  see `docs/api/loan-product-api-spec.md`)
+- `Areas/Accounts/Controllers/CommissionController.cs` (existing
+  `ICommissionAppService`; full CRUD + graduated-scales/splits/levies
+  sub-resources) and `Areas/Accounts/Controllers/LevyController.cs` (new,
+  existing `ILevyAppService`; full CRUD + splits sub-resource) — reference
+  app has a redundant, buggier duplicate (`ChargesController`) and a
+  non-functional one (`TiersController`, its persistence call is commented
+  out) that weren't ported; see history notes in
+  `docs/api/commission-api-spec.md` / `docs/api/levy-api-spec.md` and
+  `COMMISSION-LEVY-CHARGE-CONCEPTS.md`
 - `Areas/Messaging/Controllers/TextAlertController.cs` (existing `ITextAlertAppService`)
 - `Areas/FrontOffice/Controllers/*` — teller transactions, treasury, cheques,
   end of day, account closure, fixed deposits, expense payables, sundry
