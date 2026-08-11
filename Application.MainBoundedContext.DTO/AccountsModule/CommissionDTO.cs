@@ -1,6 +1,5 @@
 ﻿using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.Seedwork;
-using Infrastructure.Crosscutting.Framework.Attributes;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
@@ -222,7 +221,6 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "G/L Account")]
-        [ValidGuid]
         public Guid ChartOfAccountId { get; set; }
     }
 }

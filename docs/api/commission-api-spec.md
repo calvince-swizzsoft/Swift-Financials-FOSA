@@ -59,6 +59,7 @@ are the ones that matter:
 | `IsLocked` | Plain bool. |
 | `ChargeTypeDescription`, `ChargeBenefactorDescription`, `ChargeBasisValueDescription`, `KnownChargeTypeDescription`, `ComplementTypeDescription` | Computed, read-only. |
 | `ErrorMessageResult` | Duplicate-`Description` channel on create (§5.4) — always `null` otherwise. |
+| `ChartOfAccountId` | Optional, unvalidated. Despite the `[Display(Name = "G/L Account")]`, this value is never read by `CommissionAppService` — GL posting actually uses each `CommissionSplitDTO.ChartOfAccountId` (§4). Previously carried a `[ValidGuid]` attribute that wrongly forced every create request to supply a dummy GUID here just to pass validation; removed since the field is dead. |
 
 `GraduatedScale`, `CommissionSplit`, and `Levy` are **not** fields on this
 DTO in practice (the DTO has some legacy list properties like `Levies`/
