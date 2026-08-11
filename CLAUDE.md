@@ -135,6 +135,14 @@ drift out of sync with the actual code.
   `IChequeTypeAppService`; reference controller's session-staged
   charges/products wizard collapsed into one `CreateChequeTypeRequest` body —
   see `docs/api/cheque-type-api-spec.md`)
+- `Areas/Accounts/Controllers/ChequeBookController.cs` (existing
+  `IChequeBookAppService` — was fully built with no controller anywhere,
+  only reachable via the legacy `ChequeBookService.svc.cs` WCF passthrough;
+  reference controller's `Edit` action had a copy-paste bug — validated and
+  saved a `CustomerAccountDTO` instead of the `ChequeBookDTO` it took in, so
+  it never actually updated a chequebook — not ported; see
+  `docs/api/chequebook-api-spec.md` and
+  `Areas/FrontOffice/CHEQUE-PROCESSING-ANALYSIS.md`)
 - `Areas/Accounts/Controllers/LoanProductController.cs` (existing
   `ILoanProductAppService`; read-only list endpoint added to unblock
   `ChequeTypeController`'s Create picker — no working route existed before,

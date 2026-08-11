@@ -98,6 +98,25 @@ namespace WebApplication1.Controllers
                 }
 
                 int treasuryTransactionType = fiscalCountDTO.TransactionType;
+
+                // TreasuryTransactionType.TellerToTreasury and .TellerCashTransfer are real
+                // enum values, but they belong to EndOfDayController and TransfersController
+                // respectively (each posts its own FiscalCount with that TransactionType) —
+                // this endpoint only ever handles the four treasury-initiated movements below.
+                // Without this guard, either of those (or any other unmapped value) fell
+                // through both switches untouched and reached the "Operation Success" return
+                // at the end with no journal or fiscal count ever posted.
+                switch ((TreasuryTransactionType)treasuryTransactionType)
+                {
+                    case TreasuryTransactionType.BankToTreasury:
+                    case TreasuryTransactionType.TreasuryToBank:
+                    case TreasuryTransactionType.TreasuryToTeller:
+                    case TreasuryTransactionType.TreasuryToTreasury:
+                        break;
+                    default:
+                        return Json(new { success = false, message = "Operation Failed: Unsupported transaction type for treasury cash movement." });
+                }
+
                 TransactionModel transactionModel = new TransactionModel();
 
 

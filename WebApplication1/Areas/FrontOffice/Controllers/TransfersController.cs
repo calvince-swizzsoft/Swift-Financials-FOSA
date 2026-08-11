@@ -77,7 +77,10 @@ namespace WebApplication1.Controllers
 
             var untransferredChequesList = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId((Guid)TellerId, "", serviceHeader);
 
-            var untransferredChequesValue = untransferredChequesList.Sum(cheque => cheque.Amount);
+            // FindUnTransferredExternalChequesByTellerId returns null (not an empty list)
+            // when a teller has no pending cheques — the normal/clean state — which
+            // previously crashed this endpoint with an unhandled ArgumentNullException.
+            var untransferredChequesValue = untransferredChequesList?.Sum(cheque => cheque.Amount) ?? 0m;
 
             model.EmployeeId = _selectedTeller.EmployeeId;
             model.TotalCredits = _selectedTeller.TotalCredits;
@@ -141,6 +144,7 @@ namespace WebApplication1.Controllers
             }
 
             cashTransferRequestDTO.EmployeeId = selectedTeller.EmployeeId;
+            cashTransferRequestDTO.ValidateAll();
 
             if (!cashTransferRequestDTO.HasErrors)
             {
@@ -244,7 +248,11 @@ namespace WebApplication1.Controllers
 
                     var untransferredCheques = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId(SelectedTeller.Id, "", serviceHeader);
 
-                    var untransferredChequesValue = untransferredCheques.Sum(cheque => cheque.Amount);
+                    // FindUnTransferredExternalChequesByTellerId returns null (not an empty
+                    // list) when there are no matches — e.g. right after this transfer clears
+                    // out the teller's last pending cheque — which previously crashed the
+                    // Sum() call below with an unhandled ArgumentNullException.
+                    var untransferredChequesValue = untransferredCheques?.Sum(cheque => cheque.Amount) ?? 0m;
 
                     // Construct a JSON response directly
                     var response = new
@@ -324,6 +332,7 @@ namespace WebApplication1.Controllers
             }
 
             cashTransferRequestDTO.EmployeeId = selectedTeller.EmployeeId;
+            cashTransferRequestDTO.ValidateAll();
 
             if (!cashTransferRequestDTO.HasErrors)
             {

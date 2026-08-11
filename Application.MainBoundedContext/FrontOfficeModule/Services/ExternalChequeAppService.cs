@@ -435,11 +435,18 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                             if (persisted != null && !persisted.IsTransferred)
                             {
-                                persisted.IsTransferred = true;
-                                persisted.TransferredBy = serviceHeader.ApplicationUserName;
-                                persisted.TransferredDate = DateTime.Now;
+                                // AddNewJournal returns null (no exception) if, e.g., there's no
+                                // current posting period configured — previously that failure was
+                                // silently ignored and IsTransferred was set anyway, reporting
+                                // success with no journal ever posted.
+                                var journal = _journalAppService.AddNewJournal(tellerDTO.EmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Transfer~{0}", externalChequeDTO.Number), tellerDTO.Description, externalChequeDTO.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeTransfer, null, tellerDTO.ChartOfAccountId.Value, chequesInHandChartOfAccountId, serviceHeader);
 
-                                _journalAppService.AddNewJournal(tellerDTO.EmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Transfer~{0}", externalChequeDTO.Number), tellerDTO.Description, externalChequeDTO.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeTransfer, null, tellerDTO.ChartOfAccountId.Value, chequesInHandChartOfAccountId, serviceHeader);
+                                if (journal != null)
+                                {
+                                    persisted.IsTransferred = true;
+                                    persisted.TransferredBy = serviceHeader.ApplicationUserName;
+                                    persisted.TransferredDate = DateTime.Now;
+                                }
                             }
                         });
 
@@ -484,81 +491,89 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                         {
                             case ExternalChequeClearanceOption.Pay:
 
-                                persisted.Remarks = "PAID";
-                                persisted.IsCleared = true;
-                                persisted.ClearedBy = serviceHeader.ApplicationUserName;
-                                persisted.ClearedDate = DateTime.Now;
-
-                                switch ((ProductCode)customerAccountDTO.CustomerAccountTypeProductCode)
+                                // Mirrors the UnPay branch's own precondition below — a cheque
+                                // can't be recognized as paid until it's actually made it to the
+                                // bank (Transfer then Bank), otherwise nothing happens and
+                                // ClearExternalCheque reports failure via the unmodified
+                                // SaveChanges() count, same as an unmet UnPay precondition does.
+                                if (persisted.IsTransferred && persisted.IsBanked)
                                 {
-                                    case ProductCode.Savings:
+                                    persisted.Remarks = "PAID";
+                                    persisted.IsCleared = true;
+                                    persisted.ClearedBy = serviceHeader.ApplicationUserName;
+                                    persisted.ClearedDate = DateTime.Now;
 
-                                        var secondaryDescription = customerAccountDTO.CustomerAccountTypeTargetProductDescription;
+                                    switch ((ProductCode)customerAccountDTO.CustomerAccountTypeProductCode)
+                                    {
+                                        case ProductCode.Savings:
 
-                                        var reference = string.Format("Cheque #{0}", externalChequeDTO.Number);
+                                            var secondaryDescription = customerAccountDTO.CustomerAccountTypeTargetProductDescription;
 
-                                        var primaryJournal = _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Clearance~{0} PAID", externalChequeDTO.Number), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, chequesSuspenseChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+                                            var reference = string.Format("Cheque #{0}", externalChequeDTO.Number);
 
-                                        if (externalChequeDTO.ChequeTypeId != null && externalChequeDTO.ChequeTypeId != Guid.Empty && externalChequeDTO.ChequeTypeChargeRecoveryMode == (int)ChequeTypeChargeRecoveryMode.OnChequeClearance)
-                                        {
-                                            var chequeTypeTariffs = _commissionAppService.ComputeTariffsByChequeType(externalChequeDTO.ChequeTypeId.Value, externalChequeDTO.Amount, customerAccountDTO, serviceHeader);
+                                            var primaryJournal = _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Clearance~{0} PAID", externalChequeDTO.Number), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, chequesSuspenseChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
 
-                                            if (chequeTypeTariffs != null && chequeTypeTariffs.Any())
+                                            if (externalChequeDTO.ChequeTypeId != null && externalChequeDTO.ChequeTypeId != Guid.Empty && externalChequeDTO.ChequeTypeChargeRecoveryMode == (int)ChequeTypeChargeRecoveryMode.OnChequeClearance)
                                             {
-                                                chequeTypeTariffs.ForEach(tariff =>
+                                                var chequeTypeTariffs = _commissionAppService.ComputeTariffsByChequeType(externalChequeDTO.ChequeTypeId.Value, externalChequeDTO.Amount, customerAccountDTO, serviceHeader);
+
+                                                if (chequeTypeTariffs != null && chequeTypeTariffs.Any())
                                                 {
-                                                    _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
-                                                });
-                                            }
-                                        }
-
-                                        externalChequePayables = FindExternalChequePayablesByExternalChequeId(externalChequeDTO.Id, serviceHeader);
-
-                                        if (externalChequePayables != null && externalChequePayables.Any())
-                                        {
-                                            // track deductions
-                                            var savingsAccountAvailableBalance = 0m;
-
-                                            var totalRecoveryDeductions = 0m;
-
-                                            // Recover dues for attached products
-                                            if (((savingsAccountAvailableBalance + externalChequeDTO.Amount) > 0m /*Will current account balance + incoming batch amount be positive?*/))
-                                            {
-                                                if (!string.IsNullOrWhiteSpace(customerAccountDTO.BranchCompanyRecoveryPriority))
-                                                {
-                                                    var buffer = customerAccountDTO.BranchCompanyRecoveryPriority.Split(new char[] { ',' });
-
-                                                    Array.ForEach(buffer, (item) =>
+                                                    chequeTypeTariffs.ForEach(tariff =>
                                                     {
-                                                        switch ((RecoveryPriority)Enum.Parse(typeof(RecoveryPriority), item))
-                                                        {
-                                                            case RecoveryPriority.Loans:
-                                                                totalRecoveryDeductions = RecoverAttachedLoans(primaryJournal.Id, externalChequeDTO, postingPeriodDTO, externalChequePayables, journals, customerAccountDTO, savingsAccountAvailableBalance, totalRecoveryDeductions, secondaryDescription, reference, moduleNavigationItemCode, serviceHeader);
-                                                                break;
-                                                            case RecoveryPriority.Investments:
-                                                                totalRecoveryDeductions = RecoverAttachedInvestments(primaryJournal.Id, externalChequeDTO, postingPeriodDTO, externalChequePayables, journals, customerAccountDTO, savingsAccountAvailableBalance, totalRecoveryDeductions, secondaryDescription, reference, moduleNavigationItemCode, serviceHeader);
-                                                                break;
-                                                            default:
-                                                                break;
-                                                        }
+                                                        _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
                                                     });
                                                 }
                                             }
-                                        }
 
-                                        break;
-                                    case ProductCode.Loan:
+                                            externalChequePayables = FindExternalChequePayablesByExternalChequeId(externalChequeDTO.Id, serviceHeader);
 
-                                        _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Clearance~{0} PAID", externalChequeDTO.Number), customerAccountDTO.CustomerAccountTypeTargetProductDescription, string.Format("Cheque #{0}", externalChequeDTO.Number), moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, chequesSuspenseChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+                                            if (externalChequePayables != null && externalChequePayables.Any())
+                                            {
+                                                // track deductions
+                                                var savingsAccountAvailableBalance = 0m;
 
-                                        break;
-                                    case ProductCode.Investment:
+                                                var totalRecoveryDeductions = 0m;
 
-                                        _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Clearance~{0} PAID", externalChequeDTO.Number), customerAccountDTO.CustomerAccountTypeTargetProductDescription, string.Format("Cheque #{0}", externalChequeDTO.Number), moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, chequesSuspenseChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+                                                // Recover dues for attached products
+                                                if (((savingsAccountAvailableBalance + externalChequeDTO.Amount) > 0m /*Will current account balance + incoming batch amount be positive?*/))
+                                                {
+                                                    if (!string.IsNullOrWhiteSpace(customerAccountDTO.BranchCompanyRecoveryPriority))
+                                                    {
+                                                        var buffer = customerAccountDTO.BranchCompanyRecoveryPriority.Split(new char[] { ',' });
 
-                                        break;
-                                    default:
-                                        break;
+                                                        Array.ForEach(buffer, (item) =>
+                                                        {
+                                                            switch ((RecoveryPriority)Enum.Parse(typeof(RecoveryPriority), item))
+                                                            {
+                                                                case RecoveryPriority.Loans:
+                                                                    totalRecoveryDeductions = RecoverAttachedLoans(primaryJournal.Id, externalChequeDTO, postingPeriodDTO, externalChequePayables, journals, customerAccountDTO, savingsAccountAvailableBalance, totalRecoveryDeductions, secondaryDescription, reference, moduleNavigationItemCode, serviceHeader);
+                                                                    break;
+                                                                case RecoveryPriority.Investments:
+                                                                    totalRecoveryDeductions = RecoverAttachedInvestments(primaryJournal.Id, externalChequeDTO, postingPeriodDTO, externalChequePayables, journals, customerAccountDTO, savingsAccountAvailableBalance, totalRecoveryDeductions, secondaryDescription, reference, moduleNavigationItemCode, serviceHeader);
+                                                                    break;
+                                                                default:
+                                                                    break;
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                            }
+
+                                            break;
+                                        case ProductCode.Loan:
+
+                                            _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Clearance~{0} PAID", externalChequeDTO.Number), customerAccountDTO.CustomerAccountTypeTargetProductDescription, string.Format("Cheque #{0}", externalChequeDTO.Number), moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, chequesSuspenseChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+
+                                            break;
+                                        case ProductCode.Investment:
+
+                                            _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Clearance~{0} PAID", externalChequeDTO.Number), customerAccountDTO.CustomerAccountTypeTargetProductDescription, string.Format("Cheque #{0}", externalChequeDTO.Number), moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, chequesSuspenseChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+
+                                            break;
+                                        default:
+                                            break;
+                                    }
                                 }
 
                                 break;
@@ -669,12 +684,19 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                             if (persisted != null && !persisted.IsBanked)
                             {
-                                persisted.IsBanked = true;
-                                persisted.BankLinkageChartOfAccountId = bankLinkageDTO.ChartOfAccountId;
-                                persisted.BankedBy = serviceHeader.ApplicationUserName;
-                                persisted.BankedDate = DateTime.Now;
+                                // Same guard as TransferExternalCheques — AddNewJournal returns
+                                // null (no exception) rather than throwing on failure (e.g. no
+                                // current posting period), so the flag flip must not happen
+                                // unconditionally or a failed journal gets reported as success.
+                                var journal = _journalAppService.AddNewJournal(bankLinkageDTO.BranchId, null, externalChequeDTO.Amount, string.Format("Cheque Banking~{0}", externalChequeDTO.Number), bankLinkageDTO.BankBranchName, externalChequeDTO.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeBanking, null, chequesInHandChartOfAccountId, bankLinkageDTO.ChartOfAccountId, serviceHeader);
 
-                                _journalAppService.AddNewJournal(bankLinkageDTO.BranchId, null, externalChequeDTO.Amount, string.Format("Cheque Banking~{0}", externalChequeDTO.Number), bankLinkageDTO.BankBranchName, externalChequeDTO.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeBanking, null, chequesInHandChartOfAccountId, bankLinkageDTO.ChartOfAccountId, serviceHeader);
+                                if (journal != null)
+                                {
+                                    persisted.IsBanked = true;
+                                    persisted.BankLinkageChartOfAccountId = bankLinkageDTO.ChartOfAccountId;
+                                    persisted.BankedBy = serviceHeader.ApplicationUserName;
+                                    persisted.BankedDate = DateTime.Now;
+                                }
                             }
                         });
 

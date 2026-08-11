@@ -14,6 +14,9 @@ namespace Infrastructure.Crosscutting.Framework.Attributes
 
         protected override ValidationResult IsValid(object value, ValidationContext validationContext)
         {
+            if (value == null)
+                return ValidationResult.Success;
+
             var input = Convert.ToString(value, CultureInfo.CurrentCulture);
 
             Guid guid;

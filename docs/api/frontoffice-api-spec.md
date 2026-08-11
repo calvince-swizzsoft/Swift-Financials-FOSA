@@ -83,7 +83,32 @@ Body: `CustomerTransactionModel` — `Type` (`FrontOfficeTransactionType`:
 `CashDeposit=2`, `CashWithdrawal=1`, `ChequeDeposit=3`,
 `CashWithdrawalPaymentVoucher=4`), `CreditCustomerAccountId`, `BranchId`,
 `TotalValue`, plus type-specific fields (`Drawer`/`DrawerBank`/`ChequeType`
-for cheque deposits, `PaymentVoucher` for voucher withdrawals).
+for cheque deposits, `PaymentVoucher` for voucher withdrawals). `ChequeType`
+is `Guid?` — omit it (or send `null`) if the teller doesn't select a cheque
+type; the cheque then matures the same day it's deposited
+(`ChequeType.MaturityPeriod` drives this when one is selected).
+
+**`ChequeDeposit` does not credit the customer's spendable balance.** Unlike
+`CashDeposit`, a cheque deposit posts its credit leg to the
+`ExternalChequesControl` suspense account (still tagged to the customer for
+statement visibility — it shows up on their
+`CustomerAccountStatementType.ChequeDepositStatement` mini-statement — but
+it is **not** part of `AvailableBalance`/`BookBalance` yet). The customer is
+only actually credited once the cheque is transferred, banked, and
+Pay-cleared (§7, §8) — that full cycle can take days. **Don't show a cheque
+deposit's amount as available funds immediately the way you would for
+`CashDeposit`** — surface it as "pending clearance" until the underlying
+`ExternalCheque.IsCleared` becomes `true`. This was fixed mid-development
+(previously `ChequeDeposit` incorrectly credited the customer immediately,
+identically to a cash deposit, then credited them a second time on
+clearance) — if your UI was built against the old behavior, it needs to
+change.
+
+`POST /` can additionally fail for a `ChequeDeposit` with `success: false`
+and message `"Sorry, but the external cheques control account has not been
+setup!"` if `SystemGeneralLedgerAccountCode.ExternalChequesControl` isn't
+mapped to a chart of account yet — an admin/setup problem, not a per-request
+one; surface it as such rather than retrying.
 
 Response shape varies by outcome:
 - **Posted directly** (within limits): `data` is the `JournalDTO` (id,
@@ -100,6 +125,16 @@ Response shape varies by outcome:
   transactionCategory, ...paymentVoucher fields for withdrawals }`. The
   request is now `Pending` and enqueued into the generic workflow engine
   (§17 below) — nothing further to call here until a checker approves it.
+  Once a checker approves, prefer `POST /post?id={requestId}` (§4.3) to
+  actually post it. `POST /` also has its own resubmit path for this — if
+  you call it again with `CustomerTransactionModel.CashDepositRequestId`/
+  `CashWithdrawalRequestId` set to the returned `cashTransactionRequestId`,
+  it'll post against that specific now-`Authorized` request instead of
+  creating a new one. **Set the id precisely** — for withdrawals this was
+  previously unscoped and could post the current call's amount while
+  marking a *different*, unrelated authorized request `Paid` if the
+  customer had more than one pending; fixed to match deposits' existing
+  correct behavior.
 - **Blocked/failed**: `success: false`, `message` explains why (teller
   locked, account not approved, below minimum balance, teller range limit,
   validation errors), `data: null`.
@@ -128,9 +163,15 @@ Controller: `CashManagementController.cs`.
 ### 5.1 Post a movement — `POST /`
 
 Body: `FiscalCountDTO` — `TransactionType` (`TreasuryTransactionType`:
-`BankToTreasury`/`TreasuryToBank`/`TreasuryToTeller`/`TreasuryToTreasury`),
-denomination breakdown fields (`DenominationOneThousandValue` ... down to
-50-cent), `TotalValue`.
+`BankToTreasury`/`TreasuryToBank`/`TreasuryToTeller`/`TreasuryToTreasury`
+**only** — `TellerToTreasury` and `TellerCashTransfer` are real enum
+members but belong to End of Day close (§9) and cash transfer requests
+(§7) respectively, not this endpoint; sending either now returns
+`success: false, message: "Operation Failed: Unsupported transaction type
+for treasury cash movement."` instead of a fake success with nothing
+posted, which is what it silently did before this fix), denomination
+breakdown fields (`DenominationOneThousandValue` ... down to 50-cent),
+`TotalValue`.
 
 **Status codes, checked directly against every `return` in `Create`/
 `DoSomething`**: only a missing posting period or treasury returns a real
@@ -214,7 +255,7 @@ Controller: `TransfersController.cs`.
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/cheques?TellerId={id}` | GET | Untransferred-cheques summary for a teller |
+| `/cheques?TellerId={id}` | GET | Untransferred-cheques summary for a teller — previously threw an unhandled `ArgumentNullException` for any teller with zero pending cheques (the normal/clean state), since the underlying app-service call returns `null` rather than an empty list when there's nothing to find; fixed |
 | `/cash` | GET | List cash transfer requests |
 | `/cash` | POST | Raise a cash transfer request (`CashTransferRequestDTO`) |
 | `/cheques` | POST | Batch-transfer selected cheques (`List<ExternalChequeDTO>`) — the EOD precondition, WORKFLOW.md §7 |
@@ -229,6 +270,13 @@ this controller reports the mismatch — and every other business-rule
 failure on `/cash` — as `success: false` with HTTP `200`, not `400`; check
 `success` in the body. The only real `400` on `TransfersController` at all
 is `POST /cash/utilize` with a missing `request` id.
+
+`POST /cash` and `POST /cash/acknowledge` now actually run
+`CashTransferRequestDTO.ValidateAll()` before checking `HasErrors` — the
+call was previously missing, so `HasErrors` (which only reflects what
+`ValidateAll()` populates) was always `false` and validation was silently
+skipped entirely. The one real rule this enforces: `Amount` must be
+greater than zero.
 
 `CashTransferRequest` itself has no columns for a denomination breakdown —
 on success, the counted denominations are written as a **companion**
@@ -245,12 +293,37 @@ via the transfer request itself; query it through
 
 Controller: `ChequesController.cs`.
 
-- `GET /?text=&pageIndex=&pageSize=` — paged cheque list.
-- `POST /bank` — body `{ selectedChequeIds: Guid[], bankLinkageDTO }`.
+- `GET /?text=&pageIndex=&pageSize=` — paged cheque list. Each
+  `ExternalChequeDTO` row carries `IsTransferred`/`IsBanked`/`IsCleared` —
+  use these to decide which actions to offer per row (see below) rather
+  than letting the user attempt an action the API will reject.
+- `POST /bank` — body `{ selectedChequeIds: Guid[], bankLinkageDTO }`. Only
+  cheques with `IsTransferred: true` are eligible — the server already
+  filters its own candidate list to these, so an id for a not-yet-transferred
+  cheque is simply ignored (excluded from `selectedCheques`), not an error.
 - `POST /clear` — body `{ selectedChequeIds: Guid[], clearingOption,
   actionType: "clear"|"unpay", unPayReasonDTO }` (`unPayReasonDTO` required
-  when `actionType` is `"unpay"`).
+  when `actionType` is `"unpay"`). **`clearingOption` must agree with
+  `actionType`** (`Pay=1` with `"clear"`, `UnPay=2` with `"unpay"`) — the
+  server does not derive one from the other, so a mismatched pair silently
+  takes whichever branch `clearingOption` selects, not the one `actionType`
+  implies (open issue, `CHEQUE-PROCESSING-ANALYSIS.md` Finding #5 — always
+  send them in agreement). As of this doc, clearing (either `Pay` or
+  `UnPay`) now requires `IsTransferred: true` **and** `IsBanked: true` on the
+  cheque — attempting to clear a cheque that hasn't been banked yet fails
+  with `success: false`, `message` containing "Failed to clear cheque" (or
+  "Failed to unpay cheque"). The candidate list this endpoint sources from
+  (`GET` uncleared cheques) is **not** filtered on `IsBanked` server-side, so
+  don't rely on "the cheque showed up as clearable" — check `IsBanked`
+  yourself before offering the Clear action, or expect this failure and
+  surface it clearly.
 - `GET /untransfered?teller={id}` — untransferred cheques for a teller.
+
+Note: this controller's failure responses (`bank`/`clear`) return
+`{ success: false, message }` **without a `data` key at all**, unlike the
+`{ success, message, data }` envelope every other controller in this API
+follows — don't assume `data` is present (even as `null`) on a failed
+`bank`/`clear` call.
 
 ---
 
@@ -267,6 +340,14 @@ eleven `Denomination*Value` fields (same shape as `FiscalCountDTO`) — their
 sum must equal `ClosingBalance` or the call returns a real `400` before
 anything else runs. The teller is always the caller's own (§3) — any
 `TellerId` in the body is overwritten.
+
+**`UntransferredChequesValue` in the request body is no longer trusted for
+the "transfer your cheques first" gate** — it's still accepted (and echoed
+into the fiscal count record) but the actual gate now independently queries
+`IExternalChequeAppService.FindUnTransferredExternalChequesByTellerId` for
+the caller's own teller server-side. Previously a caller could send `0`
+regardless of reality and bypass the precondition entirely; that's fixed.
+No client change needed unless you were relying on the old bypass.
 
 Enforces, in order: malformed input (`400`) → denomination reconciliation
 (`400`) → caller has a linked teller record (`400`) → posting-model
@@ -305,10 +386,23 @@ naming).
 | `/` | POST | Create (`AccountClosureRequestDTO`, `Reason` required) → `Registered`. `409` if the account already has one in progress (`errormassage` on the DTO surfaced as the error message) |
 | `/{id}/approve` | POST | `{ option, remarks }` — `AccountClosureApprovalOption`: `1`=Approve, `2`=Defer. Only accepts `Registered`/`Deferred` |
 | `/{id}/verify` | POST | `{ option, remarks }` — `AccountClosureAuditOption`: `1`=Audit(verify), `2`=Defer. Only accepts `Approved` |
-| `/{id}/settle` | POST | `{ option, remarks }` — `AccountClosureSettlementOption`: `1`=Settle, `2`=Defer. Only accepts `Audited`. Pays out remaining balance and closes the account |
+| `/{id}/settle` | POST | `{ option, remarks }` — `AccountClosureSettlementOption`: `1`=Settle, `2`=Defer. Only accepts `Audited` |
 
 Each transition returns `409` (not `400`) if the request isn't in the
 right status for that action.
+
+**`/settle` does not pay out the customer's remaining balance — it only
+flips the request to `Settled`** (and closes the underlying customer
+account, done earlier at `/verify` time). This matches the reference app,
+where `Settle` was always just a status transition too. **The actual
+payout is a separate, manual step**: `POST /api/frontoffice/sundrypayments`
+with `transactionType: 32` (`CashPaymentAccountClosure`, §13) —
+`chartOfAccountId` = the closed account's
+`AccountClosureRequestDTO.CustomerAccountTypeTargetProductChartOfAccountId`,
+`totalValue` = `AccountClosureRequestDTO.NetRefundable` (both available from
+`GET /{id}` above). There's no ordering enforced between `/settle` and the
+sundry-payment payout — build your UI flow to prompt for/perform the
+payout as part of settling, even though they're two separate API calls.
 
 Not reproduced from the reference controller: per-request loan
 balance/investment balance/guarantor summary enrichment — compose that
@@ -369,9 +463,21 @@ straight through the shared journal service).
 Body: `{ chartOfAccountId, totalValue, reference, primaryDescription,
 moduleNavigationItemCode }`. Sundry payments additionally take
 `transactionType` (`GeneralTransactionType`: `1`=CashReceipt,
-`2`=ChequeReceipt, `4`=CashPayment, `8`=CashPickup — direction of the
-debit/credit against the teller account is derived from this). Response
-`data` is the posted `JournalDTO`.
+`2`=ChequeReceipt, `4`=CashPayment, `8`=CashPickup, `32`=CashPaymentAccountClosure
+— direction of the debit/credit against the teller account is derived from
+this). Response `data` is the posted `JournalDTO`.
+
+For `transactionType: 32` (account closure payout — §10), resolve
+`chartOfAccountId`/`totalValue` from the closure request first:
+`GET /api/frontoffice/accountclosures/{id}` →
+`chartOfAccountId = data.customerAccountTypeTargetProductChartOfAccountId`,
+`totalValue = data.netRefundable`. This transaction type was missing
+entirely until this doc's current revision — a batch create with
+`transactionType: 32` previously returned `400 "Unsupported transaction
+type"` with no other way to complete a closure's payout anywhere in this
+API; fixed, now restores the reference app's original behavior (which also
+treated account-closure payout as an ordinary sundry payment, not something
+`/settle` did automatically).
 
 **Known gap**: `CustomerReceiptsController` posts one line only.
 `IJournalAppService` has no apportioned-posting overload, so the reference
@@ -392,7 +498,7 @@ Controller: `InHouseController.cs`.
 | `/?text=&startDate=&endDate=&pageIndex=&pageSize=` | GET | Paged list |
 | `/{id}` | GET | Single cheque |
 | `/unprinted?branchId={id}&text=&pageIndex=&pageSize=` | GET | Printing queue for a branch |
-| `/` | POST | `{ cheques: InHouseChequeDTO[], moduleNavigationItemCode }` — batch-build entries |
+| `/` | POST | `{ cheques: InHouseChequeDTO[], moduleNavigationItemCode }` — batch-build entries. Each entry is validated (`branchId`, `debitChartOfAccountId` both required valid GUIDs; `chequeTypeId` optional but must be a valid GUID if present) — the first invalid entry in the batch fails the whole request with `success: false` and the joined validation message, `data: null`; nothing in the batch is saved. |
 | `/{id}/print` | POST | `{ printedNumber, bankLinkage: BankLinkageDTO, moduleNavigationItemCode }` — flips `IsPrinted`/`PrintedNumber` and posts the GL journal. The client renders/prints the cheque itself and reports back the printed number — this endpoint does no printing |
 
 ---

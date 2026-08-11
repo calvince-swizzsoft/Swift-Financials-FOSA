@@ -59,11 +59,13 @@ namespace WebApplication1.Controllers
 
         private readonly IWorkflowAppService _workflowAppService;
 
+        private readonly IChartOfAccountAppService _chartOfAccountAppService;
+
         //private readonly IWorkflowProcessorAppService _workflowProcessorAppService;
 
-     
-        public CashDepositController(ICashDepositRequestAppService cashDepositRequestAppService, 
-            ICustomerAccountAppService customerAccountAppService, 
+
+        public CashDepositController(ICashDepositRequestAppService cashDepositRequestAppService,
+            ICustomerAccountAppService customerAccountAppService,
             ICustomerAppService customerAppService,
             IBranchAppService branchAppService,
             ITellerAppService tellerAppService,
@@ -76,7 +78,8 @@ namespace WebApplication1.Controllers
             ISavingsProductAppService savingsProductAppService,
             IInvestmentProductAppService investmentProductAppService,
             IAuthorizationAppService authorizationAppService,
-            IWorkflowAppService workflowAppService
+            IWorkflowAppService workflowAppService,
+            IChartOfAccountAppService chartOfAccountAppService
             )
         {
             _cashDepositRequestAppService = cashDepositRequestAppService;
@@ -94,6 +97,7 @@ namespace WebApplication1.Controllers
             _investmentProductAppService = investmentProductAppService;
             _authorizationAppService = authorizationAppService;
             _workflowAppService = workflowAppService;
+            _chartOfAccountAppService = chartOfAccountAppService ?? throw new ArgumentNullException(nameof(chartOfAccountAppService));
         }
 
         [HttpGet]
@@ -312,8 +316,29 @@ namespace WebApplication1.Controllers
                         transactionModel.DebitCustomerAccount = SelectedCustomerAccount;
                         transactionModel.CreditCustomerAccountId = SelectedCustomerAccount.Id;
                         transactionModel.CreditCustomerAccount = SelectedCustomerAccount;
-                        //transactionModel.CreditChartOfAccountId = SelectedCustomerAccount.CustomerAccountTypeTargetProductChartOfAccountId;
-                        transactionModel.CreditChartOfAccountId = targetSavingsProduct.ChartOfAccountId;
+
+                        // A cheque is not cash: unlike CashDeposit, the customer must not be
+                        // credited to their real product GL yet — the funds aren't theirs to
+                        // use until the cheque actually clears (ClearExternalCheque's Pay
+                        // branch is what credits CustomerAccountTypeTargetProductChartOfAccountId,
+                        // once). Until then this posts to the same ExternalChequesControl
+                        // suspense account Pay/UnPay clearance already debits/credits — the
+                        // customer link above keeps it visible on their CustomerAccountStatementType.ChequeDepositStatement
+                        // mini-statement (see JournalEntryAppService) even though it's not yet
+                        // their spendable balance.
+                        var chequesControlChartOfAccountId = _chartOfAccountAppService.GetChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)SystemGeneralLedgerAccountCode.ExternalChequesControl, serviceHeader);
+
+                        if (chequesControlChartOfAccountId == Guid.Empty)
+                        {
+                            return Json(new
+                            {
+                                success = false,
+                                message = "Sorry, but the external cheques control account has not been setup!",
+                                data = (object)null
+                            });
+                        }
+
+                        transactionModel.CreditChartOfAccountId = chequesControlChartOfAccountId;
                     }
 
                     break;
@@ -1062,13 +1087,20 @@ namespace WebApplication1.Controllers
 
                                     if (actionableCashWithdrawalRequests != null && actionableCashWithdrawalRequests.Any())
                                     {
+                                        // Scoped to the specific request this call is posting against — same
+                                        // pattern as the deposit path above (targetCashDepositRequest via
+                                        // transactionModel.CashDepositRequestId). Previously this iterated
+                                        // every actionable request for the customer account and acted on the
+                                        // first Authorized one found, regardless of whether it was the one
+                                        // being posted — a customer with two pending withdrawal requests could
+                                        // have an unrelated one silently marked Paid.
+                                        var targetCashWithdrawalRequest = actionableCashWithdrawalRequests.Where(x => x.Id == transactionModel.CashWithdrawalRequestId).FirstOrDefault();
 
-                                        IsBusy = true;
-
-                                        foreach (var ac in actionableCashWithdrawalRequests)
+                                        if (targetCashWithdrawalRequest != null)
                                         {
+                                            IsBusy = true;
 
-                                            if (ac.Status == (int)CashDepositRequestAuthStatus.Authorized)
+                                            if (targetCashWithdrawalRequest.Status == (int)CashDepositRequestAuthStatus.Authorized)
                                             {
 
                                                 var authorizedCashWithdrawalJournal = _journalAppService.AddNewJournal(transactionModel.BranchId, null, transactionModel.TotalValue, transactionModel.PrimaryDescription, transactionModel.SecondaryDescription, transactionModel.Reference, transactionModel.ModuleNavigationItemCode, transactionModel.TransactionCode, transactionModel.ValueDate, transactionModel.CreditChartOfAccountId, transactionModel.DebitChartOfAccountId, transactionModel.CreditCustomerAccount, transactionModel.DebitCustomerAccount, tariffs, serviceHeader);
@@ -1079,7 +1111,7 @@ namespace WebApplication1.Controllers
                                                 if (updateAuhorizedResult)
                                                 {
 
-                                                    _cashWithdrawalRequestAppService.PayCashWithdrawalRequest(ac, null, serviceHeader);
+                                                    _cashWithdrawalRequestAppService.PayCashWithdrawalRequest(targetCashWithdrawalRequest, null, serviceHeader);
 
                                                     string message = $"Operation success: Customer's new balance is {SelectedCustomerAccount.NewAvailableBalance}";
 
@@ -1126,6 +1158,7 @@ namespace WebApplication1.Controllers
 
                                             }
                                         }
+                                        else createNewCashWithdrawalRequest = true;
                                     }
                                     else createNewCashWithdrawalRequest = true;
 

@@ -108,6 +108,14 @@ namespace WebApplication1.Controllers
             if (request?.Cheques == null || !request.Cheques.Any())
                 return BadRequest("No cheque entries found.");
 
+            foreach (var cheque in request.Cheques)
+            {
+                cheque.ValidateAll();
+
+                if (cheque.HasErrors)
+                    return BadRequest(string.Join("; ", cheque.ErrorMessages));
+            }
+
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();

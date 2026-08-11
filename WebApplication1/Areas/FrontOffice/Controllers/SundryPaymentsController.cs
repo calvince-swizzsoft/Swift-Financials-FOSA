@@ -97,6 +97,12 @@ namespace WebApplication1.Controllers
                         creditChartOfAccountId = teller.ChartOfAccountId ?? Guid.Empty;
                         break;
 
+                    case GeneralTransactionType.CashPaymentAccountClosure:
+                        transactionCode = (int)SystemTransactionCode.AccountClosure;
+                        debitChartOfAccountId = request.ChartOfAccountId;
+                        creditChartOfAccountId = teller.ChartOfAccountId ?? Guid.Empty;
+                        break;
+
                     default:
                         return BadRequest("Unsupported transaction type");
                 }
@@ -141,7 +147,8 @@ namespace WebApplication1.Controllers
 
     public class SundryPaymentRequest
     {
-        // GeneralTransactionType: CashReceipt=1, ChequeReceipt=2, CashPayment=4, CashPickup=8.
+        // GeneralTransactionType: CashReceipt=1, ChequeReceipt=2, CashPayment=4,
+        // CashPickup=8, CashPaymentAccountClosure=32.
         public int TransactionType { get; set; }
 
         public Guid ChartOfAccountId { get; set; }

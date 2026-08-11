@@ -310,6 +310,7 @@
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeTypeController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\ChequeBookController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CommissionController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LoanProductController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LevyController.cs" />

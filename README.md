@@ -26,3 +26,8 @@ adapt-a-controller workflow, response envelope shape) live in
   of day close, and ancillary processes like account closure and fixed
   deposits), including which parts are already ported to the new Web API
   and which remain.
+- [`WebApplication1/Areas/FrontOffice/CHEQUE-PROCESSING-ANALYSIS.md`](WebApplication1/Areas/FrontOffice/CHEQUE-PROCESSING-ANALYSIS.md) —
+  full-stack trace of every cheque capability (ChequeType, ChequeBook,
+  ExternalCheque, Automated Clearing, InHouseCheque) across domain,
+  application, DTO, infrastructure, WCF, and API layers, including GL
+  account wiring per lifecycle stage and a wiring-correctness audit.

@@ -31,7 +31,7 @@ namespace Application.MainBoundedContext.DTO
 
 
         [DataMember]
-        public Guid ChequeType { get; set; }
+        public Guid? ChequeType { get; set; }
 
         [DataMember]
         public string DrawerBank { get; set; }

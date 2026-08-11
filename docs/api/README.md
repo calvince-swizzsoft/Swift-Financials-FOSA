@@ -42,6 +42,8 @@ what to go update.
 | Branches | `api/administration/branches` | [`branch-api-spec.md`](branch-api-spec.md) |
 | Banks (+ bank branches) | `api/administration/banks` | [`bank-api-spec.md`](bank-api-spec.md) |
 | Bank linkages (branch ↔ external bank ↔ G/L account) | `api/accounts/banklinkages` | [`bank-linkage-api-spec.md`](bank-linkage-api-spec.md) |
+| Cheque types (master data) | `api/accounts/chequetypes` | [`cheque-type-api-spec.md`](cheque-type-api-spec.md) |
+| Cheque books (issuance + payment vouchers) | `api/accounts/chequebooks` | [`chequebook-api-spec.md`](chequebook-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -49,6 +51,134 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Four more front-office bugs fixed — Treasury, Transfers, EOD, withdrawal settlement
+
+Continuing the front-office audit (14 functional areas total — 8 previously
+confirmed faithful or fixed, see prior entries below), the remaining 6 areas
+were checked and 4 real bugs found and fixed. Teller master data and
+standalone fiscal count CRUD were confirmed faithful, no changes.
+
+- **`CashManagementController` (§5) silently no-opped on out-of-scope
+  transaction types.** `TreasuryTransactionType` has 6 members;
+  `Create`'s switch only handled 4, with no `default` case. Sending
+  `TellerToTreasury`(=16) or `TellerCashTransfer`(=32) — real enum values,
+  just owned by End of Day close and cash transfer requests respectively,
+  not this endpoint — fell through untouched and returned
+  `success: true, "Operation Success..."` with **nothing posted**. Fixed:
+  now rejects anything outside the 4 supported types with a clear
+  `success: false` message instead.
+- **`TransfersController`'s `/cash` and `/cash/acknowledge` (§7) never
+  validated.** Both gated on `cashTransferRequestDTO.HasErrors` but never
+  called `ValidateAll()` first, so the gate always passed regardless of
+  input. Fixed — `Amount` must now be greater than zero, as originally
+  intended.
+- **`EndOfDayController` (§9) trusted a client-supplied value for its
+  cheque-transfer precondition.** `UntransferredChequesValue` from the
+  request body was copied straight into the check instead of being
+  independently verified — a teller could send `0` and bypass "transfer
+  your cheques first" regardless of reality. Fixed: now queries
+  `IExternalChequeAppService.FindUnTransferredExternalChequesByTellerId`
+  server-side.
+- **Withdrawal settlement could mark an unrelated request `Paid` (§4).**
+  When resubmitting `POST /api/frontoffice/requests` for an already-`Authorized`
+  withdrawal, the deposit path correctly scoped to
+  `CustomerTransactionModel.CashDepositRequestId`; the withdrawal path had
+  no equivalent filter and just acted on the first `Authorized` request it
+  found for the customer. A customer with two pending withdrawal requests
+  could have the wrong one silently settled. Fixed to scope by
+  `CashWithdrawalRequestId`, matching deposits.
+
+Full findings and reasoning for both audit passes (all 14 areas):
+this session's chat history — not yet consolidated into a standalone doc
+the way the cheque subsystem was (`CHEQUE-PROCESSING-ANALYSIS.md`).
+
+### Account closure payout — critical gap fixed, `/settle` clarified
+
+Audit of the remaining front-office nav items found that **nothing in this
+API could actually pay a customer out on account closure** —
+`POST /api/frontoffice/accountclosures/{id}/settle` only ever flipped the
+request to `Settled`, and `SundryPaymentsController`'s switch had no case
+for `GeneralTransactionType.CashPaymentAccountClosure` (`= 32`) — the
+reference app's actual payout mechanism — so a client attempting it got
+`400 "Unsupported transaction type"`. A closure request could be walked
+all the way through Create → Approve → Verify → Settle with `success: true`
+at every step and the customer's remaining balance never left the SACCO.
+
+Fixed: `SundryPaymentsController` now handles `transactionType: 32`
+(mirrors the existing `CashPickup` case's debit/credit direction — debit
+the resolved chart of account, credit the teller). This restores, rather
+than invents, the reference app's design: `/settle` was **always** just a
+status transition there too — payout was always a separate, manually
+performed sundry-payment transaction, not something `/settle` did
+automatically. `frontoffice-api-spec.md` §10's claim that `/settle` "pays
+out remaining balance" was wrong and has been corrected; §10 and §13 now
+document the two-call sequence (`GET .../accountclosures/{id}` to resolve
+`chartOfAccountId`/`totalValue`, then `POST .../sundrypayments` with
+`transactionType: 32`) needed to actually complete a payout. **If your UI
+already calls `/settle` and stops, it needs the follow-up sundry-payment
+call added** — nothing was paying customers out before this fix regardless
+of what the UI did.
+
+Same audit pass also confirmed Customer Receipts, Fixed Deposits, Expense
+Payables, and Automated Clearing are all faithfully implemented — no
+changes needed there.
+
+### Cheque clearance sequencing + a critical customer double-credit fix — breaking behavior change
+
+Two more cheque-subsystem bugs found and fixed after the Cheque Book API
+pass below, both in `frontoffice-api-spec.md` §4/§8. Full trace and
+reasoning: `WebApplication1/Areas/FrontOffice/CHEQUE-PROCESSING-ANALYSIS.md`
+Findings #9–#10.
+
+- **`ChequeDeposit` no longer credits the customer's spendable balance
+  immediately.** This is the important one for any UI showing balances
+  right after a deposit. Previously, depositing a cheque credited the
+  customer's real product GL exactly like a cash deposit — then `Pay`
+  clearance credited them **a second time** for the same cheque days later,
+  when it actually cleared. Fixed: `ChequeDeposit` now posts to
+  `ExternalChequesControl` (a suspense account, still linked to the
+  customer for statement purposes) instead. **If your UI showed a cheque
+  deposit's amount as available funds right after `POST /api/frontoffice/requests`
+  the way it does for a cash deposit, that's no longer correct** — show it
+  as pending until the cheque is transferred, banked, and Pay-cleared.
+  `POST /` can now also fail with "Sorry, but the external cheques control
+  account has not been setup!" if that account isn't mapped — an
+  admin/setup issue, not a per-request one.
+- **Clearing (`POST /api/frontoffice/cheques/clear`) now requires a cheque
+  to be transferred and banked first**, matching what `unpay` already
+  required — previously `clear`(`Pay`) had no such check and could clear a
+  cheque straight out of deposit. The candidate list this endpoint offers
+  is not filtered on `IsBanked` server-side, so check `IsBanked` on each
+  `ExternalChequeDTO` yourself before offering the Clear action, or handle
+  the new failure message.
+
+### Cheque Book API — new, plus two cheque-subsystem validation bugs fixed
+
+`ChequeBookController` (`api/accounts/chequebooks`) documented for the first
+time — `IChequeBookAppService` was already fully built (issuance, per-leaf
+payment vouchers, activate/lock, pay/flag) but had no controller anywhere,
+only reachable through the legacy `ChequeBookService.svc.cs` WCF passthrough.
+Full reference: `chequebook-api-spec.md`; the `cheque-type-api-spec.md`
+table row above was also missing from this index and has been added.
+
+Two real bugs turned up in the cheque subsystem while building this and were
+fixed — full trace and GL-wiring detail in
+`WebApplication1/Areas/FrontOffice/CHEQUE-PROCESSING-ANALYSIS.md`:
+- **`ExternalChequeDTO.ChequeTypeId`** (`api/frontoffice/cheques` deposit
+  flow) is optional by design (a cheque with no type matures the same day
+  it's deposited), but its `[ValidGuid]` attribute rejected `null` as well
+  as `Guid.Empty` — so depositing a cheque **without** selecting a cheque
+  type always failed validation, the opposite of the intended behavior. Root
+  cause fixed in the shared `ValidGuidAttribute` (now treats `null` as
+  valid), which also silently repairs the same bug on every other optional
+  `[ValidGuid]` field across the API, not just this one.
+- **`InHouseChequeDTO.debitChartOfAccountId`** (`api/frontoffice/inhousecheques`)
+  is used for live GL posting but had zero server-side validation — its
+  `[ValidGuid]` attribute was commented out in source, and
+  `InHouseController.Create` never called `ValidateAll()` at all. Both
+  fixed: the attribute restored, and `Create` now validates each cheque in
+  the batch before submitting.
 
 ### Bank + Bank Linkage APIs — new, plus a DTO split and a dead-dependency fix
 

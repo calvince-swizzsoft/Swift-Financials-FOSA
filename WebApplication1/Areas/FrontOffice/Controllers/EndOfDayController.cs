@@ -42,6 +42,8 @@ namespace WebApplication1.Controllers
 
         private readonly IJournalAppService _journalAppService;
 
+        private readonly IExternalChequeAppService _externalChequeAppService;
+
         public EndOfDayController (
             ITellerAppService tellerAppService,
             IEmployeeAppService employeeAppService,
@@ -49,7 +51,8 @@ namespace WebApplication1.Controllers
             IPostingPeriodAppService postingPeriodAppService,
             ITreasuryAppService treasuryAppService,
             IFiscalCountAppService fiscalCountAppService,
-            IJournalAppService journalAppService)
+            IJournalAppService journalAppService,
+            IExternalChequeAppService externalChequeAppService)
         {
 
             _tellerAppService = tellerAppService;
@@ -59,6 +62,7 @@ namespace WebApplication1.Controllers
             _treasuryAppService = treasuryAppService;
             _fiscalCountAppService = fiscalCountAppService;
             _journalAppService = journalAppService;
+            _externalChequeAppService = externalChequeAppService ?? throw new ArgumentNullException(nameof(externalChequeAppService));
         }
 
 
@@ -177,7 +181,12 @@ namespace WebApplication1.Controllers
 
             cashTransferRequestDTO.TellerId = SelectedTeller.Id;
             cashTransferRequestDTO.EmployeeId = SelectedTeller.EmployeeId;
-            _selectedTeller.TellerTotalCheques = cashTransferRequestDTO.UntransferredChequesValue;
+
+            // Independently verified server-side rather than trusting the client-supplied
+            // UntransferredChequesValue — a teller could otherwise send 0 and bypass the
+            // "transfer your cheques first" gate below regardless of reality.
+            var untransferredCheques = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId(SelectedTeller.Id, string.Empty, serviceHeader);
+            _selectedTeller.TellerTotalCheques = untransferredCheques?.Sum(c => c.Amount) ?? 0m;
 
             _selectedEmployee = _employeeAppService.FindEmployee((Guid)SelectedTeller.EmployeeId, serviceHeader);
 
