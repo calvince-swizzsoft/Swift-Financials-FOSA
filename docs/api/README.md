@@ -44,6 +44,9 @@ what to go update.
 | Bank linkages (branch ↔ external bank ↔ G/L account) | `api/accounts/banklinkages` | [`bank-linkage-api-spec.md`](bank-linkage-api-spec.md) |
 | Cheque types (master data) | `api/accounts/chequetypes` | [`cheque-type-api-spec.md`](cheque-type-api-spec.md) |
 | Cheque books (issuance + payment vouchers) | `api/accounts/chequebooks` | [`chequebook-api-spec.md`](chequebook-api-spec.md) |
+| Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
+| Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
+| UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -51,6 +54,25 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### UnPay Reason API — new
+
+`UnPayReasonController` (`api/accounts/unpayreasons`) documented for the
+first time — `IUnPayReasonAppService` was already fully built but had no
+controller anywhere, only reachable through the legacy
+`UnPayReasonService.svc.cs` WCF passthrough (same "missing controller"
+shape as the earlier Cheque Book API entry below). This is the master data
+`ChequesController`'s `POST /api/frontoffice/cheques/clear` `"unpay"` flow
+needs a valid `UnPayReasonDTO` from — if your UI builds that flow, you now
+have somewhere to source/manage the picker list from.
+
+Two reference-app things fixed rather than ported: `Edit` never called
+`ValidateAll()` (so `Description` was never actually required on edit —
+now fixed), and the attached-commissions flow no longer does a
+resolve-by-id round trip per commission (send `commissionIds: Guid[]`
+directly). Full reference: `unpayreason-api-spec.md`. The API areas table
+above was also missing rows for the existing Commission/Levy APIs
+(`commission-api-spec.md`/`levy-api-spec.md`) — added alongside this entry.
 
 ### Four more front-office bugs fixed — Treasury, Transfers, EOD, withdrawal settlement
 

@@ -113,7 +113,7 @@ namespace WebApplication1.Controllers
                 }).ToList());
 
 
-                var result = _externalChequeAppService.BankExternalCheques(externalChequeDTOs.ToList(), bankLinkageDTO, 123, serviceHeader);
+                var result = _externalChequeAppService.BankExternalCheques(externalChequeDTOs.ToList(), bankLinkageDTO, chequeBankingRequest.ModuleNavigationItemCode, serviceHeader);
                 
                 if (!result)
                 {
@@ -184,7 +184,7 @@ namespace WebApplication1.Controllers
                         var result = _externalChequeAppService.ClearExternalCheque(
                             cheque,
                             clearingOption,
-                            /* ModuleNavigationItemCode */ 1,
+                            chequeClearingRequest.ModuleNavigationItemCode,
                             null,
                             serviceHeader
                         );
@@ -218,7 +218,7 @@ namespace WebApplication1.Controllers
                         var result = _externalChequeAppService.ClearExternalCheque(
                             cheque,
                             clearingOption,
-                            /* ModuleNavigationItemCode */ 1,
+                            chequeClearingRequest.ModuleNavigationItemCode,
                             unPayReasonDTO,
                             serviceHeader
                         );
@@ -288,6 +288,7 @@ namespace WebApplication1.Controllers
     {
         public List<Guid> selectedChequeIds { get; set; } = new List<Guid>();
         public BankLinkageDTO bankLinkageDTO { get; set; }
+        public int ModuleNavigationItemCode { get; set; }
     }
 
     public class ChequeClearingRequest
@@ -299,6 +300,8 @@ namespace WebApplication1.Controllers
         public string actionType { get; set; }
 
         public UnPayReasonDTO unPayReasonDTO { get; set; }
+
+        public int ModuleNavigationItemCode { get; set; }
     }
 
 }

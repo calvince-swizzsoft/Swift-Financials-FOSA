@@ -433,13 +433,20 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                         {
                             var persisted = _externalChequeRepository.Get(externalChequeDTO.Id, serviceHeader);
 
-                            if (persisted != null && !persisted.IsTransferred)
+                            // Only transfer cheques that actually belong to the requesting
+                            // teller and haven't already been transferred — the incoming DTO
+                            // is client-supplied, so ownership must be checked against the
+                            // persisted record, not assumed from the request.
+                            if (persisted != null && !persisted.IsTransferred && persisted.TellerId == tellerDTO.Id)
                             {
+                                // Post the journal using the persisted cheque's own Amount/Number,
+                                // not the client-submitted DTO's — otherwise a caller could tamper
+                                // with the amount for a valid cheque Id and have it posted as-is.
                                 // AddNewJournal returns null (no exception) if, e.g., there's no
                                 // current posting period configured — previously that failure was
                                 // silently ignored and IsTransferred was set anyway, reporting
                                 // success with no journal ever posted.
-                                var journal = _journalAppService.AddNewJournal(tellerDTO.EmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Transfer~{0}", externalChequeDTO.Number), tellerDTO.Description, externalChequeDTO.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeTransfer, null, tellerDTO.ChartOfAccountId.Value, chequesInHandChartOfAccountId, serviceHeader);
+                                var journal = _journalAppService.AddNewJournal(tellerDTO.EmployeeBranchId, null, persisted.Amount, string.Format("Cheque Transfer~{0}", persisted.Number), tellerDTO.Description, persisted.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeTransfer, null, tellerDTO.ChartOfAccountId.Value, chequesInHandChartOfAccountId, serviceHeader);
 
                                 if (journal != null)
                                 {

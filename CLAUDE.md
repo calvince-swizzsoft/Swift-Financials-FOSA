@@ -156,6 +156,11 @@ drift out of sync with the actual code.
   out) that weren't ported; see history notes in
   `docs/api/commission-api-spec.md` / `docs/api/levy-api-spec.md` and
   `COMMISSION-LEVY-CHARGE-CONCEPTS.md`
+- `Areas/Accounts/Controllers/UnPayReasonController.cs` (new, existing
+  `IUnPayReasonAppService`; full CRUD + attached-commissions sub-resource) —
+  previously only reachable via the legacy `UnPayReasonService.svc.cs` WCF
+  passthrough, no controller existed; fixed a missing-`ValidateAll()` bug on
+  edit rather than porting it (see `docs/api/unpayreason-api-spec.md`)
 - `Areas/Messaging/Controllers/TextAlertController.cs` (existing `ITextAlertAppService`)
 - `Areas/FrontOffice/Controllers/*` — teller transactions, treasury, cheques,
   end of day, account closure, fixed deposits, expense payables, sundry

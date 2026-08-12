@@ -297,13 +297,14 @@ Controller: `ChequesController.cs`.
   `ExternalChequeDTO` row carries `IsTransferred`/`IsBanked`/`IsCleared` —
   use these to decide which actions to offer per row (see below) rather
   than letting the user attempt an action the API will reject.
-- `POST /bank` — body `{ selectedChequeIds: Guid[], bankLinkageDTO }`. Only
-  cheques with `IsTransferred: true` are eligible — the server already
-  filters its own candidate list to these, so an id for a not-yet-transferred
-  cheque is simply ignored (excluded from `selectedCheques`), not an error.
+- `POST /bank` — body `{ selectedChequeIds: Guid[], bankLinkageDTO,
+  moduleNavigationItemCode }`. Only cheques with `IsTransferred: true` are
+  eligible — the server already filters its own candidate list to these, so
+  an id for a not-yet-transferred cheque is simply ignored (excluded from
+  `selectedCheques`), not an error.
 - `POST /clear` — body `{ selectedChequeIds: Guid[], clearingOption,
-  actionType: "clear"|"unpay", unPayReasonDTO }` (`unPayReasonDTO` required
-  when `actionType` is `"unpay"`). **`clearingOption` must agree with
+  actionType: "clear"|"unpay", unPayReasonDTO, moduleNavigationItemCode }`
+  (`unPayReasonDTO` required when `actionType` is `"unpay"`). **`clearingOption` must agree with
   `actionType`** (`Pay=1` with `"clear"`, `UnPay=2` with `"unpay"`) — the
   server does not derive one from the other, so a mismatched pair silently
   takes whichever branch `clearingOption` selects, not the one `actionType`
@@ -318,6 +319,14 @@ Controller: `ChequesController.cs`.
   yourself before offering the Clear action, or expect this failure and
   surface it clearly.
 - `GET /untransfered?teller={id}` — untransferred cheques for a teller.
+
+**`moduleNavigationItemCode` on `bank`/`clear` is now required** — send the
+`NavigationItem.Code` of the screen the user is on (the "Cheques" item,
+`ControllerName=Cheques`/`ActionName=Index`) so the GL journal these
+endpoints post carries an accurate reference back to it. Previously the
+server hardcoded this to a placeholder value (`123` for `bank`, `1` for
+`clear`) that didn't correspond to any real navigation item, silently
+breaking that audit trail; fixed.
 
 Note: this controller's failure responses (`bank`/`clear`) return
 `{ success: false, message }` **without a `data` key at all**, unlike the
