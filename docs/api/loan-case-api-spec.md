@@ -3,12 +3,13 @@
 Base path: `api/backoffice/loancases`. Controller:
 `WebApplication1/Areas/BackOffice/Controllers/LoanCaseController.cs`.
 Functional design: `WebApplication1/Areas/BackOffice/WORKFLOW.md` §5 (loan
-request intake, upstream of this) and §14.1 (what was built here and why).
+request intake, upstream of this), §14.1 (registration, what was built and
+why), and §14.2 (appraisal).
 
-This is the first stage of the loan origination pipeline: opening a loan
-case with its guarantors and collateral. Appraisal, approval, and
-audit/verification (`LoanCaseStatus.Registered → Appraised → Approved →
-Audited`) are separate, not-yet-built stages — see `WORKFLOW.md` §6-8.
+This covers the first two stages of the loan origination pipeline: opening
+a loan case with its guarantors and collateral, and appraising it.
+Approval and audit/verification (`LoanCaseStatus.Appraised → Approved →
+Audited`) are separate, not-yet-built stages — see `WORKFLOW.md` §7-8.
 Disbursement (`LoanCaseStatus.Approved`/`Audited → Disbursed`) is already
 documented separately: `batch-procedures-api-spec.md` §6.
 
@@ -163,8 +164,92 @@ the method's own preceding comment ("Restore original values that were
 overwritten") and were removed — if you were previously seeing a loan
 case's `createdDate` drift on every edit, that's why, and it's fixed now.
 
+## 7. Appraisal worksheet
+
+`GET /{id}/appraisal-worksheet`
+
+Read-only. System-computed figures for a `Registered`/`Deferred` case, plus
+the case itself and its current guarantors/collaterals/appraisal factors —
+gives the appraiser numbers to work from before deciding. `404` if the case
+doesn't exist.
+
+```json
+{
+  "loanCase": { "...": "LoanCaseDTO" },
+  "totalShares": 190000.00,
+  "investmentsBalance": 40000.00,
+  "savingsBalance": 150000.00,
+  "maximumLoan": 120000.00,
+  "outstandingLoansBalance": 15000.00,
+  "maximumEntitled": 105000.00,
+  "loanPart": 100000.00,
+  "interestPart": 12000.00,
+  "loanPlusInterest": 112000.00,
+  "paymentPerPeriod": 9333.33,
+  "appraisalFactors": [ "...LoanAppraisalFactorDTO[]" ],
+  "guarantors": [ "...LoanGuarantorDTO[]" ],
+  "collaterals": [ "...LoanCollateralDTO[]" ]
+}
+```
+
+`maximumLoan` = `investmentsBalance × LoanRegistrationInvestmentsMultiplier`
+(the loan product's own multiplier). `outstandingLoansBalance` = book +
+carry-forward balance on the customer's existing account for this specific
+loan product. `maximumEntitled` = `maximumLoan − outstandingLoansBalance`.
+`interestPart` is a simple-interest estimate
+(`loanPart × (APR/100) × (termInMonths/12)`), not the amortized figure.
+`paymentPerPeriod` is a standard amortization `PMT` off the loan product's
+monthly rate and term — `0` if the term or rate is `0`.
+
+`GET /{id}/appraisal-factors` returns just the `appraisalFactors` array
+above, standalone.
+
+## 8. Appraise a loan case
+
+`POST /{id}/appraise`
+
+```json
+{
+  "option": 1,
+  "moduleNavigationItemCode": 1234,
+  "appraisedNetIncome": 45000.00,
+  "appraisedAbility": 15000.00,
+  "systemAppraisedAmount": 100000.00,
+  "systemAppraisalRemarks": "...",
+  "appraisedAmount": 100000.00,
+  "appraisedAmountRemarks": "...",
+  "appraisalRemarks": "...",
+  "monthlyPaybackAmount": 9333.33,
+  "totalPaybackAmount": 112000.00,
+  "loanProductLatestIncome": 45000.00,
+  "totalLoansBalance": 15000.00,
+  "incomeAdjustments": [
+    { "incomeAdjustmentId": "...", "customerAccountId": null, "amount": 5000.00, "isEnabled": true }
+  ]
+}
+```
+
+`option`: `LoanAppraisalOption` — `1` = Appraise (→ `Appraised`), `2` =
+Reject (→ `Rejected`, releases the case's guarantors). Requires the case to
+currently be `Registered` or `Deferred` — `409` otherwise. `incomeAdjustments`
+is only applied when `option` is Appraise (a rejection has no appraisal
+figures worth keeping); each entry's `incomeAdjustmentId` must resolve to a
+real `IncomeAdjustmentDTO` (its `description`/`type` are filled in
+server-side, don't bother sending them) and the same id can't appear twice
+in one request. Returns the freshly-fetched `LoanCaseDTO` on success.
+
+**Real bug fixed in `LoanCaseAppService.AppraiseLoanCase`/`Async`
+themselves, not just the controller**: the guard clause used to force-set
+`persisted.Status` to `Registered` *before even null-checking* the fetched
+entity — appraising a nonexistent loan case id used to throw a
+`NullReferenceException` (now a clean `404`), and the "must be Registered
+or Deferred" precondition was tautologically always true for any case that
+did exist (now actually enforced). The identical bug shape is still present,
+unfixed, in `ApproveLoanCase`/`AuditLoanCase`/`MarkLoanCaseDisbursed` — not
+this endpoint's concern, but worth knowing before building against those.
+
 ## Not built yet
 
-Appraisal, approval, audit/verification, cancellation, restructuring, and
+Approval, audit/verification, cancellation, restructuring, and
 every guarantor sub-flow beyond initial attach (substitute/relieve/release)
 — see `WORKFLOW.md` §6-10 for the design and current status of each.

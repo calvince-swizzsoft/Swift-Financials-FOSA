@@ -94,6 +94,34 @@ namespace WebApplication1.Areas.BackOffice.Controllers
     //   IBudgetAppService's job and out of scope here; the DTO's
     //   ValidateBudgetBalance rule simply won't fire (defaults to false)
     //   until a caller populates those fields.
+    //
+    // Appraisal (reference: Areas/Loaning/Controllers/AppraiseLoanController.cs):
+    // - Real bug fixed in LoanCaseAppService.AppraiseLoanCase/Async
+    //   themselves, same class as the UpdateLoanCaseAsync fix above: the
+    //   guard clause force-set persisted.Status to Registered
+    //   *unconditionally, immediately after fetching* — before even the
+    //   null check — so a missing loan case id threw a
+    //   NullReferenceException instead of a clean "not found", and the
+    //   "must be Registered or Deferred" precondition was tautologically
+    //   always true for any case that did exist. Removed the force-set;
+    //   the guard now checks the entity's real status, as WORKFLOW.md §4
+    //   already flagged this bug and asked for.
+    // - GET .../appraisal-worksheet reproduces the real, computable part of
+    //   the reference GET Appraise action: maximum loan via the product's
+    //   investments multiplier, outstanding balance on this loan product,
+    //   maximum entitled, a simple-interest loan+interest estimate, and a
+    //   standard amortization PMT. Not reproduced: the `id` parameter's own
+    //   branch (treats a customer id as a loan product id and never uses
+    //   the result — dead/buggy in the reference), the "isEmployee" loop
+    //   that iterates accounts and does nothing (`foreach { }`, empty
+    //   body), and the composite standing-orders/payouts/loan-applications
+    //   view-model padding — all real endpoints of their own elsewhere,
+    //   same reasoning as LoaneeLookup above.
+    // - POST .../appraise takes the appraisal *outcome* fields directly
+    //   (not a full LoanCaseDTO staged in session) plus an optional income-
+    //   adjustments replace, mirroring the reference POST Appraise action's
+    //   two calls (AppraiseLoanCaseAsync + UpdateLoanAppraisalFactorsAsync)
+    //   folded into one request.
     [Authorize]
     [RoutePrefix("api/backoffice/loancases")]
     public class LoanCaseController : ApiController
@@ -106,6 +134,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         private readonly ILoaningRemarkAppService _loaningRemarkAppService;
         private readonly ICustomerDocumentAppService _customerDocumentAppService;
         private readonly ICustomerAccountAppService _customerAccountAppService;
+        private readonly IIncomeAdjustmentAppService _incomeAdjustmentAppService;
 
         public LoanCaseController(
             ILoanCaseAppService loanCaseAppService,
@@ -115,7 +144,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             ILoanPurposeAppService loanPurposeAppService,
             ILoaningRemarkAppService loaningRemarkAppService,
             ICustomerDocumentAppService customerDocumentAppService,
-            ICustomerAccountAppService customerAccountAppService)
+            ICustomerAccountAppService customerAccountAppService,
+            IIncomeAdjustmentAppService incomeAdjustmentAppService)
         {
             _loanCaseAppService = loanCaseAppService ?? throw new ArgumentNullException(nameof(loanCaseAppService));
             _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
@@ -125,6 +155,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             _loaningRemarkAppService = loaningRemarkAppService ?? throw new ArgumentNullException(nameof(loaningRemarkAppService));
             _customerDocumentAppService = customerDocumentAppService ?? throw new ArgumentNullException(nameof(customerDocumentAppService));
             _customerAccountAppService = customerAccountAppService ?? throw new ArgumentNullException(nameof(customerAccountAppService));
+            _incomeAdjustmentAppService = incomeAdjustmentAppService ?? throw new ArgumentNullException(nameof(incomeAdjustmentAppService));
         }
 
         // Mirrors the reference Index grid — status is a real, required
@@ -431,6 +462,170 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        // System-computed appraisal figures for a Registered/Deferred case —
+        // the real, non-dead part of the reference GET Appraise action (see
+        // class comment). Read-only: doesn't change anything, just gives the
+        // appraiser numbers to work from before deciding.
+        [HttpGet]
+        [Route("{id:guid}/appraisal-worksheet")]
+        public IHttpActionResult GetAppraisalWorksheet(Guid id)
+        {
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var loanCase = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+                if (loanCase == null)
+                    return NotFound();
+
+                var loanProduct = _loanProductAppService.FindLoanProduct(loanCase.LoanProductId, serviceHeader);
+                if (loanProduct == null)
+                    return ErrorResponse("Loan product not found");
+
+                var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCase.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
+
+                var investmentsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(a => a.BookBalance);
+                var savingsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance);
+                var totalShares = investmentsBalance + savingsBalance;
+
+                var maximumLoan = investmentsBalance * Convert.ToDecimal(loanProduct.LoanRegistrationInvestmentsMultiplier);
+
+                var loanProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(loanCase.CustomerId, loanCase.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                var outstandingLoansBalance = loanProductAccounts.Sum(a => a.BookBalance + a.CarryForwardsBalance);
+
+                var maximumEntitled = maximumLoan - outstandingLoansBalance;
+
+                var loanPart = loanCase.AmountApplied;
+                var interestPart = loanPart * Convert.ToDecimal((loanCase.LoanInterestAnnualPercentageRate / 100) * (loanCase.LoanRegistrationTermInMonths / 12.0));
+                var loanPlusInterest = loanPart + interestPart;
+
+                var monthlyInterestRate = loanCase.LoanInterestAnnualPercentageRate / (12 * 100);
+                var termInMonths = loanCase.LoanRegistrationTermInMonths;
+                var paymentPerPeriod = termInMonths > 0 && monthlyInterestRate > 0
+                    ? Math.Round((double)loanPart * (monthlyInterestRate * Math.Pow(1 + monthlyInterestRate, termInMonths)) / (Math.Pow(1 + monthlyInterestRate, termInMonths) - 1), 2)
+                    : 0d;
+
+                var appraisalFactors = _loanCaseAppService.FindLoanAppraisalFactorsByLoanCaseId(id, serviceHeader) ?? new List<LoanAppraisalFactorDTO>();
+                var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, serviceHeader) ?? new List<LoanGuarantorDTO>();
+                var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, serviceHeader) ?? new List<LoanCollateralDTO>();
+
+                return Ok(ApiResponse("", new
+                {
+                    loanCase,
+                    totalShares,
+                    investmentsBalance,
+                    savingsBalance,
+                    maximumLoan,
+                    outstandingLoansBalance,
+                    maximumEntitled,
+                    loanPart,
+                    interestPart,
+                    loanPlusInterest,
+                    paymentPerPeriod,
+                    appraisalFactors,
+                    guarantors,
+                    collaterals
+                }));
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/appraisal-factors")]
+        public IHttpActionResult GetAppraisalFactors(Guid id)
+        {
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var factors = _loanCaseAppService.FindLoanAppraisalFactorsByLoanCaseId(id, serviceHeader);
+
+                return Ok(ApiResponse("", factors ?? new List<LoanAppraisalFactorDTO>()));
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
+        // Transitions a Registered/Deferred case to Appraised or Rejected.
+        // Also replaces the case's income-adjustment appraisal factors in
+        // the same call when supplied — mirrors the reference POST Appraise
+        // action's AppraiseLoanCaseAsync + UpdateLoanAppraisalFactorsAsync
+        // pair. See class comment for the guard-clause bug fixed in
+        // AppraiseLoanCase/Async alongside this endpoint.
+        [HttpPost]
+        [Route("{id:guid}/appraise")]
+        public IHttpActionResult Appraise(Guid id, AppraiseLoanCaseRequest request)
+        {
+            if (request == null)
+                return ErrorResponse("Request body is required");
+
+            if (!Enum.IsDefined(typeof(LoanAppraisalOption), request.Option))
+                return ErrorResponse("Invalid appraisal option");
+
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var existing = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+                if (existing == null)
+                    return NotFound();
+
+                if (request.IncomeAdjustments != null)
+                {
+                    foreach (var factor in request.IncomeAdjustments)
+                    {
+                        if (factor.IncomeAdjustmentId == Guid.Empty)
+                            return ErrorResponse("Every income adjustment entry requires an IncomeAdjustmentId");
+
+                        var incomeAdjustment = _incomeAdjustmentAppService.FindIncomeAdjustment(factor.IncomeAdjustmentId, serviceHeader);
+                        if (incomeAdjustment == null)
+                            return ErrorResponse($"Income adjustment {factor.IncomeAdjustmentId} not found");
+
+                        factor.LoanCaseId = id;
+                        factor.Description = incomeAdjustment.Description;
+                        factor.Type = incomeAdjustment.Type;
+                    }
+
+                    if (request.IncomeAdjustments.Select(f => f.IncomeAdjustmentId).Distinct().Count() != request.IncomeAdjustments.Count)
+                        return ErrorResponse("The same income adjustment was submitted more than once");
+                }
+
+                existing.LoanAppraisalOption = request.Option;
+                existing.LoanProductLatestIncome = request.LoanProductLatestIncome;
+                existing.AppraisedNetIncome = request.AppraisedNetIncome;
+                existing.AppraisedAbility = request.AppraisedAbility;
+                existing.SystemAppraisedAmount = request.SystemAppraisedAmount;
+                existing.SystemAppraisalRemarks = request.SystemAppraisalRemarks;
+                existing.AppraisedAmount = request.AppraisedAmount;
+                existing.AppraisedAmountRemarks = request.AppraisedAmountRemarks;
+                existing.AppraisalRemarks = request.AppraisalRemarks;
+                existing.MonthlyPaybackAmount = request.MonthlyPaybackAmount;
+                existing.TotalPaybackAmount = request.TotalPaybackAmount;
+                existing.TotalLoansBalance = request.TotalLoansBalance;
+
+                var appraised = _loanCaseAppService.AppraiseLoanCase(existing, request.Option, request.ModuleNavigationItemCode, serviceHeader);
+
+                if (!appraised)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in a Registered or Deferred state, or the appraisal option is invalid"));
+
+                if (request.Option == (int)LoanAppraisalOption.Appraise && request.IncomeAdjustments != null && request.IncomeAdjustments.Any())
+                    _loanCaseAppService.UpdateLoanAppraisalFactors(id, request.IncomeAdjustments, serviceHeader);
+
+                var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                return Ok(ApiResponse("Loan case appraisal recorded successfully", refreshed));
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
         // Returns an error message on failure, null on success. Mutates each
         // guarantor with server-computed share data — see class comment.
         private string EnrichAndValidateGuarantors(List<LoanGuarantorDTO> guarantors, LoanCaseDTO loanCaseDTO, LoanProductDTO loanProduct, ServiceHeader serviceHeader)
@@ -579,5 +774,29 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         public LoanCaseDTO LoanCase { get; set; }
         public List<LoanGuarantorDTO> Guarantors { get; set; }
         public List<Guid> CollateralDocumentIds { get; set; }
+    }
+
+    public class AppraiseLoanCaseRequest
+    {
+        // LoanAppraisalOption: 1 = Appraise, 2 = Reject.
+        public int Option { get; set; }
+
+        public int ModuleNavigationItemCode { get; set; }
+
+        public decimal LoanProductLatestIncome { get; set; }
+        public decimal AppraisedNetIncome { get; set; }
+        public decimal AppraisedAbility { get; set; }
+        public decimal SystemAppraisedAmount { get; set; }
+        public string SystemAppraisalRemarks { get; set; }
+        public decimal AppraisedAmount { get; set; }
+        public string AppraisedAmountRemarks { get; set; }
+        public string AppraisalRemarks { get; set; }
+        public decimal MonthlyPaybackAmount { get; set; }
+        public decimal TotalPaybackAmount { get; set; }
+        public decimal TotalLoansBalance { get; set; }
+
+        // Only applied when Option == Appraise (a rejection releases
+        // guarantors and has no appraisal figures to keep).
+        public List<LoanAppraisalFactorDTO> IncomeAdjustments { get; set; }
     }
 }

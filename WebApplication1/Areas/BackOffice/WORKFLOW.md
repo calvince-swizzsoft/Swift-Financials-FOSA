@@ -170,23 +170,24 @@ Appraised → Audited in one call, skipping the audit step as a distinct
 human action. Worth surfacing in a future controller/UI (e.g. as a flag on
 the approve response) rather than silently happening.
 
-**Known latent bug, not yet fixed** (found while reading
-`LoanCaseAppService`, same audit discipline used elsewhere in this repo —
-see the Voucher/General Ledger and InterAccountTransferBatch corrections in
-`BATCH-PROCEDURES-CONCEPTS.md`): the guard-clause pattern in
-`AppraiseLoanCase`/`ApproveLoanCase`/`AuditLoanCase`/`MarkLoanCaseDisbursed`
-is `persisted.Status = (int)ExpectedPriorStatus; if (persisted.Status ==
-(int)ExpectedPriorStatus) { ... }` — i.e. the code force-sets the *expected*
-prior status onto the just-fetched entity immediately before checking it,
-so the check is tautologically always true. In practice this means, e.g.,
-`AuditLoanCase` never actually verifies the case is `Approved` before
-auditing it — a case in almost any status could be pushed straight to
-`Audited`. This mirrors the exact shape of the real bug already fixed in
-`InterAccountTransferBatchController`'s history (force-set-before-check).
-Flag this to product/backend before or while building the appraisal/
-approval/audit controllers; the state machine described above is the
-*intended* design, this bug is a gap between intent and enforcement, not a
-reason to doc a different design.
+**Known latent bug — fixed in `AppraiseLoanCase`/`Async`, still open in
+`ApproveLoanCase`/`AuditLoanCase`/`MarkLoanCaseDisbursed`** (found while
+reading `LoanCaseAppService`, same audit discipline used elsewhere in this
+repo — see the Voucher/General Ledger and InterAccountTransferBatch
+corrections in `BATCH-PROCEDURES-CONCEPTS.md`): the guard-clause pattern in
+all four methods was `persisted.Status = (int)ExpectedPriorStatus; if
+(persisted.Status == (int)ExpectedPriorStatus) { ... }` — i.e. the code
+force-set the *expected* prior status onto the just-fetched entity
+immediately before checking it (and before even null-checking it, so a
+missing loan case id threw a `NullReferenceException` instead of a clean
+"not found"), making the check tautologically always true. Fixed in
+`AppraiseLoanCase`/`AppraiseLoanCaseAsync` alongside `LoanCaseController`'s
+`POST .../appraise` endpoint (§14.1). **Still present** in `ApproveLoanCase`,
+`AuditLoanCase`, and `MarkLoanCaseDisbursed` — e.g. `AuditLoanCase` still
+doesn't actually verify a case is `Approved` before auditing it. Fix each
+alongside its own controller, same as this one was; the state machine
+described above is the *intended* design, this bug is a gap between intent
+and enforcement, not a reason to doc a different design.
 
 ## 5. Loan request intake (optional pre-case stage)
 
@@ -320,7 +321,7 @@ building any of the rows below.
 |---|---|---|---|
 | Loan request intake | `LoanRequestController` | — | Not built |
 | Loan case registration | `LoanRegistrationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.1 |
-| Appraisal | `AppraiseLoanController` | — | Not built |
+| Appraisal | `AppraiseLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.1 |
 | Approval | `ApproveLoanController` | — | Not built |
 | Audit / verification | `LoanVerificationController` | — | Not built |
 | Cancellation | `LoanCancellationController` | — | Not built |
@@ -410,6 +411,48 @@ Web API controller in this repo performs that lookup today. Branch
 budget-balance validation is left unpopulated, matching the reference
 `Create` action's own behavior — real budget balance computation is
 `IBudgetAppService`'s job, out of scope here.
+
+## 14.2 Appraisal, as built
+
+Added onto the same `LoanCaseController`, as lifecycle actions on the
+`LoanCase` resource rather than a separate controller — the reference app
+splits this into `AppraiseLoanController`, but this repo's own convention
+(every Batch Procedures controller, `AccountClosureController`, etc.) is
+one controller per resource with `/{id}/<action>` routes for each lifecycle
+stage, not one controller per reference screen.
+
+`GET .../{id}/appraisal-worksheet` reproduces the real, computable part of
+the reference `GET Appraise` action — maximum loan via the product's
+investments multiplier, outstanding balance on this specific loan product,
+maximum entitled, a simple-interest loan+interest estimate, and a standard
+amortization `PMT`. Not reproduced: the reference action's own `id`
+parameter branch (treats a customer id as a loan product id and never uses
+the result — dead/buggy there, not a real capability), an "isEmployee" loop
+that iterates the customer's accounts and does nothing (`foreach (var
+accts in findCustomerAccounts) { }`, empty body — literally dead code), and
+the composite standing-orders/payouts/loan-applications view-model padding
+(every piece already has its own real endpoint elsewhere, same reasoning as
+`LoaneeLookup` above).
+
+`POST .../{id}/appraise` takes the appraisal *outcome* fields directly in
+the request body (net income, ability, system/appraised amount, remarks,
+payback figures) plus an optional income-adjustments list, instead of a
+whole `LoanCaseDTO` staged in `Session["Form"]` the way the reference does
+— folds the reference's two separate calls
+(`AppraiseLoanCaseAsync` + `UpdateLoanAppraisalFactorsAsync`) into one
+request, same pattern as registration's `Create` folding guarantor/
+collateral attach into one call.
+
+**Real bug fixed in `LoanCaseAppService.AppraiseLoanCase`/`Async`
+themselves, not just the controller** — see the updated bug note above §5:
+the guard clause used to force-set `persisted.Status` to `Registered`
+*before* even null-checking the fetched entity, so appraising a
+non-existent loan case id threw a `NullReferenceException` instead of
+returning a clean "not found," and the "must be Registered or Deferred"
+precondition was tautologically always true for any case that did exist.
+Removed the force-set; the guard now checks the entity's real status.
+
+Full reference: `docs/api/loan-case-api-spec.md`.
 
 Suggested build order, following this doc's own dependency chain: loan
 request intake (§5) and reference-data catalogues (§13, needed by every

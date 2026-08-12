@@ -377,17 +377,29 @@ drift out of sync with the actual code.
   controller checks it and returns 400 with the real messages. Guarantor
   share values (`TotalShares`/`CommittedShares`/`AppraisalFactor`) are
   computed server-side, not trusted from the request body, same reasoning
-  as the `InterAccountTransferBatch` fix.
+  as the `InterAccountTransferBatch` fix. **Appraisal added onto the same
+  controller** (`POST .../{id}/appraise`, `GET .../{id}/appraisal-worksheet`,
+  `GET .../{id}/appraisal-factors`) rather than a separate controller — see
+  `Areas/BackOffice/WORKFLOW.md` §14.2. `appraisal-worksheet` reproduces the
+  real, computable part of the reference `AppraiseLoanController`'s `GET
+  Appraise` action (maximum loan via investments multiplier, outstanding
+  balance, maximum entitled, amortization `PMT`); the composite standing-
+  orders/payouts/loan-applications padding and a literally-empty
+  `foreach { }` loop in that same reference action were not reproduced.
+  **Real bug found and fixed in `LoanCaseAppService.AppraiseLoanCase`/
+  `Async` themselves**: same guard-clause shape as the
+  `InterAccountTransferBatch` fix — the code force-set the expected prior
+  status onto the fetched entity *before even null-checking it*, so
+  appraising a missing loan case id threw a `NullReferenceException`
+  instead of a clean 404, and the "must be Registered or Deferred"
+  precondition was tautologically always true. The identical bug shape
+  still exists, unfixed, in `ApproveLoanCase`/`AuditLoanCase`/
+  `MarkLoanCaseDisbursed` — fix each when building its controller.
 
 Not yet started: the rest of the loan origination pipeline (`BackOfficeModule`
-— loan request intake, appraisal, approval, audit/verification, guarantor/
-collateral management beyond initial attach, restructuring, cancellation,
-payroll check-off data capture, plus reference-data catalogues). Before
-starting any of this, read `Areas/BackOffice/WORKFLOW.md` — the functional
-design doc for the whole module, including the reference MVC app's
-23-controller `Areas/Loaning` inventory, the full `LoanCase` state machine,
-and a known latent bug in `LoanCaseAppService`'s status guard clauses
-(`AppraiseLoanCase`/`ApproveLoanCase`/`AuditLoanCase`/
-`MarkLoanCaseDisbursed`, distinct from the `UpdateLoanCaseAsync` bug already
-fixed above) worth fixing or at least flagging while building the
-appraise/approve/audit controllers.
+— loan request intake, approval, audit/verification, guarantor/collateral
+management beyond initial attach, restructuring, cancellation, payroll
+check-off data capture, plus reference-data catalogues). Before starting
+any of this, read `Areas/BackOffice/WORKFLOW.md` — the functional design
+doc for the whole module, including the reference MVC app's 23-controller
+`Areas/Loaning` inventory and the full `LoanCase` state machine.

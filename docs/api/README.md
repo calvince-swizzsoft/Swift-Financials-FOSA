@@ -52,12 +52,37 @@ what to go update.
 | Batch procedures — all nine types (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger, Inter Account Transfer) | `api/accounts/{creditbatches,debitbatches,wiretransferbatches,journalreversalbatches,overdeductionbatches,loandisbursementbatches,journalvouchers,generalledgers,interaccounttransferbatches}` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
-| Loan case registration (back office — loan origination pipeline, intake stage) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
+| Loan case registration + appraisal (back office — loan origination pipeline, intake + appraisal stages) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Loan Case API — appraisal added, plus a real NullReferenceException/guard-clause bug fixed
+
+`POST /{id}/appraise`, `GET /{id}/appraisal-worksheet`, and
+`GET /{id}/appraisal-factors` added onto the existing `LoanCaseController`
+— appraisal as lifecycle actions on the same resource, not a separate
+controller (the reference app's `AppraiseLoanController` is a different
+screen, but this repo's convention is one controller per resource). The
+worksheet endpoint reproduces the real, computable part of the reference
+`GET Appraise` action (maximum loan via investments multiplier, outstanding
+balance, maximum entitled, amortization `PMT`); a composite standing-
+orders/payouts/loan-applications view-model and one literally-empty
+`foreach { }` loop in that same reference action were not reproduced.
+
+**Real bug fixed in `LoanCaseAppService.AppraiseLoanCase`/`Async`
+themselves**, same shape as the Inter Account Transfer force-set-before-check
+fix: the guard clause force-set the expected prior status onto the fetched
+entity *before even null-checking it* — appraising a nonexistent loan case
+id threw a raw `NullReferenceException` instead of a clean `404`, and the
+"must be Registered or Deferred" precondition was tautologically always
+true. Fixed. The identical bug shape is still unfixed in
+`ApproveLoanCase`/`AuditLoanCase`/`MarkLoanCaseDisbursed` — flagged for
+whoever builds those next.
+
+Full reference: `loan-case-api-spec.md` §7-8.
 
 ### Loan Case API — new, first controller in the Back Office / loan origination pipeline
 

@@ -218,7 +218,6 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseDTO.Id, serviceHeader);
-                    persisted.Status = (int)LoanCaseStatus.Registered;
 
                     if (persisted != null && (persisted.Status == (int)LoanCaseStatus.Registered || persisted.Status == (int)LoanCaseStatus.Deferred))
                     {
@@ -286,7 +285,6 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var persisted = await _loanCaseRepository.GetAsync(loanCaseDTO.Id, serviceHeader);
-                    persisted.Status = (int)LoanCaseStatus.Registered;
 
                     if (persisted != null && (persisted.Status == (int)LoanCaseStatus.Registered || persisted.Status == (int)LoanCaseStatus.Deferred))
                     {
