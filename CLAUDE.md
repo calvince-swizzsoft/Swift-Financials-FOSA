@@ -268,3 +268,26 @@ drift out of sync with the actual code.
   `TotalValue`" (equality, not Credit's "does not exceed"), not "save
   failed" — reflected in the controller's response message, not treated as
   an error.
+- `Areas/Accounts/Controllers/LoanDisbursementBatchController.cs` (new,
+  existing `ILoanDisbursementBatchAppService` — lives in `BackOfficeModule`,
+  unlike every other service in this module; batch CRUD/audit/authorize +
+  entry add/bulk-add/update/remove/browse/post) — sixth of the "Batch
+  Procedures" module and the deepest per-entry posting logic in it (see
+  `docs/api/batch-procedures-api-spec.md` §6). An entry picks an
+  already-Audited, not-yet-batched `LoanCase`. **Two things deliberately
+  not ported from the reference app**: raw SQL hacks against
+  `swiftFin_LoanCases` to stamp batch numbers (the real app service already
+  does this correctly through the domain layer), and — more importantly —
+  the reference `Authorize` action's post-authorize loop in the MVC
+  controller itself, which sends an SMS and calls an MPESA B2C helper with
+  a phone number that's declared but never assigned (always `""`), plus
+  flips a local in-memory DTO's status that's never saved. None of that is
+  real; none of it was reproduced. Posting one entry (async, off the
+  message queue after `Authorize`, same as Debit/WireTransfer/Reversal)
+  resolves/creates the customer's loan and savings accounts, posts the
+  disbursement journal, recovers upfront dynamic charges, marks the loan
+  case `Disbursed` for real, and creates/updates a `StandingOrder` for the
+  repayment schedule. `DisburseMicroLoan` (separate real-time/
+  alternate-channel path) and CSV import (doesn't exist on this interface)
+  are both out of scope; `batchTotal`/`startDate`/`endDate` on the DTO have
+  no backing column at all.

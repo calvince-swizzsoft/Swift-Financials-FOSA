@@ -322,6 +322,7 @@
     <Compile Include="Areas\Accounts\Controllers\WireTransferBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\JournalReversalBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\OverDeductionBatchController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\LoanDisbursementBatchController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

@@ -16,7 +16,7 @@ covers:
 | Wire Transfer | `WireTransferBatchController` (`api/accounts/wiretransferbatches`) | Built — §3 |
 | Reversal | `JournalReversalBatchController` (`api/accounts/journalreversalbatches`) | Built — §4 |
 | Refund | `OverDeductionBatchController` (`api/accounts/overdeductionbatches`) | Built — §5 |
-| Disbursement | `LoanDisbursementBatchController` | Not started |
+| Disbursement | `LoanDisbursementBatchController` (`api/accounts/loandisbursementbatches`) | Built — §6 |
 | Voucher | `JournalVoucherController` | Not started |
 | General Ledger | `GeneralLedgerController` | Not started |
 | Inter Account Transfer | `InterAccountTransferBatchController` | Not started |
@@ -321,3 +321,104 @@ compute — this is server-side only):
   receivable entry, an interest received/charged reversal, and a principal
   entry — to properly unwind a loan repayment's interest recognition
   rather than just moving a lump sum.
+
+---
+
+## 6. Loan Disbursement Batch — `api/accounts/loandisbursementbatches`
+
+Controller: `LoanDisbursementBatchController.cs`, existing
+`ILoanDisbursementBatchAppService` — the one app service in this module
+that lives in `BackOfficeModule`, not `AccountsModule` (the controller
+still sits under `Areas/Accounts`, matching where the reference screens
+live). An entry is `{ loanDisbursementBatchId, loanCaseId, reference }` —
+pick an already-**Audited**, not-yet-batched `LoanCase` (browse those via
+the existing loan-case endpoints, filtered client-side to
+`LoanCaseStatus.Audited && !isBatched`) and attach it.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/all` | GET | Unpaged list of every batch |
+| `/?status=&startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Paged batch list. **`status` is required**, same as Wire Transfer/Reversal/Refund |
+| `/{id}` | GET | Single batch |
+| `/` | POST | Create batch → `Pending` |
+| `/{id}` | PUT | Update `reference`/`priority` only — `branchId`/`type`/`loanProductCategory` are immutable post-creation |
+| `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`), `2`=Reject. Only accepts `Pending` |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; queues every entry for async posting — see §6.2), `2`=Reject. Refuses outright if the batch isn't already `Audited` |
+| `/{id}/exceeds-threshold?designationId=&transactionThresholdType=` | GET | Whether any entry in the batch exceeds the transaction threshold configured for a `Designation` (role) — an AML/compliance pre-check, not a hard gate elsewhere in this flow |
+| `/{id}/entries?text=&pageIndex=&pageSize=` | GET | Entries within one batch |
+| `/entries/type/{disbursementType}?startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Entries across all batches of a `DisbursementType` (`1`=Normal, `2`=Express, `4`=Waiver) |
+| `/entries/customer/{customerId}?disbursementType=` | GET | Entries for one customer (`disbursementType` required) |
+| `/entries/queueable?pageIndex=&pageSize=` | GET | Entries ready to post, across all batches — no type restriction |
+| `/entries/{entryId}` | GET | Single entry |
+| `/{id}/entries` | POST | Pick a single `LoanCase` and attach it to this batch. Refuses (server error) if that loan case is already batched elsewhere |
+| `/{id}/entries/bulk` | POST | `List<LoanDisbursementBatchEntryDTO>` — bulk-add convenience, **insert-only** (same caveat as Journal Reversal Batch's equivalent — entries missing from the list you send are not removed). Also silently skips any `LoanCase` already batched, or whose `loanProductCategory` doesn't match this batch's own |
+| `/entries/{entryId}` | PUT | Update an entry (status is forward-only: `Pending → Posted/Rejected`) |
+| `/entries/remove` | POST | Batch-remove entries (`List<LoanDisbursementBatchEntryDTO>`). Also un-flags the underlying `LoanCase` (`isBatched=false`, `batchNumber=0`) so it becomes eligible for a different batch again |
+| `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — disburses the entry, see §6.3 |
+
+### 6.1 Two things in the reference app deliberately not ported
+
+All three reference MVC controllers (`BatchOrigination_Disbursement`,
+`BatchVerification_Disbursement`, `BatchAuthorization_Disbursement`)
+hand-roll raw ADO.NET SQL directly against the `swiftFin_LoanCases` table
+to stamp a loan case's batch number, bypassing the domain layer entirely.
+Not needed here — `AddNewLoanDisbursementBatchEntry`/
+`UpdateLoanDisbursementBatchEntries` already do this correctly through the
+domain layer (flip `LoanCase.IsBatched`/`BatchNumber`/`BatchedBy`, and
+refuse a loan case that's already batched).
+
+More importantly: `BatchAuthorization_Disbursement`'s `Authorize` action,
+after calling the real authorize, loops every entry **in the MVC
+controller itself** and (a) sends an SMS, (b) calls an MPESA B2C helper
+with a phone-number variable that is declared, never assigned, and passed
+in as `""`, and (c) sets `.Status = Disbursed` on a local in-memory DTO
+that's never saved anywhere. None of that is real or trustworthy — it's
+dead/broken presentation-layer code, not domain logic, and it is **not**
+reproduced here. Real disbursement work happens entirely server-side (see
+§6.3). If SMS/MPESA notification on disbursement is actually wanted, that
+needs a real implementation and a product decision — not a port of this.
+
+### 6.2 Posting timing — always async, no type filter
+
+Same shape as Debit/Wire Transfer/Reversal: `Authorize` with `option: 1`
+queues every entry onto an async message queue
+(`BrokerService.ProcessLoanDisbursementBatchEntries`) regardless of
+`DisbursementType`. Don't assume `Posted` immediately after `Authorize`
+succeeds.
+
+### 6.3 What posting one entry actually does
+
+This is the most substantial per-entry posting logic in the whole module —
+treat it as a black box, not something to precompute or second-guess
+client-side:
+
+1. Resolves the customer's loan account and savings account, **creating
+   either one if it doesn't already exist**.
+2. Posts the disbursement journal — approved principal moves from the loan
+   account to the savings account.
+3. Recovers any upfront dynamic charges configured on the loan product
+   (`ComputeTariffsByLoanProduct`, recovery source `LoanAccount`, mode
+   `Upfront`) as additional journal lines against the loan account.
+4. Marks the `LoanCase` `Disbursed` (for real, through
+   `ILoanCaseAppService.MarkLoanCaseDisbursed` — unlike the reference
+   controller's dead in-memory status flip).
+5. Computes the repayment schedule and creates (or updates, if one already
+   exists between the same two accounts) a `StandingOrder` that will
+   collect the loan's periodic payments going forward.
+
+### 6.4 Two dead fields, and one thing deliberately not exposed
+
+`LoanDisbursementBatchDTO.batchTotal`, `.startDate`, and `.endDate` have
+**no backing column** on the `LoanDisbursementBatch` domain entity at all —
+send whatever you like to satisfy the client-side form, but don't expect
+any of them to persist or come back on a `GET`. Unlike Journal Reversal
+Batch's `Remarks2`, there's no fix to apply here — there's no column to
+copy a value into.
+
+Not exposed: `DisburseMicroLoan` — a separate real-time/alternate-channel
+(USSD/API) disbursement path, given away by its `alternateChannelLogId`
+parameter. Unrelated to this batch screen; needs its own product decision
+if/when an alternate-channel disbursement API is wanted. There is also no
+CSV import for this type — `ParseLoanDisbursementBatchImport` doesn't exist
+on the interface at all, so nothing was excluded here that could otherwise
+have been built.

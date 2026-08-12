@@ -49,7 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
-| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
+| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches`, `api/accounts/loandisbursementbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -57,6 +57,37 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — Loan Disbursement added (sixth of nine types)
+
+`LoanDisbursementBatchController` (`api/accounts/loandisbursementbatches`)
+— new, and the deepest per-entry posting logic in this module so far. An
+entry picks an already-Audited, not-yet-batched `LoanCase`; posting one
+(async, off a message queue after `Authorize`, same shape as Debit/Wire
+Transfer/Reversal) resolves or creates the customer's loan and savings
+accounts, posts the disbursement journal, recovers any upfront dynamic
+charges on the loan product, marks the loan case `Disbursed` for real, and
+creates/updates a `StandingOrder` for the repayment schedule.
+
+**Two things in the reference app deliberately not ported**: all three
+reference MVC controllers hand-roll raw SQL directly against
+`swiftFin_LoanCases` to stamp batch numbers, bypassing the domain layer —
+not needed, the real app service already does this correctly. More
+importantly, the reference `Authorize` action loops every entry **in the
+MVC controller itself** afterward and sends an SMS, calls an MPESA B2C
+helper with a phone number that's declared but never assigned (always
+`""`), and flips a local in-memory DTO's status that's never saved — none
+of that is real or trustworthy, and none of it is reproduced here. If
+SMS/MPESA notification on disbursement is actually wanted, that needs a
+real implementation and a product decision, not a port of dead code.
+
+Also flagged: `batchTotal`/`startDate`/`endDate` on the DTO have no backing
+column at all (nothing to fix, unlike Journal Reversal Batch's `Remarks2`
+bug); `DisburseMicroLoan` (a separate real-time/alternate-channel
+disbursement path) and CSV import (doesn't exist on this interface) are
+both out of scope.
+
+Full detail: `batch-procedures-api-spec.md` §6.
 
 ### Batch Procedures API — Refund added (fifth of nine types, Group A complete)
 
