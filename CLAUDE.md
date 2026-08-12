@@ -354,3 +354,15 @@ drift out of sync with the actual code.
   Refund/Voucher/General Ledger, but each entry gets its own call to the
   shared `IJournalAppService.AddNewJournal` (not `BulkSave`), with any
   attached `DynamicCharge`s fed in as real transfer-fee tariffs.
+
+Not yet started: the loan origination pipeline itself (`BackOfficeModule`
+— loan request intake, case registration, appraisal, approval, audit/
+verification, guarantor/collateral management, restructuring, cancellation,
+payroll check-off data capture, plus reference-data catalogues). Only its
+tail end, disbursement batching, is live (`LoanDisbursementBatchController`
+above). Before starting any of this, read
+`Areas/BackOffice/WORKFLOW.md` — the functional design doc for the whole
+module, including the reference MVC app's 23-controller `Areas/Loaning`
+inventory, the full `LoanCase` state machine, and a known latent bug in
+`LoanCaseAppService`'s status guard clauses worth fixing or at least
+flagging while building the appraise/approve/audit controllers.
