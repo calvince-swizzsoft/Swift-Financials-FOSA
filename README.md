@@ -31,3 +31,11 @@ adapt-a-controller workflow, response envelope shape) live in
   ExternalCheque, Automated Clearing, InHouseCheque) across domain,
   application, DTO, infrastructure, WCF, and API layers, including GL
   account wiring per lifecycle stage and a wiring-correctness audit.
+- [`WebApplication1/Areas/BackOffice/WORKFLOW.md`](WebApplication1/Areas/BackOffice/WORKFLOW.md) —
+  end-to-end functional workflow for the back office loan origination
+  pipeline (request intake, loan case registration, appraisal, approval,
+  audit/verification, guarantor/collateral management, restructuring,
+  cancellation, payroll check-off data capture, and disbursement), the
+  full `LoanCase` state machine, and an implementation-status table — only
+  disbursement batching is live so far, everything upstream is still
+  unbuilt.
