@@ -324,6 +324,7 @@
     <Compile Include="Areas\Accounts\Controllers\OverDeductionBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LoanDisbursementBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\JournalVoucherController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\GeneralLedgerController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

@@ -118,7 +118,7 @@ flowchart LR
 | **Reversal** | Batch-reversing previously posted GL journals — corrections to postings already authorized elsewhere. | `JournalReversalBatchDTO` / `IJournalReversalBatchAppService` |
 | **Inter Account Transfer** | Bulk GL-to-GL transfers between chart-of-accounts (branch/cost-center reallocation), with a `DynamicCharges` sub-resource for transfer fees. | `InterAccountTransferBatchDTO` / `IInterAccountTransferBatchAppService` |
 | **Voucher** | One primary account (the header, at `TotalValue`) on one side, versus however many entries you attach — each its own account and amount — collectively on the other side. The header's single `Type` sets direction for the header leg *and* every entry leg at once; there's no per-entry direction despite entries carrying their own (unread, decorative) `Type`/`EntryType` fields — see §5. Splits one side of a transaction across several accounts — general-purpose adjusting entries, cost allocations. Own status/auth-option enums (`JournalVoucherStatus`/`JournalVoucherAuthOption`). `Authorize` posts synchronously, like Refund. | `JournalVoucherDTO` / `IJournalVoucherAppService` — **built** (`JournalVoucherController.cs`) |
-| **General Ledger** | A batch of **pre-paired account-to-account transfers** — each single entry row carries *both* a credit-side account (`ChartOfAccountId`/`CustomerAccountId`) *and* a debit/contra-side account (`ContraChartOfAccountId`/`ContraCustomerAccountId`) at once, each side independently resolvable to a raw G/L account or a customer account. Every row is self-balancing by construction (no matching offset line needed, unlike Voucher) — this is a bulk "move money from specific account A to specific account B" correction/transfer tool, not a free-form journal. Own parallel enums (`GeneralLedgerStatus`/`GeneralLedgerAuthOption`). **Settled, not redundant with Voucher — see §5.** | `GeneralLedgerDTO` / `IGeneralLedgerAppService` |
+| **General Ledger** | A batch of **pre-paired account-to-account transfers** — each single entry row carries *both* a credit-side account (`ChartOfAccountId`/`CustomerAccountId`) *and* a debit/contra-side account (`ContraChartOfAccountId`/`ContraCustomerAccountId`) at once, each side independently resolvable to a raw G/L account or a customer account. Every row is self-balancing by construction (no matching offset line needed, unlike Voucher) — this is a bulk "move money from specific account A to specific account B" correction/transfer tool, not a free-form journal. **Verified against `AuthorizeGeneralLedger` directly** (not just inferred from the DTO, after the Voucher lesson): confirmed accurate, plus one thing the DTO alone wouldn't tell you — every entry posts as **its own separate `Journal`** (unlike Voucher's one-shared-journal-many-legs, or Credit/Debit/Wire Transfer's per-entry-but-async journals). The header (`GeneralLedgerDTO`) carries no account fields of its own at all — unlike Voucher, there's no "primary" account, it's purely a container for already-self-balancing entries. `Authorize` posts synchronously like Refund/Voucher, but throws an exception (not a quiet `false`) if entries don't sum to `TotalValue`. Own parallel enums (`GeneralLedgerStatus`/`GeneralLedgerAuthOption`). | `GeneralLedgerDTO` / `IGeneralLedgerAppService` — **built** (`GeneralLedgerController.cs`) |
 
 ## 3. Which types let you pay out entry-by-entry vs. all at once
 
@@ -224,10 +224,11 @@ flowchart TD
 | Typical use | Splitting one side of a transaction across several accounts — e.g. one G/L credit allocated across many expense lines or member accounts | Bulk account-to-account corrections/transfers — moving or fixing money between two *specific* accounts, often two member accounts |
 | Entry-side account resolution | `ChartOfAccountId` (single) | `ChartOfAccountId` (credit) **and** `ContraChartOfAccountId` (debit), each resolvable via `CreditCustomerAccountLookUp`/`DebitCustomerAccountLookup` against a real customer account |
 
-Both are worth building as designed — Group B is unblocked. Voucher is
-built (`JournalVoucherController.cs`, `docs/api/batch-procedures-api-spec.md`
-§7); General Ledger's actual posting mechanics still need the same
-direct-read-the-app-service verification before building against it — don't
-assume `GeneralLedgerAppService.AuthorizeGeneralLedger` matches
-`AddGeneralLedgerController`'s `CreditCustomerAccountLookUp`/
-`DebitCustomerAccountLookup` UI shape without checking it the same way.
+Both are built as designed — Group B is complete. Voucher:
+`JournalVoucherController.cs`, `docs/api/batch-procedures-api-spec.md` §7.
+General Ledger: `GeneralLedgerController.cs`, same doc §8 — its posting
+mechanics were verified directly against `AuthorizeGeneralLedger` (not
+assumed from `AddGeneralLedgerController`'s `CreditCustomerAccountLookUp`/
+`DebitCustomerAccountLookup` UI shape) and held up: each entry really is a
+self-contained double-entry transfer, plus one detail the DTO wouldn't
+reveal — every entry posts as its own separate `Journal`.

@@ -49,7 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
-| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches`, `api/accounts/loandisbursementbatches`, `api/accounts/journalvouchers` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
+| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger — Inter Account Transfer in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches`, `api/accounts/loandisbursementbatches`, `api/accounts/journalvouchers`, `api/accounts/generalledgers` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -57,6 +57,33 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — General Ledger added (eighth of nine types, Group B complete)
+
+`GeneralLedgerController` (`api/accounts/generalledgers`) — new, and the
+second half of Group B. Not to be confused with
+`GeneralLedgerStatementController` (`api/accounts/statements/gl-account`)
+— that's a read-only report, this is the maker-checker-authorizer batch
+that actually posts entries.
+
+Verified directly against `AuthorizeGeneralLedger` before building against
+it, same discipline the Voucher correction established — the original
+"each entry is a self-contained double-entry transfer" read held up this
+time, plus one detail the DTO alone wouldn't reveal: **every entry posts as
+its own separate `Journal`**, not shared legs on one journal the way
+Voucher works. The header carries no account fields of its own at all —
+unlike Voucher, there's no "primary" account, just a container for entries
+that are each already self-balancing.
+
+One asymmetry worth knowing if you're calling `Authorize` directly:
+**out-of-balance posts throw a server-side exception here instead of
+quietly returning `false`** like every sibling type — the controller
+catches it and returns the normal `409` shape, so nothing extra needed
+client-side, but worth knowing this is the one type where that path is a
+thrown exception under the hood.
+
+This completes Group B. Full detail: `batch-procedures-api-spec.md` §8.
+Only Inter Account Transfer remains of the original nine.
 
 ### Batch Procedures API — Journal Voucher added (seventh of nine types, Group B started), plus a corrected mental model
 

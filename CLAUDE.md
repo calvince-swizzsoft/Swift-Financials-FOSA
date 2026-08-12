@@ -315,3 +315,20 @@ drift out of sync with the actual code.
   (`UpdateJournalVoucherEntryCollection`/`UpdateJournalVoucherEntries`) —
   only the former is exposed, matching the reference controller. `Authorize`
   posts synchronously like Refund, no async broker dispatch.
+- `Areas/Accounts/Controllers/GeneralLedgerController.cs` (new, existing
+  `IGeneralLedgerAppService`; ledger CRUD/audit/authorize + entry
+  add/replace/remove/browse) — eighth of the "Batch Procedures" module,
+  completing "Group B" (see `docs/api/batch-procedures-api-spec.md` §8).
+  Not the same thing as `GeneralLedgerStatementController` (read-only
+  reporting, `api/accounts/statements/gl-account`) despite the name
+  overlap. Verified directly against `AuthorizeGeneralLedger` before
+  building (same discipline the Voucher correction established) — the
+  original "each entry is a self-contained double-entry transfer" read
+  held up, plus one thing the DTO alone wouldn't reveal: every entry posts
+  as its own separate `Journal`, not shared legs on one journal like
+  Voucher. The header carries no account fields of its own — no "primary"
+  account the way Voucher has one, just a container for
+  already-self-balancing entries. `Authorize` posts synchronously like
+  Refund/Voucher, but throws a server-side exception on an out-of-balance
+  Post instead of quietly returning `false` (every sibling type does the
+  latter) — caught in the controller and normalized to the usual `409`.

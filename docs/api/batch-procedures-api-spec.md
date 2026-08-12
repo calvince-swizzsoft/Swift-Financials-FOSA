@@ -18,7 +18,7 @@ covers:
 | Refund | `OverDeductionBatchController` (`api/accounts/overdeductionbatches`) | Built — §5 |
 | Disbursement | `LoanDisbursementBatchController` (`api/accounts/loandisbursementbatches`) | Built — §6 |
 | Voucher | `JournalVoucherController` (`api/accounts/journalvouchers`) | Built — §7 |
-| General Ledger | `GeneralLedgerController` | Not started |
+| General Ledger | `GeneralLedgerController` (`api/accounts/generalledgers`) | Built — §8 |
 | Inter Account Transfer | `InterAccountTransferBatchController` | Not started |
 
 CSV batch import (`ParseXImport` on the app service, where it exists) is
@@ -490,3 +490,49 @@ the "existing" set first). Only `UpdateJournalVoucherEntryCollection` is
 exposed here, via `PUT /{id}/entries` — matching what the reference
 controller actually called. No functionality is missing by not exposing
 the second one; it does the same thing.
+
+---
+
+## 8. General Ledger — `api/accounts/generalledgers`
+
+Controller: `GeneralLedgerController.cs`, existing `IGeneralLedgerAppService`.
+Second and last of Group B. Not to be confused with
+`GeneralLedgerStatementController` (`api/accounts/statements/gl-account`,
+`general-ledger-statement-api-spec.md`) — that's a read-only reporting view
+over `IJournalEntryAppService`; this is the maker-checker-authorizer batch
+that actually posts entries.
+
+Each entry is a self-contained double-entry transfer: `chartOfAccountId`
+(credit side) + `contraChartOfAccountId` (debit side), each optionally
+paired with a `customerAccountId`/`contraCustomerAccountId` if that side is
+a real customer account rather than a bare G/L account. Verified directly
+against `AuthorizeGeneralLedger` (after the Voucher correction in §7/concepts
+doc §5, the DTO shape alone isn't trusted for this module anymore) — this
+one holds up as originally read, plus one thing the DTO wouldn't reveal:
+**every entry posts as its own separate `Journal`**, not shared legs on one
+journal the way Voucher works. `GeneralLedgerDTO` itself carries no
+chart-of-account/customer-account fields at all — unlike Voucher, there is
+no "primary" header account; the header is purely a container (branch,
+posting period, `totalValue`, `remarks`) for entries that are each already
+self-balancing.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/all` | GET | Unpaged list of every ledger |
+| `/?status=&startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Paged ledger list. `status` is **optional**, same as Journal Voucher — omit it and supply `startDate`/`endDate` for a date-range search, or neither for a plain paged list |
+| `/{id}` | GET | Single ledger |
+| `/` | POST | Create ledger → `Pending` |
+| `/{id}` | PUT | Update. Return message reflects whether entries now sum to *exactly* `totalValue` (same "balanced, not success" semantics as Refund/Journal Voucher) |
+| `/{id}/audit` | POST | `{ option, remarks }` — `GeneralLedgerAuthOption`: `1`=Post (→ `Audited`), `2`=Reject. Only accepts `Pending`. Own enum, not the shared `BatchAuthOption` |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; **posts synchronously, inline, in this same call** — one `Journal` per entry, no async broker dispatch), `2`=Reject. Refuses outright if the ledger isn't already `Audited`. **Unlike every sibling type**, an out-of-balance Post throws server-side instead of quietly returning `false` — this controller catches that and returns the normal `409` shape, so the client doesn't need to special-case it |
+| `/{id}/entries?pageIndex=&pageSize=` | GET | Entries on one ledger (no `text` search param, same as Journal Voucher) |
+| `/{id}/entries` | POST | Add a single entry |
+| `/{id}/entries` | PUT | Full replace — every existing entry is deleted and the given list recreated in its place. Unlike Journal Voucher, there's only one bulk-replace method here, no duplicate to pick between |
+| `/entries/remove` | POST | Batch-remove entries (`List<GeneralLedgerEntryDTO>`) |
+
+No `PostEntry`, no queueable browse, no single-entry lookup — same as
+Voucher/Refund, a ledger posts as one atomic unit on `Authorize`.
+
+CSV import (`ParseGeneralLedgerImportEntries`) exists on this interface but
+is deliberately not exposed, consistent with the rest of this module — no
+controller here has a file-upload pattern yet.
