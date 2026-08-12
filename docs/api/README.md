@@ -50,10 +50,51 @@ what to go update.
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
+## Proposed / in design — not yet implemented
+
+Not part of the table above because no controller exists yet — these are
+target designs to build against, not live API surface.
+
+| Area | Proposed base path | Doc |
+|---|---|---|
+| WhatsApp banking (self-service: onboard, accounts, deposit, withdraw) | `api/whatsappbanking` | [`whatsapp-banking-api-spec.md`](whatsapp-banking-api-spec.md) |
+
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### WhatsApp Banking — proposed design, revised after finding existing Alternate Channels infrastructure
+
+New self-service channel: a customer registers, gets accounts opened, links
+their number, and deposits/withdraws by chatting with the SACCO's WhatsApp
+number, no branch visit. Unlike everything else in this index, there's no
+reference MVC controller to adapt — this is a **design spec**, not a build
+record. Full functional design:
+`WebApplication1/Areas/WhatsAppBanking/WORKFLOW.md`. API contract:
+`whatsapp-banking-api-spec.md`.
+
+**Revised from its first draft**: before shipping, an existing **Alternate
+Channels** module was found already living in this codebase
+(`AlternateChannel` linking, `AlternateChannelKnownChargeType` fees,
+`MobileToBankRequest`/`BankToMobileRequest` mobile-money C2B/B2C plumbing)
+— the same problem this design first solved from scratch, already partially
+built for other channels (Sacco Link, Sparrow, M-Co-op Cash, ...). WhatsApp
+Banking is now designed as a **new `AlternateChannelType`** reusing that
+linking/fee/logging framework instead of duplicating it — a customer PIN
+(set at linking) authenticates ongoing sessions, not OTP-per-session as
+the first draft had it. Full comparison: `WORKFLOW.md` §3.
+
+**What that reuse does and doesn't solve**: linking, per-channel fees, and
+deposit-matching logic are real and get reused directly. What's still
+missing, confirmed by reading the code rather than assumed: no inbound REST
+webhook exists anywhere in this codebase for a mobile-money provider to
+actually post a C2B deposit confirmation, and the project meant to make the
+outbound B2C withdrawal-payout call
+(`SwiftFinancials.BankToMobileHostInterface`) is an empty, unimplemented
+stub. Both are real, scoped backend work the spec calls out explicitly
+per-endpoint rather than glossing over. Loan application via this channel
+remains explicitly out of scope for this phase (`WORKFLOW.md` §7).
 
 ### UnPay Reason API — new
 
