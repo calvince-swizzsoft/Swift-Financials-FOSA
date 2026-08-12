@@ -49,7 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
-| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches`, `api/accounts/loandisbursementbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
+| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches`, `api/accounts/loandisbursementbatches`, `api/accounts/journalvouchers` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -57,6 +57,38 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — Journal Voucher added (seventh of nine types, Group B started), plus a corrected mental model
+
+`JournalVoucherController` (`api/accounts/journalvouchers`) — new, and the
+first of "Group B" (Voucher, General Ledger). Building it against the real
+`AuthorizeJournalVoucher` code turned up something worth flagging loudly:
+the earlier "settled" writeup in `BATCH-PROCEDURES-CONCEPTS.md` §5
+(written when Voucher vs. General Ledger redundancy was first checked)
+described Voucher as a free-form N-line journal where each line
+independently picks debit or credit — inferred from `JournalVoucherEntryDTO`
+carrying its own `type`/`entryType` fields. **That was wrong.** Those
+per-entry fields are never read anywhere in `JournalVoucherAppService`. The
+real shape: one **primary** account (the header, at `totalValue`) on one
+side, and however many **entries** — each its own account and amount —
+collectively on the other side; the header's single `type` sets direction
+for the header leg *and* every entry leg at once. §5 has been corrected
+with the verified version and a note on the lesson: a DTO's fields aren't
+proof of behavior here — check the app service directly.
+
+Also **fixed, not just documented**: `AddNewJournalVoucher`'s out-of-range
+`valueDate` guard set `ErrorMessageResult` via a `string.Format` call
+missing its `{0}` placeholder, so it always returned the literal text
+`"ValueDate"` instead of the real error message — fixed to assign the
+message directly. And: `IJournalVoucherAppService` has two genuinely
+identical bulk-entry-replace methods (`UpdateJournalVoucherEntryCollection`
+and `UpdateJournalVoucherEntries`) — only the former is exposed
+(`PUT /{id}/entries`), matching what the reference controller called; nothing
+is missing by not exposing the duplicate.
+
+Same posting-timing note as Refund: `Authorize` posts synchronously, inline,
+no async broker dispatch — safe to assume `Posted` immediately after it
+succeeds. Full detail: `batch-procedures-api-spec.md` §7.
 
 ### Batch Procedures API — Loan Disbursement added (sixth of nine types)
 

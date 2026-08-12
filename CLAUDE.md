@@ -291,3 +291,27 @@ drift out of sync with the actual code.
   alternate-channel path) and CSV import (doesn't exist on this interface)
   are both out of scope; `batchTotal`/`startDate`/`endDate` on the DTO have
   no backing column at all.
+- `Areas/Accounts/Controllers/JournalVoucherController.cs` (new, existing
+  `IJournalVoucherAppService`; voucher CRUD/audit/authorize + entry
+  add/replace/remove/browse) — seventh of the "Batch Procedures" module and
+  the first of "Group B" (Voucher, General Ledger — see
+  `docs/api/batch-procedures-api-spec.md` §7). Corrected a wrong assumption
+  from `BATCH-PROCEDURES-CONCEPTS.md` §5's first pass: Voucher is not a
+  free-form N-line journal with independent per-line debit/credit — that
+  was inferred from `JournalVoucherEntryDTO`'s `type`/`entryType` fields,
+  which `JournalVoucherAppService` never actually reads. The real shape,
+  confirmed by reading `AuthorizeJournalVoucher` directly: one primary
+  account (the header, at `TotalValue`) on one side, versus however many
+  entries (each its own account + amount) on the other side, with the
+  header's single `Type` setting direction for every leg at once. `§5` is
+  now corrected, with a note that a DTO's fields aren't proof of behavior
+  in this codebase. **Fixed, not just documented**:
+  `AddNewJournalVoucher`'s out-of-range `ValueDate` guard set
+  `ErrorMessageResult` via a `string.Format` call missing its `{0}`
+  placeholder, always returning the literal text `"ValueDate"` instead of
+  the real message — fixed to assign the message directly. Also found (not
+  fixed, nothing to fix): `IJournalVoucherAppService` has two genuinely
+  identical bulk-entry-replace methods
+  (`UpdateJournalVoucherEntryCollection`/`UpdateJournalVoucherEntries`) —
+  only the former is exposed, matching the reference controller. `Authorize`
+  posts synchronously like Refund, no async broker dispatch.

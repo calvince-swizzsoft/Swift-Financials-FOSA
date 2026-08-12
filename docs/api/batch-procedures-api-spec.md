@@ -17,7 +17,7 @@ covers:
 | Reversal | `JournalReversalBatchController` (`api/accounts/journalreversalbatches`) | Built — §4 |
 | Refund | `OverDeductionBatchController` (`api/accounts/overdeductionbatches`) | Built — §5 |
 | Disbursement | `LoanDisbursementBatchController` (`api/accounts/loandisbursementbatches`) | Built — §6 |
-| Voucher | `JournalVoucherController` | Not started |
+| Voucher | `JournalVoucherController` (`api/accounts/journalvouchers`) | Built — §7 |
 | General Ledger | `GeneralLedgerController` | Not started |
 | Inter Account Transfer | `InterAccountTransferBatchController` | Not started |
 
@@ -422,3 +422,71 @@ if/when an alternate-channel disbursement API is wanted. There is also no
 CSV import for this type — `ParseLoanDisbursementBatchImport` doesn't exist
 on the interface at all, so nothing was excluded here that could otherwise
 have been built.
+
+---
+
+## 7. Journal Voucher — `api/accounts/journalvouchers`
+
+Controller: `JournalVoucherController.cs`, existing
+`IJournalVoucherAppService`. First of Group B — see
+`BATCH-PROCEDURES-CONCEPTS.md` §5 for the corrected (verified against
+`AuthorizeJournalVoucher` directly, not inferred from the DTO) explanation
+of what a voucher actually is: **one primary account** (the header's own
+`chartOfAccountId` + optional `customerAccountId`, at `totalValue`) on one
+side, and however many **entries** — each its own `chartOfAccountId` +
+optional `customerAccountId` + own `amount` — collectively on the other
+side. The header's single `type` (`JournalVoucherType`: `0`=DebitGLAccount,
+`1`=CreditGLAccount, `2`=DebitCustomerAccount, `3`=CreditCustomerAccount)
+sets the direction for the header leg *and every entry leg at once* — there
+is no per-entry direction control, despite each entry carrying its own
+`type`/`entryType` fields (`JournalVoucherEntryType`: `1`=GLAccount,
+`2`=Customer). Those two entry-level fields are **never read** anywhere in
+`JournalVoucherAppService` — don't build a per-entry debit/credit picker
+against them, they're decorative.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/all` | GET | Unpaged list of every voucher |
+| `/?status=&startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Paged voucher list. Unlike Wire Transfer/Reversal/Refund/Disbursement, `status` here is **optional** — omit it and supply `startDate`/`endDate` for a date-range search instead, or neither for a plain paged/text list. Four overloads exist server-side; the controller picks the right one for whatever combination you send |
+| `/{id}` | GET | Single voucher |
+| `/` | POST | Create voucher → `Pending`. Fails `400` if `postingPeriodId` doesn't resolve, or if `valueDate` falls outside that posting period (or is in the future) — the latter comes back with `data`: the voucher DTO you sent, not `null`; check `errorMessageResult` on it (see §7.2) |
+| `/{id}` | PUT | Update. Return message reflects whether entries now sum to *exactly* `totalValue` (same "balanced, not success" semantics as Refund's `Update` — see §7.1) |
+| `/{id}/audit` | POST | `{ option, remarks }` — `JournalVoucherAuthOption`: `1`=Post (→ `Audited`), `2`=Reject. Only accepts `Pending`. Note this is its own enum, not the shared `BatchAuthOption` the rest of this module uses (same values, different type) |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; **posts synchronously, inline, in this same call** — same as Refund, no async broker dispatch — only if entries sum to exactly `totalValue`), `2`=Reject. Refuses outright if the voucher isn't already `Audited` |
+| `/{id}/entries?pageIndex=&pageSize=` | GET | Entries on one voucher (no `text` search param — simpler than most of this module's entry-browse endpoints) |
+| `/{id}/entries` | POST | Add a single entry |
+| `/{id}/entries` | PUT | **Full replace** — every existing entry is deleted and the given list recreated in its place. Unlike Journal Reversal/Loan Disbursement Batch's insert-only bulk methods, this one really does replace the whole collection (see §7.3 for why the route only exposes one of two identical app-service methods) |
+| `/entries/remove` | POST | Batch-remove entries (`List<JournalVoucherEntryDTO>`) |
+
+No `PostEntry`, no queueable browse, no single-entry lookup — a voucher
+posts as one atomic unit on `Authorize`; there is nothing to post or browse
+individually.
+
+### 7.1 `Update`'s return value means "balanced", not "succeeded"
+
+Same pattern as Refund (§5.1): `UpdateJournalVoucher`'s boolean return is
+`persisted.TotalValue == sum(entries.amount)`, an exact equality check.
+`false` doesn't mean the save failed — it means the voucher isn't balanced
+yet. Reflected in the controller's response `message`, not treated as an
+error.
+
+### 7.2 Fixed: a validation error used to come back unreadable
+
+`AddNewJournalVoucher`'s out-of-range `valueDate` guard used to set
+`ErrorMessageResult` via `string.Format("ValueDate", "Sorry, but value
+date is out of range!")` — with no `{0}` placeholder in the format string,
+that call just returned the literal text `"ValueDate"`, silently
+discarding the real message. **Fixed** to assign the real message
+directly — a client hitting this path now gets the actual explanation
+instead of a bare field name.
+
+### 7.3 Two identical bulk-replace methods exist; only one is exposed
+
+`IJournalVoucherAppService` has both `UpdateJournalVoucherEntryCollection`
+and `UpdateJournalVoucherEntries` — reading both confirms they are genuine
+duplicates, identical delete-then-recreate logic under two different
+names (down to calling two separately-duplicated `Find` methods to fetch
+the "existing" set first). Only `UpdateJournalVoucherEntryCollection` is
+exposed here, via `PUT /{id}/entries` — matching what the reference
+controller actually called. No functionality is missing by not exposing
+the second one; it does the same thing.

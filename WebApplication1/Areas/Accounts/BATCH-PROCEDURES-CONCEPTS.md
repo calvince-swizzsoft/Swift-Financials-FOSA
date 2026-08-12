@@ -95,7 +95,7 @@ flowchart LR
     end
 
     subgraph Manual["Manual posting — two different mechanics, see §5"]
-        Voucher["Voucher\nN single-leg lines,\neach Dr/Cr-tagged,\nmust balance as a set"]
+        Voucher["Voucher\none primary account vs N\nsecondary accounts, header's\ntype sets direction for all"]
         GL["General Ledger\neach line is a pre-paired\naccount A -> account B\ntransfer, self-balancing"]
     end
 
@@ -112,12 +112,12 @@ flowchart LR
 |---|---|---|
 | **Credit** | Crediting many member accounts from one source in one run. `Payout` = savings/dividend interest payout runs. `CheckOff` = an employer remits one lump sum of payroll deductions; the batch allocates it across many members' loan repayments, share contributions, welfare/insurance premiums, etc. — confirmed in `CreditBatchAppService`, which has explicit `CheckOffEntryType` handling per product line (`sLoan`, `sInterest`, `sShare`, `wCont`, `sInvest`, `sRisk`, `wLoan`, `sLoanInterest`). `CashPickup`/`SundryPayments` pay non-members. | `CreditBatchDTO` / `ICreditBatchAppService` — **built** (`CreditBatchController.cs`) |
 | **Debit** | The mirror of Credit — bulk debits off many member accounts in one run (standing-order collections, bulk fee/charge deductions). No sub-type enum, unlike Credit. | `DebitBatchDTO` / `IDebitBatchAppService` |
-| **Refund** | Correcting a Credit/Debit/CheckOff run that over-collected — refunds the excess back to affected members in bulk. Smaller interface surface: no `PostXEntry`/queueable-entries method, so entries likely post wholesale on Authorization rather than being individually pickable — confirm when building. | `OverDeductionBatchDTO` / `IOverDeductionBatchAppService` |
+| **Refund** | Correcting a Credit/Debit/CheckOff run that over-collected — refunds the excess back to affected members in bulk. **Confirmed while building** (`OverDeductionBatchController.cs`): `Authorize` posts every entry's journal(s) synchronously, inline — the only type in this module where that's true. | `OverDeductionBatchDTO` / `IOverDeductionBatchAppService` — **built** |
 | **Wire Transfer** | Batch of outgoing external transfers (bank wires) — money leaving the institution to external accounts. | `WireTransferBatchDTO` / `IWireTransferBatchAppService` |
 | **Disbursement** | Releasing approved loan principal to members in bulk, after a loan case has cleared appraisal/approval upstream. Interface also exposes `DisburseMicroLoan` and a transaction-threshold validator that look like a separate alternate-channel (USSD/API) disbursement path, not part of this batch UI — confirm with product before deciding whether those belong on the same controller. | `LoanDisbursementBatchDTO` / `ILoanDisbursementBatchAppService` (lives in `BackOfficeModule`, but the reference app still routes its screens under Areas/Accounts) |
 | **Reversal** | Batch-reversing previously posted GL journals — corrections to postings already authorized elsewhere. | `JournalReversalBatchDTO` / `IJournalReversalBatchAppService` |
 | **Inter Account Transfer** | Bulk GL-to-GL transfers between chart-of-accounts (branch/cost-center reallocation), with a `DynamicCharges` sub-resource for transfer fees. | `InterAccountTransferBatchDTO` / `IInterAccountTransferBatchAppService` |
-| **Voucher** | The classic **N-line general journal**: any number of single-leg lines, each independently tagged via `JournalVoucherType` — Debit/Credit × G/L-account/Customer-account (4 combinations) — and the whole collection must balance to the header's `TotalValue`. General-purpose adjusting entries, accruals, cost allocations. Own status/auth-option enums (`JournalVoucherStatus`/`JournalVoucherAuthOption`) rather than the shared `BatchStatus`/`BatchAuthOption` the rest of this table uses. | `JournalVoucherDTO` / `IJournalVoucherAppService` |
+| **Voucher** | One primary account (the header, at `TotalValue`) on one side, versus however many entries you attach — each its own account and amount — collectively on the other side. The header's single `Type` sets direction for the header leg *and* every entry leg at once; there's no per-entry direction despite entries carrying their own (unread, decorative) `Type`/`EntryType` fields — see §5. Splits one side of a transaction across several accounts — general-purpose adjusting entries, cost allocations. Own status/auth-option enums (`JournalVoucherStatus`/`JournalVoucherAuthOption`). `Authorize` posts synchronously, like Refund. | `JournalVoucherDTO` / `IJournalVoucherAppService` — **built** (`JournalVoucherController.cs`) |
 | **General Ledger** | A batch of **pre-paired account-to-account transfers** — each single entry row carries *both* a credit-side account (`ChartOfAccountId`/`CustomerAccountId`) *and* a debit/contra-side account (`ContraChartOfAccountId`/`ContraCustomerAccountId`) at once, each side independently resolvable to a raw G/L account or a customer account. Every row is self-balancing by construction (no matching offset line needed, unlike Voucher) — this is a bulk "move money from specific account A to specific account B" correction/transfer tool, not a free-form journal. Own parallel enums (`GeneralLedgerStatus`/`GeneralLedgerAuthOption`). **Settled, not redundant with Voucher — see §5.** | `GeneralLedgerDTO` / `IGeneralLedgerAppService` |
 
 ## 3. Which types let you pay out entry-by-entry vs. all at once
@@ -167,20 +167,45 @@ twice (same CRUD/audit/authorize shape, same "replace the whole entry
 collection" update method, only the enum names differ) — this codebase has
 precedent for exactly that kind of duplication being real (Commission had a
 redundant, buggier `ChargesController` — see
-`COMMISSION-LEVY-CHARGE-CONCEPTS.md`). Reading the actual entry DTOs
-(`JournalVoucherEntryDTO.cs`, `GeneralLedgerEntryDTO.cs`) and both reference
-controllers (`BatchOrigination_VoucherController.cs`,
-`AddGeneralLedgerController.cs`) settles it: they are not redundant. The
-difference is in what one *entry row* represents:
+`COMMISSION-LEVY-CHARGE-CONCEPTS.md`). Reading the entry DTOs plus both
+reference controllers settles it: they are not redundant. But the first
+pass at this section (based on `JournalVoucherEntryDTO`'s field shape
+alone) mischaracterized Voucher — corrected below after actually reading
+`JournalVoucherAppService.AuthorizeJournalVoucher`, which is the only
+reliable source of truth for what a type in this module really does. The
+lesson generalizes: **a DTO's fields are not proof of behavior in this
+codebase** — `JournalVoucherEntryDTO` carries its own `type`/`entryType`
+fields that look like independent per-line debit/credit control, and nobody
+consulted the posting code, they'd build a UI around a capability that
+doesn't exist server-side.
+
+**Voucher, correctly**: not a free-form N-line journal where each line
+picks its own side. It's one **primary** account — the header's own
+`chartOfAccountId` (+ optional `customerAccountId`), at `totalValue` — on
+one side, and however many **entries** you attach, each its own
+`chartOfAccountId` (+ optional `customerAccountId`) and own `amount`,
+collectively on the *other* side. The header's single `type`
+(`JournalVoucherType`: Debit/Credit × G/L/Customer) sets the direction for
+**both** the header leg and every entry leg at once — there is no per-entry
+direction. Confirmed by `AuthorizeJournalVoucher`'s posting loop, which
+switches on the header's `type` only; each `JournalVoucherEntryDTO`'s own
+`type`/`entryType` fields are never read anywhere in
+`JournalVoucherAppService` — decorative DTO fields, not a real capability.
+Posting only proceeds once entries' `amount` sums to exactly `totalValue`.
+
+**General Ledger, unchanged from the original read**: each entry *row*
+already specifies both sides of its own transfer (`chartOfAccountId` +
+`contraChartOfAccountId`, each independently a G/L or customer account) —
+self-balancing by construction, no matching offset row required.
 
 ```mermaid
 flowchart TD
-    subgraph VoucherShape["Voucher — N single-leg lines"]
-        direction LR
-        VL1["Line 1: Dr, G/L Rent Expense, 5,000"]
-        VL2["Line 2: Dr, Customer #4021 loan a/c, 2,000"]
-        VL3["Line 3: Cr, G/L Cash, 7,000"]
-        VNote["Each line picks ONE account\n(JournalVoucherType: Debit/Credit x GLAccount/CustomerAccount)\nand the whole set of lines must sum to the header TotalValue.\nBalancing is the preparer's job across however many lines it takes."]
+    subgraph VoucherShape["Voucher — one primary account vs N secondary accounts"]
+        direction TB
+        VH["Header: Credit G/L Cash, 7,000\n(the ONE account on one side)"]
+        VL1["Entry 1: G/L Rent Expense, 5,000"]
+        VL2["Entry 2: Customer #4021 loan a/c, 2,000"]
+        VNote["Header's `type` sets direction for the header leg\nAND every entry leg at once. Entries sit on the\nopposite side, and must sum to exactly the header's\ntotalValue (5,000 + 2,000 = 7,000) before Authorize\nwill post. Entries' own type/entryType fields exist\non the DTO but are never read by the posting code."]
     end
 
     subgraph GLShape["General Ledger — pre-paired transfers"]
@@ -193,9 +218,16 @@ flowchart TD
 
 | | Voucher | General Ledger |
 |---|---|---|
-| Unit of an entry | One account (Dr or Cr, G/L or customer) | A pair of accounts (credit side + contra/debit side) in one row |
-| How a batch balances | Across the whole collection of lines summing to `TotalValue` | Automatically — each row is a complete transfer by itself |
-| Typical use | General-purpose adjusting/accrual entries — the textbook "General Journal" | Bulk account-to-account corrections/transfers — moving or fixing money between two *specific* accounts, often two member accounts |
+| Unit of an entry | One account, sharing the header's single direction | A pair of accounts (credit side + contra/debit side) in one row |
+| How direction is chosen | Once, at the header (`type`) — applies to every entry too | Per row — each row independently picks a credit account and a contra/debit account |
+| How a batch balances | Entries' `amount` must sum to exactly the header's `totalValue` | Automatically — each row is a complete transfer by itself |
+| Typical use | Splitting one side of a transaction across several accounts — e.g. one G/L credit allocated across many expense lines or member accounts | Bulk account-to-account corrections/transfers — moving or fixing money between two *specific* accounts, often two member accounts |
 | Entry-side account resolution | `ChartOfAccountId` (single) | `ChartOfAccountId` (credit) **and** `ContraChartOfAccountId` (debit), each resolvable via `CreditCustomerAccountLookUp`/`DebitCustomerAccountLookup` against a real customer account |
 
-Both are worth building as designed — Group B is unblocked.
+Both are worth building as designed — Group B is unblocked. Voucher is
+built (`JournalVoucherController.cs`, `docs/api/batch-procedures-api-spec.md`
+§7); General Ledger's actual posting mechanics still need the same
+direct-read-the-app-service verification before building against it — don't
+assume `GeneralLedgerAppService.AuthorizeGeneralLedger` matches
+`AddGeneralLedgerController`'s `CreditCustomerAccountLookUp`/
+`DebitCustomerAccountLookup` UI shape without checking it the same way.
