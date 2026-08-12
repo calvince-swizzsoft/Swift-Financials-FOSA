@@ -198,7 +198,18 @@ drift out of sync with the actual code.
   entry can't be paid twice. Discrepancy browsing/matching and CSV batch
   import were deliberately not exposed — separate reconciliation/upload
   concerns, not needed for Cash Pickup; see
-  `docs/api/frontoffice-api-spec.md` §13.3.
+  `docs/api/frontoffice-api-spec.md` §13.3. **Real bug found and fixed,
+  found much later** (on a follow-up audit pass triggered by the
+  `LoanDisbursementBatch`/`MarkLoanCaseDisbursed` bug — see the
+  `LoanCaseController` entries further below): `AuthorizeCreditBatch`'s
+  precondition that the batch already be `Audited` was entirely commented
+  out in source (`//if (persisted == null || persisted.Status !=
+  (int)BatchStatus.Audited) //    return result;`, replaced by a bare null
+  check) — a Credit batch could be authorized, and its journals/queued
+  entries posted, straight from `Pending`, completely bypassing the
+  maker-checker Audit step this whole module exists to enforce. Same
+  category of control-bypass as the `InterAccountTransferBatch` fix.
+  Restored the real check.
 - `Areas/Accounts/Controllers/DebitBatchController.cs` (new, existing
   `IDebitBatchAppService`; batch CRUD/audit/authorize + entry
   add/remove/browse/post) — first of the wider "Batch Procedures" module
@@ -206,14 +217,17 @@ drift out of sync with the actual code.
   basis and `docs/api/batch-procedures-api-spec.md` for the full route
   reference). Real asymmetries from `CreditBatchController` worth knowing:
   no `TotalValue` control-total exists for this type at all, `Authorize`
-  genuinely refuses a batch that isn't already `Audited` (Credit's
-  equivalent guard is commented out in source), entries have no
-  amount-shaped field trustworthy before posting (`Multiplier`/`BasisValue`
-  feed a server-side tariff computation at post-time, capped against
-  available balance), and `Authorize` always queues every entry for async
-  posting via a message broker with no per-type carve-out (unlike Credit,
-  where only `Payout`/`CheckOff` get queued and `CashPickup` stays manual).
-  No single-entry lookup or entry-status-update exists on this app service,
+  genuinely refuses a batch that isn't already `Audited` — **Credit's
+  equivalent guard used to be commented out in source (`AuthorizeCreditBatch`
+  could post straight from `Pending`, skipping the maker-checker Audit
+  step entirely); found and fixed on a later pass, see the
+  `CreditBatchController` entry above** — entries have no amount-shaped
+  field trustworthy before posting (`Multiplier`/`BasisValue` feed a
+  server-side tariff computation at post-time, capped against available
+  balance), and `Authorize` always queues every entry for async posting
+  via a message broker with no per-type carve-out (unlike Credit, where
+  only `Payout`/`CheckOff` get queued and `CashPickup` stays manual). No
+  single-entry lookup or entry-status-update exists on this app service,
   unlike Credit's — not built to fake one.
 - `Areas/Accounts/Controllers/WireTransferBatchController.cs` (new, existing
   `IWireTransferBatchAppService`; batch CRUD/audit/authorize + entry

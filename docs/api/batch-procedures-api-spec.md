@@ -41,7 +41,7 @@ Controller: `CreditBatchController.cs`, existing `ICreditBatchAppService`.
 | `/` | POST | Create batch → `Pending` |
 | `/{id}` | PUT | Update batch's own fields — does not touch entries |
 | `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`, only if entries total ≤ batch `TotalValue`), `2`=Reject. Only accepts `Pending` |
-| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; for `Payout`/`CheckOff` batches this also queues every entry for async GL posting — see §1.1), `2`=Reject. **Not gated on the batch already being `Audited`** — the guard exists in the reference app's source but is commented out, so this will authorize a still-`Pending` batch if you call it out of order |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; for `Payout`/`CheckOff` batches this also queues every entry for async GL posting — see §1.2), `2`=Reject. Requires the batch to already be `Audited` — this guard used to be commented out in source (would authorize a still-`Pending` batch), found and fixed — see §1.1 |
 | `/{id}/entries?text=&filter=&pageIndex=&pageSize=` | GET | Entries within one batch |
 | `/entries/type/{creditBatchType}?startDate=&endDate=&text=&filter=&pageIndex=&pageSize=` | GET | Entries across all batches of a `CreditBatchType` — the Cash Pickup picker uses `creditBatchType=8`, see `frontoffice-api-spec.md` §13.3 |
 | `/entries/customer/{customerId}?creditBatchType=` | GET | Entries for one customer (`Payout`/`CheckOff` — entries there are tied to a customer account, unlike Cash Pickup) |
@@ -51,7 +51,26 @@ Controller: `CreditBatchController.cs`, existing `ICreditBatchAppService`.
 | `/entries/remove` | POST | Batch-remove entries (`List<CreditBatchEntryDTO>`) |
 | `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — marks one entry `Posted`. For `CashPickup`/`SundryPayments` this **only** flips status, no GL journal — the journal for those two types is posted by `SundryPaymentsController` (`frontoffice-api-spec.md` §13.1), which calls this endpoint itself right after |
 
-### 1.1 Posting timing — synchronous vs. async
+### 1.1 Real bug fixed: the Audited precondition was commented out
+
+Found on a later audit pass, not when this controller was originally
+built: `AuthorizeCreditBatch`'s guard against authorizing a non-`Audited`
+batch was entirely commented out in source —
+
+```csharp
+//if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
+//    return result;
+if (persisted == null)
+    return result;
+```
+
+— leaving only a null check. A batch could be authorized, and its
+`Payout`/`CheckOff` entries queued for posting, straight from `Pending`,
+completely bypassing the Audit step. Fixed to restore the real check — if
+you were relying on (or testing around) authorizing a `Pending` batch
+directly, that path now correctly returns `409`.
+
+### 1.2 Posting timing — synchronous vs. async
 
 `Authorize` with `option: 1` on a `Payout`/`CheckOff` batch does **not**
 post journals synchronously as part of that call. It enqueues every entry
@@ -88,7 +107,7 @@ four `CreditBatchType`s).
 | `/` | POST | Create batch → `Pending` |
 | `/{id}` | PUT | Update batch's own fields |
 | `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`), `2`=Reject. Only accepts `Pending` |
-| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; queues every entry for async posting — see §2.1), `2`=Reject. **Unlike Credit, this genuinely refuses if the batch isn't already `Audited`** — the guard is live here, not commented out |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; queues every entry for async posting — see §2.1), `2`=Reject. Genuinely refuses if the batch isn't already `Audited` — Credit's equivalent guard used to be commented out in source, allowing authorize straight from `Pending`; fixed, see §1.1 |
 | `/{id}/entries?text=&pageIndex=&pageSize=` | GET | Entries within one batch (no `filter` param — Credit's equivalent has one, Debit's doesn't) |
 | `/entries/queueable?pageIndex=&pageSize=` | GET | Entries ready to post, across all batches — no type restriction (nothing to filter on) |
 | `/entries/customer/{customerId}` | GET | Entries for one customer |

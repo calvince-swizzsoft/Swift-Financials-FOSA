@@ -59,6 +59,38 @@ what to go update.
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
 
+### Credit Batch API — real control-bypass bug fixed in already-live code
+
+Not a new endpoint — a correction to `CreditBatchController`
+(`api/accounts/creditbatches`), the very first Batch Procedures controller
+built. Found on a systematic audit across all nine batch types, triggered
+by the Loan Disbursement Batch fix directly below: `AuthorizeCreditBatch`'s
+precondition that the batch already be `Audited` was **entirely commented
+out** in source —
+
+```csharp
+//if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
+//    return result;
+if (persisted == null)
+    return result;
+```
+
+— replaced by a bare null check. A Credit batch could be authorized, and
+its journals/queued entries posted, straight from `Pending`, completely
+bypassing the maker-checker Audit step every other type in this module
+enforces (already documented as a known asymmetry in the Debit entry
+below — it just hadn't been fixed until now). Same category of
+control-bypass as the Inter Account Transfer fix further down this
+changelog. Restored the real check — if your testing relied on authorizing
+a `Pending` Credit batch directly, that path now correctly `409`s; audit it
+first, same as every sibling type already required.
+
+An audit of the other seven batch types (Debit, Refund, Wire Transfer,
+Reversal, Voucher, General Ledger, Inter Account Transfer) plus the same
+force-set-before-check tautology found in `LoanCaseAppService` turned up
+nothing else — every other type's Audit/Authorize guard is correctly
+written.
+
 ### Loan Disbursement Batch API — real bug fixed in already-live code, breaking disbursement completion
 
 Not a new endpoint — a correction to `LoanDisbursementBatchController`
@@ -438,12 +470,14 @@ controllers each.
 - **`DebitBatchController`** (`api/accounts/debitbatches`) — new. Real
   differences from Credit worth knowing if you're building against it:
   no `TotalValue` control-total anywhere, `Authorize` genuinely refuses a
-  batch that isn't already `Audited` (Credit's equivalent guard is
-  commented out in source), entries have no amount-shaped field you can
-  trust before posting (`multiplier`/`basisValue` feed a server-side tariff
-  computation, capped against available balance), and posting is always
-  async off a message queue once authorized, with no per-type carve-out
-  the way Credit's Cash Pickup has. Full detail: `batch-procedures-api-spec.md` §2.
+  batch that isn't already `Audited` — **Credit's equivalent guard used to
+  be commented out in source; found and fixed on a much later pass, see the
+  entry near the top of this changelog** — entries have no amount-shaped
+  field you can trust before posting (`multiplier`/`basisValue` feed a
+  server-side tariff computation, capped against available balance), and
+  posting is always async off a message queue once authorized, with no
+  per-type carve-out the way Credit's Cash Pickup has. Full detail:
+  `batch-procedures-api-spec.md` §2.
 
 Remaining seven types (Refund, Wire Transfer, Disbursement, Reversal,
 Voucher, General Ledger, Inter Account Transfer) not started — their app

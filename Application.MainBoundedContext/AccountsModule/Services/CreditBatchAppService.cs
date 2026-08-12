@@ -306,10 +306,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             {
                 var persisted = _creditBatchRepository.Get(creditBatchDTO.Id, serviceHeader);
 
-                //if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
-                //    return result;
-
-                if (persisted == null)
+                if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
                     return result;
 
                 switch ((BatchAuthOption)batchAuthOption)
