@@ -283,6 +283,7 @@
     <Compile Include="Areas\FrontOffice\Controllers\ChequesController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountsController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomerController.cs" />
+    <Compile Include="Areas\Registry\Controllers\CustomerDocumentController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomersController.cs" />
     <Compile Include="Areas\Registry\Controllers\DivisionController.cs" />
     <Compile Include="Areas\Registry\Controllers\EmployerController.cs" />
@@ -327,6 +328,9 @@
     <Compile Include="Areas\Accounts\Controllers\GeneralLedgerController.cs" />
     <Compile Include="Areas\Accounts\Controllers\InterAccountTransferBatchController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoanCaseController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\LoanPurposeController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\LoaningRemarkController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\IncomeAdjustmentController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

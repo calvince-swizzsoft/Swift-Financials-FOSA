@@ -53,11 +53,39 @@ what to go update.
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 | Loan case registration + appraisal + approval + audit/verification (back office — full core loan origination pipeline) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
+| Loan back office catalogues (loan purposes, loaning remarks, income adjustments) | `api/backoffice/{loanpurposes,loaningremarks,incomeadjustments}` | [`loan-backoffice-catalogues-api-spec.md`](loan-backoffice-catalogues-api-spec.md) |
+| Customer document picker (read-only, collateral picker for loan case registration) | `api/registry/customerdocuments` | [`loan-case-api-spec.md`](loan-case-api-spec.md) §11 |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Loan Back Office Catalogues API + collateral document picker — new, unblocks the loan-case registration/appraisal forms
+
+`LoanPurposeController` (`api/backoffice/loanpurposes`),
+`LoaningRemarkController` (`api/backoffice/loaningremarks`),
+`IncomeAdjustmentController` (`api/backoffice/incomeadjustments`), and
+`CustomerDocumentController` (`api/registry/customerdocuments`, read-only)
+— four small controllers over app services that already existed and were
+already used *internally* by `LoanCaseController`, but had no list/search
+endpoint a frontend picker could call. Loan-case registration needs the
+first two for two of its required fields (`loanPurposeId`,
+`registrationRemarkId`) and the fourth for its collateral picker;
+appraisal needs the third for its income-adjustment factors list — see
+`WebApplication1/Areas/BackOffice/WORKFLOW.md` §15.2, which flagged this
+gap when the screens doc was first written.
+
+The three `BackOfficeModule` catalogues are identical CRUD shape
+(`description` `[Required]`, `isLocked` toggle, duplicate-`description`
+reported via a `409` at create time) — same pattern as
+`UnPayReasonController`. `CustomerDocumentController` is deliberately
+read-only: document upload (`fileUploadDirectory`-taking methods on
+`ICustomerDocumentAppService`) is a separate, larger feature, not needed
+just to let a loan case pick an already-existing collateral document.
+
+Full reference: `loan-backoffice-catalogues-api-spec.md`;
+`loan-case-api-spec.md` §11 for the collateral document picker.
 
 ### Credit Batch API — real control-bypass bug fixed in already-live code
 

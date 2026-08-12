@@ -456,12 +456,27 @@ drift out of sync with the actual code.
   completes the core loan origination pipeline** (Registered → Appraised →
   Approved → Audited → Disbursed, disbursement already live) — remaining
   work is guarantor sub-flows beyond initial attach, cancellation/
-  restructuring, loan request intake, payroll check-off capture, and
-  reference-data catalogues.
+  restructuring, loan request intake, and payroll check-off capture.
+- `Areas/BackOffice/Controllers/LoanPurposeController.cs`,
+  `LoaningRemarkController.cs`, `IncomeAdjustmentController.cs` (all new,
+  existing `ILoanPurposeAppService`/`ILoaningRemarkAppService`/
+  `IIncomeAdjustmentAppService`; full CRUD — `docs/api/loan-backoffice-catalogues-api-spec.md`)
+  and `Areas/Registry/Controllers/CustomerDocumentController.cs` (new,
+  existing `ICustomerDocumentAppService`; read-only —
+  `docs/api/loan-case-api-spec.md` §11) — the reference-data catalogues and
+  collateral-document picker `Areas/BackOffice/WORKFLOW.md` §15.2 flagged
+  as missing once the loan-case screens doc was written; the loan-case
+  registration/appraisal forms genuinely can't build real pickers for
+  `loanPurposeId`/`registrationRemarkId`/collateral documents/appraisal
+  income-adjustment factors without them. `CustomerDocumentController`
+  deliberately doesn't expose document upload
+  (`AddNewCustomerDocument`/`UpdateCustomerDocument`, which take a
+  `fileUploadDirectory` and are a real photo/ID-scan feature) — separate,
+  larger work, not needed for this picker.
 
 Not yet started: loan request intake, guarantor/collateral management
 beyond initial attach (substitute/relieve/release), restructuring,
-cancellation, payroll check-off data capture, and reference-data
-catalogues (`BackOfficeModule`). Before starting any of the above, read
-`Areas/BackOffice/WORKFLOW.md` for the module's full design and the
-reference MVC app's 23-controller `Areas/Loaning` inventory.
+cancellation, and payroll check-off data capture (`BackOfficeModule`).
+Before starting any of the above, read `Areas/BackOffice/WORKFLOW.md` for
+the module's full design and the reference MVC app's 23-controller
+`Areas/Loaning` inventory.

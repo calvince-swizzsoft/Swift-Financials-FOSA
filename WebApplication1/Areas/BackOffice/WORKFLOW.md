@@ -326,16 +326,26 @@ transition, but the upstream data source for one.
 
 ## 13. Reference-data catalogues
 
-Three simple lookup CRUD services, no workflow of their own — build as
-plain CRUD controllers when their first consumer needs them, same pattern
-as `LoanProductController`'s read-only list endpoint (`CLAUDE.md`,
-"Controllers adapted so far"):
+Three simple lookup CRUD services, no workflow of their own — built as
+plain CRUD controllers once their first consumer needed them: the loan-case
+registration/appraisal screens' pickers (§14.1, §14.2, §15.2). Same shape as
+`UnPayReasonController` (`Description` `[Required]`, `IsLocked` toggle,
+duplicate-description reported via `ErrorMessageResult` on the echoed-back
+DTO rather than a thrown exception).
 
-| Service | Backs | Reference screen |
-|---|---|---|
-| `ILoaningRemarkAppService` | Free-text remark catalogue attached to loan-case decisions | `LoaningRemarkController` |
-| `ILoanPurposeAppService` | Loan purpose catalogue (why the loan is being taken) | `LoanPurposeController` |
-| `IIncomeAdjustmentAppService` | Allowance/deduction catalogue used in appraisal (§6) | `IncomeAdjustmentsController` |
+| Service | Backs | Reference screen | This repo |
+|---|---|---|---|
+| `ILoaningRemarkAppService` | Free-text remark catalogue attached to loan-case decisions | `LoaningRemarkController` | **Live** — `Areas/BackOffice/Controllers/LoaningRemarkController.cs`, `api/backoffice/loaningremarks` |
+| `ILoanPurposeAppService` | Loan purpose catalogue (why the loan is being taken) | `LoanPurposeController` | **Live** — `Areas/BackOffice/Controllers/LoanPurposeController.cs`, `api/backoffice/loanpurposes` |
+| `IIncomeAdjustmentAppService` | Allowance/deduction catalogue used in appraisal (§6) | `IncomeAdjustmentsController` | **Live** — `Areas/BackOffice/Controllers/IncomeAdjustmentController.cs`, `api/backoffice/incomeadjustments` |
+
+Full reference: `docs/api/loan-backoffice-catalogues-api-spec.md`. This
+also resolves most of §15.2's picker gap — the fourth one there
+(collateral documents) is a `RegistryModule` concern, not
+`BackOfficeModule`, and is documented separately: see
+`Areas/Registry/Controllers/CustomerDocumentController.cs`
+(`api/registry/customerdocuments`, read-only — deliberately doesn't expose
+document upload, a separate feature).
 
 `LoanProductAppraisalController` (product-level appraisal budget config,
 not case-level) and `RepaymentScheduleController` (schedule preview,
@@ -356,7 +366,7 @@ building any of the rows below.
 |---|---|---|---|
 | Loan request intake | `LoanRequestController` | — | Not built |
 | Loan case registration | `LoanRegistrationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.1 |
-| Appraisal | `AppraiseLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.1 |
+| Appraisal | `AppraiseLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.2 |
 | Approval | `ApproveLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.3 |
 | Audit / verification | `LoanVerificationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.4 |
 | Cancellation | `LoanCancellationController` | — | Not built |
@@ -367,9 +377,9 @@ building any of the rows below.
 | Guarantor relieving | `GuarantorRelievingController` | — | Not built |
 | Guarantor substitution | `GuarantorSubstitutionController` | — | Not built |
 | Guarantor CRUD/search | `LoanGuarantorController` | — | Not built |
-| Loan purpose catalogue | `LoanPurposeController` | — | Not built |
-| Loaning remark catalogue | `LoaningRemarkController` | — | Not built |
-| Income adjustment catalogue | `IncomeAdjustmentsController` | — | Not built |
+| Loan purpose catalogue | `LoanPurposeController` | `Areas/BackOffice/Controllers/LoanPurposeController.cs` | **Live** — see §13 |
+| Loaning remark catalogue | `LoaningRemarkController` | `Areas/BackOffice/Controllers/LoaningRemarkController.cs` | **Live** — see §13 |
+| Income adjustment catalogue | `IncomeAdjustmentsController` | `Areas/BackOffice/Controllers/IncomeAdjustmentController.cs` | **Live** — see §13 |
 | Loan product appraisal budget | `LoanProductAppraisalController` | — | Not built (see §13) |
 | Data attachment period open/edit | `DataCaptureController` | — | Not built |
 | Data attachment entry capture | `DataProcessingController` | — | Not built |
@@ -592,7 +602,7 @@ status it filters on and which action button appears.
 | Screen | Who | Key API calls | Notes |
 |---|---|---|---|
 | Registration queue | Loan officer | `GET /?status=0` (`Registered`) | Default landing list — reference app's own default filter |
-| Register a loan case | Loan officer | `GET /guarantors/lookup` (per guarantor as picked), `POST /` | Multi-section form — loanee, product, guarantors, collateral. See §15.2 for picker gaps that block parts of this form today |
+| Register a loan case | Loan officer | `GET /guarantors/lookup` (per guarantor as picked), `POST /` | Multi-section form — loanee, product, guarantors, collateral. See §15.2 for the loan-purpose/registration-remark/collateral-document picker endpoints this form needs |
 | Loan case detail | Anyone | `GET /{id}` (case + guarantors + collaterals) | Shared read view every other screen can link out to |
 | Appraisal queue | Appraiser | `GET /?status=0` (same `Registered`/`Deferred` queue registration uses — appraisal is the next action on those same cases) | |
 | Appraise a loan case | Appraiser | `GET /{id}/appraisal-worksheet`, `GET /{id}/appraisal-factors`, `POST /{id}/appraise` | Worksheet gives system-computed qualification figures before the appraiser overrides/confirms them |
@@ -608,41 +618,41 @@ enum/lookup mechanism the rest of the frontend already uses for other
 server enums (see `EnumerationAppService`/`api/administration/...` if one
 exists) rather than duplicating magic numbers here.
 
-### 15.2 Blocking gap: four pickers have no list endpoint yet
+### 15.2 Picker endpoints — now built
 
 The registration form needs to let the loan officer *pick* a loan purpose,
 a registration remark, and (optionally) collateral documents — and the
 appraisal worksheet needs an income-adjustment picker for the factors list.
-All four referenced app services already exist and are already used
+All four referenced app services already existed and were already used
 *internally* by `LoanCaseController` (resolving an id the client sends into
-a real record), but **none of them has a list/search endpoint a frontend
-picker can call**:
+a real record) before this doc first flagged that none of them had a
+list/search endpoint a frontend picker could call. That gap is now closed:
 
-| Needed for | App service | Controller status |
+| Needed for | App service | Controller |
 |---|---|---|
-| Loan purpose picker (`Create`) | `ILoanPurposeAppService` | No controller — §13 |
-| Registration remark picker (`Create`) | `ILoaningRemarkAppService` | No controller — §13 |
-| Collateral document picker (`Create`) | `ICustomerDocumentAppService` | No controller anywhere in `WebApplication1` |
-| Income adjustment picker (`Appraise`) | `IIncomeAdjustmentAppService` | No controller — §13 |
+| Loan purpose picker (`Create`) | `ILoanPurposeAppService` | `LoanPurposeController` (§13) — `GET api/backoffice/loanpurposes` |
+| Registration remark picker (`Create`) | `ILoaningRemarkAppService` | `LoaningRemarkController` (§13) — `GET api/backoffice/loaningremarks` |
+| Collateral document picker (`Create`) | `ICustomerDocumentAppService` | `CustomerDocumentController` — `GET api/registry/customerdocuments?customerId=&type=1` (`RegistryModule`, not `BackOfficeModule` — lives under `Areas/Registry`) |
+| Income adjustment picker (`Appraise`) | `IIncomeAdjustmentAppService` | `IncomeAdjustmentController` (§13) — `GET api/backoffice/incomeadjustments` |
 
-Until at least the first two exist, the registration screen can't offer a
-real picker for two of its five required fields (`loanPurposeId`,
-`registrationRemarkId`) — a frontend team would have to hardcode ids or
-hand-query the database directly, neither of which is a real fix. Building
-simple list/search CRUD controllers for `LoanPurpose`/`LoaningRemark`/
-`IncomeAdjustment` (§13's "build as plain CRUD controllers when their first
-consumer needs them" — that consumer is now this screen) and a minimal
-`CustomerDocument` list-by-customer endpoint should happen before or
-alongside frontend work on this form, not after.
+Full reference: `docs/api/loan-backoffice-catalogues-api-spec.md` (the
+three `BackOfficeModule` catalogues) and
+`docs/api/loan-case-api-spec.md` §11 (the `CustomerDocument` picker,
+documented alongside `Create` since that's its only current consumer).
+`CustomerDocumentController` is deliberately read-only — document upload
+(`AddNewCustomerDocument`/`UpdateCustomerDocument`, which take a
+`fileUploadDirectory` and are a real photo/ID-scan upload feature) is a
+separate, larger piece of work, not needed just to let a loan case pick an
+already-existing collateral document.
 
-Suggested build order, following this doc's own dependency chain: loan
-request intake (§5) and reference-data catalogues (§13, needed by every
-downstream screen's pickers) still not started; case registration (§14.1),
-appraisal (§14.2), approval (§14.3), and audit/verification (§14.4) are
-done — the entire core pipeline (Registered → Appraised → Approved →
-Audited → Disbursed, disbursement already live per §11) is now built.
-Next: guarantor sub-flows beyond initial attach (substitute/relieve/
-release, §9), cancellation/restructuring (§10). Each
+Suggested build order, following this doc's own dependency chain: case
+registration (§14.1), appraisal (§14.2), approval (§14.3), and
+audit/verification (§14.4) are done — the entire core pipeline (Registered
+→ Appraised → Approved → Audited → Disbursed, disbursement already live
+per §11) is now built, and the reference-data catalogues (§13) their
+pickers depend on are built too. Loan request intake (§5) is still not
+started. Next: guarantor sub-flows beyond initial attach (substitute/
+relieve/release, §9), cancellation/restructuring (§10). Each
 new app service, once wired into `WebApplication1`, also needs Unity
 registration in both `WebApplication1/App_Start/UnityConfig.cs` and
 `DistributedServices.MainBoundedContext/UnityContainers/Container.cs`, and

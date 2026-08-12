@@ -5,17 +5,19 @@ Base path: `api/backoffice/loancases`. Controller:
 Functional design: `WebApplication1/Areas/BackOffice/WORKFLOW.md` §5 (loan
 request intake, upstream of this), §14.1 (registration), §14.2 (appraisal),
 §14.3 (approval), §14.4 (audit/verification), and **§15 (frontend screen
-list — start there if you're building the UI, it also flags four picker
-endpoints that don't exist yet and block part of the registration form)**.
+list — start there if you're building the UI)**.
 
 This covers the entire core loan origination pipeline: opening a loan case
 with its guarantors and collateral, appraising it, approving it, and
 auditing/verifying it (`LoanCaseStatus.Registered → Appraised → Approved →
 Audited`). Disbursement (`LoanCaseStatus.Audited → Disbursed`) is already
-documented separately: `batch-procedures-api-spec.md` §6. What's left
-outside this doc: loan request intake, guarantor sub-flows beyond initial
-attach, restructuring, cancellation, and reference-data catalogues — see
-`WORKFLOW.md` §5, §9-10, §13.
+documented separately: `batch-procedures-api-spec.md` §6. Picker
+dependencies for the registration/appraisal screens (loan purpose,
+registration remark, income adjustment, collateral document — §15.2) are
+covered by `loan-backoffice-catalogues-api-spec.md` and §11 below. What's
+left outside this doc: loan request intake, guarantor sub-flows beyond
+initial attach, restructuring, and cancellation — see `WORKFLOW.md` §5,
+§9-10.
 
 ## Conventions
 
@@ -358,6 +360,26 @@ posts real money, the practical effect was: the loan disburses, but the
 case never flips to `Disbursed` and its repayment `StandingOrder` never
 gets created. Fixed to match `Audited`. Full detail:
 `batch-procedures-api-spec.md` §6.3.
+
+## 11. Collateral document picker
+
+`GET api/registry/customerdocuments?customerId={id}&type=1`
+
+Controller: `CustomerDocumentController.cs` (`Areas/Registry/Controllers`
+— `RegistryModule`, not `BackOfficeModule`; documented here since `Create`
+(§5) is currently its only consumer). `type=1` is
+`CustomerDocumentType.Collateral`. Filter the result client-side to
+`collateralStatus: 0` (`Released`) before offering it in the registration
+form's collateral picker — same as the reference screen did; the endpoint
+itself doesn't filter on collateral status.
+
+`GET api/registry/customerdocuments/{id}` returns a single document.
+
+Deliberately read-only: document upload
+(`AddNewCustomerDocument`/`UpdateCustomerDocument`, which take a
+`fileUploadDirectory` and are a real photo/ID-scan upload feature) is a
+separate, larger piece of work, not needed just to let a loan case pick an
+already-existing collateral document.
 
 ## Not built yet
 
