@@ -31,17 +31,20 @@ namespace WebApplication1.Controllers
         private readonly ITellerAppService _tellerAppService;
         private readonly IBranchAppService _branchAppService;
         private readonly IPostingPeriodAppService _postingPeriodAppService;
+        private readonly ICreditBatchAppService _creditBatchAppService;
 
         public SundryPaymentsController(
             IJournalAppService journalAppService,
             ITellerAppService tellerAppService,
             IBranchAppService branchAppService,
-            IPostingPeriodAppService postingPeriodAppService)
+            IPostingPeriodAppService postingPeriodAppService,
+            ICreditBatchAppService creditBatchAppService)
         {
             _journalAppService = journalAppService ?? throw new ArgumentNullException(nameof(journalAppService));
             _tellerAppService = tellerAppService ?? throw new ArgumentNullException(nameof(tellerAppService));
             _branchAppService = branchAppService ?? throw new ArgumentNullException(nameof(branchAppService));
             _postingPeriodAppService = postingPeriodAppService ?? throw new ArgumentNullException(nameof(postingPeriodAppService));
+            _creditBatchAppService = creditBatchAppService ?? throw new ArgumentNullException(nameof(creditBatchAppService));
         }
 
         [HttpPost]
@@ -92,6 +95,8 @@ namespace WebApplication1.Controllers
                         break;
 
                     case GeneralTransactionType.CashPickup:
+                        if (request.CreditBatchEntryId == Guid.Empty)
+                            return BadRequest("creditBatchEntryId is required for a Cash Pickup payment");
                         transactionCode = (int)SystemTransactionCode.CreditBatchCashPickup;
                         debitChartOfAccountId = request.ChartOfAccountId;
                         creditChartOfAccountId = teller.ChartOfAccountId ?? Guid.Empty;
@@ -125,6 +130,13 @@ namespace WebApplication1.Controllers
 
                 if (journal == null)
                     return BadRequest("Failed to post the sundry payment");
+
+                if (transactionType == GeneralTransactionType.CashPickup)
+                {
+                    // Flip the picked entry to Posted so it can't be paid out again
+                    // from the picker (api/accounts/creditbatches/entries/type/8).
+                    _creditBatchAppService.PostCreditBatchEntry(request.CreditBatchEntryId, request.ModuleNavigationItemCode, serviceHeader);
+                }
 
                 return Ok(new { success = true, message = "Operation success", data = journal });
             }
@@ -160,5 +172,11 @@ namespace WebApplication1.Controllers
         public string PrimaryDescription { get; set; }
 
         public int ModuleNavigationItemCode { get; set; }
+
+        // Required when TransactionType is CashPickup (8) — the CreditBatchEntry
+        // (CreditBatchType.CashPickup) the teller picked from
+        // GET api/accounts/creditbatches/entries/type/8. Ignored for every other
+        // transaction type.
+        public Guid CreditBatchEntryId { get; set; }
     }
 }

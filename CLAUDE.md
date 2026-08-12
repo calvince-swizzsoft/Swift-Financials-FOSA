@@ -185,3 +185,17 @@ drift out of sync with the actual code.
   and `Areas/Accounts/Controllers/StandingOrderController.cs` +
   `StandingOrderExecutionController.cs` (`docs/api/standing-order-api-spec.md` /
   `docs/api/standing-order-execution-api-spec.md`).
+- `Areas/Accounts/Controllers/CreditBatchController.cs` (new, existing
+  `ICreditBatchAppService`; batch CRUD/audit/authorize + entry CRUD/browse/
+  post) — the reference controller only covered the batch header lifecycle
+  through `_channelService`; entry browsing for a pickup queue was never its
+  own endpoint anywhere in the reference app (the reference
+  `SundryPaymentsController` had a private `FetchCreditBatchEntriesTable`
+  action instead). Built specifically to unblock the FrontOffice "Sundry
+  Receipts/Payments → Cash Pickup" screen (`entries/type/{creditBatchType}`
+  + `entries/{entryId}/post`); `SundryPaymentsController`'s `CashPickup` case
+  now calls `PostCreditBatchEntry` after a successful payment so a picked
+  entry can't be paid twice. Discrepancy browsing/matching and CSV batch
+  import were deliberately not exposed — separate reconciliation/upload
+  concerns, not needed for Cash Pickup; see
+  `docs/api/frontoffice-api-spec.md` §13.3.
