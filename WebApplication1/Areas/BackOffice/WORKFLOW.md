@@ -599,51 +599,170 @@ status it filters on and which action button appears.
 
 ### 15.1 Screen list
 
-| Screen | Who | Key API calls | Notes |
-|---|---|---|---|
-| Registration queue | Loan officer | `GET /?status=0` (`Registered`) | Default landing list — reference app's own default filter |
-| Register a loan case | Loan officer | `GET /guarantors/lookup` (per guarantor as picked), `POST /` | Multi-section form — loanee, product, guarantors, collateral. See §15.2 for the loan-purpose/registration-remark/collateral-document picker endpoints this form needs |
-| Loan case detail | Anyone | `GET /{id}` (case + guarantors + collaterals) | Shared read view every other screen can link out to |
-| Appraisal queue | Appraiser | `GET /?status=0` (same `Registered`/`Deferred` queue registration uses — appraisal is the next action on those same cases) | |
-| Appraise a loan case | Appraiser | `GET /{id}/appraisal-worksheet`, `GET /{id}/appraisal-factors`, `POST /{id}/appraise` | Worksheet gives system-computed qualification figures before the appraiser overrides/confirms them |
-| Approval queue | Approver | `GET /?status=1` (`Appraised`) | |
-| Approve a loan case | Approver | `GET /{id}`, `POST /{id}/approve` | No dedicated worksheet — `GET /{id}` plus the appraisal figures already on the case (from `GET /{id}/appraisal-worksheet`, still valid to re-call) are enough |
-| Audit / verification queue | Auditor | `GET /?status=2` (`Approved`) | |
-| Audit / verify a loan case | Auditor | `GET /{id}`, `POST /{id}/audit` | Show the auto-verification note if the response `message` says the product bypassed audit on approve (§14.3) |
-
-`status` is a raw `LoanCaseStatus` int
-(`Infrastructure.Crosscutting.Framework.Utils.Enumerations.cs`) — don't
-hardcode the `0xBEBA`-based values client-side; resolve them from whatever
-enum/lookup mechanism the rest of the frontend already uses for other
-server enums (see `EnumerationAppService`/`api/administration/...` if one
-exists) rather than duplicating magic numbers here.
-
-### 15.2 Picker endpoints — now built
-
-The registration form needs to let the loan officer *pick* a loan purpose,
-a registration remark, and (optionally) collateral documents — and the
-appraisal worksheet needs an income-adjustment picker for the factors list.
-All four referenced app services already existed and were already used
-*internally* by `LoanCaseController` (resolving an id the client sends into
-a real record) before this doc first flagged that none of them had a
-list/search endpoint a frontend picker could call. That gap is now closed:
-
-| Needed for | App service | Controller |
+| Screen | Who | Key API calls |
 |---|---|---|
-| Loan purpose picker (`Create`) | `ILoanPurposeAppService` | `LoanPurposeController` (§13) — `GET api/backoffice/loanpurposes` |
-| Registration remark picker (`Create`) | `ILoaningRemarkAppService` | `LoaningRemarkController` (§13) — `GET api/backoffice/loaningremarks` |
-| Collateral document picker (`Create`) | `ICustomerDocumentAppService` | `CustomerDocumentController` — `GET api/registry/customerdocuments?customerId=&type=1` (`RegistryModule`, not `BackOfficeModule` — lives under `Areas/Registry`) |
-| Income adjustment picker (`Appraise`) | `IIncomeAdjustmentAppService` | `IncomeAdjustmentController` (§13) — `GET api/backoffice/incomeadjustments` |
+| Registration queue | Loan officer | `GET /?status=0` (`Registered`) |
+| Register a loan case | Loan officer | §15.3 |
+| Loan case detail | Anyone | `GET /{id}` (case + guarantors + collaterals) |
+| Appraisal queue | Appraiser | `GET /?status=0` (same `Registered`/`Deferred` queue registration uses — appraisal is the next action on those same cases) |
+| Appraise a loan case | Appraiser | §15.4 |
+| Approval queue | Approver | `GET /?status=1` (`Appraised`) |
+| Approve a loan case | Approver | §15.5 |
+| Audit / verification queue | Auditor | `GET /?status=2` (`Approved`) |
+| Audit / verify a loan case | Auditor | §15.6 |
 
-Full reference: `docs/api/loan-backoffice-catalogues-api-spec.md` (the
-three `BackOfficeModule` catalogues) and
-`docs/api/loan-case-api-spec.md` §11 (the `CustomerDocument` picker,
-documented alongside `Create` since that's its only current consumer).
-`CustomerDocumentController` is deliberately read-only — document upload
-(`AddNewCustomerDocument`/`UpdateCustomerDocument`, which take a
-`fileUploadDirectory` and are a real photo/ID-scan upload feature) is a
-separate, larger piece of work, not needed just to let a loan case pick an
-already-existing collateral document.
+Loan case detail (`GET /{id}`) is a shared read view every other screen
+can link out to — every queue row should link to it, and it's the natural
+"cancel and go back to detail" target from any of the three action screens.
+
+`status` on the queue endpoints is a raw `LoanCaseStatus` int
+(`Infrastructure.Crosscutting.Framework.Utils.Enumerations.cs`) — don't
+hardcode the `0xBEBA`-based values client-side without a named constant;
+no generic enum-listing endpoint exists anywhere in this API today (no
+`EnumerationController`, despite `IEnumerationAppService` being
+registered), so for a small fixed set like `LoanCaseStatus` the practical
+choice is a client-side constants file mirroring the server enum, not a
+runtime lookup call. Same for the `option` values on the three action
+screens below (`LoanAppraisalOption`/`LoanApprovalOption`/`LoanAuditOption`
+— each only 2-3 members) — these are cheap to hardcode too; they are not
+the same category of gap as the reference-data pickers in §15.2, which
+back growing, admin-managed tables and genuinely need a real list call.
+
+### 15.2 Reusable picker components
+
+Build these once, reuse across every screen below that needs them.
+
+| Picker | Endpoint | Notes |
+|---|---|---|
+| Customer (loanee / guarantor) | `GET api/registry/customer/?text=&customerFilter=` | `docs/api/customer-api-spec.md` §5.1. Loanee must resolve to a customer with `recordStatus: 2` (`Approved`) — `Create` (§15.3) rejects otherwise, so filter or warn client-side if you can |
+| Loan product | `GET api/accounts/loanproducts` | Unpaged list, standard envelope. No get-by-id route — resolve the picked product's `id`/`description` from this same list response, don't expect a separate detail call |
+| Savings product | `GET api/accounts/savingsproducts` | Unpaged list — **not** wrapped in the standard `{success,message,data}` envelope, returns the raw `SavingsProductDTO[]` directly. Handle this one specially in your API client |
+| Loan purpose | `GET api/backoffice/loanpurposes` | `docs/api/loan-backoffice-catalogues-api-spec.md` §1 |
+| Registration remark | `GET api/backoffice/loaningremarks` | Same doc §2. Reference app's field label is "Remarks", not "Registration Remark" — the `LoanCaseDTO` field is `registrationRemarkId` |
+| Income adjustment | `GET api/backoffice/incomeadjustments` | Same doc §3 |
+| Collateral document | `GET api/registry/customerdocuments?customerId={id}&type=1` | `docs/api/loan-case-api-spec.md` §11. Requires the loanee's `customerId` already picked. Filter the result client-side to `collateralStatus: 0` (`Released`) — the endpoint doesn't filter for you |
+| Guarantor eligibility | `GET api/backoffice/loancases/guarantors/lookup?guarantorId={id}&loanProductId={id}` | `docs/api/loan-case-api-spec.md` §4. Call once per guarantor after they're picked (via the Customer picker above) and the loan product is already selected — shows `totalShares`/`committedShares`/`appraisalFactor`/`availableToGuarantee` so the loan officer can enter a sane `amountGuaranteed` before submitting |
+
+The loan purpose, registration remark, income adjustment, and collateral
+document picker endpoints above are the four this session added
+specifically to unblock the two form screens below (§15.3, §15.4) — none
+existed before this pass. Guarantor eligibility lookup was already part of
+`LoanCaseController` from when `Create` was first built (§14.1).
+
+### 15.3 Register a loan case — build steps
+
+`POST api/backoffice/loancases/` — full field/response reference:
+`docs/api/loan-case-api-spec.md` §5.
+
+1. **Loanee**: Customer picker (§15.2). On pick, optionally check
+   `recordStatus` client-side and warn early if not `Approved` — `Create`
+   will `400` on submit regardless, this just saves a round trip.
+2. **Loan product**: Loan product picker (§15.2). Nothing else to resolve
+   client-side — the server snapshots ~40 product fields onto the case
+   itself; you only send `loanProductId`.
+3. **Savings product**: Savings product picker (§15.2, note the unwrapped
+   response).
+4. **Loan purpose**: picker (§15.2) → `loanPurposeId`.
+5. **Registration remark**: picker (§15.2) → `registrationRemarkId`.
+6. **Amount applied / received date**: plain inputs → `amountApplied`,
+   `receivedDate`.
+7. **Branch**: `branchId` is a plain required field on the request — this
+   API does not resolve "current user's branch" server-side (no
+   `ApplicationUserManager`-equivalent lookup exists in this Web API yet).
+   Source it from wherever the logged-in user's branch is already known
+   client-side (auth/profile state), not a picker call.
+8. **Guarantors** (repeatable row, only required at all if the picked loan
+   product has `LoanRegistrationSecurityRequired: true` and isn't
+   microcredit — you don't know this until the loan product picker returns
+   its full `LoanProductDTO`, so gate the whole guarantors section on that):
+   for each row, Customer picker to pick the guarantor, then the guarantor
+   eligibility lookup (§15.2) to show real numbers, then a plain
+   `amountGuaranteed` input. Send `{ guarantorId, amountGuaranteed }` per
+   row — every other field on `LoanGuarantorDTO` is recomputed server-side,
+   don't bother collecting or sending them.
+9. **Collateral** (optional): Collateral document picker (§15.2), multi-select
+   → `collateralDocumentIds: Guid[]`.
+10. Submit `{ loanCase: {...}, guarantors: [...], collateralDocumentIds: [...] }`.
+    On `400`, show the joined validation message (membership period,
+    guarantor count/self-guarantee/sufficiency, amount-applied range,
+    retirement-age restriction are all real server-side rules — see
+    `loan-case-api-spec.md` §5 for the full list of what's checked and in
+    what order). On `409`, the customer already has an in-process
+    application for this product — `GET
+    api/backoffice/loancases/customers/{customerId}/in-process` lets you
+    check and warn *before* submit instead of only discovering it on
+    failure.
+
+### 15.4 Appraise a loan case — build steps
+
+`POST api/backoffice/loancases/{id}/appraise` — full reference:
+`docs/api/loan-case-api-spec.md` §7-8.
+
+1. Load `GET /{id}/appraisal-worksheet` — system-computed qualification
+   figures (max loan, outstanding balance, max entitled, loan+interest
+   estimate, amortized `PMT`) plus the case, its guarantors, and its
+   collaterals in one call. Show these as the starting point for the
+   appraiser to confirm or override, not as read-only display — the fields
+   below are what actually gets submitted.
+2. **Income adjustments**: Income adjustment picker (§15.2), repeatable,
+   each row = `{ incomeAdjustmentId, customerAccountId?, amount, isEnabled }`.
+   `description`/`type` are filled in server-side from the catalogue —
+   don't collect or send them.
+3. Appraiser enters/confirms: `appraisedNetIncome`, `appraisedAbility`,
+   `systemAppraisedAmount`, `systemAppraisalRemarks`, `appraisedAmount`,
+   `appraisedAmountRemarks`, `appraisalRemarks`, `monthlyPaybackAmount`,
+   `totalPaybackAmount`, `loanProductLatestIncome`, `totalLoansBalance` —
+   pre-fill from the worksheet response where it has a matching figure,
+   but every one of these is a real editable field, not read-only.
+4. **Decision**: `option` — `1` = Appraise (→ `Appraised`), `2` = Reject
+   (→ `Rejected`, releases guarantors). A simple two-button choice, not a
+   picker (§15.1).
+5. Submit. `409` means the case isn't `Registered`/`Deferred` — shouldn't
+   happen if the queue (§15.1) only lists eligible cases, but handle it
+   (someone else may have already appraised it).
+
+### 15.5 Approve a loan case — build steps
+
+`POST api/backoffice/loancases/{id}/approve` — full reference:
+`docs/api/loan-case-api-spec.md` §9.
+
+1. Load `GET /{id}` for the case (and, if useful context, re-call
+   `GET /{id}/appraisal-worksheet` — still valid post-appraisal). No
+   dedicated approval worksheet exists; nothing else to fetch.
+2. Approver enters: `approvedAmount` (required, > 0, **only** when
+   approving — not required to reject/defer), `approvedAmountRemarks`,
+   `approvedPrincipalPayment`, `approvedInterestPayment`,
+   `monthlyPaybackAmount`, `totalPaybackAmount`, `approvalRemarks`
+   (always required, every option).
+3. **Decision**: `option` — `1` = Approve, `2` = Reject, `4` = Defer
+   (note the non-sequential values — don't assume `3`).
+4. Submit. **Check the response `message`** before showing a plain
+   "approved" confirmation — if the loan product has
+   `LoanRegistrationBypassAudit` set, a successful Approve auto-chains
+   into Audit in the same call, and the case may come back `Audited`, not
+   `Approved`. The API's `message` says so explicitly
+   (`"...automatically verified..."`); surface that to the user rather
+   than assuming `status` alone tells the story.
+
+### 15.6 Audit / verify a loan case — build steps
+
+`POST api/backoffice/loancases/{id}/audit` — full reference:
+`docs/api/loan-case-api-spec.md` §10.
+
+1. Load `GET /{id}`. No worksheet, no pickers — this screen needs almost
+   nothing but the case itself and a remarks field.
+2. Auditor enters: `auditRemarks` (required, every option).
+3. **Decision**: `option` — `1` = Audit/Verify (→ `Audited`), `2` = Reject,
+   `4` = Defer.
+4. Submit. This is the consequential call — on success (`option: 1`), the
+   server may have just created the customer's loan/savings accounts and a
+   repayment `StandingOrder` (only if the product has
+   `LoanRegistrationCreateStandingOrderOnLoanAudit` set; check the response
+   `message`, same pattern as §15.5's auto-verify note, or the returned
+   `loanCase.loanRegistrationCreateStandingOrderOnLoanAudit` field). Don't
+   try to precompute or show a preview of this — treat it as a black box,
+   same guidance the disbursement docs give for
+   `LoanDisbursementBatchController.PostEntry`.
 
 Suggested build order, following this doc's own dependency chain: case
 registration (§14.1), appraisal (§14.2), approval (§14.3), and
