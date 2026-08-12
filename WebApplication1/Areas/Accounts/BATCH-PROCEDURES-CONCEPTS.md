@@ -59,8 +59,8 @@ Three real roles, not a two-step approval:
    journals. For types with a `PostXEntry` method (Credit, Debit, Wire
    Transfer, Reversal, Disbursement — see §3), individual entries only
    become payable *after* the batch itself reaches `Posted` here; for types
-   without one (Refund, Voucher, General Ledger, Inter Account Transfer —
-   confirm per type), Authorization posts every line at once.
+   without one (Refund, Voucher, General Ledger, Inter Account Transfer),
+   Authorization posts every line at once, synchronously.
 
 This is the exact same maker-checker principle already enforced elsewhere
 in this codebase (teller cash-deposit requests above a limit, the generic
@@ -71,6 +71,51 @@ different stages) — not a reason to build three separate backend
 controllers. `CreditBatchController` already proved one REST controller
 with `/{id}/audit` and `/{id}/authorize` actions covers all three stages;
 the plan is to keep doing that for the other eight.
+
+## 1.1 Frontend screen strategy, and a permission-model decision
+
+The frontend mirrors the backend's collapse: **3 screens, not 27** — one
+per stage (Origination / Verification / Authorization), each showing the 9
+batch types as tabs, rather than a separate page per `(type, stage)` pair.
+A shared shell (list + detail + status badge + stage-appropriate action
+bar) is reused across all 27 combinations; only the entry-input component
+is genuinely type-specific (typed form vs. picker vs. dual-account row —
+see the per-type table in §2).
+
+**Decision made**: per-type permission granularity is dropped in favor of
+per-stage granularity. Previously each of the 27 `NavigationMenu.cs` leaf
+items (e.g. "Verification → Wire Transfer") was its own grantable unit via
+`NavigationItemInRole` — a role could be given Verification access to some
+types but not others. That's gone now: a role is granted one of the 3
+stage-level parent items (`Batch Origination`/`Batch Verification`/`Batch
+Authorization`, codes `69`/`79`/`89`), and anyone with that grant sees all
+9 type-tabs under it. The 27 child entries are **commented out, not
+deleted**, in `NavigationMenu.cs` — re-enabling per-type granularity later
+is just uncommenting them and re-running the `SwiftFinancials.Utility`
+seeder.
+
+Two things worth knowing about this change:
+- `NavigationMenu.cs` is a **seed source**, not a live query — 
+  `SwiftFinancials.Utility` pushes it into the `NavigationItem` table via
+  `AddNavigationItemsAsync`/`INavigationItemService`, and `GET
+  /api/administration/modules/by-role` reads from that table afterward, not
+  from this file directly. Commenting out the 27 children here only stops
+  them being (re-)seeded going forward. Any environment that already ran
+  the seeder before this change may still have those 27 rows in its
+  `NavigationItem` table, and any `NavigationItemInRole` grants against
+  them still resolve — so realizing "per-stage only" there also needs the
+  existing grants on those 27 items removed (via the admin Modules
+  role-management screen/API) and replaced with a grant on the
+  corresponding parent, per environment. That's an operational step, not
+  a code change, and hasn't been run against any live database as part of
+  this change.
+- Whichever `moduleNavigationItemCode` the frontend passes into a batch
+  controller's `Authorize`/`PostEntry` calls (used for GL audit-trail
+  tagging on the posted `Journal`, not validated against the
+  `NavigationItem` table at request time) should now be one of the 3
+  stage-level parent codes, since the 27 per-type codes are no longer
+  guaranteed to exist as real `NavigationItem` rows in a freshly-seeded
+  environment.
 
 ## 2. What each type is actually for
 
