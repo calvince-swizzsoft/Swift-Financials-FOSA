@@ -320,6 +320,7 @@
     <Compile Include="Areas\Accounts\Controllers\CreditBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\DebitBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\WireTransferBatchController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\JournalReversalBatchController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

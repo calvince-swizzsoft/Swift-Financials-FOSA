@@ -14,9 +14,9 @@ covers:
 | Credit | `CreditBatchController` (`api/accounts/creditbatches`) | Built — §1 |
 | Debit | `DebitBatchController` (`api/accounts/debitbatches`) | Built — §2 |
 | Wire Transfer | `WireTransferBatchController` (`api/accounts/wiretransferbatches`) | Built — §3 |
+| Reversal | `JournalReversalBatchController` (`api/accounts/journalreversalbatches`) | Built — §4 |
 | Refund | `OverDeductionBatchController` | Not started |
 | Disbursement | `LoanDisbursementBatchController` | Not started |
-| Reversal | `JournalReversalBatchController` | Not started |
 | Voucher | `JournalVoucherController` | Not started |
 | General Ledger | `GeneralLedgerController` | Not started |
 | Inter Account Transfer | `InterAccountTransferBatchController` | Not started |
@@ -199,3 +199,65 @@ entry is **auto-rejected outright** — a different failure mode from Debit,
 which caps and partially deducts instead of rejecting.
 
 ---
+
+## 4. Journal Reversal Batch — `api/accounts/journalreversalbatches`
+
+Controller: `JournalReversalBatchController.cs`, existing
+`IJournalReversalBatchAppService`. Pick one or more already-posted
+`Journal`s and reverse them in a batch under the same three-stage control
+as every other type. An entry is just `{ journalId, remarks }` — no amount
+field, no tariffs; the amount reversed is implicitly the referenced
+journal's own amount.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/all` | GET | Unpaged list of every batch |
+| `/?status=&startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Paged batch list. **`status` is required**, same as Wire Transfer |
+| `/{id}` | GET | Single batch |
+| `/` | POST | Create batch → `Pending` |
+| `/{id}` | PUT | Update batch's `remarks`/`priority` (see §4.1 — this used to silently do nothing) |
+| `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`), `2`=Reject. Only accepts `Pending` |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; queues every entry for async posting), `2`=Reject. **Refuses outright if the batch isn't already `Audited`** |
+| `/{id}/entries?text=&pageIndex=&pageSize=` | GET | Batch entries (the `{ journalId, remarks }` picks) |
+| `/{id}/journal-entries?text=&pageIndex=&pageSize=` | GET | The actual G/L lines (`JournalEntryDTO`, not batch entries) across every `Journal` this batch's entries reference — a "here's exactly what will be reversed" preview |
+| `/entries/queueable?pageIndex=&pageSize=` | GET | Entries ready to post, across all batches — no type restriction |
+| `/entries/{entryId}` | GET | Single entry |
+| `/{id}/entries` | POST | Pick a single `Journal` to reverse and attach it to this batch |
+| `/{id}/entries/bulk` | POST | `List<JournalReversalBatchEntryDTO>` — bulk-add convenience. **Insert-only**: diffs the list against the batch's existing entries by `journalId` and inserts whatever's new; entries missing from the list are *not* removed despite the underlying method's name (`UpdateJournalReversalBatchEntries`) suggesting a full replace |
+| `/entries/remove` | POST | Batch-remove entries (`List<JournalReversalBatchEntryDTO>`) |
+| `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — reverses the entry's referenced journal via the existing `IJournalAppService.ReverseJournals`; no balance checks, no partial processing, no rejection path — it either reverses cleanly or the call fails |
+
+No CSV import exists for this type at all (`ParseJournalReversalBatchImport`
+isn't on the interface, unlike Credit/Debit/Wire Transfer) — nothing was
+excluded here, there was never anything to expose.
+
+### 4.1 `Remarks2` is a dead field, and `Update` used to be a no-op
+
+`JournalReversalBatchDTO.remarks2` is `[Required]` by validation but has
+**no backing column** on the `JournalReversalBatch` domain entity — send
+something to pass `ValidateAll()`, but don't expect it to persist or come
+back on a subsequent `GET`.
+
+**Fixed, not just documented**: `JournalReversalBatchAppService.UpdateJournalReversalBatch`
+used to fetch the persisted batch and call `SaveChanges` without ever
+copying any of the incoming DTO's fields onto it — a silent no-op that
+would return `success: true` while changing nothing. Every sibling
+`Update*Batch` method in this module copies its editable fields first; this
+one just didn't. Fixed to copy `remarks`/`priority` (not `branchId` —
+treated as immutable post-creation, same as every sibling).
+
+### 4.2 Posting timing and mechanics
+
+Same async-queue-everything shape as Debit/Wire Transfer: `Authorize` with
+`option: 1` queues every entry onto a message queue
+(`BrokerService.ProcessJournalReversalBatchEntries` →
+a dedicated posting queue path) with no type filter (there's no sub-type
+here to filter on). Don't assume `Posted` immediately after `Authorize`
+succeeds.
+
+`POST /entries/{entryId}/post` is the simplest posting mechanic in this
+whole module — no tariffs, no balance checks, no partial-processing or
+auto-reject branch. It resolves the entry's `journalId` to a `JournalDTO`
+and calls `IJournalAppService.ReverseJournals` on it. If that journal can't
+be resolved, the call just fails (`409`); there's no other failure mode to
+plan a UI around.

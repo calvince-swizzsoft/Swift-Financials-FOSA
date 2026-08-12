@@ -91,6 +91,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (persisted != null)
                 {
+                    persisted.Remarks = journalReversalBatchDTO.Remarks;
+                    persisted.Priority = (byte)journalReversalBatchDTO.Priority;
+
                     return dbContextScope.SaveChanges(serviceHeader) >= 0;
 
                 }

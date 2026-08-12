@@ -49,7 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
-| Batch procedures (Credit, Debit, Wire Transfer — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
+| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -57,6 +57,30 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — Journal Reversal added (fourth of nine types), plus a real bug fix
+
+`JournalReversalBatchController` (`api/accounts/journalreversalbatches`) —
+new. Only one reference controller exists for this type
+(`BatchOrigination_Reversal`, largely copy-pasted from Disbursement/Wire
+Transfer with the copy-paste leftovers still commented out in source, and
+missing) — Verification/Authorization dead nav links notwithstanding, that
+one controller already covers Create/Verify/Authorize, folded into this one
+controller same as everywhere else. It also has **no entry-adding UI at
+all**, so the entry shape came from reading `JournalReversalBatchAppService`
+directly: an entry is just `{ journalId, remarks }` — pick an
+already-posted `Journal` and reverse it; no amount, no tariffs.
+
+**Real bug found and fixed, not just ported forward**:
+`JournalReversalBatchAppService.UpdateJournalReversalBatch` fetched the
+persisted batch and saved without ever copying the incoming DTO's fields
+onto it — every `PUT` silently did nothing while reporting `success: true`.
+Fixed to copy `remarks`/`priority`, matching every sibling `Update*Batch`
+method in this module. Also flagged (not fixed — no backing column exists
+to fix it against): `remarks2` on the DTO is `[Required]` by validation but
+is a dead field, never persisted.
+
+Full detail: `batch-procedures-api-spec.md` §4.
 
 ### Batch Procedures API — Wire Transfer added (third of nine types)
 

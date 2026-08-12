@@ -231,3 +231,23 @@ drift out of sync with the actual code.
   (MPESA B2C/B2B/EFT) — `ThirdPartyResponse` on the entry DTO is never set
   anywhere in the app service. Insufficient balance auto-rejects the entry
   outright, unlike Debit's partial-deduction behavior.
+- `Areas/Accounts/Controllers/JournalReversalBatchController.cs` (new,
+  existing `IJournalReversalBatchAppService`; batch CRUD/audit/authorize +
+  entry add/bulk-add/remove/browse/post) — fourth of the "Batch Procedures"
+  module (see `docs/api/batch-procedures-api-spec.md` §4). Only one
+  reference controller exists for this type (`BatchOrigination_Reversal`,
+  largely copy-pasted from Disbursement/Wire Transfer with the leftovers
+  still commented out) and it has no entry-adding UI at all, so the entry
+  shape — `{ journalId, remarks }`, picking an already-posted `Journal` to
+  reverse, no amount/tariffs — came from reading
+  `JournalReversalBatchAppService` directly rather than the reference
+  screen. **Real bug found and fixed**: `UpdateJournalReversalBatch` used to
+  fetch the batch and save without copying any DTO fields onto it — every
+  update silently did nothing. Fixed to copy `remarks`/`priority`, matching
+  every sibling `Update*Batch` method. Also flagged (can't be fixed, no
+  backing column exists): `JournalReversalBatchDTO.Remarks2` is `[Required]`
+  by validation but is a dead field, never persisted. `Authorize` requires
+  `Audited` first and always queues every entry for async posting, same as
+  Debit/WireTransfer; `PostEntry` just calls the existing
+  `IJournalAppService.ReverseJournals` — no balance checks or partial
+  processing, simplest posting mechanic in this module.
