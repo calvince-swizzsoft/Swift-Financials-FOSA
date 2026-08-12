@@ -577,6 +577,64 @@ repayment `StandingOrder` never got created. Fixed to match `Audited` — see
 
 Full reference: `docs/api/loan-case-api-spec.md` §10.
 
+## 15. Frontend screens
+
+What the frontend needs to build against the four live stages
+(registration → appraisal → approval → audit/verification — §14.1-14.4).
+Full request/response shapes: `docs/api/loan-case-api-spec.md`. Same
+screen-collapse principle as `BATCH-PROCEDURES-CONCEPTS.md` §1.1: one
+shared queue+detail shell reused across stages, not four one-off screens —
+every stage lists the same `LoanCaseDTO` shape and differs mainly in which
+status it filters on and which action button appears.
+
+### 15.1 Screen list
+
+| Screen | Who | Key API calls | Notes |
+|---|---|---|---|
+| Registration queue | Loan officer | `GET /?status=0` (`Registered`) | Default landing list — reference app's own default filter |
+| Register a loan case | Loan officer | `GET /guarantors/lookup` (per guarantor as picked), `POST /` | Multi-section form — loanee, product, guarantors, collateral. See §15.2 for picker gaps that block parts of this form today |
+| Loan case detail | Anyone | `GET /{id}` (case + guarantors + collaterals) | Shared read view every other screen can link out to |
+| Appraisal queue | Appraiser | `GET /?status=0` (same `Registered`/`Deferred` queue registration uses — appraisal is the next action on those same cases) | |
+| Appraise a loan case | Appraiser | `GET /{id}/appraisal-worksheet`, `GET /{id}/appraisal-factors`, `POST /{id}/appraise` | Worksheet gives system-computed qualification figures before the appraiser overrides/confirms them |
+| Approval queue | Approver | `GET /?status=1` (`Appraised`) | |
+| Approve a loan case | Approver | `GET /{id}`, `POST /{id}/approve` | No dedicated worksheet — `GET /{id}` plus the appraisal figures already on the case (from `GET /{id}/appraisal-worksheet`, still valid to re-call) are enough |
+| Audit / verification queue | Auditor | `GET /?status=2` (`Approved`) | |
+| Audit / verify a loan case | Auditor | `GET /{id}`, `POST /{id}/audit` | Show the auto-verification note if the response `message` says the product bypassed audit on approve (§14.3) |
+
+`status` is a raw `LoanCaseStatus` int
+(`Infrastructure.Crosscutting.Framework.Utils.Enumerations.cs`) — don't
+hardcode the `0xBEBA`-based values client-side; resolve them from whatever
+enum/lookup mechanism the rest of the frontend already uses for other
+server enums (see `EnumerationAppService`/`api/administration/...` if one
+exists) rather than duplicating magic numbers here.
+
+### 15.2 Blocking gap: four pickers have no list endpoint yet
+
+The registration form needs to let the loan officer *pick* a loan purpose,
+a registration remark, and (optionally) collateral documents — and the
+appraisal worksheet needs an income-adjustment picker for the factors list.
+All four referenced app services already exist and are already used
+*internally* by `LoanCaseController` (resolving an id the client sends into
+a real record), but **none of them has a list/search endpoint a frontend
+picker can call**:
+
+| Needed for | App service | Controller status |
+|---|---|---|
+| Loan purpose picker (`Create`) | `ILoanPurposeAppService` | No controller — §13 |
+| Registration remark picker (`Create`) | `ILoaningRemarkAppService` | No controller — §13 |
+| Collateral document picker (`Create`) | `ICustomerDocumentAppService` | No controller anywhere in `WebApplication1` |
+| Income adjustment picker (`Appraise`) | `IIncomeAdjustmentAppService` | No controller — §13 |
+
+Until at least the first two exist, the registration screen can't offer a
+real picker for two of its five required fields (`loanPurposeId`,
+`registrationRemarkId`) — a frontend team would have to hardcode ids or
+hand-query the database directly, neither of which is a real fix. Building
+simple list/search CRUD controllers for `LoanPurpose`/`LoaningRemark`/
+`IncomeAdjustment` (§13's "build as plain CRUD controllers when their first
+consumer needs them" — that consumer is now this screen) and a minimal
+`CustomerDocument` list-by-customer endpoint should happen before or
+alongside frontend work on this form, not after.
+
 Suggested build order, following this doc's own dependency chain: loan
 request intake (§5) and reference-data catalogues (§13, needed by every
 downstream screen's pickers) still not started; case registration (§14.1),

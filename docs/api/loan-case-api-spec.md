@@ -4,7 +4,9 @@ Base path: `api/backoffice/loancases`. Controller:
 `WebApplication1/Areas/BackOffice/Controllers/LoanCaseController.cs`.
 Functional design: `WebApplication1/Areas/BackOffice/WORKFLOW.md` §5 (loan
 request intake, upstream of this), §14.1 (registration), §14.2 (appraisal),
-§14.3 (approval), and §14.4 (audit/verification).
+§14.3 (approval), §14.4 (audit/verification), and **§15 (frontend screen
+list — start there if you're building the UI, it also flags four picker
+endpoints that don't exist yet and block part of the registration form)**.
 
 This covers the entire core loan origination pipeline: opening a loan case
 with its guarantors and collateral, appraising it, approving it, and
