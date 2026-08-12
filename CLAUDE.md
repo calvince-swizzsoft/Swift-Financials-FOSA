@@ -355,14 +355,39 @@ drift out of sync with the actual code.
   shared `IJournalAppService.AddNewJournal` (not `BulkSave`), with any
   attached `DynamicCharge`s fed in as real transfer-fee tariffs.
 
-Not yet started: the loan origination pipeline itself (`BackOfficeModule`
-— loan request intake, case registration, appraisal, approval, audit/
-verification, guarantor/collateral management, restructuring, cancellation,
-payroll check-off data capture, plus reference-data catalogues). Only its
-tail end, disbursement batching, is live (`LoanDisbursementBatchController`
-above). Before starting any of this, read
-`Areas/BackOffice/WORKFLOW.md` — the functional design doc for the whole
-module, including the reference MVC app's 23-controller `Areas/Loaning`
-inventory, the full `LoanCase` state machine, and a known latent bug in
-`LoanCaseAppService`'s status guard clauses worth fixing or at least
-flagging while building the appraise/approve/audit controllers.
+- `Areas/BackOffice/Controllers/LoanCaseController.cs` (new, existing
+  `ILoanCaseAppService`; loan case CRUD reads + a `Create` that registers a
+  case with guarantors and collateral in one call, plus a guarantor
+  eligibility lookup) — start of the loan origination pipeline
+  (`BackOfficeModule`); see `Areas/BackOffice/WORKFLOW.md` §14.1 for the
+  full account of what was adapted. Unlike the Batch Procedures module,
+  `AddNewLoanCase` itself enforces almost none of the real business rules —
+  the ~40-field loan-product-at-registration-time snapshot, guarantor
+  count/self-guarantee/share-sufficiency checks, and the minimum-membership-
+  period gate all lived only in the reference MVC controller's session-
+  driven wizard, so they had to be reproduced here rather than assumed to
+  already exist server-side. **Real bug found and fixed in
+  `LoanCaseAppService.UpdateLoanCaseAsync`**: two lines immediately after
+  restoring `persisted.CreatedDate` re-stamped it to `DateTime.UtcNow` right
+  back, and unconditionally set `CancelledBy` on every plain update, not
+  just cancellations — both directly contradicted the method's own
+  preceding comment and were removed. Also fixed: the reference `Create`
+  action called `loanCaseDTO.ValidateAll()` but never checked `HasErrors`,
+  silently discarding every `CustomValidation` rule on the DTO — this
+  controller checks it and returns 400 with the real messages. Guarantor
+  share values (`TotalShares`/`CommittedShares`/`AppraisalFactor`) are
+  computed server-side, not trusted from the request body, same reasoning
+  as the `InterAccountTransferBatch` fix.
+
+Not yet started: the rest of the loan origination pipeline (`BackOfficeModule`
+— loan request intake, appraisal, approval, audit/verification, guarantor/
+collateral management beyond initial attach, restructuring, cancellation,
+payroll check-off data capture, plus reference-data catalogues). Before
+starting any of this, read `Areas/BackOffice/WORKFLOW.md` — the functional
+design doc for the whole module, including the reference MVC app's
+23-controller `Areas/Loaning` inventory, the full `LoanCase` state machine,
+and a known latent bug in `LoanCaseAppService`'s status guard clauses
+(`AppraiseLoanCase`/`ApproveLoanCase`/`AuditLoanCase`/
+`MarkLoanCaseDisbursed`, distinct from the `UpdateLoanCaseAsync` bug already
+fixed above) worth fixing or at least flagging while building the
+appraise/approve/audit controllers.

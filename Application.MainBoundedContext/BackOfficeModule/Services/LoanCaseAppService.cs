@@ -1020,10 +1020,6 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         persisted.CreatedBy = originalCreatedBy; // Keep original creator
                         persisted.CreatedDate = originalCreatedDate;
 
-                        // Update modification tracking
-                        persisted.CancelledBy = serviceHeader.ApplicationUserName;
-                        persisted.CreatedDate = DateTime.UtcNow;
-
                         result = await dbContextScope.SaveChangesAsync(serviceHeader) >= 0;
                     }
                 }

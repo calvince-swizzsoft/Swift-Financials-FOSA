@@ -52,11 +52,46 @@ what to go update.
 | Batch procedures — all nine types (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger, Inter Account Transfer) | `api/accounts/{creditbatches,debitbatches,wiretransferbatches,journalreversalbatches,overdeductionbatches,loandisbursementbatches,journalvouchers,generalledgers,interaccounttransferbatches}` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
+| Loan case registration (back office — loan origination pipeline, intake stage) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Loan Case API — new, first controller in the Back Office / loan origination pipeline
+
+`LoanCaseController` (`api/backoffice/loancases`) — loan case registration:
+CRUD reads, a guarantor eligibility lookup, and a `Create` that registers a
+case with its guarantors and collateral in one call. This is the intake
+stage only — appraisal, approval, and audit/verification are separate,
+not-yet-built stages; see `WebApplication1/Areas/BackOffice/WORKFLOW.md`
+for the whole module's design and current status.
+
+Unlike the Batch Procedures module, `ILoanCaseAppService.AddNewLoanCase`
+itself enforces almost none of the real business rules — the reference MVC
+controller's session-driven wizard owned the ~40-field
+loan-product-at-registration-time snapshot, guarantor
+count/self-guarantee/share-sufficiency checks, and the
+minimum-membership-period gate, so all of that had to be reproduced in this
+controller rather than assumed to already exist server-side.
+
+Two things fixed rather than ported forward:
+- **Real bug in `LoanCaseAppService.UpdateLoanCaseAsync` itself**: two
+  lines re-stamped `persisted.CreatedDate` to `DateTime.UtcNow` immediately
+  after the method had already restored it, and unconditionally stamped
+  `CancelledBy` on every plain update, not just cancellations — both
+  contradicted the method's own preceding comment and were removed.
+- The reference `Create` action called `loanCaseDTO.ValidateAll()` but
+  never checked `HasErrors`, silently discarding every `CustomValidation`
+  rule on the DTO (amount-applied range, retirement age, security
+  sufficiency). This controller checks it and returns a real `400`.
+
+Guarantor share values (`totalShares`/`committedShares`/`appraisalFactor`)
+are computed server-side, not trusted from the request body — same
+reasoning as the Inter Account Transfer `availableBalance` fix below.
+
+Full reference: `loan-case-api-spec.md`.
 
 ### Batch Procedures API — Inter Account Transfer added, module complete (ninth of nine types), plus a real control-bypass bug fixed
 

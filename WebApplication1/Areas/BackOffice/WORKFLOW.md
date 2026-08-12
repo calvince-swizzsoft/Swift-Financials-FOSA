@@ -319,7 +319,7 @@ building any of the rows below.
 | Functional area | Reference MVC controller | This repo | Status |
 |---|---|---|---|
 | Loan request intake | `LoanRequestController` | — | Not built |
-| Loan case registration | `LoanRegistrationController` | — | Not built |
+| Loan case registration | `LoanRegistrationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.1 |
 | Appraisal | `AppraiseLoanController` | — | Not built |
 | Approval | `ApproveLoanController` | — | Not built |
 | Audit / verification | `LoanVerificationController` | — | Not built |
@@ -342,6 +342,74 @@ building any of the rows below.
 | Repayment schedule preview | `RepaymentScheduleController` | — | Not built (see §13) |
 | Loan reporting by status | `ReportsController` | — | Not built |
 | **Disbursement batch** | `AuthorizeLoanBatchController` | `Areas/Accounts/Controllers/LoanDisbursementBatchController.cs` | **Live** — see §11 |
+
+## 14.1 Loan case registration, as built
+
+`LoanCaseController` (`ILoanCaseAppService`, existing) — full CRUD read
+endpoints plus a `Create` that registers a new loan case with guarantors
+and collateral in one call, and a guarantor eligibility lookup for the
+registration screen. Unlike every controller built so far in the "Batch
+Procedures" module, `AddNewLoanCase` itself does almost none of the real
+business rules — it only rejects a duplicate in-process application for the
+same customer/product and persists whatever `LoanCaseDTO` it's handed.
+Every other rule the reference `LoanRegistrationController` enforces (the
+~40-field loan-product-at-registration-time snapshot, minimum/maximum
+guarantor counts, self-guarantee permission, guarantor share sufficiency,
+the minimum-membership-period gate) lives in the reference *controller*
+itself, a session/TempData-driven MVC wizard — so it had to be reproduced
+here rather than assumed to already exist server-side, the same lesson
+`BATCH-PROCEDURES-CONCEPTS.md` §5 already learned the hard way ("a DTO's
+fields are not proof of behavior in this codebase" generalizes to "an app
+service's existence is not proof it enforces the rules its callers assume
+it does").
+
+Two corrections made against the reference, not just ported forward:
+
+- Guarantor share values (`TotalShares`/`CommittedShares`/`AppraisalFactor`)
+  are computed server-side from real data (customer accounts,
+  `FindLoanGuarantorsByCustomerId`, `GetGuarantorAppraisalFactor`) rather
+  than trusted from the request body — same reasoning as the
+  `InterAccountTransferBatch` `AvailableBalance` fix. This also means
+  `LoanGuarantorDTO`'s own `ValidateAmountGuaranteed` validator (which
+  correctly multiplies `TotalShares` by `AppraisalFactor`) is what actually
+  gates a guarantor here — the reference controller's manual check never
+  applied the appraisal factor at all, a real gap in the reference, not a
+  simplification worth keeping.
+- The reference `Create` action calls `loanCaseDTO.ValidateAll();` and then
+  never checks `HasErrors` — every one of `LoanCaseDTO`'s `CustomValidation`
+  rules (security sufficiency, amount-applied range, retirement age, budget
+  balance) silently runs and is silently discarded. `LoanCaseController`
+  checks `HasErrors` and returns 400 with the real messages instead.
+
+**Real bug found and fixed in `LoanCaseAppService.UpdateLoanCaseAsync`
+itself** (not just the controller): two lines immediately after the method
+already restores `persisted.CreatedDate` to its original value re-stamped
+it to `DateTime.UtcNow` right back, and unconditionally set `CancelledBy`
+on every plain update — not just cancellations. Both lines directly
+contradicted the method's own preceding comment ("Restore original values
+that were overwritten") and were removed. Same class of bug as
+`JournalReversalBatch`'s `UpdateJournalReversalBatch` fix elsewhere in this
+codebase.
+
+Deliberately not reproduced: `GetDocumentsAsync`'s raw ADO.NET query
+against `swiftFin_SpecimenCapture` for passport/signature/ID photos, and
+`LoaneeLookup`'s `MessageBox.Show(Form.ActiveForm, ...)` call — genuine
+`System.Windows.Forms` code that cannot execute in a web request pipeline
+at all, dead in the reference app's own web context. `LoaneeLookup`'s
+composite "customer 360" view (standing orders, payouts, in-process loan
+applications) was also not reproduced as a bespoke aggregate endpoint —
+every piece already has (or, for in-process applications, now has here —
+`GET .../customers/{customerId}/in-process`) its own real endpoint;
+composing them again here would just duplicate
+`StandingOrderController`/`CreditBatchController`.
+
+Scope decision: `BranchId` is supplied by the caller on the request body,
+not resolved server-side from "the current user's branch" — the reference
+did that via `ApplicationUserManager` (ASP.NET Identity, MVC-only), and no
+Web API controller in this repo performs that lookup today. Branch
+budget-balance validation is left unpopulated, matching the reference
+`Create` action's own behavior — real budget balance computation is
+`IBudgetAppService`'s job, out of scope here.
 
 Suggested build order, following this doc's own dependency chain: loan
 request intake (§5) and reference-data catalogues (§13, needed by every
