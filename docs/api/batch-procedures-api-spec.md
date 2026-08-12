@@ -15,7 +15,7 @@ covers:
 | Debit | `DebitBatchController` (`api/accounts/debitbatches`) | Built — §2 |
 | Wire Transfer | `WireTransferBatchController` (`api/accounts/wiretransferbatches`) | Built — §3 |
 | Reversal | `JournalReversalBatchController` (`api/accounts/journalreversalbatches`) | Built — §4 |
-| Refund | `OverDeductionBatchController` | Not started |
+| Refund | `OverDeductionBatchController` (`api/accounts/overdeductionbatches`) | Built — §5 |
 | Disbursement | `LoanDisbursementBatchController` | Not started |
 | Voucher | `JournalVoucherController` | Not started |
 | General Ledger | `GeneralLedgerController` | Not started |
@@ -261,3 +261,63 @@ auto-reject branch. It resolves the entry's `journalId` to a `JournalDTO`
 and calls `IJournalAppService.ReverseJournals` on it. If that journal can't
 be resolved, the call just fails (`409`); there's no other failure mode to
 plan a UI around.
+
+---
+
+## 5. Refund (Over Deduction) Batch — `api/accounts/overdeductionbatches`
+
+Controller: `OverDeductionBatchController.cs`, existing
+`IOverDeductionBatchAppService`. Refunds a prior over-collection (from a
+Credit/Debit/CheckOff run) back to the affected member. An entry pairs a
+debit side and a credit side — both real `CustomerAccount`s — plus
+`principal`/`interest`, the amount to move. Both amount fields are real and
+trustworthy, unlike Credit/Debit's dead/computed-only equivalents.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/all` | GET | Unpaged list of every batch |
+| `/?status=&startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Paged batch list. **`status` is required**, same as Wire Transfer/Reversal |
+| `/{id}` | GET | Single batch |
+| `/` | POST | Create batch → `Pending` |
+| `/{id}` | PUT | Update `totalValue`. Response message flags whether entries now sum to it exactly — see §5.1 |
+| `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`), `2`=Reject. Only accepts `Pending` |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; **posts every entry's journal(s) synchronously, in this same call** — see §5.2), `2`=Reject. Refuses outright if the batch isn't already `Audited` |
+| `/{id}/entries?text=&pageIndex=&pageSize=` | GET | Entries within one batch |
+| `/{id}/entries` | POST | Add an entry to a batch |
+| `/entries/remove` | POST | Batch-remove entries (`List<OverDeductionBatchEntryDTO>`) |
+
+That's the full route surface — no `entries/{entryId}`, no
+`entries/queueable`, no `entries/{entryId}/post`. `IOverDeductionBatchAppService`
+doesn't expose any of them, and §5.2 explains why there's nothing to browse
+or post individually here.
+
+### 5.1 `Update`'s return value means "balanced", not "succeeded"
+
+`UpdateOverDeductionBatch` really does copy `totalValue` onto the persisted
+batch (unlike Journal Reversal Batch's bug, already fixed) — but its
+boolean return is `persisted.TotalValue == sum(entries.principal + entries.interest)`,
+an **exact equality** check, not Credit's "does not exceed". Getting back
+`false` from this endpoint doesn't mean the save failed; it means the batch
+isn't balanced yet (entries still need adding/adjusting before it can be
+audited). The controller reflects this in the response `message` rather
+than treating it as an error.
+
+### 5.2 The only type in this module where Authorize posts synchronously
+
+Every other type built so far (Credit's Payout/CheckOff, Debit,
+Wire Transfer, Journal Reversal) queues its entries onto an async message
+broker on `Authorize` and posts them later, out of band.
+**`AuthorizeOverDeductionBatch` does not** — it loops every entry inline,
+in the same call, and posts real journals via `BulkSave` before returning.
+It is safe (and correct) to treat every entry as `Posted` immediately after
+`Authorize` returns `success: true` here — the opposite assumption from
+every sibling type.
+
+What gets posted per entry, for context (not something a client needs to
+compute — this is server-side only):
+- **Savings/Investment** debit accounts: one journal moving `principal +
+  interest` from the debit account's product G/L to the credit account's.
+- **Loan** debit accounts: three separate journals — an interest
+  receivable entry, an interest received/charged reversal, and a principal
+  entry — to properly unwind a loan repayment's interest recognition
+  rather than just moving a lump sum.

@@ -49,7 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
-| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
+| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -57,6 +57,36 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — Refund added (fifth of nine types, Group A complete)
+
+`OverDeductionBatchController` (`api/accounts/overdeductionbatches`) — new,
+and the last of the five structurally-similar-to-Credit types (Debit, Wire
+Transfer, Reversal, Refund). Refunds a prior over-collection back to the
+affected member; an entry pairs a debit `CustomerAccount` and a credit
+`CustomerAccount` plus `principal`/`interest` — both real, trustworthy
+amount fields, unlike Credit/Debit's dead or computed-only equivalents.
+
+**The one thing worth knowing before building against this**:
+`AuthorizeOverDeductionBatch` posts every entry's journal(s)
+**synchronously, inline, in the same call** — the only type in this module
+where that's true. Every other type built so far (Credit's Payout/CheckOff,
+Debit, Wire Transfer, Journal Reversal) queues entries onto an async
+message broker and posts them later, out of band; Refund does not. It's
+safe to assume every entry is `Posted` immediately after `Authorize`
+returns `success: true` here — the opposite assumption from every sibling.
+Consistent with that, there's no `PostEntry`/queueable/single-entry-lookup
+surface at all on this app service — nothing is ever left half-posted to
+browse or retry.
+
+Also note: `Update`'s boolean return here means "entries now sum to
+exactly `totalValue`", not "the save succeeded" — a `false`/non-error
+response just means the batch isn't balanced yet.
+
+Full detail: `batch-procedures-api-spec.md` §5. This completes "Group A"
+(Credit, Debit, Wire Transfer, Reversal, Refund) — the five types
+structurally closest to Credit. Remaining: Disbursement, Voucher, General
+Ledger, Inter Account Transfer.
 
 ### Batch Procedures API — Journal Reversal added (fourth of nine types), plus a real bug fix
 

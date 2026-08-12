@@ -251,3 +251,20 @@ drift out of sync with the actual code.
   Debit/WireTransfer; `PostEntry` just calls the existing
   `IJournalAppService.ReverseJournals` — no balance checks or partial
   processing, simplest posting mechanic in this module.
+- `Areas/Accounts/Controllers/OverDeductionBatchController.cs` (new,
+  existing `IOverDeductionBatchAppService`; batch CRUD/audit/authorize +
+  entry add/remove/browse) — fifth of the "Batch Procedures" module and the
+  last of "Group A" (Credit, Debit, WireTransfer, Reversal, Refund — see
+  `docs/api/batch-procedures-api-spec.md` §5). Refunds a prior
+  over-collection back to a member; an entry pairs a debit and credit
+  `CustomerAccount` plus real `Principal`/`Interest` amounts. **The one
+  type in this module where `Authorize` posts every entry's journal(s)
+  synchronously, inline, in the same call** — no async message-broker
+  dispatch at all, unlike Credit/Debit/WireTransfer/Reversal — so it's safe
+  to assume entries are `Posted` immediately after `Authorize` succeeds
+  here, the opposite assumption from every sibling. Consistent with that,
+  there's no `PostEntry`/queueable/single-entry-lookup on this app service
+  at all. `Update`'s boolean return means "entries now sum to exactly
+  `TotalValue`" (equality, not Credit's "does not exceed"), not "save
+  failed" — reflected in the controller's response message, not treated as
+  an error.
