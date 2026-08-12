@@ -49,7 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
-| Batch procedures (Credit, Debit — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
+| Batch procedures (Credit, Debit, Wire Transfer — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -57,6 +57,23 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — Wire Transfer added (third of nine types)
+
+`WireTransferBatchController` (`api/accounts/wiretransferbatches`) — new.
+No plain unified reference controller existed for this type (only the
+three-way `BatchOrigination_WireTransfer`/`BatchVerification_WireTransfer`/
+`BatchAuthorization_WireTransfer` split), folded into one controller here
+same as every other type in this module. Blends traits from both Credit and
+Debit: has a real `TotalValue` control-total (like Credit) but strictly
+requires `Audited` before `Authorize` and always queues every entry on
+authorize with no type carve-out (like Debit). One new thing worth flagging
+if you're building against it: `POST /entries/{entryId}/post` posts a real
+GL journal (debits the customer, credits the wire-transfer-type's clearing
+account) but **does not call any external MPESA/EFT gateway** despite the
+type naming — `thirdPartyResponse` on the entry DTO is never populated.
+If a customer's balance can't cover an entry, it's auto-rejected outright
+rather than partially processed. Full detail: `batch-procedures-api-spec.md` §3.
 
 ### Batch Procedures API — new, first two of nine types (Credit, Debit)
 

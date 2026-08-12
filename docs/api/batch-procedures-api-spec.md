@@ -13,8 +13,8 @@ covers:
 |---|---|---|
 | Credit | `CreditBatchController` (`api/accounts/creditbatches`) | Built — §1 |
 | Debit | `DebitBatchController` (`api/accounts/debitbatches`) | Built — §2 |
+| Wire Transfer | `WireTransferBatchController` (`api/accounts/wiretransferbatches`) | Built — §3 |
 | Refund | `OverDeductionBatchController` | Not started |
-| Wire Transfer | `WireTransferBatchController` | Not started |
 | Disbursement | `LoanDisbursementBatchController` | Not started |
 | Reversal | `JournalReversalBatchController` | Not started |
 | Voucher | `JournalVoucherController` | Not started |
@@ -139,5 +139,63 @@ There is also no `TotalValue` field on `DebitBatchDTO` at all, so unlike
 every other batch type in this module, there is no "entries total must not
 exceed the batch's declared total" control-total check anywhere in
 `DebitBatchAppService` — nothing to validate client-side there either.
+
+---
+
+## 3. Wire Transfer Batch — `api/accounts/wiretransferbatches`
+
+Controller: `WireTransferBatchController.cs`, existing
+`IWireTransferBatchAppService`. `WireTransferBatchType` on the header:
+`0`=MPESA B2C, `1`=MPESA B2B, `2`=EFT — not used to gate anything
+server-side, just a label.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/all` | GET | Unpaged list of every batch |
+| `/?status=&startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Paged batch list. **`status` is required** — there is no status-less paged overload on this app service, unlike Credit/Debit |
+| `/{id}` | GET | Single batch |
+| `/` | POST | Create batch → `Pending` |
+| `/{id}` | PUT | Update batch's own fields (`totalValue`, `reference`, `priority`) |
+| `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`, only if entries total ≤ `TotalValue`), `2`=Reject. Only accepts `Pending` |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; queues every entry for async posting — see §3.1), `2`=Reject. **Refuses outright if the batch isn't already `Audited`** |
+| `/{id}/entries?text=&pageIndex=&pageSize=` | GET | Entries within one batch (no `filter` param) |
+| `/entries/queueable?pageIndex=&pageSize=` | GET | Entries ready to post, across all batches — no type restriction |
+| `/entries/{entryId}` | GET | Single entry |
+| `/{id}/entries` | POST | Add an entry to a batch |
+| `/entries/{entryId}` | PUT | Update an entry (status is forward-only: `Pending → Posted/Rejected`) |
+| `/entries/remove` | POST | Batch-remove entries (`List<WireTransferBatchEntryDTO>`) |
+| `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — posts the entry's GL journal, or auto-rejects it — see §3.2 |
+
+No customer-scoped entry browse (`.../entries/customer/{customerId}`)
+exists for this type, unlike Credit/Debit — `IWireTransferBatchAppService`
+doesn't expose one.
+
+### 3.1 Posting timing — always async, no type filter
+
+Same shape as Debit: `Authorize` with `option: 1` queues **every** entry
+onto an async message queue (`BrokerService.ProcessWireTransferBatchEntries`
+→ `WireTransferBatchPostingQueuePath`) regardless of `WireTransferBatchType`.
+Don't assume `Posted` immediately after `Authorize` succeeds.
+
+### 3.2 What posting an entry actually does — and doesn't do
+
+Unlike Debit, `WireTransferBatchEntryDTO.amount` **is** a real, trustworthy,
+client-supplied figure — no tariff-basis computation needed to know an
+entry's value up front. `POST /entries/{entryId}/post` debits the
+customer's product account for `amount` plus the wire-transfer-type's own
+tariffs, and credits the `WireTransferType`'s G/L account (a
+suspense/clearing account) — one journal, same shape as Credit's Payout
+posting.
+
+**Despite the MPESA B2C/B2B/EFT type naming, no external gateway call
+happens anywhere in this flow.** `WireTransferBatchEntryDTO.thirdPartyResponse`
+exists on the DTO but is never set by `WireTransferBatchAppService` —
+posting here only moves the money to a clearing G/L account internally;
+actually dispatching to Mpesa or an EFT/SWIFT network, if required, is a
+separate integration this API does not perform.
+
+If the customer's available balance can't cover `amount + tariffs`, the
+entry is **auto-rejected outright** — a different failure mode from Debit,
+which caps and partially deducts instead of rejecting.
 
 ---

@@ -215,3 +215,19 @@ drift out of sync with the actual code.
   where only `Payout`/`CheckOff` get queued and `CashPickup` stays manual).
   No single-entry lookup or entry-status-update exists on this app service,
   unlike Credit's — not built to fake one.
+- `Areas/Accounts/Controllers/WireTransferBatchController.cs` (new, existing
+  `IWireTransferBatchAppService`; batch CRUD/audit/authorize + entry
+  add/update/remove/browse/post) — third of the "Batch Procedures" module
+  (see `docs/api/batch-procedures-api-spec.md` §3). No plain unified
+  reference controller existed for this type, only the three-way
+  `BatchOrigination_WireTransfer`/`BatchVerification_WireTransfer`/
+  `BatchAuthorization_WireTransfer` split — folded into one, same as every
+  other type here. Blends Credit and Debit traits: real `TotalValue`
+  control-total like Credit, but `Authorize` strictly requires `Audited`
+  first and always queues every entry for async posting with no per-type
+  carve-out, like Debit. `POST .../post` posts a real GL journal (debit
+  customer, credit the wire-transfer-type's clearing G/L account) but
+  **does not call any external MPESA/EFT gateway** despite the type naming
+  (MPESA B2C/B2B/EFT) — `ThirdPartyResponse` on the entry DTO is never set
+  anywhere in the app service. Insufficient balance auto-rejects the entry
+  outright, unlike Debit's partial-deduction behavior.
