@@ -4,16 +4,16 @@ Base path: `api/backoffice/loancases`. Controller:
 `WebApplication1/Areas/BackOffice/Controllers/LoanCaseController.cs`.
 Functional design: `WebApplication1/Areas/BackOffice/WORKFLOW.md` §5 (loan
 request intake, upstream of this), §14.1 (registration), §14.2 (appraisal),
-and §14.3 (approval).
+§14.3 (approval), and §14.4 (audit/verification).
 
-This covers the first three stages of the loan origination pipeline:
-opening a loan case with its guarantors and collateral, appraising it, and
-approving it. Audit/verification (`LoanCaseStatus.Approved → Audited`) is
-the next, not-yet-built stage — see `WORKFLOW.md` §8; it's the
-consequential one, creating the customer's loan/savings accounts and
-repayment `StandingOrder`. Disbursement (`LoanCaseStatus.Audited →
-Disbursed`) is already documented separately: `batch-procedures-api-spec.md`
-§6.
+This covers the entire core loan origination pipeline: opening a loan case
+with its guarantors and collateral, appraising it, approving it, and
+auditing/verifying it (`LoanCaseStatus.Registered → Appraised → Approved →
+Audited`). Disbursement (`LoanCaseStatus.Audited → Disbursed`) is already
+documented separately: `batch-procedures-api-spec.md` §6. What's left
+outside this doc: loan request intake, guarantor sub-flows beyond initial
+attach, restructuring, cancellation, and reference-data catalogues — see
+`WORKFLOW.md` §5, §9-10, §13.
 
 ## Conventions
 
@@ -292,8 +292,60 @@ themselves**, same shape as the Appraise fix in §8: the guard clause used
 to force-set `persisted.Status` to `Appraised` before even null-checking
 the fetched entity. Fixed the same way.
 
+## 10. Audit / verify a loan case
+
+`POST /{id}/audit`
+
+```json
+{
+  "option": 1,
+  "auditRemarks": "..."
+}
+```
+
+`option`: `LoanAuditOption` — `1` = Audit (labeled "Verify" in the
+reference UI; → `Audited`), `2` = Reject (→ `Rejected`, releases
+guarantors), `4` = Defer (→ `Deferred`). Requires the case to currently be
+`Approved` — `409` otherwise. `auditRemarks` is required for every option.
+
+This is the consequential transition. On `Audit`, `AuditLoanCase` (entirely
+server-side, driven by fields already on the case from registration and
+approval — nothing else needed in the request body):
+
+1. Creates the customer's loan `CustomerAccount` if one doesn't already
+   exist for this loan product (and the savings account too, if the case
+   has a savings product and one doesn't exist).
+2. Computes the loan's present value and payment-per-period (`PV`/`PMT`)
+   off the case's `LoanRegistration`/`LoanInterest` settings.
+3. Recovers any upfront dynamic charges configured on the loan product,
+   folding them into the present value (`auditTopUpAmount`).
+4. Builds (or updates, if one already exists between these two accounts) a
+   repayment `StandingOrder` from the savings account to the loan account,
+   using the computed schedule's first-period principal/interest (or the
+   amortized average, for straight-line/diminishing-balance interest
+   modes) — but only when the loan product has
+   `LoanRegistrationCreateStandingOrderOnLoanAudit` set. When it isn't, the
+   case is still marked `Audited`, just without account/standing-order
+   creation — check the response `message` (or
+   `loanCase.loanRegistrationCreateStandingOrderOnLoanAudit` on the
+   returned DTO) to know which happened.
+
+Treat this as a black box — don't try to precompute or second-guess the
+result client-side, same discipline as
+`LoanDisbursementBatchController.PostEntry`
+(`batch-procedures-api-spec.md` §6).
+
+**Real bug fixed in `LoanCaseAppService.AuditLoanCase`/`Async` themselves**,
+same guard-clause shape as Appraise (§8) and Approve (§9): the guard clause
+used to force-set `persisted.Status` to `Approved` before even
+null-checking the fetched entity. Fixed the same way — completing the fix
+across every pipeline transition this doc covers. `MarkLoanCaseDisbursed`
+(the next transition, `Audited`/`Approved → Disbursed`, called from
+`LoanDisbursementBatchController`'s entry-posting flow — see
+`batch-procedures-api-spec.md` §6) still has the identical bug, unfixed.
+
 ## Not built yet
 
-Audit/verification, cancellation, restructuring, and every guarantor
+Cancellation, restructuring, loan request intake, and every guarantor
 sub-flow beyond initial attach (substitute/relieve/release) — see
-`WORKFLOW.md` §8-10 for the design and current status of each.
+`WORKFLOW.md` §5, §9-10 for the design and current status of each.

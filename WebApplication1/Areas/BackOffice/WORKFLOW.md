@@ -170,8 +170,8 @@ Appraised → Audited in one call, skipping the audit step as a distinct
 human action. Worth surfacing in a future controller/UI (e.g. as a flag on
 the approve response) rather than silently happening.
 
-**Known latent bug — fixed in `AppraiseLoanCase`/`Async` and
-`ApproveLoanCase`/`Async`, still open in `AuditLoanCase`/
+**Known latent bug — fixed in `AppraiseLoanCase`/`Async`,
+`ApproveLoanCase`/`Async`, and `AuditLoanCase`/`Async`; still open in
 `MarkLoanCaseDisbursed`** (found while reading `LoanCaseAppService`, same
 audit discipline used elsewhere in this repo — see the Voucher/General
 Ledger and InterAccountTransferBatch corrections in
@@ -183,13 +183,16 @@ immediately before checking it (and before even null-checking it, so a
 missing loan case id threw a `NullReferenceException` instead of a clean
 "not found"), making the check tautologically always true. Fixed in
 `AppraiseLoanCase`/`AppraiseLoanCaseAsync` alongside `LoanCaseController`'s
-`POST .../appraise` endpoint (§14.2), and in `ApproveLoanCase`/
-`ApproveLoanCaseAsync` alongside `POST .../approve` (§14.3). **Still
-present** in `AuditLoanCase` and `MarkLoanCaseDisbursed` — `AuditLoanCase`
-still doesn't actually verify a case is `Approved` before auditing it. Fix
-each alongside its own controller, same as these two were; the state
-machine described above is the *intended* design, this bug is a gap
-between intent and enforcement, not a reason to doc a different design.
+`POST .../appraise` endpoint (§14.2), in `ApproveLoanCase`/
+`ApproveLoanCaseAsync` alongside `POST .../approve` (§14.3), and in
+`AuditLoanCase`/`AuditLoanCaseAsync` alongside `POST .../audit` (§14.4).
+**Still present** in `MarkLoanCaseDisbursed` — the one call site for that
+method is `LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`,
+already live behind `LoanDisbursementBatchController`
+(`Areas/Accounts/Controllers`); fix it there if/when that controller gets
+another pass. The state machine described above is the *intended* design,
+this bug is a gap between intent and enforcement, not a reason to doc a
+different design.
 
 ## 5. Loan request intake (optional pre-case stage)
 
@@ -325,7 +328,7 @@ building any of the rows below.
 | Loan case registration | `LoanRegistrationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.1 |
 | Appraisal | `AppraiseLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.1 |
 | Approval | `ApproveLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.3 |
-| Audit / verification | `LoanVerificationController` | — | Not built |
+| Audit / verification | `LoanVerificationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.4 |
 | Cancellation | `LoanCancellationController` | — | Not built |
 | Restructuring | `LoanRestructuringController` | — | Not built |
 | Collateral | `AddCollateralController` | — | Not built |
@@ -503,15 +506,45 @@ so a client doesn't have to infer it from `status` alone.
 
 Full reference: `docs/api/loan-case-api-spec.md` §9.
 
+## 14.4 Audit / verification, as built
+
+`POST .../{id}/audit` on the same `LoanCaseController`. The consequential
+transition — `AuditLoanCase` creates the customer's loan/savings
+`CustomerAccount`s if missing, computes the repayment PV/PMT off
+`LoanRegistration`/`LoanInterest` (both set at registration), recovers any
+upfront dynamic charges, and builds or updates the repayment
+`StandingOrder` — all inside the app service, driven entirely by fields
+already on the persisted case from registration and approval. This
+endpoint doesn't try to precompute or second-guess any of it — same
+treat-it-as-a-black-box discipline `LoanDisbursementBatchController` uses
+for `PostLoanDisbursementBatchEntry`.
+
+Unlike appraisal/approval, this one needs almost no request body:
+`{ option, auditRemarks }`. `AuditLoanCase` itself reads nothing else off
+the incoming DTO — same "found, not reproduced" pattern as approval
+(§14.3): the reference `Verify` action re-copies the ~40 loan-product
+fields and calls `ValidateAll()` without checking the result, neither of
+which does anything real here either. The one real requirement is the
+reference's actual gate, `AuditRemarks != null` — required for every
+option (Audit/Reject/Defer) here.
+
+**Real bug fixed in `LoanCaseAppService.AuditLoanCase`/`Async` themselves**,
+same guard-clause shape as appraisal and approval — fixed the same way,
+completing the fix across all three pipeline transitions this pass covers.
+`MarkLoanCaseDisbursed` still has the identical bug, unfixed; its only call
+site is `LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`,
+already live — fix it there on a future pass.
+
+Full reference: `docs/api/loan-case-api-spec.md` §10.
+
 Suggested build order, following this doc's own dependency chain: loan
 request intake (§5) and reference-data catalogues (§13, needed by every
 downstream screen's pickers) still not started; case registration (§14.1),
-appraisal (§14.2), and approval (§14.3) are done. Audit/verification (§8)
-is next — it's the consequential one (creates the loan/savings accounts and
-repayment `StandingOrder`) and still has the unfixed guard-clause bug (§4)
-to fix alongside it, same as appraisal/approval were. Then cancellation/
-restructuring (§10), then data attachment capture (§12) and the
-catalogue/reporting tail. Each
+appraisal (§14.2), approval (§14.3), and audit/verification (§14.4) are
+done — the entire core pipeline (Registered → Appraised → Approved →
+Audited → Disbursed, disbursement already live per §11) is now built.
+Next: guarantor sub-flows beyond initial attach (substitute/relieve/
+release, §9), cancellation/restructuring (§10). Each
 new app service, once wired into `WebApplication1`, also needs Unity
 registration in both `WebApplication1/App_Start/UnityConfig.cs` and
 `DistributedServices.MainBoundedContext/UnityContainers/Container.cs`, and

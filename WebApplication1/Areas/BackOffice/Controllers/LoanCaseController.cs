@@ -125,7 +125,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
     //
     // Approval (reference: Areas/Loaning/Controllers/ApproveLoanController.cs):
     // - Same guard-clause bug shape fixed in ApproveLoanCase/Async — see
-    //   above. Still open in AuditLoanCase/MarkLoanCaseDisbursed.
+    //   above. Also fixed in AuditLoanCase/Async (below). Still open in
+    //   MarkLoanCaseDisbursed.
     // - The reference Approve action re-copies the same ~40 loan-product
     //   fields Create already snapshots onto the DTO before calling
     //   ApproveLoanCaseAsync — but ApproveLoanCase never reads any of them
@@ -149,6 +150,25 @@ namespace WebApplication1.Areas.BackOffice.Controllers
     //   reference required a nonzero approvedAmount even to reject/defer,
     //   which reads like unconditional MVC form validation, not a
     //   deliberate business rule).
+    //
+    // Audit/verification (reference:
+    // Areas/Loaning/Controllers/LoanVerificationController.cs, "Verify" in
+    // the UI, AuditLoanCase/AuditLoanOption.Audit internally — same status,
+    // two names):
+    // - Same guard-clause bug shape fixed in AuditLoanCase/Async. This is
+    //   the consequential transition (Approved -> Audited): it creates the
+    //   customer's loan/savings CustomerAccounts if missing, computes the
+    //   repayment PV/PMT off LoanRegistration/LoanInterest, recovers any
+    //   upfront dynamic charges, and builds/updates the repayment
+    //   StandingOrder — all real, business-critical domain logic, entirely
+    //   inside AuditLoanCase itself. Treated as a black box here, same as
+    //   LoanDisbursementBatchController treats PostLoanDisbursementBatchEntry.
+    // - Same reference pattern as Approve: the reference Verify action
+    //   re-copies the ~40 loan-product fields (AuditLoanCase reads none of
+    //   them off the DTO — only auditRemarks) and calls ValidateAll()
+    //   without checking the result. Neither reproduced, same reasoning as
+    //   Approve above. Real requirement: auditRemarks required for every
+    //   option (the reference's actual gate, `AuditRemarks != null`).
     [Authorize]
     [RoutePrefix("api/backoffice/loancases")]
     public class LoanCaseController : ApiController
@@ -717,6 +737,61 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        // Transitions an Approved case to Audited ("Verified" in the UI
+        // label), Rejected, or Deferred. Unlike Appraise/Approve, this one
+        // takes almost no input — everything AuditLoanCase actually does
+        // (create the loan/savings CustomerAccounts if missing, compute the
+        // repayment PV/PMT, recover upfront dynamic charges, build/update
+        // the repayment StandingOrder) is driven entirely by fields already
+        // on the persisted case from registration (LoanRegistration/
+        // LoanInterest) and approval (ApprovedAmount/ApprovedPrincipalPayment/
+        // ApprovedInterestPayment) — this is real, business-critical domain
+        // logic, treat it as a black box, don't try to precompute or
+        // second-guess its result client-side. See class comment and
+        // WORKFLOW.md §14.4 for what was found while building this.
+        [HttpPost]
+        [Route("{id:guid}/audit")]
+        public IHttpActionResult Audit(Guid id, AuditLoanCaseRequest request)
+        {
+            if (request == null)
+                return ErrorResponse("Request body is required");
+
+            if (!Enum.IsDefined(typeof(LoanAuditOption), request.Option))
+                return ErrorResponse("Invalid audit option");
+
+            if (string.IsNullOrWhiteSpace(request.AuditRemarks))
+                return ErrorResponse("Audit remarks are required");
+
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var existing = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+                if (existing == null)
+                    return NotFound();
+
+                existing.LoanAuditOption = request.Option;
+                existing.AuditRemarks = request.AuditRemarks;
+
+                var audited = _loanCaseAppService.AuditLoanCase(existing, request.Option, serviceHeader);
+
+                if (!audited)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in an Approved state, or the audit option is invalid"));
+
+                var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                var message = request.Option == (int)LoanAuditOption.Audit && refreshed != null && refreshed.LoanRegistrationCreateStandingOrderOnLoanAudit
+                    ? "Loan case verified — loan/savings accounts and repayment standing order have been set up"
+                    : "Loan case verification recorded successfully";
+
+                return Ok(ApiResponse(message, refreshed));
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
         // Returns an error message on failure, null on success. Mutates each
         // guarantor with server-computed share data — see class comment.
         private string EnrichAndValidateGuarantors(List<LoanGuarantorDTO> guarantors, LoanCaseDTO loanCaseDTO, LoanProductDTO loanProduct, ServiceHeader serviceHeader)
@@ -907,5 +982,14 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
         // Required for every option.
         public string ApprovalRemarks { get; set; }
+    }
+
+    public class AuditLoanCaseRequest
+    {
+        // LoanAuditOption: 1 = Audit ("Verify" in the UI label), 2 = Reject, 4 = Defer.
+        public int Option { get; set; }
+
+        // Required for every option.
+        public string AuditRemarks { get; set; }
     }
 }

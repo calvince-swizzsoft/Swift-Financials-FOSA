@@ -393,8 +393,10 @@ drift out of sync with the actual code.
   appraising a missing loan case id threw a `NullReferenceException`
   instead of a clean 404, and the "must be Registered or Deferred"
   precondition was tautologically always true. The identical bug shape
-  still exists, unfixed, in `AuditLoanCase`/`MarkLoanCaseDisbursed` — fix
-  each when building its controller. **Approval added the same way**
+  still exists, unfixed, in `MarkLoanCaseDisbursed` (its one call site,
+  `LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`, is
+  already live behind `LoanDisbursementBatchController`). **Approval added
+  the same way**
   (`POST .../{id}/approve`, same guard-clause bug found and fixed in
   `ApproveLoanCase`/`Async` too) — see
   `Areas/BackOffice/WORKFLOW.md` §14.3. No separate worksheet endpoint here;
@@ -408,14 +410,32 @@ drift out of sync with the actual code.
   Also worth knowing: if the loan product has `LoanRegistrationBypassAudit`
   set, a successful `Approve` auto-chains straight into `AuditLoanCase` in
   the same call — the response may already be `Audited`, not `Approved`;
-  the endpoint's `message` field says so explicitly.
+  the endpoint's `message` field says so explicitly. **Audit/verification
+  added the same way** (`POST .../{id}/audit`, same guard-clause bug found
+  and fixed in `AuditLoanCase`/`Async` too) — see
+  `Areas/BackOffice/WORKFLOW.md` §14.4. This is the consequential
+  transition: `AuditLoanCase` creates the customer's loan/savings
+  `CustomerAccount`s if missing, computes the repayment PV/PMT, recovers
+  upfront dynamic charges, and builds/updates the repayment
+  `StandingOrder` — real, business-critical domain logic left as a black
+  box here, same discipline `LoanDisbursementBatchController` already uses
+  for `PostLoanDisbursementBatchEntry`. Needs almost no request body
+  (`{ option, auditRemarks }`) since `AuditLoanCase` reads nothing else off
+  the DTO — same "found, not reproduced" pattern as approval's pointless
+  loan-product re-snapshot and unchecked `ValidateAll()` call. **This
+  completes the core loan origination pipeline** (Registered → Appraised →
+  Approved → Audited → Disbursed, disbursement already live) — remaining
+  work is guarantor sub-flows beyond initial attach, cancellation/
+  restructuring, loan request intake, payroll check-off capture, and
+  reference-data catalogues.
 
-Not yet started: the rest of the loan origination pipeline (`BackOfficeModule`
-— loan request intake, audit/verification, guarantor/collateral management
-beyond initial attach, restructuring, cancellation, payroll check-off data
-capture, plus reference-data catalogues). Audit/verification is next in the
-core pipeline and is the consequential one (creates the loan/savings
-accounts and repayment `StandingOrder`) — before starting it, read
-`Areas/BackOffice/WORKFLOW.md` §8 and §4 (the still-unfixed guard-clause
-bug in `AuditLoanCase`), and the whole doc for the module's full design and
-the reference MVC app's 23-controller `Areas/Loaning` inventory.
+Not yet started: loan request intake, guarantor/collateral management
+beyond initial attach (substitute/relieve/release), restructuring,
+cancellation, payroll check-off data capture, and reference-data
+catalogues (`BackOfficeModule`). `MarkLoanCaseDisbursed` still has the same
+guard-clause bug as the three fixed above, unfixed — its one call site,
+`LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`, is
+already live behind `LoanDisbursementBatchController`; fix it there on a
+future pass. Before starting any of the above, read
+`Areas/BackOffice/WORKFLOW.md` for the module's full design and the
+reference MVC app's 23-controller `Areas/Loaning` inventory.

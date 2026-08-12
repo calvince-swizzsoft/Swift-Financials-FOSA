@@ -52,12 +52,46 @@ what to go update.
 | Batch procedures — all nine types (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger, Inter Account Transfer) | `api/accounts/{creditbatches,debitbatches,wiretransferbatches,journalreversalbatches,overdeductionbatches,loandisbursementbatches,journalvouchers,generalledgers,interaccounttransferbatches}` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
-| Loan case registration + appraisal + approval (back office — loan origination pipeline) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
+| Loan case registration + appraisal + approval + audit/verification (back office — full core loan origination pipeline) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Loan Case API — audit/verification added, core loan origination pipeline complete
+
+`POST /{id}/audit` added onto `LoanCaseController` — the consequential
+transition (`Approved → Audited`). `AuditLoanCase` (entirely server-side):
+creates the customer's loan/savings `CustomerAccount`s if missing, computes
+the repayment `PV`/`PMT` off the case's registration-time settings,
+recovers upfront dynamic charges, and builds/updates the repayment
+`StandingOrder` — but only when the loan product has
+`LoanRegistrationCreateStandingOrderOnLoanAudit` set. Needs almost no
+request body (`{ option, auditRemarks }`); treat the result as a black box,
+same discipline `LoanDisbursementBatchController.PostEntry` already uses.
+
+Same "found, not reproduced" pattern as approval: the reference
+`LoanVerificationController.Verify` action re-copies the ~40 loan-product
+fields and calls `ValidateAll()` without checking the result — neither does
+anything real here, since `AuditLoanCase` reads only `auditRemarks` off the
+DTO. The real gate (`auditRemarks` required) is the reference's own actual
+requirement, just actually enforced this time.
+
+**Real bug fixed in `LoanCaseAppService.AuditLoanCase`/`Async` themselves**,
+same guard-clause shape as the appraisal/approval fixes below — completing
+the fix across every transition this pipeline covers.
+`MarkLoanCaseDisbursed` (`Audited`/`Approved → Disbursed`, called from the
+already-live `LoanDisbursementBatchController`'s entry-posting flow) still
+has the identical bug, unfixed.
+
+**This completes the core loan origination pipeline** — Registered →
+Appraised → Approved → Audited → Disbursed (disbursement already live) is
+now fully built. Remaining in `BackOfficeModule`: loan request intake,
+guarantor sub-flows beyond initial attach, restructuring, cancellation,
+payroll check-off data capture, and reference-data catalogues.
+
+Full reference: `loan-case-api-spec.md` §10.
 
 ### Loan Case API — approval added, plus another guard-clause bug fixed
 
