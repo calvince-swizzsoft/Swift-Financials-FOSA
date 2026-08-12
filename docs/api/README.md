@@ -35,6 +35,8 @@ what to go update.
 | General ledger statements | `api/accounts/statements/gl-account` | [`general-ledger-statement-api-spec.md`](general-ledger-statement-api-spec.md) |
 | Standing orders | `api/accounts/standingorders` | [`standing-order-api-spec.md`](standing-order-api-spec.md) |
 | Standing order execution (batch triggers) | `api/accounts/standingorders/execution` | [`standing-order-execution-api-spec.md`](standing-order-execution-api-spec.md) |
+| Electronic statement orders (recurring statement subscriptions) | `api/accounts/electronicstatementorders` | [`electronic-statement-order-api-spec.md`](electronic-statement-order-api-spec.md) |
+| Electronic statement order execution (batch triggers) | `api/accounts/electronicstatementorders/execution` | [`electronic-statement-order-execution-api-spec.md`](electronic-statement-order-execution-api-spec.md) |
 | Treasury master data | `api/accounts/treasurys` | [`treasury-api-spec.md`](treasury-api-spec.md) |
 | Chart of accounts (+ system G/L account mapping) | `api/accounts/chartofaccounts` | [`chartofaccount-api-spec.md`](chartofaccount-api-spec.md) |
 | Cost centers | `api/accounts/costcenters` | [`costcenter-api-spec.md`](costcenter-api-spec.md) |
@@ -54,6 +56,29 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Electronic Statement Order API — new (split into two controllers, same reasoning as Standing Orders)
+
+`ElectronicStatementOrderController` (`api/accounts/electronicstatementorders`)
+and `ElectronicStatementOrderExecutionController`
+(`.../electronicstatementorders/execution`) documented and built for the
+first time — `IElectronicStatementOrderAppService` was already fully built
+but had no controller anywhere, only reachable through the legacy
+`ElectronicStatementOrderService.svc.cs` WCF passthrough. This manages a
+**subscription** (recurring "email this account a statement on a schedule"),
+not statement content — it has no overlap with the already-shipped
+`CustomerAccountStatementController` (`docs/api/customer-account-statement-api-spec.md`),
+confirmed by reading both the reference `CoA_eStatementsController` and the
+app service; they don't share a DTO, an app service, or a single line of
+logic despite both having "statement" in the name.
+
+Split into two controllers rather than one, mirroring the existing
+`StandingOrderController`/`StandingOrderExecutionController` split and for
+the identical reason: the actual batch-execution capability
+(`ExecuteElectronicStatementOrders`) lives on `IRecurringBatchAppService`,
+a different app service than the CRUD one. Full reference:
+`electronic-statement-order-api-spec.md` /
+`electronic-statement-order-execution-api-spec.md`.
 
 ### UnPay Reason API — new
 

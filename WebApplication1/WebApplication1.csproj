@@ -299,6 +299,8 @@
     <Compile Include="Areas\Accounts\Controllers\SavingsProductController.cs" />
     <Compile Include="Areas\Accounts\Controllers\StandingOrderExecutionController.cs" />
     <Compile Include="Areas\Accounts\Controllers\StandingOrderController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\ElectronicStatementOrderController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\ElectronicStatementOrderExecutionController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountStatementController.cs" />
     <Compile Include="Areas\Accounts\Controllers\GeneralLedgerStatementController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountManagementController.cs" />

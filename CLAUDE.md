@@ -161,9 +161,27 @@ drift out of sync with the actual code.
   previously only reachable via the legacy `UnPayReasonService.svc.cs` WCF
   passthrough, no controller existed; fixed a missing-`ValidateAll()` bug on
   edit rather than porting it (see `docs/api/unpayreason-api-spec.md`)
+- `Areas/Accounts/Controllers/ElectronicStatementOrderController.cs` (new,
+  existing `IElectronicStatementOrderAppService`; CRUD + due/skipped/history
+  listings — a recurring statement-emailing *subscription*, not statement
+  content, no overlap with `CustomerAccountStatementController` below
+  despite the shared "statement" name) and
+  `Areas/Accounts/Controllers/ElectronicStatementOrderExecutionController.cs`
+  (batch triggers via `IRecurringBatchAppService`) — split into two
+  controllers for the same reason as Standing Orders below; previously only
+  reachable via the legacy `ElectronicStatementOrderService.svc.cs` WCF
+  passthrough, no controller existed; see
+  `docs/api/electronic-statement-order-api-spec.md` /
+  `docs/api/electronic-statement-order-execution-api-spec.md`
 - `Areas/Messaging/Controllers/TextAlertController.cs` (existing `ITextAlertAppService`)
 - `Areas/FrontOffice/Controllers/*` — teller transactions, treasury, cheques,
   end of day, account closure, fixed deposits, expense payables, sundry
   payments/customer receipts, in-house cheques, automated clearing, fiscal
   counts. See `Areas/FrontOffice/WORKFLOW.md` for the functional design and
   `docs/api/frontoffice-api-spec.md` for the endpoint reference.
+- Also live but missing from this list until now (documentation gap, not a
+  build gap): `Areas/Accounts/Controllers/CustomerAccountStatementController.cs`
+  (on-demand mini/full statement + PDF print, `docs/api/customer-account-statement-api-spec.md`)
+  and `Areas/Accounts/Controllers/StandingOrderController.cs` +
+  `StandingOrderExecutionController.cs` (`docs/api/standing-order-api-spec.md` /
+  `docs/api/standing-order-execution-api-spec.md`).
