@@ -6,8 +6,7 @@ shares, and why each type exists:
 first if you're building a screen against any of these — this doc is just
 the route/field reference.
 
-Progress across the nine types the reference app's "Batch Procedures" menu
-covers:
+All nine types the reference app's "Batch Procedures" menu covers are now built:
 
 | Type | Controller | Status |
 |---|---|---|
@@ -19,7 +18,7 @@ covers:
 | Disbursement | `LoanDisbursementBatchController` (`api/accounts/loandisbursementbatches`) | Built — §6 |
 | Voucher | `JournalVoucherController` (`api/accounts/journalvouchers`) | Built — §7 |
 | General Ledger | `GeneralLedgerController` (`api/accounts/generalledgers`) | Built — §8 |
-| Inter Account Transfer | `InterAccountTransferBatchController` | Not started |
+| Inter Account Transfer | `InterAccountTransferBatchController` (`api/accounts/interaccounttransferbatches`) | Built — §9 |
 
 CSV batch import (`ParseXImport` on the app service, where it exists) is
 deliberately not exposed on any of these — no controller in this project
@@ -536,3 +535,97 @@ Voucher/Refund, a ledger posts as one atomic unit on `Authorize`.
 CSV import (`ParseGeneralLedgerImportEntries`) exists on this interface but
 is deliberately not exposed, consistent with the rest of this module — no
 controller here has a file-upload pattern yet.
+
+---
+
+## 9. Inter Account Transfer Batch — `api/accounts/interaccounttransferbatches`
+
+Controller: `InterAccountTransferBatchController.cs`, existing
+`IInterAccountTransferBatchAppService`. Ninth and last of this module. One
+**source** customer account (the header's own `customerAccountId`)
+transfers its balance out to however many **entries** you attach, each
+targeting *either* a customer account or a raw G/L account — `apportionTo`
+(`1`=CustomerAccount, `2`=GeneralLedgerAccount) is genuinely consulted
+server-side (`AddNewInterAccountTransferBatchEntry` nulls out whichever of
+`chartOfAccountId`/`customerAccountId` doesn't apply), unlike Voucher's
+lookalike-but-dead per-entry fields. Each entry carries its own
+`principal`+`interest` — the amount moved to it.
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/all` | GET | Unpaged list of every batch |
+| `/?status=&startDate=&endDate=&text=&pageIndex=&pageSize=` | GET | Paged batch list. `status` is **optional**, same four-overload dispatch as Journal Voucher/General Ledger |
+| `/{id}` | GET | Single batch |
+| `/` | POST | Create batch → `Pending`. Only `branchId`/`customerAccountId`/`reference` are actually persisted — `availableBalance`, `startDate`/`endDate`, and the denormalized customer fields are display-only (see §9.2) |
+| `/{id}` | PUT | Update `reference` only — `branchId`/`customerAccountId` are immutable post-creation |
+| `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`), `2`=Reject. Only accepts `Pending` |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; posts synchronously, one `Journal` per entry — see §9.3), `2`=Reject. Refuses outright if the batch isn't already `Audited` — see §9.1 for why this guard needed fixing |
+| `/{id}/entries?text=&pageIndex=&pageSize=` | GET | Entries within one batch |
+| `/{id}/entries` | POST | Add a single entry |
+| `/{id}/entries` | PUT | Full replace — every existing entry is deleted and the given list recreated in its place |
+| `/entries/remove` | POST | Batch-remove entries (`List<InterAccountTransferBatchEntryDTO>`) |
+| `/{id}/dynamiccharges` | GET | Transfer-fee `DynamicCharge`s attached to this batch |
+| `/{id}/dynamiccharges` | PUT | Full replace of the attached `DynamicCharge` set (id references only) — real and fed into posting, not decorative |
+
+No `PostEntry`, no queueable browse, no single-entry lookup, no CSV import
+(`ParseXImport` doesn't exist on this interface at all) — same shape as
+Refund/Voucher/General Ledger.
+
+`InterAccountTransferBatchDTO` has no `Priority` field at all, unlike every
+other type in this module.
+
+### 9.1 Fixed: a real control-bypass bug
+
+`AuthorizeInterAccountTransferBatch` used to read:
+
+```csharp
+var persisted = _interAccountTransferBatchRepository.Get(interAccountTransferBatchDTO.Id, serviceHeader);
+persisted.Status = (int)BatchStatus.Audited;
+if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
+    return false;
+```
+
+Two things wrong with this: `persisted.Status = ...` dereferences before
+the null check, so an unknown id threw a `NullReferenceException` instead
+of a clean `false`/`404`. Worse, it force-set the status to `Audited`
+**before** checking it was already `Audited` — making that guard
+tautologically true every time. A batch could be authorized (its journals
+posted, real money moved) straight from `Pending`, skipping the Audit step
+entirely, or even re-authorized after a prior `Rejected`. **Fixed** to
+match every sibling type's pattern — check first, don't mutate before
+checking:
+
+```csharp
+var persisted = _interAccountTransferBatchRepository.Get(interAccountTransferBatchDTO.Id, serviceHeader);
+
+if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
+    return false;
+```
+
+### 9.2 No control-total validation exists for this type
+
+`availableBalance` on `InterAccountTransferBatchDTO` has **no backing
+column** — in the reference app it was populated client-side only, by
+looking up the source account's real balance at the moment the form
+loaded, and never re-verified server-side. Unlike every other type in this
+module (which all check entries' amount against some declared total before
+allowing Audit/Authorize), nothing here stops an entry's `principal +
+interest` from exceeding what the source account can actually cover, or
+from taking it below its minimum balance. If that validation matters, it
+has to happen client-side today — flagged, not fixed, since fixing it
+means adding real balance-checking business logic, out of scope for a
+controller-adaptation pass.
+
+### 9.3 Posting mechanics
+
+Same synchronous-on-Authorize shape as Refund/Voucher/General Ledger (no
+async broker dispatch) but structurally different from both: each entry
+gets its own call to `IJournalAppService.AddNewJournal` — the same
+high-level posting entry point the rest of the front office uses, not
+`_journalEntryPostingService.BulkSave` the way Voucher/General
+Ledger/Refund batch theirs. Any `DynamicCharge`s attached via
+`PUT /{id}/dynamiccharges` are looked up once per batch and passed into
+every entry's `AddNewJournal` call as transfer-fee tariffs. Entries already
+`Posted` from a prior partial run are silently skipped on a retry (checked
+via `Status == Pending`), making a re-`Authorize` call reasonably safe to
+retry after a partial failure.

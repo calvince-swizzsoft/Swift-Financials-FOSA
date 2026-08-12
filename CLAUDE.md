@@ -332,3 +332,25 @@ drift out of sync with the actual code.
   Refund/Voucher, but throws a server-side exception on an out-of-balance
   Post instead of quietly returning `false` (every sibling type does the
   latter) — caught in the controller and normalized to the usual `409`.
+- `Areas/Accounts/Controllers/InterAccountTransferBatchController.cs` (new,
+  existing `IInterAccountTransferBatchAppService`; batch CRUD/audit/authorize
+  + entry add/replace/remove/browse + `DynamicCharges` sub-resource) —
+  ninth and last of the "Batch Procedures" module, which is now complete
+  (see `docs/api/batch-procedures-api-spec.md` §9 and
+  `Areas/Accounts/BATCH-PROCEDURES-CONCEPTS.md`). One source customer
+  account transfers its balance out to entries each targeting a customer
+  account or G/L account (`apportionTo`, genuinely consulted server-side).
+  **Real bug found and fixed — the most consequential one in this
+  module**: `AuthorizeInterAccountTransferBatch` force-set the batch's
+  status to `Audited` *before* checking it was already `Audited` (and
+  before null-checking), making the "must be Audited first" guard
+  tautologically always true — a batch could be authorized and its
+  journals posted straight from `Pending`, completely bypassing the
+  maker-checker Audit step. Fixed to check first, matching every sibling.
+  Also flagged (not fixed, needs real business logic): no control-total
+  validation exists anywhere for this type — `AvailableBalance` has no
+  backing column and was only ever a client-side display value in the
+  reference app. Posting is synchronous on `Authorize` like
+  Refund/Voucher/General Ledger, but each entry gets its own call to the
+  shared `IJournalAppService.AddNewJournal` (not `BulkSave`), with any
+  attached `DynamicCharge`s fed in as real transfer-fee tariffs.

@@ -246,7 +246,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var persisted = _interAccountTransferBatchRepository.Get(interAccountTransferBatchDTO.Id, serviceHeader);
-                persisted.Status = (int)BatchStatus.Audited;
+
                 if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
                     return false;
 

@@ -49,7 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
-| Batch procedures (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger — Inter Account Transfer in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches`, `api/accounts/wiretransferbatches`, `api/accounts/journalreversalbatches`, `api/accounts/overdeductionbatches`, `api/accounts/loandisbursementbatches`, `api/accounts/journalvouchers`, `api/accounts/generalledgers` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
+| Batch procedures — all nine types (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger, Inter Account Transfer) | `api/accounts/{creditbatches,debitbatches,wiretransferbatches,journalreversalbatches,overdeductionbatches,loandisbursementbatches,journalvouchers,generalledgers,interaccounttransferbatches}` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -57,6 +57,41 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — Inter Account Transfer added, module complete (ninth of nine types), plus a real control-bypass bug fixed
+
+`InterAccountTransferBatchController` (`api/accounts/interaccounttransferbatches`)
+— new, and the last type in the "Batch Procedures" module. One source
+customer account transfers its balance out to however many entries you
+attach, each targeting either a customer account or a raw G/L account
+(`apportionTo`) — genuinely consulted server-side, unlike Voucher's
+lookalike-but-dead per-entry fields.
+
+**Real bug found and fixed — this one matters more than the others**:
+`AuthorizeInterAccountTransferBatch` force-set the batch's status to
+`Audited` *before* checking it was already `Audited` (and before
+null-checking the fetched entity). That made the "must be Audited first"
+guard tautologically always true — a batch could be authorized, its
+journals posted and real money moved, straight from `Pending`, completely
+skipping the maker-checker Audit step this whole module exists to enforce.
+Fixed to check first, matching every sibling type's pattern.
+
+Also flagged (not fixed — out of scope, needs real business logic, not a
+one-line fix): **no control-total validation exists anywhere for this
+type**. `availableBalance` has no backing column and was only ever a
+client-side display value in the reference app; nothing server-side stops
+an entry's `principal + interest` from exceeding what the source account
+can actually cover.
+
+Posting is synchronous on `Authorize` (like Refund/Voucher/General Ledger)
+but structurally distinct: each entry gets its own call to the shared
+`IJournalAppService.AddNewJournal` entry point (not `BulkSave`), and any
+attached `DynamicCharge`s (`PUT /{id}/dynamiccharges`) are real transfer-fee
+tariffs fed into that call, not decorative.
+
+**This completes all nine Batch Procedures types.** Full detail:
+`batch-procedures-api-spec.md` §9; functional overview across the whole
+module: `WebApplication1/Areas/Accounts/BATCH-PROCEDURES-CONCEPTS.md`.
 
 ### Batch Procedures API — General Ledger added (eighth of nine types, Group B complete)
 
