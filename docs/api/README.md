@@ -49,6 +49,7 @@ what to go update.
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
+| Batch procedures (Credit, Debit — more in progress) | `api/accounts/creditbatches`, `api/accounts/debitbatches` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 
@@ -56,6 +57,39 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Batch Procedures API — new, first two of nine types (Credit, Debit)
+
+The reference app's "Batch Procedures" menu (Origination/Verification/
+Authorization × nine types) is a much bigger module than any single
+controller pass so far — see
+`WebApplication1/Areas/Accounts/BATCH-PROCEDURES-CONCEPTS.md` for the
+functional basis (a maker-checker-authorizer control on bulk GL postings)
+and per-type purpose, and `batch-procedures-api-spec.md` for the route
+reference. Each type is one unified controller covering all three stages
+via `/{id}/audit` and `/{id}/authorize` — the reference app's three-way
+split per type is a menu/role-routing artifact, not a reason for three
+controllers each.
+
+- **`CreditBatchController`** (`api/accounts/creditbatches`) — already
+  existed (built to unblock the FrontOffice Cash Pickup picker, see the
+  Front Office entry below); now cross-referenced from here too.
+- **`DebitBatchController`** (`api/accounts/debitbatches`) — new. Real
+  differences from Credit worth knowing if you're building against it:
+  no `TotalValue` control-total anywhere, `Authorize` genuinely refuses a
+  batch that isn't already `Audited` (Credit's equivalent guard is
+  commented out in source), entries have no amount-shaped field you can
+  trust before posting (`multiplier`/`basisValue` feed a server-side tariff
+  computation, capped against available balance), and posting is always
+  async off a message queue once authorized, with no per-type carve-out
+  the way Credit's Cash Pickup has. Full detail: `batch-procedures-api-spec.md` §2.
+
+Remaining seven types (Refund, Wire Transfer, Disbursement, Reversal,
+Voucher, General Ledger, Inter Account Transfer) not started — their app
+services all already exist and are Unity-registered, so this is
+controller-adaptation work only, no backend gaps to fill. See the concepts
+doc for what each is for and the settled Voucher-vs-General-Ledger
+distinction.
 
 ### Electronic Statement Order API — new (split into two controllers, same reasoning as Standing Orders)
 

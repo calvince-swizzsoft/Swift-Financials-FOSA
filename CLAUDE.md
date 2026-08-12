@@ -199,3 +199,19 @@ drift out of sync with the actual code.
   import were deliberately not exposed — separate reconciliation/upload
   concerns, not needed for Cash Pickup; see
   `docs/api/frontoffice-api-spec.md` §13.3.
+- `Areas/Accounts/Controllers/DebitBatchController.cs` (new, existing
+  `IDebitBatchAppService`; batch CRUD/audit/authorize + entry
+  add/remove/browse/post) — first of the wider "Batch Procedures" module
+  (see `Areas/Accounts/BATCH-PROCEDURES-CONCEPTS.md` for the functional
+  basis and `docs/api/batch-procedures-api-spec.md` for the full route
+  reference). Real asymmetries from `CreditBatchController` worth knowing:
+  no `TotalValue` control-total exists for this type at all, `Authorize`
+  genuinely refuses a batch that isn't already `Audited` (Credit's
+  equivalent guard is commented out in source), entries have no
+  amount-shaped field trustworthy before posting (`Multiplier`/`BasisValue`
+  feed a server-side tariff computation at post-time, capped against
+  available balance), and `Authorize` always queues every entry for async
+  posting via a message broker with no per-type carve-out (unlike Credit,
+  where only `Payout`/`CheckOff` get queued and `CashPickup` stays manual).
+  No single-entry lookup or entry-status-update exists on this app service,
+  unlike Credit's — not built to fake one.
