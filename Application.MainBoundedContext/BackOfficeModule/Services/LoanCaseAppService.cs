@@ -1896,7 +1896,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 {
                     switch ((LoanCaseStatus)persistedLoanCase.Status)
                     {
-                        case LoanCaseStatus.Approved:
+                        case LoanCaseStatus.Audited:
 
                             persistedLoanCase.Status = (int)LoanCaseStatus.Disbursed;
                             persistedLoanCase.DisbursedAmount = loanDisbursementBatchEntryDTO.LoanCaseApprovedAmount;

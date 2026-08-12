@@ -246,9 +246,10 @@ themselves, not just the controller**: the guard clause used to force-set
 entity — appraising a nonexistent loan case id used to throw a
 `NullReferenceException` (now a clean `404`), and the "must be Registered
 or Deferred" precondition was tautologically always true for any case that
-did exist (now actually enforced). The identical bug shape is still present,
-unfixed, in `ApproveLoanCase`/`AuditLoanCase`/`MarkLoanCaseDisbursed` — not
-this endpoint's concern, but worth knowing before building against those.
+did exist (now actually enforced). The identical bug shape was also fixed
+in `ApproveLoanCase` (§9) and `AuditLoanCase` (§10) — see those sections.
+`MarkLoanCaseDisbursed` does not share this bug, but had a different one —
+see §10.
 
 ## 9. Approve a loan case
 
@@ -339,10 +340,22 @@ result client-side, same discipline as
 same guard-clause shape as Appraise (§8) and Approve (§9): the guard clause
 used to force-set `persisted.Status` to `Approved` before even
 null-checking the fetched entity. Fixed the same way — completing the fix
-across every pipeline transition this doc covers. `MarkLoanCaseDisbursed`
-(the next transition, `Audited`/`Approved → Disbursed`, called from
-`LoanDisbursementBatchController`'s entry-posting flow — see
-`batch-procedures-api-spec.md` §6) still has the identical bug, unfixed.
+across every transition this doc covers.
+
+**`MarkLoanCaseDisbursed` (the next transition, `Audited → Disbursed`,
+called from `LoanDisbursementBatchController`'s entry-posting flow — see
+`batch-procedures-api-spec.md` §6) turned out not to share that bug** — its
+guard is a plain `switch`, correctly written, no force-set. It had a
+different, more consequential one instead, found on a follow-up pass after
+this whole pipeline was built: the `switch` only matched `case
+LoanCaseStatus.Approved:`, but a correctly-audited case is `Audited` — a
+distinct enum value — by the time it's disbursed, so the method silently
+failed for every case that had actually gone through this pipeline
+correctly. Since it's called *after* the disbursement journal already
+posts real money, the practical effect was: the loan disburses, but the
+case never flips to `Disbursed` and its repayment `StandingOrder` never
+gets created. Fixed to match `Audited`. Full detail:
+`batch-procedures-api-spec.md` §6.3.
 
 ## Not built yet
 

@@ -273,8 +273,11 @@ drift out of sync with the actual code.
   unlike every other service in this module; batch CRUD/audit/authorize +
   entry add/bulk-add/update/remove/browse/post) — sixth of the "Batch
   Procedures" module and the deepest per-entry posting logic in it (see
-  `docs/api/batch-procedures-api-spec.md` §6). An entry picks an
-  already-Audited, not-yet-batched `LoanCase`. **Two things deliberately
+  `docs/api/batch-procedures-api-spec.md` §6). An entry is meant to pick an
+  already-`Audited`, not-yet-batched `LoanCase` — the reference app's own
+  picker screen filters on that status — but this is only a client-side
+  convention, not a server-side guarantee; see the corrected note below.
+  **Two things deliberately
   not ported from the reference app**: raw SQL hacks against
   `swiftFin_LoanCases` to stamp batch numbers (the real app service already
   does this correctly through the domain layer), and — more importantly —
@@ -290,7 +293,21 @@ drift out of sync with the actual code.
   repayment schedule. `DisburseMicroLoan` (separate real-time/
   alternate-channel path) and CSV import (doesn't exist on this interface)
   are both out of scope; `batchTotal`/`startDate`/`endDate` on the DTO have
-  no backing column at all.
+  no backing column at all. **Real bug found and fixed, found later** (on a
+  follow-up pass once the loan-case appraisal/approval/audit pipeline below
+  was fully built — `docs/api/batch-procedures-api-spec.md` §6.3 has full
+  detail): `ILoanCaseAppService.MarkLoanCaseDisbursed`, called from
+  `PostLoanDisbursementBatchEntry` after the disbursement journal already
+  posts real money, only matched `case LoanCaseStatus.Approved:` in its
+  switch — but a loan case that went through the intended pipeline is
+  `Audited` (a distinct enum value) by the time it's disbursed. Silently
+  returned `false` for every correctly-audited case, so the loan case never
+  flipped to `Disbursed` and its repayment `StandingOrder` never got
+  created, even though the money had already moved. Fixed to match
+  `Audited`. Also corrected above: `AddNewLoanDisbursementBatchEntry`/
+  `UpdateLoanDisbursementBatchEntries` never actually check the `LoanCase`'s
+  `Status` at all, only that it isn't already batched — an earlier version
+  of this note implied that requirement was server-enforced; it isn't.
 - `Areas/Accounts/Controllers/JournalVoucherController.cs` (new, existing
   `IJournalVoucherAppService`; voucher CRUD/audit/authorize + entry
   add/replace/remove/browse) — seventh of the "Batch Procedures" module and
@@ -392,10 +409,9 @@ drift out of sync with the actual code.
   status onto the fetched entity *before even null-checking it*, so
   appraising a missing loan case id threw a `NullReferenceException`
   instead of a clean 404, and the "must be Registered or Deferred"
-  precondition was tautologically always true. The identical bug shape
-  still exists, unfixed, in `MarkLoanCaseDisbursed` (its one call site,
-  `LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`, is
-  already live behind `LoanDisbursementBatchController`). **Approval added
+  precondition was tautologically always true. (`MarkLoanCaseDisbursed`
+  turned out not to share this bug — see the disbursement note above; it
+  had a different, more consequential one instead.) **Approval added
   the same way**
   (`POST .../{id}/approve`, same guard-clause bug found and fixed in
   `ApproveLoanCase`/`Async` too) — see
@@ -432,10 +448,6 @@ drift out of sync with the actual code.
 Not yet started: loan request intake, guarantor/collateral management
 beyond initial attach (substitute/relieve/release), restructuring,
 cancellation, payroll check-off data capture, and reference-data
-catalogues (`BackOfficeModule`). `MarkLoanCaseDisbursed` still has the same
-guard-clause bug as the three fixed above, unfixed — its one call site,
-`LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`, is
-already live behind `LoanDisbursementBatchController`; fix it there on a
-future pass. Before starting any of the above, read
+catalogues (`BackOfficeModule`). Before starting any of the above, read
 `Areas/BackOffice/WORKFLOW.md` for the module's full design and the
 reference MVC app's 23-controller `Areas/Loaning` inventory.

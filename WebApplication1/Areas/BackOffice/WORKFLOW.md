@@ -171,12 +171,11 @@ human action. Worth surfacing in a future controller/UI (e.g. as a flag on
 the approve response) rather than silently happening.
 
 **Known latent bug — fixed in `AppraiseLoanCase`/`Async`,
-`ApproveLoanCase`/`Async`, and `AuditLoanCase`/`Async`; still open in
-`MarkLoanCaseDisbursed`** (found while reading `LoanCaseAppService`, same
-audit discipline used elsewhere in this repo — see the Voucher/General
-Ledger and InterAccountTransferBatch corrections in
-`BATCH-PROCEDURES-CONCEPTS.md`): the guard-clause pattern in all four
-methods was `persisted.Status = (int)ExpectedPriorStatus; if
+`ApproveLoanCase`/`Async`, and `AuditLoanCase`/`Async`** (found while
+reading `LoanCaseAppService`, same audit discipline used elsewhere in this
+repo — see the Voucher/General Ledger and InterAccountTransferBatch
+corrections in `BATCH-PROCEDURES-CONCEPTS.md`): the guard-clause pattern in
+all three methods was `persisted.Status = (int)ExpectedPriorStatus; if
 (persisted.Status == (int)ExpectedPriorStatus) { ... }` — i.e. the code
 force-set the *expected* prior status onto the just-fetched entity
 immediately before checking it (and before even null-checking it, so a
@@ -186,13 +185,32 @@ missing loan case id threw a `NullReferenceException` instead of a clean
 `POST .../appraise` endpoint (§14.2), in `ApproveLoanCase`/
 `ApproveLoanCaseAsync` alongside `POST .../approve` (§14.3), and in
 `AuditLoanCase`/`AuditLoanCaseAsync` alongside `POST .../audit` (§14.4).
-**Still present** in `MarkLoanCaseDisbursed` — the one call site for that
-method is `LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`,
-already live behind `LoanDisbursementBatchController`
-(`Areas/Accounts/Controllers`); fix it there if/when that controller gets
-another pass. The state machine described above is the *intended* design,
-this bug is a gap between intent and enforcement, not a reason to doc a
-different design.
+**`MarkLoanCaseDisbursed` does not have this bug** — its own guard is a
+plain `switch` on the entity's real status with no force-set, correctly
+written. It had a different, more consequential bug instead — see below.
+
+**Second, separate, more severe bug — fixed in `MarkLoanCaseDisbursed`**
+(found even later, while verifying the already-live
+`LoanDisbursementBatchController` against this doc's own state machine
+once §14.1-14.4 were all built — a good example of why re-checking
+"already done" work is still worth it): the method's `switch` only matched
+`case LoanCaseStatus.Approved:`, but this diagram's own `Audited -->
+Disbursed` transition (and the reference app's own batch-picker screen,
+which filters `LoanCaseStatus.Audited`) says a case must be `Audited` —
+not `Approved` — before it's eligible for disbursement. `Approved`
+(`0xBEBA+2`) and `Audited` (`0xBEBA+6`) are distinct enum values, so the
+`switch`'s `default` case silently did nothing and returned `false` for
+every loan case that had actually gone through the intended pipeline. Since
+`MarkLoanCaseDisbursed` is called from
+`LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry` **after**
+the disbursement journal already posts real money, the practical effect
+was: the loan disburses, but the case never flips to `Disbursed`, and the
+repayment `StandingOrder` never gets created (gated on this call
+succeeding). Fixed to match `Audited`. Full detail:
+`docs/api/batch-procedures-api-spec.md` §6.3.
+
+The state machine described above is the *intended* design; both bugs were
+gaps between intent and enforcement, not reasons to doc a different design.
 
 ## 5. Loan request intake (optional pre-case stage)
 
@@ -267,11 +285,23 @@ Already built — see `Areas/Accounts/BATCH-PROCEDURES-CONCEPTS.md` §2 and
 `docs/api/batch-procedures-api-spec.md` §6 for the full batch
 Origination/Verification/Authorization flow, and
 `Areas/Accounts/Controllers/LoanDisbursementBatchController.cs` for the
-live controller. Not duplicated here; the one fact worth repeating in this
-doc's context: an entry can only be added to a batch if its `LoanCase` is
-already `Approved`/`Audited` and not yet batched, and posting an entry ends
-with `MarkLoanCaseDisbursed`, closing the loop back into §4's state
-machine.
+live controller. Not duplicated here; two facts worth repeating in this
+doc's context:
+
+- The intended source status is `Audited` (the reference app's own
+  batch-picker screen filters `LoanCaseStatus.Audited`), but this is only
+  enforced by client-side filtering — `AddNewLoanDisbursementBatchEntry`
+  and the bulk `UpdateLoanDisbursementBatchEntries` path check only that
+  the `LoanCase` isn't already batched (plus matching
+  `loanProductCategory`, for bulk-add), never its `Status`. A case in any
+  status, including `Rejected`, can technically be added via the API today
+  — a gap, not a guarantee, despite an earlier version of this doc claiming
+  otherwise.
+- Posting an entry ends with `MarkLoanCaseDisbursed`, closing the loop back
+  into §4's state machine — this had its own real bug (checked `Approved`
+  instead of `Audited`, silently breaking disbursement completion for every
+  correctly-audited case), found and fixed after §14.1-14.4 were built. See
+  §4 and `docs/api/batch-procedures-api-spec.md` §6.3.
 
 ## 12. Payroll / check-off data capture
 
@@ -530,10 +560,20 @@ option (Audit/Reject/Defer) here.
 
 **Real bug fixed in `LoanCaseAppService.AuditLoanCase`/`Async` themselves**,
 same guard-clause shape as appraisal and approval — fixed the same way,
-completing the fix across all three pipeline transitions this pass covers.
-`MarkLoanCaseDisbursed` still has the identical bug, unfixed; its only call
-site is `LoanDisbursementBatchAppService.PostLoanDisbursementBatchEntry`,
-already live — fix it there on a future pass.
+completing the fix across all three of this pass's pipeline transitions.
+
+**`MarkLoanCaseDisbursed` turned out not to share that bug** — its guard is
+a plain `switch`, correctly written, no force-set. It had a different, more
+consequential one instead, found on a follow-up pass verifying the
+already-live `LoanDisbursementBatchController` against this doc's own state
+machine: the `switch` only matched `case LoanCaseStatus.Approved:`, but a
+correctly-audited case is `Audited` by the time it's disbursed — a distinct
+enum value. The disbursement journal had already posted real money by the
+time this ran (it's called after posting, inside
+`PostLoanDisbursementBatchEntry`), so the practical effect was silent:
+money moved, but the loan case never flipped to `Disbursed` and its
+repayment `StandingOrder` never got created. Fixed to match `Audited` — see
+§4 above and `docs/api/batch-procedures-api-spec.md` §6.3 for full detail.
 
 Full reference: `docs/api/loan-case-api-spec.md` §10.
 

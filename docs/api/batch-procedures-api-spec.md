@@ -405,6 +405,21 @@ client-side:
    exists between the same two accounts) a `StandingOrder` that will
    collect the loan's periodic payments going forward.
 
+**Real bug found and fixed** (found later, while building the loan-case
+appraisal/approval/audit endpoints — see `loan-case-api-spec.md` §7-10 —
+not when this controller was originally built): step 4 above,
+`MarkLoanCaseDisbursed`, used to only match `case LoanCaseStatus.Approved:`
+in its switch, but a loan case that went through the intended pipeline
+(registration → appraisal → approval → **audit**,
+`Areas/BackOffice/WORKFLOW.md` §14) is `Audited` by the time it reaches
+disbursement — a distinct enum value from `Approved`. The switch's
+`default` case did nothing and returned `false`. Practical effect: steps
+1-3 above (posting the disbursement journal, moving real money) had
+already happened by the time this ran, but for every correctly-audited
+loan case the method silently failed — the loan case never flipped to
+`Disbursed`, and step 5's `StandingOrder` creation never ran (it's gated on
+step 4 succeeding). Fixed to match `Audited`.
+
 ### 6.4 Two dead fields, and one thing deliberately not exposed
 
 `LoanDisbursementBatchDTO.batchTotal`, `.startDate`, and `.endDate` have

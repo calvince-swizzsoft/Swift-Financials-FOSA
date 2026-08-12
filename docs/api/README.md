@@ -59,6 +59,38 @@ what to go update.
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
 
+### Loan Disbursement Batch API — real bug fixed in already-live code, breaking disbursement completion
+
+Not a new endpoint — a correction to `LoanDisbursementBatchController`
+(`api/accounts/loandisbursementbatches`), found while double-checking that
+controller's original "faithful" claim against the loan-case pipeline
+built in the entries below. `ILoanCaseAppService.MarkLoanCaseDisbursed`,
+called from `PostLoanDisbursementBatchEntry` **after** the disbursement
+journal already posts real money, only matched `case
+LoanCaseStatus.Approved:` in its switch — but a loan case that went through
+the intended pipeline (registration → appraisal → approval → **audit**) is
+`Audited` by the time it's disbursed, a distinct enum value from
+`Approved`. The `switch`'s `default` case silently did nothing and returned
+`false` for every correctly-audited case.
+
+**If your UI has been calling `POST .../entries/{entryId}/post` against a
+properly-audited loan case, the money moved but the loan case never
+flipped to `Disbursed` and its repayment `StandingOrder` was never
+created** — check for any loan cases stuck at `Audited` with a `Posted`
+disbursement entry against them; those need their `StandingOrder` created
+manually (or re-run posting logic) since this fix only changes behavior
+going forward. Fixed to match `Audited`.
+
+Also corrected: an earlier version of this changelog and
+`Areas/Accounts/BATCH-PROCEDURES-CONCEPTS.md` implied a batch entry could
+only be added for an `Approved`/`Audited` `LoanCase` — that was never
+server-enforced. `AddNewLoanDisbursementBatchEntry`/
+`UpdateLoanDisbursementBatchEntries` only check that the case isn't already
+batched; a case in any status can technically be added via the API today.
+
+Full reference: `batch-procedures-api-spec.md` §6.3;
+`Areas/BackOffice/WORKFLOW.md` §4 and §11.
+
 ### Loan Case API — audit/verification added, core loan origination pipeline complete
 
 `POST /{id}/audit` added onto `LoanCaseController` — the consequential
@@ -81,9 +113,10 @@ requirement, just actually enforced this time.
 **Real bug fixed in `LoanCaseAppService.AuditLoanCase`/`Async` themselves**,
 same guard-clause shape as the appraisal/approval fixes below — completing
 the fix across every transition this pipeline covers.
-`MarkLoanCaseDisbursed` (`Audited`/`Approved → Disbursed`, called from the
-already-live `LoanDisbursementBatchController`'s entry-posting flow) still
-has the identical bug, unfixed.
+`MarkLoanCaseDisbursed` (`Audited → Disbursed`, called from the
+already-live `LoanDisbursementBatchController`'s entry-posting flow) turned
+out not to share this bug — it had a different, more consequential one
+instead; see the entry above.
 
 **This completes the core loan origination pipeline** — Registered →
 Appraised → Approved → Audited → Disbursed (disbursement already live) is
@@ -118,8 +151,10 @@ like blanket MVC form validation, not a deliberate rule).
 **Real bug fixed in `LoanCaseAppService.ApproveLoanCase`/`Async`
 themselves**, same shape as the appraisal fix below: the guard clause
 force-set the expected prior status onto the fetched entity before even
-null-checking it. Fixed the same way. The identical bug shape is still
-unfixed in `AuditLoanCase`/`MarkLoanCaseDisbursed`.
+null-checking it. Fixed the same way. The identical bug shape was also
+fixed in `AuditLoanCase` (see the audit/verification entry above).
+`MarkLoanCaseDisbursed` doesn't share this bug — see the disbursement entry
+at the top of this changelog for the different one it did have.
 
 Worth knowing: if the loan product has `LoanRegistrationBypassAudit` set, a
 successful Approve auto-chains straight into `AuditLoanCase` in the same
@@ -147,9 +182,10 @@ fix: the guard clause force-set the expected prior status onto the fetched
 entity *before even null-checking it* — appraising a nonexistent loan case
 id threw a raw `NullReferenceException` instead of a clean `404`, and the
 "must be Registered or Deferred" precondition was tautologically always
-true. Fixed. The identical bug shape is still unfixed in
-`ApproveLoanCase`/`AuditLoanCase`/`MarkLoanCaseDisbursed` — flagged for
-whoever builds those next.
+true. Fixed. The identical bug shape was also fixed in `ApproveLoanCase`
+and `AuditLoanCase` on later passes (see the newer entries above).
+`MarkLoanCaseDisbursed` doesn't share this bug — see the disbursement entry
+at the top of this changelog.
 
 Full reference: `loan-case-api-spec.md` §7-8.
 
