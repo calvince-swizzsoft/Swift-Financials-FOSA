@@ -52,12 +52,47 @@ what to go update.
 | Batch procedures — all nine types (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger, Inter Account Transfer) | `api/accounts/{creditbatches,debitbatches,wiretransferbatches,journalreversalbatches,overdeductionbatches,loandisbursementbatches,journalvouchers,generalledgers,interaccounttransferbatches}` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
-| Loan case registration + appraisal (back office — loan origination pipeline, intake + appraisal stages) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
+| Loan case registration + appraisal + approval (back office — loan origination pipeline) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Loan Case API — approval added, plus another guard-clause bug fixed
+
+`POST /{id}/approve` added onto `LoanCaseController` — the third stage of
+the loan origination pipeline. No new worksheet endpoint; everything real
+an approver needs is already on the loan case from registration/appraisal.
+
+**Found while building, not reproduced**: the reference
+`ApproveLoanController.Approve` action re-copies the same ~40 loan-product
+fields `Create` already snapshots, right before calling
+`ApproveLoanCaseAsync` — but `ApproveLoanCase` never reads any of them off
+the incoming DTO, only the approval-outcome fields
+(`approvedAmount`/`approvedAmountRemarks`/`approvedPrincipalPayment`/
+`approvedInterestPayment`/`monthlyPaybackAmount`/`totalPaybackAmount`/
+`approvalRemarks`) and the persisted entity's own `Id`/`Status`. Pure
+busywork in the reference. Also not reproduced: `loanCaseDTO.ValidateAll()`
+called and never checked — its rules were already meaningfully enforced
+once, at `Create`; running them again here against a lean approve-request
+payload would just be noise. Real requirements are explicit instead:
+`approvalRemarks` always required, `approvedAmount > 0` required only when
+approving (the reference required it even to reject/defer, which reads
+like blanket MVC form validation, not a deliberate rule).
+
+**Real bug fixed in `LoanCaseAppService.ApproveLoanCase`/`Async`
+themselves**, same shape as the appraisal fix below: the guard clause
+force-set the expected prior status onto the fetched entity before even
+null-checking it. Fixed the same way. The identical bug shape is still
+unfixed in `AuditLoanCase`/`MarkLoanCaseDisbursed`.
+
+Worth knowing: if the loan product has `LoanRegistrationBypassAudit` set, a
+successful Approve auto-chains straight into `AuditLoanCase` in the same
+call — the response may already be `Audited`, not `Approved`; the response
+`message` says so explicitly.
+
+Full reference: `loan-case-api-spec.md` §9.
 
 ### Loan Case API — appraisal added, plus a real NullReferenceException/guard-clause bug fixed
 

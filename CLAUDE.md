@@ -393,13 +393,29 @@ drift out of sync with the actual code.
   appraising a missing loan case id threw a `NullReferenceException`
   instead of a clean 404, and the "must be Registered or Deferred"
   precondition was tautologically always true. The identical bug shape
-  still exists, unfixed, in `ApproveLoanCase`/`AuditLoanCase`/
-  `MarkLoanCaseDisbursed` — fix each when building its controller.
+  still exists, unfixed, in `AuditLoanCase`/`MarkLoanCaseDisbursed` — fix
+  each when building its controller. **Approval added the same way**
+  (`POST .../{id}/approve`, same guard-clause bug found and fixed in
+  `ApproveLoanCase`/`Async` too) — see
+  `Areas/BackOffice/WORKFLOW.md` §14.3. No separate worksheet endpoint here;
+  everything real an approver needs is already on the loan case from
+  registration/appraisal. **Found, not reproduced**: the reference
+  `ApproveLoanController.Approve` action re-copies the same ~40 loan-product
+  fields `Create` already snapshots, right before calling
+  `ApproveLoanCaseAsync` — but `ApproveLoanCase` never reads any of them off
+  the incoming DTO, only the approval-outcome fields and the persisted
+  entity's own `Id`/`Status`. Pure busywork in the reference, not ported.
+  Also worth knowing: if the loan product has `LoanRegistrationBypassAudit`
+  set, a successful `Approve` auto-chains straight into `AuditLoanCase` in
+  the same call — the response may already be `Audited`, not `Approved`;
+  the endpoint's `message` field says so explicitly.
 
 Not yet started: the rest of the loan origination pipeline (`BackOfficeModule`
-— loan request intake, approval, audit/verification, guarantor/collateral
-management beyond initial attach, restructuring, cancellation, payroll
-check-off data capture, plus reference-data catalogues). Before starting
-any of this, read `Areas/BackOffice/WORKFLOW.md` — the functional design
-doc for the whole module, including the reference MVC app's 23-controller
-`Areas/Loaning` inventory and the full `LoanCase` state machine.
+— loan request intake, audit/verification, guarantor/collateral management
+beyond initial attach, restructuring, cancellation, payroll check-off data
+capture, plus reference-data catalogues). Audit/verification is next in the
+core pipeline and is the consequential one (creates the loan/savings
+accounts and repayment `StandingOrder`) — before starting it, read
+`Areas/BackOffice/WORKFLOW.md` §8 and §4 (the still-unfixed guard-clause
+bug in `AuditLoanCase`), and the whole doc for the module's full design and
+the reference MVC app's 23-controller `Areas/Loaning` inventory.

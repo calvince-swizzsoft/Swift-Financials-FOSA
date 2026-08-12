@@ -122,6 +122,33 @@ namespace WebApplication1.Areas.BackOffice.Controllers
     //   adjustments replace, mirroring the reference POST Appraise action's
     //   two calls (AppraiseLoanCaseAsync + UpdateLoanAppraisalFactorsAsync)
     //   folded into one request.
+    //
+    // Approval (reference: Areas/Loaning/Controllers/ApproveLoanController.cs):
+    // - Same guard-clause bug shape fixed in ApproveLoanCase/Async — see
+    //   above. Still open in AuditLoanCase/MarkLoanCaseDisbursed.
+    // - The reference Approve action re-copies the same ~40 loan-product
+    //   fields Create already snapshots onto the DTO before calling
+    //   ApproveLoanCaseAsync — but ApproveLoanCase never reads any of them
+    //   off the incoming DTO, only approvedAmount/approvedAmountRemarks/
+    //   approvedPrincipalPayment/approvedInterestPayment/
+    //   monthlyPaybackAmount/totalPaybackAmount/approvalRemarks and the
+    //   persisted entity's own Id/Status. Not reproduced — pure busywork,
+    //   the same lesson as "a DTO's fields are not proof of behavior" from
+    //   BATCH-PROCEDURES-CONCEPTS.md §5, this time about a *controller*
+    //   re-populating fields nobody downstream reads.
+    // - The reference also calls loanCaseDTO.ValidateAll() and never checks
+    //   the result — same dead-validation-call shape fixed in Create — but
+    //   here it's not even reproduced as a no-op: the CustomValidation
+    //   rules it would run (amount-applied range, security sufficiency,
+    //   retirement age) were already meaningfully enforced once, at Create,
+    //   against a fully-populated DTO. Running them again here against a
+    //   lean approve-request payload would just produce validation noise
+    //   for fields this endpoint doesn't ask for. Real requirements are
+    //   checked explicitly instead: approvalRemarks always required,
+    //   approvedAmount > 0 required only when Option == Approve (the
+    //   reference required a nonzero approvedAmount even to reject/defer,
+    //   which reads like unconditional MVC form validation, not a
+    //   deliberate business rule).
     [Authorize]
     [RoutePrefix("api/backoffice/loancases")]
     public class LoanCaseController : ApiController
@@ -626,6 +653,70 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        // Transitions an Appraised case to Approved, Rejected, or Deferred.
+        // See class comment: the reference Approve action re-snapshots the
+        // same ~40 loan-product fields Create already snapshots, but
+        // ApproveLoanCase never reads any of them off the DTO — only
+        // approvedAmount/approvedAmountRemarks/approvedPrincipalPayment/
+        // approvedInterestPayment/monthlyPaybackAmount/totalPaybackAmount/
+        // approvalRemarks and the persisted entity's own Id/Status. Not
+        // reproduced here; it would be pure busywork.
+        [HttpPost]
+        [Route("{id:guid}/approve")]
+        public IHttpActionResult Approve(Guid id, ApproveLoanCaseRequest request)
+        {
+            if (request == null)
+                return ErrorResponse("Request body is required");
+
+            if (!Enum.IsDefined(typeof(LoanApprovalOption), request.Option))
+                return ErrorResponse("Invalid approval option");
+
+            if (string.IsNullOrWhiteSpace(request.ApprovalRemarks))
+                return ErrorResponse("Approval remarks are required");
+
+            if (request.Option == (int)LoanApprovalOption.Approve && request.ApprovedAmount <= 0)
+                return ErrorResponse("Approved amount must be greater than zero");
+
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var existing = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+                if (existing == null)
+                    return NotFound();
+
+                existing.LoanApprovalOption = request.Option;
+                existing.ApprovedAmount = request.ApprovedAmount;
+                existing.ApprovedAmountRemarks = request.ApprovedAmountRemarks;
+                existing.ApprovedPrincipalPayment = request.ApprovedPrincipalPayment;
+                existing.ApprovedInterestPayment = request.ApprovedInterestPayment;
+                existing.MonthlyPaybackAmount = request.MonthlyPaybackAmount;
+                existing.TotalPaybackAmount = request.TotalPaybackAmount;
+                existing.ApprovalRemarks = request.ApprovalRemarks;
+
+                var approved = _loanCaseAppService.ApproveLoanCase(existing, request.Option, serviceHeader);
+
+                if (!approved)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in an Appraised state, or the approval option is invalid"));
+
+                var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                // If the loan product has LoanRegistrationBypassAudit set,
+                // ApproveLoanCase auto-chains straight into AuditLoanCase —
+                // refreshed.status may already be Audited here, not just
+                // Approved. See WORKFLOW.md §4.
+                var message = refreshed?.Status == (int)LoanCaseStatus.Audited
+                    ? "Loan case approved and automatically verified (product bypasses verification)"
+                    : "Loan case approval recorded successfully";
+
+                return Ok(ApiResponse(message, refreshed));
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
         // Returns an error message on failure, null on success. Mutates each
         // guarantor with server-computed share data — see class comment.
         private string EnrichAndValidateGuarantors(List<LoanGuarantorDTO> guarantors, LoanCaseDTO loanCaseDTO, LoanProductDTO loanProduct, ServiceHeader serviceHeader)
@@ -798,5 +889,23 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         // Only applied when Option == Appraise (a rejection releases
         // guarantors and has no appraisal figures to keep).
         public List<LoanAppraisalFactorDTO> IncomeAdjustments { get; set; }
+    }
+
+    public class ApproveLoanCaseRequest
+    {
+        // LoanApprovalOption: 1 = Approve, 2 = Reject, 4 = Defer.
+        public int Option { get; set; }
+
+        // Required only when Option == Approve.
+        public decimal ApprovedAmount { get; set; }
+
+        public string ApprovedAmountRemarks { get; set; }
+        public decimal ApprovedPrincipalPayment { get; set; }
+        public decimal ApprovedInterestPayment { get; set; }
+        public decimal MonthlyPaybackAmount { get; set; }
+        public decimal TotalPaybackAmount { get; set; }
+
+        // Required for every option.
+        public string ApprovalRemarks { get; set; }
     }
 }

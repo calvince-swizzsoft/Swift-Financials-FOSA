@@ -3,15 +3,17 @@
 Base path: `api/backoffice/loancases`. Controller:
 `WebApplication1/Areas/BackOffice/Controllers/LoanCaseController.cs`.
 Functional design: `WebApplication1/Areas/BackOffice/WORKFLOW.md` §5 (loan
-request intake, upstream of this), §14.1 (registration, what was built and
-why), and §14.2 (appraisal).
+request intake, upstream of this), §14.1 (registration), §14.2 (appraisal),
+and §14.3 (approval).
 
-This covers the first two stages of the loan origination pipeline: opening
-a loan case with its guarantors and collateral, and appraising it.
-Approval and audit/verification (`LoanCaseStatus.Appraised → Approved →
-Audited`) are separate, not-yet-built stages — see `WORKFLOW.md` §7-8.
-Disbursement (`LoanCaseStatus.Approved`/`Audited → Disbursed`) is already
-documented separately: `batch-procedures-api-spec.md` §6.
+This covers the first three stages of the loan origination pipeline:
+opening a loan case with its guarantors and collateral, appraising it, and
+approving it. Audit/verification (`LoanCaseStatus.Approved → Audited`) is
+the next, not-yet-built stage — see `WORKFLOW.md` §8; it's the
+consequential one, creating the customer's loan/savings accounts and
+repayment `StandingOrder`. Disbursement (`LoanCaseStatus.Audited →
+Disbursed`) is already documented separately: `batch-procedures-api-spec.md`
+§6.
 
 ## Conventions
 
@@ -248,8 +250,50 @@ did exist (now actually enforced). The identical bug shape is still present,
 unfixed, in `ApproveLoanCase`/`AuditLoanCase`/`MarkLoanCaseDisbursed` — not
 this endpoint's concern, but worth knowing before building against those.
 
+## 9. Approve a loan case
+
+`POST /{id}/approve`
+
+```json
+{
+  "option": 1,
+  "approvedAmount": 100000.00,
+  "approvedAmountRemarks": "...",
+  "approvedPrincipalPayment": 100000.00,
+  "approvedInterestPayment": 12000.00,
+  "monthlyPaybackAmount": 9333.33,
+  "totalPaybackAmount": 112000.00,
+  "approvalRemarks": "..."
+}
+```
+
+`option`: `LoanApprovalOption` — `1` = Approve (→ `Approved`), `2` = Reject
+(→ `Rejected`, releases guarantors), `4` = Defer (→ `Deferred`). Requires
+the case to currently be `Appraised` — `409` otherwise. `approvalRemarks`
+is required for every option; `approvedAmount` must be greater than zero
+but only when `option` is Approve (rejecting/deferring doesn't need one).
+
+Unlike `Create`, this endpoint does **not** re-run `LoanCaseDTO.ValidateAll()`
+or re-snapshot the loan product's ~40 registration-time fields — neither is
+read by `ApproveLoanCase` (it only touches the approval-outcome fields
+above plus the persisted entity's `Id`/`Status`), and both were already
+meaningfully enforced once, at `Create`, against a fully-populated DTO. The
+reference MVC controller does both anyway; here they'd just be dead weight.
+
+**Auto-verification on approve**: if the loan product has
+`LoanRegistrationBypassAudit` set, a successful Approve auto-chains
+straight into `AuditLoanCase` in the same call — the returned `LoanCaseDTO`
+may already be `Audited`, not just `Approved`. The response `message` says
+so explicitly (`"...automatically verified..."`) so a client doesn't have
+to infer it from `status` alone.
+
+**Real bug fixed in `LoanCaseAppService.ApproveLoanCase`/`Async`
+themselves**, same shape as the Appraise fix in §8: the guard clause used
+to force-set `persisted.Status` to `Appraised` before even null-checking
+the fetched entity. Fixed the same way.
+
 ## Not built yet
 
-Approval, audit/verification, cancellation, restructuring, and
-every guarantor sub-flow beyond initial attach (substitute/relieve/release)
-— see `WORKFLOW.md` §6-10 for the design and current status of each.
+Audit/verification, cancellation, restructuring, and every guarantor
+sub-flow beyond initial attach (substitute/relieve/release) — see
+`WORKFLOW.md` §8-10 for the design and current status of each.
