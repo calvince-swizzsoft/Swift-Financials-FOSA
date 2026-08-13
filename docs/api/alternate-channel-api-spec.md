@@ -255,15 +255,18 @@ applies to the whole batch, not per-commission.
 
 ## 5. What this controller deliberately does not cover
 
-- **`MobilePIN`/`NewMobilePIN`/`ResetMobilePIN`** — all three fields exist
-  on `AlternateChannelDTO`, but **no method on `IAlternateChannelAppService`
-  reads or persists any of them**. `AddNewAlternateChannel` doesn't accept
-  a PIN; there is no PIN-set or PIN-reset call anywhere in the app service.
-  This is a real, pre-existing gap (not introduced by this controller) that
-  directly blocks `WORKFLOW.md`'s PIN-authenticated-session design (§5) —
-  the fields being on the DTO already is not evidence the feature works,
-  same "a DTO's fields aren't proof of behavior" lesson `JournalVoucherController`
-  ran into.
+- **`MobilePIN`/`NewMobilePIN`/`ResetMobilePIN`** — **update, since the
+  WhatsApp Banking build (see `WORKFLOW.md` §5): this gap is closed.**
+  `IAlternateChannelAppService.SetMobilePIN`/`VerifyMobilePIN` now exist,
+  hashed at rest via the same PBKDF2 utility used for staff credentials, and
+  `AddNewAlternateChannel` accepts and hashes a `MobilePIN` at link time.
+  **This controller itself still doesn't expose a PIN route** — staff don't
+  set/reset a customer's channel PIN through `AlternateChannelController`;
+  that only happens self-service, through `Areas/WhatsAppBanking`'s
+  `RegistrationController.POST /link` (initial PIN) and
+  `IdentityController.POST /pin/reset` (reset), both OTP-gated. If a staff-
+  facing PIN reset is ever needed, it'd be a new route here calling the same
+  `SetMobilePIN`, not new app-service work.
 - **C2B/B2C money movement** (`MobileToBankRequest`/`BankToMobileRequest`)
   — separate aggregates/app services, out of scope for this controller.
   See `WORKFLOW.md` §3/§7/§9.
