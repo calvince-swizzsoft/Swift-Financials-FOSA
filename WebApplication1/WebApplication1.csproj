@@ -310,6 +310,7 @@
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Areas\Accounts\Controllers\AlternateChannelController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\AlternateChannelReconciliationPeriodController.cs" />
     <Compile Include="Areas\WhatsAppBanking\WhatsAppBankingTokenStore.cs" />
     <Compile Include="Areas\WhatsAppBanking\Controllers\IdentityController.cs" />
     <Compile Include="Areas\WhatsAppBanking\Controllers\RegistrationController.cs" />

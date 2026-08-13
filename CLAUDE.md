@@ -237,6 +237,24 @@ drift out of sync with the actual code.
   retry-lockout, and whether an ungated `approve`/`reject` status flip is
   an acceptable maker-checker substitute for a self-service-linked
   financial channel — see `WORKFLOW.md` §9 for the full list.
+- `Areas/Accounts/Controllers/AlternateChannelReconciliationPeriodController.cs`
+  (new, existing `IAlternateChannelReconciliationPeriodAppService`; full
+  period CRUD + post/reject lifecycle + entries sub-resource + batch-import
+  upload) — previously only reachable via the legacy
+  `AlternateChannelReconciliationPeriodService.svc.cs` WCF passthrough, no
+  controller existed, same "fully built, WCF-only" gap ChequeBook/
+  UnPayReason had. Reference `AlternatePeriodsController`'s `Details`
+  action was miswired (loaded an `AlternateChannel`, not a reconciliation
+  period) and its `Processing` GET called an unrelated
+  `FindAlternateChannelsByTypeAndFilterInPageAsync` with magic-number
+  arguments — neither ported. Flagged, not fixed: the app service's
+  `ParseAlternateChannelReconciliationImport` gates on
+  `persisted.Status == (int)BatchStatus.Pending`, a different enum than
+  the one `Status` is actually populated from
+  (`AlternateChannelReconciliationPeriodStatus`) — works today only
+  because `BatchStatus.Pending` and `...PeriodStatus.Open` are both
+  numerically `1`. See
+  `docs/api/alternate-channel-reconciliation-period-api-spec.md`.
 - `Areas/Accounts/Controllers/CommissionController.cs` (existing
   `ICommissionAppService`; full CRUD + graduated-scales/splits/levies
   sub-resources) and `Areas/Accounts/Controllers/LevyController.cs` (new,
