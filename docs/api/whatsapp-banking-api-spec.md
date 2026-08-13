@@ -343,8 +343,11 @@ access to every account id someone might guess).
 
 `feeApplicable` reflects whether
 `AlternateChannelKnownChargeType.BalanceInquiryCharges` is configured for
-`WhatsAppBanking` — looked up, **not yet actually charged** (same
-"flagged, not guessed at" reasoning as PIN reset charges above).
+`WhatsAppBanking` — looked up, **not actually charged** (still true; this
+is different from deposit/withdrawal below, whose fees are now real — see
+§7). Balance inquiry doesn't debit anything to attach a fee journal to, so
+charging it is a separate design decision, same "flagged, not guessed at"
+reasoning as PIN reset charges.
 
 ## 7. Deposits & withdrawals
 
@@ -379,6 +382,16 @@ not sufficient** — the provider (Safaricom or whoever) must actually be
 configured to call it. That's an external integration step, not something
 this codebase can do for you.
 
+**Deposit fee**: if `AlternateChannelKnownChargeType.DepositCharges` is
+configured for whichever `AlternateChannelType` the MSISDN actually
+matched, it's computed and posted as its own additional debit journal in
+the same batch as the deposit — not just looked up. The full C2B amount is
+credited first, then the fee is debited separately, so the account's net
+balance change is the deposit amount minus the fee; there's no separate
+line item returned to the bot for it (the fee's own journal carries a
+description identifying the charge, for anyone reconciling from the G/L
+side).
+
 ### 7.2 Withdrawal — `POST /withdrawals`
 
 ```json
@@ -386,8 +399,10 @@ this codebase can do for you.
 ```
 
 `404` if `accountId` doesn't belong to the session's customer. `400` if
-`amount` is not positive, exceeds the linked channel's `DailyLimit`, or
-exceeds the account's available balance.
+`amount` is not positive, exceeds the linked channel's `DailyLimit`, or —
+**this now includes any configured `WithdrawalCharges` fee, not just
+`amount` itself** — would leave the account short of covering `amount` plus
+the fee together against its available balance.
 
 **Corrected from the earlier draft of this spec**: that draft assumed
 `IBankToMobileRequestAppService.AddNewBankToMobileRequest` "debits the
@@ -395,12 +410,22 @@ account, queues the payout." It does **neither** — read directly, it never
 references a `CustomerAccountId` at all, it's purely an insert-only audit
 row. This endpoint instead calls a **new** method,
 `IBankToMobileRequestAppService.RequestPayout`, which does the real work:
-balance-checks, then posts a real double-entry journal (Debit the
-customer's product G/L, Credit
+balance-checks (amount plus fee), then posts a real double-entry journal
+(Debit the customer's product G/L, Credit
 `SystemGeneralLedgerAccountCode.MobileWalletB2CSettlement` — the exact
 reverse of how `MobileToBankRequestAppService` posts a C2B deposit), then
 records a `BankToMobileRequest` row for a future outbound payout process
 to pick up.
+
+**Withdrawal fee**: if `AlternateChannelKnownChargeType.WithdrawalCharges`
+is configured for `WhatsAppBanking`, it's computed via
+`ICommissionAppService.ComputeTariffsByAlternateChannelType` and posted as
+one or more additional debit journals in the same batch as the withdrawal
+itself — so the total debited from the customer is `amount` plus the fee,
+which is exactly what the balance check above now guards against exceeding
+`AvailableBalance`. `data.bankToMobileRequestId`/`status` refer only to the
+withdrawal's own `BankToMobileRequest` row — the fee isn't returned as a
+separate line item in the response, same as the deposit side (§7.1).
 
 ```json
 {

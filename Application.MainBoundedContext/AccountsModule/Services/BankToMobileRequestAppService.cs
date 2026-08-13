@@ -23,6 +23,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IChartOfAccountAppService _chartOfAccountAppService;
         private readonly IPostingPeriodAppService _postingPeriodAppService;
         private readonly IJournalEntryPostingService _journalEntryPostingService;
+        private readonly ICommissionAppService _commissionAppService;
 
         public BankToMobileRequestAppService(
            IDbContextScopeFactory dbContextScopeFactory,
@@ -31,7 +32,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
            ICustomerAccountAppService customerAccountAppService,
            IChartOfAccountAppService chartOfAccountAppService,
            IPostingPeriodAppService postingPeriodAppService,
-           IJournalEntryPostingService journalEntryPostingService)
+           IJournalEntryPostingService journalEntryPostingService,
+           ICommissionAppService commissionAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -54,6 +56,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (journalEntryPostingService == null)
                 throw new ArgumentNullException(nameof(journalEntryPostingService));
 
+            if (commissionAppService == null)
+                throw new ArgumentNullException(nameof(commissionAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _bankToMobileRequestRepository = bankToMobileRequestRepository;
             _brokerService = brokerService;
@@ -61,6 +66,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _chartOfAccountAppService = chartOfAccountAppService;
             _postingPeriodAppService = postingPeriodAppService;
             _journalEntryPostingService = journalEntryPostingService;
+            _commissionAppService = commissionAppService;
         }
 
         public BankToMobileRequestDTO AddNewBankToMobileRequest(BankToMobileRequestDTO bankToMobileRequestDTO, ServiceHeader serviceHeader)
@@ -104,7 +110,16 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccountDTO }, serviceHeader, true);
             _customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { customerAccountDTO }, serviceHeader);
 
-            if (amount > customerAccountDTO.AvailableBalance)
+            // WithdrawalCharges commission for this channel type (transactionType is an
+            // AlternateChannelType value - see TransactionsController.RequestWithdrawal, the only
+            // caller today), if configured. Computed before the balance check below so the fee is
+            // included in it - a customer can't be left owing more than their available balance
+            // once the fee is added.
+            var withdrawalFeeTariffs = _commissionAppService.ComputeTariffsByAlternateChannelType(transactionType, (int)AlternateChannelKnownChargeType.WithdrawalCharges, amount, customerAccountDTO, serviceHeader, true) ?? new List<TariffWrapper>();
+
+            var totalWithdrawalFee = withdrawalFeeTariffs.Sum(t => t.Amount);
+
+            if (amount + totalWithdrawalFee > customerAccountDTO.AvailableBalance)
                 return null;
 
             var settlementAccountId = _chartOfAccountAppService.GetCachedChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)SystemGeneralLedgerAccountCode.MobileWalletB2CSettlement, serviceHeader);
@@ -136,6 +151,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             if (result && bankToMobileRequestDTO != null)
             {
+                var journals = new List<Journal>();
+
                 // Debit the customer's product G/L (money leaving their balance), Credit the
                 // B2C settlement account - the exact reverse direction of MobileToBankRequestAppService's
                 // C2B posting, same PerformDoubleEntry primitive.
@@ -143,7 +160,18 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 _journalEntryPostingService.PerformDoubleEntry(journal, settlementAccountId, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
 
-                result = _journalEntryPostingService.BulkSave(serviceHeader, new List<Journal> { journal });
+                journals.Add(journal);
+
+                foreach (var tariff in withdrawalFeeTariffs)
+                {
+                    var feeJournal = JournalFactory.CreateJournal(null, postingPeriod.Id, customerAccountDTO.BranchId, null, tariff.Amount, tariff.Description, string.Format("{0}~{1}", bankToMobileRequestDTO.Id, accountNumber), accountNumber, 0x9999, (int)SystemTransactionCode.BankToMobile, null, serviceHeader);
+
+                    _journalEntryPostingService.PerformDoubleEntry(feeJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, tariff.CreditCustomerAccount, tariff.DebitCustomerAccount, serviceHeader);
+
+                    journals.Add(feeJournal);
+                }
+
+                result = _journalEntryPostingService.BulkSave(serviceHeader, journals);
             }
 
             return result ? bankToMobileRequestDTO : null;

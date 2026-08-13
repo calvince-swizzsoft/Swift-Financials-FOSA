@@ -76,11 +76,14 @@ namespace WebApplication1.Areas.WhatsAppBanking.Controllers
             }
         }
 
-        // Charges AlternateChannelKnownChargeType.BalanceInquiryCharges for WhatsAppBanking, if
-        // configured, the same fee hook every other channel's balance inquiry already has a
-        // place for - looked up here for future wiring; actually posting the charge is not
-        // implemented (no established one-line "charge this fee" primitive exists elsewhere in
-        // this codebase to safely reuse), flagged rather than guessed at.
+        // Looks up whether AlternateChannelKnownChargeType.BalanceInquiryCharges is configured for
+        // WhatsAppBanking and reports it via feeApplicable - still lookup-only, not posted. Unlike
+        // when this comment was first written, a real "compute + post" primitive now exists and is
+        // used by RequestPayout (withdrawal) and MobileToBankRequestAppService (deposit) below -
+        // ICommissionAppService.ComputeTariffsByAlternateChannelType. Balance inquiry doesn't debit
+        // anything to attach a fee journal to, so it wasn't wired the same way here; if
+        // BalanceInquiryCharges needs to actually be charged, it'd need its own debit-something
+        // decision (e.g. a standalone fee-only journal against the account), not just this call.
         [HttpGet]
         [Route("accounts/{accountId:guid}/balance")]
         public async Task<IHttpActionResult> GetBalance(Guid accountId)
@@ -165,10 +168,13 @@ namespace WebApplication1.Areas.WhatsAppBanking.Controllers
         // IBankToMobileRequestAppService.RequestPayout (Debit customer's product G/L, Credit
         // SystemGeneralLedgerAccountCode.MobileWalletB2CSettlement) - see that method's own
         // comments for why this does NOT reuse AddNewBankToMobileRequest (it does not debit or
-        // post anything despite the name). The success message below is deliberately honest
-        // about what happens next: SwiftFinancials.BankToMobileHostInterface (the process that
-        // would actually pay the customer out over mobile money) is still an empty,
-        // unimplemented stub - the debit is real, the payout is not automated yet.
+        // post anything despite the name). RequestPayout also now computes and posts any
+        // configured WithdrawalCharges commission for WhatsAppBanking, included in the
+        // available-balance check - a BadRequest below can mean the amount plus fee together
+        // exceed the balance, not just the amount alone. The success message below is
+        // deliberately honest about what happens next: SwiftFinancials.BankToMobileHostInterface
+        // (the process that would actually pay the customer out over mobile money) is still an
+        // empty, unimplemented stub - the debit is real, the payout is not automated yet.
         [HttpPost]
         [Route("withdrawals")]
         public async Task<IHttpActionResult> RequestWithdrawal(WithdrawalRequest request)

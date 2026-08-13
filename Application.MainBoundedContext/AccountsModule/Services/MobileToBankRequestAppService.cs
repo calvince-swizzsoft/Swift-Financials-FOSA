@@ -28,6 +28,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly ISqlCommandAppService _sqlCommandAppService;
         private readonly IChartOfAccountAppService _chartOfAccountAppService;
         private readonly IAlternateChannelAppService _alternateChannelAppService;
+        private readonly ICommissionAppService _commissionAppService;
         private readonly IBrokerService _brokerService;
 
         public MobileToBankRequestAppService(
@@ -42,6 +43,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
            ISqlCommandAppService sqlCommandAppService,
            IChartOfAccountAppService chartOfAccountAppService,
            IAlternateChannelAppService alternateChannelAppService,
+           ICommissionAppService commissionAppService,
            IBrokerService brokerService)
         {
             if (dbContextScopeFactory == null)
@@ -77,6 +79,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (alternateChannelAppService == null)
                 throw new ArgumentNullException(nameof(alternateChannelAppService));
 
+            if (commissionAppService == null)
+                throw new ArgumentNullException(nameof(commissionAppService));
+
             if (brokerService == null)
                 throw new ArgumentNullException(nameof(brokerService));
 
@@ -91,6 +96,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _sqlCommandAppService = sqlCommandAppService;
             _chartOfAccountAppService = chartOfAccountAppService;
             _alternateChannelAppService = alternateChannelAppService;
+            _commissionAppService = commissionAppService;
             _brokerService = brokerService;
         }
 
@@ -100,7 +106,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             {
                 var result = default(bool);
 
-                var customerAccountDTO = MatchCustomerAccount(mobileToBankRequestDTO, serviceHeader);
+                var customerAccountDTO = MatchCustomerAccount(mobileToBankRequestDTO, serviceHeader, out var matchedAlternateChannelType);
 
                 var settlementAccountId = _chartOfAccountAppService.GetCachedChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)SystemGeneralLedgerAccountCode.MobileWalletC2BSettlement, serviceHeader);
 
@@ -170,6 +176,28 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             break;
                         default:
                             break;
+                    }
+
+                    // DepositCharges commission for whichever AlternateChannelType matched this
+                    // deposit by MSISDN (matching-version-3 in MatchCustomerAccount below) - only
+                    // meaningful when the deposit was actually matched through a linked channel
+                    // (not via the BillRefNumber-encoded account reference paths, versions 1/2,
+                    // which have no channel context to charge against) AND the main deposit itself
+                    // actually posted (journals.Any() - a ProductCode the switch above doesn't
+                    // handle posts nothing, so there's nothing to charge a fee against either).
+                    if (matchedAlternateChannelType.HasValue && journals.Any())
+                    {
+                        var depositFeeTariffs = _commissionAppService.ComputeTariffsByAlternateChannelType(matchedAlternateChannelType.Value, (int)AlternateChannelKnownChargeType.DepositCharges, mobileToBankRequestDTO.TransAmount, customerAccountDTO, serviceHeader, true);
+
+                        if (depositFeeTariffs != null && depositFeeTariffs.Any())
+                        {
+                            foreach (var tariff in depositFeeTariffs)
+                            {
+                                var depositFeeJournal = JournalFactory.CreateJournal(null, postingPeriod.Id, customerAccountDTO.BranchId, null, tariff.Amount, tariff.Description, string.Format("{0}~{1}", mobileToBankRequestDTO.TransID, mobileToBankRequestDTO.BillRefNumber), string.Format("{0}~{1}", mobileToBankRequestDTO.MSISDN, mobileToBankRequestDTO.KYCInfo), 0x9999, (int)SystemTransactionCode.MobileToBank, null, serviceHeader);
+                                _journalEntryPostingService.PerformDoubleEntry(depositFeeJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, tariff.CreditCustomerAccount, tariff.DebitCustomerAccount, serviceHeader);
+                                journals.Add(depositFeeJournal);
+                            }
+                        }
                     }
 
                     if (journals.Any())
@@ -432,9 +460,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             else return null;
         }
 
-        private CustomerAccountDTO MatchCustomerAccount(MobileToBankRequestDTO mobileToBankRequestDTO, ServiceHeader serviceHeader)
+        private CustomerAccountDTO MatchCustomerAccount(MobileToBankRequestDTO mobileToBankRequestDTO, ServiceHeader serviceHeader, out int? matchedAlternateChannelType)
         {
             CustomerAccountDTO targetCustomerAccount = null;
+
+            matchedAlternateChannelType = null;
 
             if (!string.IsNullOrWhiteSpace(mobileToBankRequestDTO.BillRefNumber))
             {
@@ -565,6 +595,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         foreach (var item in alternateChannels)
                         {
                             targetCustomerAccount = _sqlCommandAppService.FindCustomerAccountById(item.CustomerAccountId, serviceHeader);
+
+                            matchedAlternateChannelType = item.Type;
 
                             break;
                         }

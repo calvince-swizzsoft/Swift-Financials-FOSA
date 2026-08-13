@@ -218,9 +218,22 @@ drift out of sync with the actual code.
   none of these three can be hardcoded (real per-deployment values), so
   every dependent endpoint checks and fails loudly (`500`, or an
   unconditional refuse for the webhook) rather than silently proceeding
-  unconfigured. Genuinely still open, not solved here: outbound B2C payout
-  automation, fee-charging (`BalanceInquiryCharges`/`DepositCharges`/
-  `WithdrawalCharges`/`PINResetCharges` are looked up but not posted), PIN
+  unconfigured. **Fee-charging on deposit and withdrawal, since built**:
+  `ICommissionAppService.ComputeTariffsByAlternateChannelType` turned out
+  to already exist, fully implemented (graduated scales, `ChargeBenefactor`
+  Customer/Institution handling, levy splits) — it just had no caller
+  anywhere in the codebase. Wired it into both
+  `MobileToBankRequestAppService.AddNewMobileToBankRequest` (posts
+  `DepositCharges` for whichever `AlternateChannelType` the deposit's
+  MSISDN actually matched — `MatchCustomerAccount` now surfaces that) and
+  `BankToMobileRequestAppService.RequestPayout` (posts `WithdrawalCharges`
+  for the channel type passed in, and the available-balance check now
+  includes the fee, not just the withdrawal amount) — each as its own
+  additional journal in the same `BulkSave` batch as the underlying
+  transaction. Genuinely still open, not solved here: outbound B2C payout
+  automation, `BalanceInquiryCharges`/`PINResetCharges` (still lookup-only
+  — neither balance inquiry nor PIN reset debits anything to attach a fee
+  journal to, so charging either needs its own design decision), PIN
   retry-lockout, and whether an ungated `approve`/`reject` status flip is
   an acceptable maker-checker substitute for a self-service-linked
   financial channel — see `WORKFLOW.md` §9 for the full list.

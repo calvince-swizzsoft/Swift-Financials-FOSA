@@ -157,8 +157,19 @@ flowchart LR
   Renewal, **Withdrawal, Deposit, Mini Statement, Balance Inquiry**,
   Airtime, **PIN Reset**, resolved per channel type via
   `IAlternateChannelAppService.FindCommissions(channelType, chargeType)`.
-  `TransactionsController` looks these up (§6.2) but does not yet post
-  them — see open question 4 (§9).
+  **Deposit and Withdrawal charges are now actually posted**, not just
+  looked up — `ICommissionAppService.ComputeTariffsByAlternateChannelType`
+  (already fully implemented, keyed by `AlternateChannelType`+
+  `AlternateChannelKnownChargeType`, including graduated scales,
+  `ChargeBenefactor` Customer-vs-Institution handling, and levy splits —
+  found already built and correct when the fee-charging work below started,
+  just never called by anything) is now wired into both
+  `BankToMobileRequestAppService.RequestPayout` and
+  `MobileToBankRequestAppService.AddNewMobileToBankRequest` — see §7 for
+  the details. `TransactionsController.GetBalance` still only looks
+  `BalanceInquiryCharges` up (§6.2) — balance inquiry doesn't debit
+  anything to attach a fee journal to, so posting it is a separate design
+  question, not solved by the same wiring — see open question 4 (§9).
 - **C2B deposit matching** (`MobileToBankRequest`) — real, working GL
   logic: given an M-Pesa-shaped Paybill confirmation (`MSISDN`,
   `BusinessShortCode`, `TransID`, `BillRefNumber`, `TransAmount`, ...), it
@@ -364,24 +375,28 @@ any other branch, and points this setting at. `POST /customer` returns
 ```mermaid
 flowchart TD
     A["PIN authenticated,\nsessionToken issued"] --> B{"Main menu"}
-    B -->|"1. Balance"| C["GET /accounts/{id}/balance\n(looks up BalanceInquiryCharges fee -\nlookup only, not yet charged)"]
+    B -->|"1. Balance"| C["GET /accounts/{id}/balance\n(looks up BalanceInquiryCharges fee -\nlookup only, still not charged)"]
     B -->|"2. Deposit"| D["GET /deposits/instructions\n('Pay via [Paybill], account = your linked number')"]
     B -->|"3. Withdraw"| E["POST /withdrawals { accountId, amount }"]
     D --> F["Customer pays via mobile money\n(outside this system)"]
     F --> G["Provider calls POST webhooks/c2b-confirmation\n(DepositWebhookController - BUILT)"]
-    G --> H["MobileToBankRequestAppService matches\nby MSISDN → AlternateChannel → CustomerAccount,\nposts journal"]
-    E --> I["IBankToMobileRequestAppService.RequestPayout\n(NEW - balance-checks, posts real debit journal,\nrecords BankToMobileRequest intent row)"]
+    G --> H["MobileToBankRequestAppService matches\nby MSISDN → AlternateChannel → CustomerAccount,\nposts deposit journal + DepositCharges fee journal(s)"]
+    E --> I["IBankToMobileRequestAppService.RequestPayout\n(balance-checks incl. fee, posts real debit journal\n+ WithdrawalCharges fee journal(s), records\nBankToMobileRequest intent row)"]
     I --> J["Outbound payout — SwiftFinancials.BankToMobileHostInterface\nis STILL an unimplemented stub — NOT automated"]
 ```
 
-- **Fees**: `GET /accounts/{id}/balance` looks up
-  `AlternateChannelKnownChargeType.BalanceInquiryCharges` for
-  `AlternateChannelType.WhatsAppBanking` and reports whether one is
-  configured, but does **not** post it. `DepositCharges` on the C2B
-  webhook path and `WithdrawalCharges` on `RequestPayout` are not wired at
-  all yet. No established "charge this fee" one-line primitive exists
-  elsewhere in this codebase to safely reuse — open question 4 (§9), not
-  guessed at.
+- **Fees — deposit and withdrawal now actually post, balance inquiry still
+  doesn't**: `ICommissionAppService.ComputeTariffsByAlternateChannelType`
+  turned out to already be fully implemented (graduated scales,
+  `ChargeBenefactor` Customer-vs-Institution handling, levy splits, the
+  same computation `CustomerAccountAppService.ChargeAccountActivationFee`
+  already proves out in production) — it just had no caller anywhere. It's
+  now called from both money-movement paths below. `GET /accounts/{id}/balance`
+  still only looks `BalanceInquiryCharges` up and reports `feeApplicable` —
+  balance inquiry doesn't debit anything to attach a fee journal to, so
+  charging it is a separate design decision (what would it debit?), not
+  solved by this same wiring — open question 4 (§9) is now scoped down to
+  just that.
 - **Deposit is customer-funds-first, confirmation-driven** — the bot does
   not itself move money; `GET /deposits/instructions` tells the customer
   how to pay (Paybill/shortcode from `DefaultSettings.Instance.MobileMoneyPaybillBusinessShortCode`
@@ -389,16 +404,25 @@ flowchart TD
   → `MobileToBankRequestAppService`'s existing matching/posting logic
   takes over once a confirmation arrives, with `MatchByMSISDN: true` set
   explicitly (it defaults `false` on the DTO — easy to silently get wrong,
-  confirmed by reading `MatchCustomerAccount` directly). **The webhook
-  existing is necessary but not sufficient** — an actual provider has to
-  be configured to call it (open question 7, §9).
-- **Withdrawal now does a real debit** via the new
-  `IBankToMobileRequestAppService.RequestPayout` — balance-checked against
-  `AvailableBalance`, checked against the linked channel's `DailyLimit`,
-  posts Debit customer's product G/L / Credit
+  confirmed by reading `MatchCustomerAccount` directly). `MatchCustomerAccount`
+  now also surfaces which `AlternateChannelType` actually matched (only
+  meaningful for the MSISDN match path, not the two BillRefNumber-encoded
+  paths), which `AddNewMobileToBankRequest` uses to look up and post any
+  configured `DepositCharges` for that channel type, as its own additional
+  journal(s) in the same `BulkSave` batch as the deposit itself. **The
+  webhook existing is necessary but not sufficient** — an actual provider
+  has to be configured to call it (open question 7, §9).
+- **Withdrawal does a real debit, now inclusive of any configured fee**,
+  via `IBankToMobileRequestAppService.RequestPayout` — balance-checked
+  against `AvailableBalance` (the check now includes the computed
+  `WithdrawalCharges` amount, not just the withdrawal itself — a request
+  that would leave the account short once the fee is added is rejected,
+  not partially processed), checked against the linked channel's
+  `DailyLimit`, posts Debit customer's product G/L / Credit
   `SystemGeneralLedgerAccountCode.MobileWalletB2CSettlement` (the mirror
-  of how C2B deposits post, in reverse), and records a `BankToMobileRequest`
-  row. **What still doesn't exist**: `SwiftFinancials.BankToMobileHostInterface`,
+  of how C2B deposits post, in reverse) plus one journal per fee tariff,
+  and records a `BankToMobileRequest` row. **What still doesn't exist**:
+  `SwiftFinancials.BankToMobileHostInterface`,
   the process that would actually pay the customer out over mobile money —
   still an empty stub. `TransactionsController`'s success response says so
   explicitly (`"...back office will process it manually"`) rather than
@@ -454,11 +478,18 @@ or controller needed:
    unresolved: what's an acceptable approval turnaround time, and how does
    the bot learn approval happened (poll `pin/authenticate`? a push
    mechanism)?
-7. **Fee charging** — `BalanceInquiryCharges`/`DepositCharges`/
-   `WithdrawalCharges`/`PINResetCharges` are all looked up somewhere in
-   the built code but none are actually posted. Needs either a shared
-   "charge this fee" primitive designed for this codebase, or a decision
-   that WhatsApp Banking doesn't charge these fees (some channels don't).
+7. **Fee charging — narrowed, not fully closed.** `DepositCharges` and
+   `WithdrawalCharges` are now real: `MobileToBankRequestAppService.AddNewMobileToBankRequest`
+   and `BankToMobileRequestAppService.RequestPayout` both compute and post
+   them via `ICommissionAppService.ComputeTariffsByAlternateChannelType`
+   (found already fully implemented — graduated scales, `ChargeBenefactor`
+   Customer/Institution handling, levy splits — just never called by
+   anything before this). Still open: `BalanceInquiryCharges` (§6.2 is
+   lookup-only — balance inquiry doesn't debit anything, so charging it
+   needs its own design decision, not just a call to the same method) and
+   `PINResetCharges` (same reasoning, `pin/reset` doesn't debit anything
+   either). Whether either of those two should charge at all — some
+   channels don't — is a product decision, not resolved here.
 8. **PIN retry-lockout policy** — `AlternateChannel.IsLocked` exists;
    nothing sets it automatically after failed `pin/authenticate` attempts.
    How many attempts, and is a 4-digit PIN (vs. a longer one) an
