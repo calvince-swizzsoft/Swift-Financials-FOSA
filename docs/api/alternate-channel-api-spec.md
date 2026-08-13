@@ -2,8 +2,8 @@
 
 Audience: back-office staff screens managing channel linking (Sacco Link,
 Sparrow, MCo-op Cash, SpotCash, Citius, Agency Banking, PesaPepe, ABC Bank,
-Broker, and — once added — WhatsApp Banking) and per-channel-type fee
-configuration. This is **Piece A** from
+Broker, WhatsApp Banking) and per-channel-type fee configuration. This is
+**Piece A** from
 `WebApplication1/Areas/WhatsAppBanking/WORKFLOW.md` §4: a generic,
 channel-type-agnostic controller, not scoped to any one channel. WhatsApp
 Banking's bot-facing API (`Areas/WhatsAppBanking`, proposed, not yet built)
@@ -61,9 +61,16 @@ maker-checker enforcement is wanted here, it doesn't exist at any layer yet
 `AlternateChannelType.AgencyBanking` and `.Citius` — `POST`/`PUT` can never
 succeed for those two channel types today. No spec anywhere states the
 intended `CardNumber` format for either, so this is flagged rather than
-guessed at. Whoever adds `AlternateChannelType.WhatsAppBanking` will fall
-into the same `default:` branch and needs a real validation case added,
-not just the enum value.
+guessed at.
+
+**Since fixed**: `AlternateChannelType.WhatsAppBanking = 512` is added,
+with a real `CheckAlternateChannelNumber` validation case — E.164-shaped,
+the same regex `MCoopCash`/`SpotCash`/`PesaPepe` already use — and the
+matching `MaskedCardNumber` masking-style case (grouped with the other
+phone-number-shaped channels), so it does not inherit the
+`AgencyBanking`/`Citius` gap above. No changes were needed in this
+controller for the new type — confirms the "generic across every
+`AlternateChannelType`" design actually holds.
 
 ## 1. List / read
 
@@ -260,8 +267,7 @@ applies to the whole batch, not per-commission.
 - **C2B/B2C money movement** (`MobileToBankRequest`/`BankToMobileRequest`)
   — separate aggregates/app services, out of scope for this controller.
   See `WORKFLOW.md` §3/§7/§9.
-- **`AlternateChannelType.WhatsAppBanking`** does not exist yet. Adding it
-  (proposed value `512`) and the matching `CheckAlternateChannelNumber`
-  validation case is separate work — this controller works for it
-  automatically once the enum value and validation case exist, no
-  WhatsApp-specific code needed here.
+- ~~`AlternateChannelType.WhatsAppBanking` does not exist yet~~ — **done**:
+  the enum value (`512`) and the matching `CheckAlternateChannelNumber`
+  validation case are both added. This controller needed no changes for
+  it, confirming the design.

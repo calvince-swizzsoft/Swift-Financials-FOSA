@@ -165,9 +165,9 @@ flowchart LR
   unimplemented stub (checked directly: default `Class1.cs`, nothing
   else). `BankToMobileRequest` rows can be created and queued; nothing
   consumes that queue.
-- No existing `AlternateChannelType` covers WhatsApp (or any generic
-  mobile/chat channel) — this phase proposes adding one
-  (`WhatsAppBanking`, next enum value after `Broker = 256`, i.e. `512`).
+- ~~No existing `AlternateChannelType` covers WhatsApp~~ — **done**:
+  `AlternateChannelType.WhatsAppBanking = 512` is added, with a matching
+  `CheckAlternateChannelNumber` validation case (§4).
 
 **Net effect on this design**: linking, fees, and deposit-matching reuse
 real, existing logic — genuine leverage, not just a nicer diagram. The
@@ -198,9 +198,11 @@ controllers, keyed off `AlternateChannelDTO.Type`:
 controller for every `AlternateChannelType` — link/update/replace/renew/
 stop/delink, paged/filtered listing (including a checker-inbox-shaped
 type+status query), and the type-scoped commissions sub-resource. WhatsApp
-Banking becomes just one more `Type` value once
-`AlternateChannelType.WhatsAppBanking` is added (§3) — no changes needed to
-this controller for that.
+Banking is just one more `Type` value — `AlternateChannelType.
+WhatsAppBanking = 512` and a matching `CheckAlternateChannelNumber`
+validation case (E.164-shaped, same regex as `MCoopCash`/`SpotCash`/
+`PesaPepe`) are **now both added** — no changes needed to this controller
+for that, confirming the point above.
 
 **Real findings from building it, not assumptions:**
 - `RegisterController.Verify`/`Authorize` are bound to `DebitBatchDTO` and
@@ -226,11 +228,13 @@ this controller for that.
   validator) unconditionally blanks `CardNumber` for
   `AlternateChannelType.AgencyBanking`/`.Citius` — linking can never
   succeed for either type today, a pre-existing bug independent of this
-  work. Flagged, not fixed (no spec states the intended format for
-  either). **Directly relevant to adding `WhatsAppBanking`**: it will fall
-  into the same `default:` branch and needs a real validation case (likely
-  the same E.164-shaped regex `MCoopCash`/`SpotCash`/`PesaPepe` already
-  use), not just the enum value — part of open question 1 (§9).
+  work. Still flagged, not fixed (no spec states the intended format for
+  either) — unrelated to WhatsApp Banking, left alone. **Open question 1
+  (§9) is done**: `AlternateChannelType.WhatsAppBanking = 512` is added,
+  and — unlike `AgencyBanking`/`Citius` — it has a real validation case
+  (the same E.164-shaped regex `MCoopCash`/`SpotCash`/`PesaPepe` already
+  use, plus the matching `MaskedCardNumber` masking-style case), so it
+  doesn't inherit their bug.
 
 **Piece B — `Areas/WhatsAppBanking` (customer/bot-facing, WhatsApp-specific,
 no reference-app precedent). Not started.** OTP request/verify, PIN
@@ -399,14 +403,12 @@ first — not part of this document.
 
 ## 9. Open design questions — confirm before implementation
 
-1. **`AlternateChannelType.WhatsAppBanking` needs to actually be added**
-   to the enum (proposed value `512`) — a small, mechanical change, but a
-   real one, **plus a real `CheckAlternateChannelNumber` validation case**
-   (§4 — `AgencyBanking`/`.Citius` already fall through this same
-   `default:` branch and can never link today; `WhatsAppBanking` would
-   join them without a case of its own). Piece A's
-   `AlternateChannelController` needs no changes for the new type once
-   both exist — it's already generic.
+1. ~~`AlternateChannelType.WhatsAppBanking` needs to actually be added~~ —
+   **done** (§4): the enum value (`512`) and a real
+   `CheckAlternateChannelNumber` validation case (E.164-shaped, same regex
+   as `MCoopCash`/`SpotCash`/`PesaPepe`) are both in. Confirmed Piece A's
+   `AlternateChannelController` needed zero changes for the new type — it
+   was already generic, as designed.
 2. **Self-service linking approval mechanism, not just latency** — Piece A
    (§4) is built and callable today, so the question isn't "does an
    approval screen exist" anymore, it's whether an **ungated** status flip

@@ -1523,6 +1523,8 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         AbcBank = 128,
         [Description("Broker")]
         Broker = 256,
+        [Description("WhatsApp Banking")]
+        WhatsAppBanking = 512,
     }
 
     public enum AlternateChannelFilter

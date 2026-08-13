@@ -280,6 +280,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
                     case AlternateChannelType.SpotCash:
                     case AlternateChannelType.PesaPepe:
                     case AlternateChannelType.Broker:
+                    case AlternateChannelType.WhatsAppBanking:
                         maskedPAN = UberUtil.MaskPan(CardNumber, 4, 3);
                         break;
                     case AlternateChannelType.Sparrow:
@@ -391,6 +392,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
                     case AlternateChannelType.MCoopCash:
                     case AlternateChannelType.SpotCash:
                     case AlternateChannelType.PesaPepe:
+                    case AlternateChannelType.WhatsAppBanking:
                         bindingModel.CardNumber = Regex.IsMatch(string.Format("+{0}", temp), @"^\+(?:[0-9]??){6,14}[0-9]$") ? temp : string.Empty;
                         break;
                     case AlternateChannelType.Sparrow:

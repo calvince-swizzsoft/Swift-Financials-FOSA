@@ -174,8 +174,12 @@ drift out of sync with the actual code.
   unconditionally blanks `CardNumber` for `AlternateChannelType.
   AgencyBanking`/`.Citius`, so linking can never succeed for either type
   today — no spec states the intended format for either, so it's flagged
-  rather than guessed at (whoever adds `WhatsAppBanking` will hit the same
-  `default:` branch and needs a real case, not just the enum value). See
+  rather than guessed at. **Follow-up done**: added
+  `AlternateChannelType.WhatsAppBanking = 512` plus a real
+  `CheckAlternateChannelNumber` case for it (E.164-shaped, same regex as
+  `MCoopCash`/`SpotCash`/`PesaPepe`, so it doesn't inherit the
+  `AgencyBanking`/`Citius` gap) and the matching `MaskedCardNumber` case —
+  `AlternateChannelController` needed zero changes for the new type. See
   `docs/api/alternate-channel-api-spec.md`.
 - `Areas/Accounts/Controllers/CommissionController.cs` (existing
   `ICommissionAppService`; full CRUD + graduated-scales/splits/levies
