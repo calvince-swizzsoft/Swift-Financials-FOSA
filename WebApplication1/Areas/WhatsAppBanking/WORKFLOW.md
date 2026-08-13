@@ -417,13 +417,18 @@ document.
 ## 9. Open items — what's left, now that both pieces are built
 
 **Deployment prerequisites (config, not code)** — see the table at the top
-of `docs/api/whatsapp-banking-api-spec.md`:
-1. `DefaultSettings.Instance.DigitalChannelBranchId` — back office must
-   create a Branch for self-onboarded customers and point this at it.
-2. `DefaultSettings.Instance.MobileMoneyPaybillBusinessShortCode` — the
-   real Paybill/shortcode customers pay into.
-3. `DefaultSettings.Instance.MobileToBankWebhookSecret` — shared secret
-   the inbound webhook checks; unset means every webhook call is refused.
+of `docs/api/whatsapp-banking-api-spec.md`. All three are now real
+`<appSettings>` keys in `WebApplication1/Web.config`, read into
+`DefaultSettings.Instance` on every access — set them there, no code change
+or controller needed:
+1. `DigitalChannelBranchId` (→ `DefaultSettings.Instance.DigitalChannelBranchId`)
+   — back office must create a Branch for self-onboarded customers and
+   point this at it.
+2. `MobileMoneyPaybillBusinessShortCode` (→ `DefaultSettings.Instance.MobileMoneyPaybillBusinessShortCode`)
+   — the real Paybill/shortcode customers pay into.
+3. `MobileToBankWebhookSecret` (→ `DefaultSettings.Instance.MobileToBankWebhookSecret`)
+   — shared secret the inbound webhook checks; unset means every webhook
+   call is refused.
 
 **Real backend work still not built:**
 4. **Outbound B2C payout automation** — `SwiftFinancials.BankToMobileHostInterface`

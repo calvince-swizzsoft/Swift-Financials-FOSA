@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 
 namespace Infrastructure.Crosscutting.Framework.Utils
 {
@@ -38,6 +39,19 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                     instance.ServerDate = DateTime.Now;
 
                     instance.AlternateChannelsDefaultDailyLimit = 40000m;
+
+                    // Deployment-specific digital-channel settings (WhatsApp Banking and future
+                    // self-service channels) - read from <appSettings> here, same as every other
+                    // value in this block, rather than hardcoded, since they're real per-install
+                    // values (a Branch id, a provider Paybill, a shared secret) nobody can bake into
+                    // source. Missing/unparseable keys fall back to the "unconfigured" defaults the
+                    // properties below already document (Guid.Empty / null) - callers already treat
+                    // that as a per-request failure, not a reason to crash startup.
+                    instance.DigitalChannelBranchId = Guid.TryParse(ConfigurationManager.AppSettings["DigitalChannelBranchId"], out var digitalChannelBranchId)
+                        ? digitalChannelBranchId
+                        : Guid.Empty;
+                    instance.MobileMoneyPaybillBusinessShortCode = ConfigurationManager.AppSettings["MobileMoneyPaybillBusinessShortCode"];
+                    instance.MobileToBankWebhookSecret = ConfigurationManager.AppSettings["MobileToBankWebhookSecret"];
                 }
 
                 return instance;
@@ -87,22 +101,24 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         public DateTime ServerDate { get; set; }
 
         // Deployment-specific, not a hardcodable constant like the settings above (a Branch is a
-        // real runtime-created row, its id differs per install) - ops must set this once, at
-        // app-start, to the Branch under which self-onboarded digital-channel customers (e.g.
-        // WhatsApp Banking) are registered. Defaults to Guid.Empty (unconfigured); callers must
-        // treat that as "not set up yet", not "no branch restriction".
+        // real runtime-created row, its id differs per install) - the Branch under which
+        // self-onboarded digital-channel customers (e.g. WhatsApp Banking) are registered.
+        // Populated above from <appSettings key="DigitalChannelBranchId"> in Web.config; ops set
+        // it there, no code change needed. Defaults to Guid.Empty (unconfigured) if missing/
+        // unparseable; callers must treat that as "not set up yet", not "no branch restriction".
         public Guid DigitalChannelBranchId { get; set; }
 
         // Same reasoning as DigitalChannelBranchId - a real provider-issued value (Paybill/
         // Till/business shortcode), differs per deployment/provider contract, cannot be
-        // hardcoded. Defaults to null/empty (unconfigured).
+        // hardcoded. Populated above from <appSettings key="MobileMoneyPaybillBusinessShortCode">.
+        // Defaults to null/empty (unconfigured) if the key is missing.
         public string MobileMoneyPaybillBusinessShortCode { get; set; }
 
         // Shared secret the inbound C2B webhook (WebApplication1/Areas/WhatsAppBanking) checks
         // against an X-Webhook-Secret header, since a payment provider's server-to-server
-        // callback can't participate in this system's staff/service JWT bearer scheme. Ops must
-        // set this to a real secret shared with the provider before the webhook is usable;
-        // defaults to null/empty (unconfigured), which the webhook must treat as "refuse every
+        // callback can't participate in this system's staff/service JWT bearer scheme. Populated
+        // above from <appSettings key="MobileToBankWebhookSecret">. Defaults to null/empty
+        // (unconfigured) if the key is missing, which the webhook must treat as "refuse every
         // request", not "no secret required".
         public string MobileToBankWebhookSecret { get; set; }
     }

@@ -7,13 +7,23 @@ design and history of how this was built; this document is the practical
 integration guide for the bot/conversation-orchestrator team.
 
 **Before you integrate, three things must be configured by SACCO back
-office** — none of these are code, but nothing here works without them:
+office** — none of these are code, but nothing here works without them. All
+three are `<appSettings>` keys in `WebApplication1/Web.config`, read into
+`DefaultSettings.Instance` on every access
+(`Infrastructure.Crosscutting.Framework/Utils/DefaultSettings.cs`) — ops sets
+them there directly, no controller, no rebuild:
 
-| Setting | `DefaultSettings` property | What happens if unset |
-|---|---|---|
-| Digital Channel Branch | `Instance.DigitalChannelBranchId` | `POST /customer` returns `500` |
-| Mobile money Paybill/shortcode | `Instance.MobileMoneyPaybillBusinessShortCode` | `GET /deposits/instructions` returns `500` |
-| Inbound webhook shared secret | `Instance.MobileToBankWebhookSecret` | `POST /webhooks/c2b-confirmation` returns `500` for everyone, always |
+| Setting | Web.config `<appSettings>` key | `DefaultSettings` property | What happens if unset |
+|---|---|---|---|
+| Digital Channel Branch | `DigitalChannelBranchId` (a real `Branch` row's GUID) | `Instance.DigitalChannelBranchId` | `POST /customer` returns `500` |
+| Mobile money Paybill/shortcode | `MobileMoneyPaybillBusinessShortCode` | `Instance.MobileMoneyPaybillBusinessShortCode` | `GET /deposits/instructions` returns `500` |
+| Inbound webhook shared secret | `MobileToBankWebhookSecret` (share this value with the mobile money provider) | `Instance.MobileToBankWebhookSecret` | `POST /webhooks/c2b-confirmation` returns `500` for everyone, always |
+
+A blank or missing key is read as "unconfigured" — `DigitalChannelBranchId`
+falls back to `Guid.Empty`, the string settings fall back to `null` — which
+is exactly what the "what happens if unset" column above already assumed;
+this wiring didn't change that contract, just made it configurable without
+a code change.
 
 Source of truth:
 - Controllers: `WebApplication1/Areas/WhatsAppBanking/Controllers/`
