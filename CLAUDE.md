@@ -144,9 +144,26 @@ drift out of sync with the actual code.
   `docs/api/chequebook-api-spec.md` and
   `Areas/FrontOffice/CHEQUE-PROCESSING-ANALYSIS.md`)
 - `Areas/Accounts/Controllers/LoanProductController.cs` (existing
-  `ILoanProductAppService`; read-only list endpoint added to unblock
-  `ChequeTypeController`'s Create picker — no working route existed before,
-  see `docs/api/loan-product-api-spec.md`)
+  `ILoanProductAppService`; full CRUD + dynamic-charges/loan-cycles/
+  auxiliary-conditions/deductibles/auxiliary-appraisal-factors/
+  appraisal-products/commissions sub-resources) — started as a read-only
+  list endpoint to unblock `ChequeTypeController`'s Create picker (no
+  working route existed before), later completed into a full adaptation.
+  The reference MVC controller's Create/Edit views are a session-staged
+  wizard (several small AJAX round-trips into `Session`, flushed by one
+  `Create` POST via `UpdateAssociatedData`) with no real behavior beyond
+  "attach these sub-collections" — collapsed into direct sub-resource
+  `GET`/`PUT` routes, same pattern as `CommissionController`'s
+  graduated-scales/splits/levies, with `Create` additionally accepting all
+  sub-collections up front in one request instead of a session round-trip.
+  Not ported: seven pure session-staging actions with no persistence
+  behavior of their own (superseded by the sub-resource endpoints), and
+  four near-duplicate single-record lookups (`GetInvestmentProductDetails`/
+  `GetSavingDetails`/`GetloanDetails`/`GetLoanProductDetails`) used only to
+  populate a description label while picking a linked product in the
+  wizard — redundant with this controller's own `GET {id}` (and
+  `SavingsProductController`'s, for the savings case). See
+  `docs/api/loan-product-api-spec.md`.
 - `Areas/Accounts/Controllers/CommissionController.cs` (existing
   `ICommissionAppService`; full CRUD + graduated-scales/splits/levies
   sub-resources) and `Areas/Accounts/Controllers/LevyController.cs` (new,
