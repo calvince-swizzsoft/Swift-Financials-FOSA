@@ -85,5 +85,25 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         public decimal AlternateChannelsDefaultDailyLimit { get; private set; }
 
         public DateTime ServerDate { get; set; }
+
+        // Deployment-specific, not a hardcodable constant like the settings above (a Branch is a
+        // real runtime-created row, its id differs per install) - ops must set this once, at
+        // app-start, to the Branch under which self-onboarded digital-channel customers (e.g.
+        // WhatsApp Banking) are registered. Defaults to Guid.Empty (unconfigured); callers must
+        // treat that as "not set up yet", not "no branch restriction".
+        public Guid DigitalChannelBranchId { get; set; }
+
+        // Same reasoning as DigitalChannelBranchId - a real provider-issued value (Paybill/
+        // Till/business shortcode), differs per deployment/provider contract, cannot be
+        // hardcoded. Defaults to null/empty (unconfigured).
+        public string MobileMoneyPaybillBusinessShortCode { get; set; }
+
+        // Shared secret the inbound C2B webhook (WebApplication1/Areas/WhatsAppBanking) checks
+        // against an X-Webhook-Secret header, since a payment provider's server-to-server
+        // callback can't participate in this system's staff/service JWT bearer scheme. Ops must
+        // set this to a real secret shared with the provider before the webhook is usable;
+        // defaults to null/empty (unconfigured), which the webhook must treat as "refuse every
+        // request", not "no secret required".
+        public string MobileToBankWebhookSecret { get; set; }
     }
 }

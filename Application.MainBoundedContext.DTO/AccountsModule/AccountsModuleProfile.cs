@@ -317,6 +317,11 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
             //AlternateChannel => AlternateChannelDTO
             CreateMap<AlternateChannel, AlternateChannelDTO>()
+                // MobilePIN on the entity is now a PasswordHash (PBKDF2) hash, never the raw
+                // PIN - never project it into the DTO, so no read endpoint can ever return it,
+                // hashed or not. NewMobilePIN/ResetMobilePIN are request-only concepts with no
+                // backing entity field, so AutoMapper never touches them here either way.
+                .ForMember(dest => dest.MobilePIN, opt => opt.Ignore())
                 .ForMember(dest => dest.MaskedCardNumber, opt => opt.Ignore())
                 .ForMember(dest => dest.TypeDescription, opt => opt.Ignore())
                 .ForMember(dest => dest.CustomerAccountCustomerTypeDescription, opt => opt.Ignore())

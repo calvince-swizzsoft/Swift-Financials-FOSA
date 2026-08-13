@@ -192,6 +192,10 @@ namespace WebApplication1
             Current.RegisterType<ILoanDisbursementBatchAppService, LoanDisbursementBatchAppService>();
             Current.RegisterType<ILoanRequestAppService, LoanRequestAppService>();
 
+            // WhatsApp Banking bot-facing API (Areas/WhatsAppBanking) - ephemeral OTP/session
+            // store over the already-registered IAppCache singleton above.
+            Current.RegisterType<WebApplication1.Areas.WhatsAppBanking.WhatsAppBankingTokenStore>();
+
             Current.RegisterType<ITextAlertAppService, TextAlertAppService>();
             Current.RegisterType<IEmailAlertAppService, EmailAlertAppService>();
             Current.RegisterType<IMessageGroupAppService, MessageGroupAppService>();

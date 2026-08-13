@@ -101,6 +101,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     alternateChannel.Remarks = alternateChannelDTO.Remarks;
                     alternateChannel.CreatedBy = serviceHeader.ApplicationUserName;
 
+                    if (!string.IsNullOrWhiteSpace(alternateChannelDTO.MobilePIN))
+                        alternateChannel.MobilePIN = PasswordHash.CreateHash(alternateChannelDTO.MobilePIN);
+
                     _alternateChannelRepository.Add(alternateChannel, serviceHeader);
 
                     var customerAccountHistory = CustomerAccountHistoryFactory.CreateCustomerAccountHistory(alternateChannelDTO.CustomerAccountId, (int)AlternateChannelManagementAction.Linking, alternateChannelDTO.Remarks, string.Format("{0} {1}", alternateChannelDTO.TypeDescription, alternateChannelDTO.MaskedCardNumber), serviceHeader.ApplicationUserName);
@@ -371,6 +374,42 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
 
             return result;
+        }
+
+        public bool SetMobilePIN(Guid alternateChannelId, string pin, ServiceHeader serviceHeader)
+        {
+            if (alternateChannelId == Guid.Empty || string.IsNullOrWhiteSpace(pin))
+                return false;
+
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+                var persisted = _alternateChannelRepository.Get(alternateChannelId, serviceHeader);
+
+                if (persisted == null)
+                    return false;
+
+                persisted.MobilePIN = PasswordHash.CreateHash(pin);
+                persisted.ModifiedBy = serviceHeader.ApplicationUserName;
+                persisted.ModifiedDate = DateTime.Now;
+
+                return dbContextScope.SaveChanges(serviceHeader) >= 0;
+            }
+        }
+
+        public bool VerifyMobilePIN(Guid alternateChannelId, string pin, ServiceHeader serviceHeader)
+        {
+            if (alternateChannelId == Guid.Empty || string.IsNullOrWhiteSpace(pin))
+                return false;
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var persisted = _alternateChannelRepository.Get(alternateChannelId, serviceHeader);
+
+                if (persisted == null || string.IsNullOrWhiteSpace(persisted.MobilePIN))
+                    return false;
+
+                return PasswordHash.ValidatePassword(pin, persisted.MobilePIN);
+            }
         }
 
         public List<AlternateChannelDTO> FindAlternateChannels(ServiceHeader serviceHeader)

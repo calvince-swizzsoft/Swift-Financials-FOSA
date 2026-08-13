@@ -2659,7 +2659,9 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         [Description("Customer Registration Alert")]
         CustomerRegistration = 91,
         [Description("External Cheque (Deposit Charge)")]
-        ExternalChequeDepositCharge = 92
+        ExternalChequeDepositCharge = 92,
+        [Description("Bank To Mobile")]
+        BankToMobile = 93
     }
 
     public enum ChargeBenefactor

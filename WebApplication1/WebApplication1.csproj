@@ -310,6 +310,11 @@
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Areas\Accounts\Controllers\AlternateChannelController.cs" />
+    <Compile Include="Areas\WhatsAppBanking\WhatsAppBankingTokenStore.cs" />
+    <Compile Include="Areas\WhatsAppBanking\Controllers\IdentityController.cs" />
+    <Compile Include="Areas\WhatsAppBanking\Controllers\RegistrationController.cs" />
+    <Compile Include="Areas\WhatsAppBanking\Controllers\TransactionsController.cs" />
+    <Compile Include="Areas\WhatsAppBanking\Controllers\DepositWebhookController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeTypeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeBookController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CommissionController.cs" />

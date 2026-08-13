@@ -181,6 +181,49 @@ drift out of sync with the actual code.
   `AgencyBanking`/`Citius` gap) and the matching `MaskedCardNumber` case —
   `AlternateChannelController` needed zero changes for the new type. See
   `docs/api/alternate-channel-api-spec.md`.
+- `Areas/WhatsAppBanking/Controllers/*` (new — `IdentityController`,
+  `RegistrationController`, `TransactionsController`,
+  `DepositWebhookController`, plus shared `WhatsAppBankingTokenStore` in
+  the same Area) — the bot-facing customer/money-movement API this whole
+  WhatsApp Banking effort was building toward, on top of
+  `AlternateChannelController` above. See
+  `WebApplication1/Areas/WhatsAppBanking/WORKFLOW.md` for the full design
+  history and `docs/api/whatsapp-banking-api-spec.md` for the endpoint
+  reference. Two real, consequential findings from building this, not
+  assumptions: (1) `IBankToMobileRequestAppService.AddNewBankToMobileRequest`
+  does not debit any account or post any journal despite the name — it's a
+  bare insert-only intent row with no `CustomerAccountId` field at all;
+  added a new `RequestPayout` method that does the real work (balance
+  check, then a real double-entry debit journal mirroring
+  `MobileToBankRequestAppService`'s C2B posting in reverse — Debit
+  customer's product G/L, Credit `SystemGeneralLedgerAccountCode.
+  MobileWalletB2CSettlement`), and `TransactionsController`'s withdrawal
+  response is deliberately honest that payout isn't automated yet
+  (`SwiftFinancials.BankToMobileHostInterface` is still an empty stub) —
+  the earlier draft's planned "you'll receive it shortly" message would
+  have been false. (2) `MobilePIN`/`NewMobilePIN`/`ResetMobilePIN` existed
+  on `AlternateChannelDTO` but nothing persisted them — added
+  `IAlternateChannelAppService.SetMobilePIN`/`VerifyMobilePIN` (hashed via
+  the same `PasswordHash` (PBKDF2) utility already used for staff
+  credentials), and fixed a related leak caught in the process:
+  `AccountsModuleProfile`'s `AlternateChannel → AlternateChannelDTO` map
+  had no exclusion for `MobilePIN`, so once it started holding a real hash
+  every read endpoint would have returned it — added
+  `.ForMember(dest => dest.MobilePIN, opt => opt.Ignore())`. Also added:
+  the inbound C2B webhook (`POST .../webhooks/c2b-confirmation`) that
+  makes `MobileToBankRequestAppService`'s already-correct matching/posting
+  logic reachable from outside this system for the first time, and three
+  new `DefaultSettings` knobs (`DigitalChannelBranchId`,
+  `MobileMoneyPaybillBusinessShortCode`, `MobileToBankWebhookSecret`) —
+  none of these three can be hardcoded (real per-deployment values), so
+  every dependent endpoint checks and fails loudly (`500`, or an
+  unconditional refuse for the webhook) rather than silently proceeding
+  unconfigured. Genuinely still open, not solved here: outbound B2C payout
+  automation, fee-charging (`BalanceInquiryCharges`/`DepositCharges`/
+  `WithdrawalCharges`/`PINResetCharges` are looked up but not posted), PIN
+  retry-lockout, and whether an ungated `approve`/`reject` status flip is
+  an acceptable maker-checker substitute for a self-service-linked
+  financial channel — see `WORKFLOW.md` §9 for the full list.
 - `Areas/Accounts/Controllers/CommissionController.cs` (existing
   `ICommissionAppService`; full CRUD + graduated-scales/splits/levies
   sub-resources) and `Areas/Accounts/Controllers/LevyController.cs` (new,

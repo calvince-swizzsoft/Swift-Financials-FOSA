@@ -20,6 +20,19 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         bool StopAlternateChannel(AlternateChannelDTO alternateChannelDTO, ServiceHeader serviceHeader);
 
+        // Sets (or resets) the transacting-session PIN for an existing link, hashed at rest
+        // via the same PasswordHash (PBKDF2) utility EmployeePasswordHistoryAppService already
+        // uses for staff credentials — never stored or returned in plain text. AddNewAlternateChannel
+        // also hashes+stores AlternateChannelDTO.MobilePIN when supplied, so linking can set the
+        // PIN in the same call; this method exists for setting/resetting it afterward without
+        // touching every other field the way UpdateAlternateChannel would require.
+        bool SetMobilePIN(Guid alternateChannelId, string pin, ServiceHeader serviceHeader);
+
+        // Validates a supplied PIN against the stored hash. False (not an exception) for a
+        // missing channel, an unset PIN, or a wrong PIN alike — deliberately indistinguishable,
+        // same reasoning as every other credential-check in this codebase.
+        bool VerifyMobilePIN(Guid alternateChannelId, string pin, ServiceHeader serviceHeader);
+
         AlternateChannelDTO FindAlternateChannel(Guid alternateChannelId, ServiceHeader serviceHeader);
 
         List<AlternateChannelDTO> FindAlternateChannels(ServiceHeader serviceHeader);

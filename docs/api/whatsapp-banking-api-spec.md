@@ -1,29 +1,38 @@
-# WhatsApp Banking API — Client Integration Spec
+# WhatsApp Banking API — Integration Guide
 
-**Status: proposed design, not yet implemented.** Revision note: this spec
-originally designed channel identity (OTP session) and money movement from
-scratch. It's been revised to build on an existing **Alternate Channels**
-framework found already living in this codebase (channel linking, per-
-channel fees, C2B/B2C transaction logging) instead of duplicating it — see
-`WORKFLOW.md` §3 for the full comparison. If you started integrating
-against the previous version of this doc, the auth model in particular has
-changed (§2).
+**Status: built and compiling.** This replaces the earlier "proposed design"
+draft — every endpoint below is real code in this repository. Read
+`WebApplication1/Areas/WhatsAppBanking/WORKFLOW.md` for the functional
+design and history of how this was built; this document is the practical
+integration guide for the bot/conversation-orchestrator team.
 
-Audience: the WhatsApp bot / conversation-orchestrator backend. Functional
-design: `WebApplication1/Areas/WhatsAppBanking/WORKFLOW.md`.
+**Before you integrate, three things must be configured by SACCO back
+office** — none of these are code, but nothing here works without them:
+
+| Setting | `DefaultSettings` property | What happens if unset |
+|---|---|---|
+| Digital Channel Branch | `Instance.DigitalChannelBranchId` | `POST /customer` returns `500` |
+| Mobile money Paybill/shortcode | `Instance.MobileMoneyPaybillBusinessShortCode` | `GET /deposits/instructions` returns `500` |
+| Inbound webhook shared secret | `Instance.MobileToBankWebhookSecret` | `POST /webhooks/c2b-confirmation` returns `500` for everyone, always |
 
 Source of truth:
-- Customer/account creation (reused as-is): `docs/api/customer-api-spec.md`,
-  `docs/api/customer-accounts-api-spec.md`.
-- Channel linking: `AlternateChannelDTO`
-  (`Application.MainBoundedContext.DTO/AccountsModule/AlternateChannelDTO.cs`),
-  `IAlternateChannelAppService`.
-- Fees: `AlternateChannelKnownChargeType`, `AlternateChannelTypeCommission`.
-- Deposit matching (target design, not live yet): `MobileToBankRequestDTO`,
-  `IMobileToBankRequestAppService`.
-- Withdrawal payout (target design, not live yet): `BankToMobileRequestDTO`,
-  `IBankToMobileRequestAppService`.
-- OTP delivery (SMS): `docs/api/textalert-api-spec.md`.
+- Controllers: `WebApplication1/Areas/WhatsAppBanking/Controllers/`
+  (`IdentityController.cs`, `RegistrationController.cs`,
+  `TransactionsController.cs`, `DepositWebhookController.cs`) and the shared
+  `WhatsAppBankingTokenStore.cs` in the same Area.
+- Channel linking: `AlternateChannelDTO`, `IAlternateChannelAppService`
+  (`Application.MainBoundedContext/AccountsModule/Services/`) — also see
+  `docs/api/alternate-channel-api-spec.md`, the generic staff-facing
+  linking/approval/fee controller this API builds on top of rather than
+  duplicates.
+- Withdrawal posting: `IBankToMobileRequestAppService.RequestPayout` — new,
+  real GL posting, added specifically because the older
+  `AddNewBankToMobileRequest` method does not debit or post anything (see
+  §7.2 for the full story).
+- Deposit matching: `IMobileToBankRequestAppService.AddNewMobileToBankRequest`
+  — already existed and already does real GL posting; this API is the first
+  thing that makes it reachable from outside this system.
+- OTP delivery (SMS): `ITextAlertAppService.AddQuickTextAlert`.
 
 ## 1. Environment
 
@@ -37,34 +46,41 @@ Source of truth:
 ## 2. Authentication
 
 1. **Channel auth** — `Authorization: Bearer <channel service JWT>` on
-   every request. Proves the caller is the legitimate bot/orchestrator.
-   Same JWT bearer scheme as every other controller, issued once to the
-   bot backend by back office as a dedicated service account.
-2. **`phoneVerifiedToken`** — short-lived (proposed: 10 minutes), returned
-   by `POST /otp/verify` (§4). Proves momentary control of a phone number.
-   Used only to complete **onboarding** (§5) and **linking**/**PIN reset**
-   (§4, §5.4) — it is **not** a general transacting session.
-3. **`sessionToken`** — returned by `POST /pin/authenticate` (§4.3), sent
-   as `X-WhatsApp-Session` on every fulfillment call (§6, §7). Requires an
-   **`Approved`** `AlternateChannel` link — issued for the customer whose
-   number is linked, not just OTP-verified. Short-lived (proposed: 15
-   minutes, refreshed on each call).
+   every request to `IdentityController`/`RegistrationController`/
+   `TransactionsController` (same JWT bearer scheme as every other
+   controller in this system, issued once to the bot backend as a
+   dedicated service account). This proves the caller is the legitimate
+   bot/orchestrator, **not** the end customer.
+2. **`phoneVerifiedToken`** — short-lived (10 minutes), returned by
+   `POST /otp/verify` (§4.2). Proves momentary control of a phone number.
+   Used only to complete **registration** (§5.1) and **linking**
+   (§5.2)/**PIN reset** (§4.4) — it is **not** a general transacting
+   session, and each token is single-use (consumed on the call that uses
+   it, except `POST /customer` which deliberately doesn't consume it so
+   `POST /link` can still use the same token right after).
+3. **`sessionToken`** — returned by `POST /pin/authenticate` (§4.3) or
+   `POST /pin/reset` (§4.4), sent as `X-WhatsApp-Session` on every
+   fulfillment call (§6, §7). Requires an **`Approved`**, unlocked
+   `AlternateChannel` link. 15 minutes, refreshed on every successful call.
 
-This is the main change from the previous draft: OTP alone no longer grants
-a transacting session. A customer authenticates ongoing WhatsApp Banking
-use with the PIN they set during linking (§4), the same convention every
-other channel in this system already uses for its own linked customers.
+**Important — read before relying on session/OTP state across a
+deployment**: `phoneVerifiedToken`/`sessionToken`/OTP codes are held in an
+in-process memory cache (`IAppCache`/`System.Runtime.Caching`), the same
+mechanism this codebase already uses for read-model caching. This does
+**not** survive an app-pool recycle and is **not** shared across
+load-balanced instances. Fine for a single-instance pilot; a
+multi-instance production deployment needs this moved to a shared store
+(Redis, a DB table) — not built here, flagged for whoever takes this to
+production scale.
 
 `401` (`message: "Session expired or invalid"`) if `X-WhatsApp-Session` is
-missing/expired/unknown on an endpoint that requires it. `403`
-(`message: "This channel link is not yet approved"` /
-`"This channel link is locked"`) if the underlying `AlternateChannel` isn't
-`Approved`, or is `IsLocked`, at the time `POST /pin/authenticate` is
-called.
+missing/expired/unknown. `403` (`"This channel link is not yet approved"` /
+`"This channel link is locked"`) from `POST /pin/authenticate` if the
+underlying `AlternateChannel` isn't `Approved` or is locked.
 
 ## 3. Response envelope
 
-Same shape as every other controller:
+Same shape as every other controller in this system:
 
 ```ts
 interface ApiEnvelope<T> {
@@ -74,10 +90,7 @@ interface ApiEnvelope<T> {
 }
 ```
 
-`200`/`201`/`400`/`401`/`403`/`404`/`409`/`500` — see per-endpoint notes
-below for which apply where.
-
-## 4. Identity — OTP (phone verification) and PIN (session)
+## 4. Identity — `IdentityController`
 
 ### 4.1 Request OTP — `POST /otp/request`
 
@@ -85,10 +98,9 @@ below for which apply where.
 { "phoneNumber": "+254712345678" }
 ```
 
-Used to start **either** onboarding+linking (new number) **or** PIN reset
-(already-linked number) — the bot decides which flow it's in; this
-endpoint's response is identical either way (existence isn't revealed
-pre-verification, same as the previous draft).
+Starts either registration+linking (new number) or PIN reset
+(already-linked number) — the bot decides which flow it's in from §4.2's
+response; this endpoint's response is identical either way.
 
 ```json
 {
@@ -98,20 +110,26 @@ pre-verification, same as the previous draft).
 }
 ```
 
+`400` (`"Could not send OTP - check the phone number format..."`) if
+`phoneNumber` isn't E.164-shaped (`+` prefix, 13+ characters) — the
+underlying SMS gateway silently drops malformed recipients rather than
+erroring, so this is checked and surfaced explicitly here.
+
 ### 4.2 Verify OTP — `POST /otp/verify`
 
 ```json
 { "phoneNumber": "+254712345678", "otp": "482913" }
 ```
 
-`400` if wrong/expired.
+`400` (`"Incorrect or expired OTP"`) if wrong/expired — same message
+either way, doesn't reveal which.
 
 ```json
 {
   "success": true,
   "message": "Verified",
   "data": {
-    "phoneVerifiedToken": "9a1c4e2d-8b3f-4a6e-9c2d-5f7e1b0a3c44",
+    "phoneVerifiedToken": "9a1c4e2d8b3f4a6e9c2d5f7e1b0a3c44",
     "expiresInSeconds": 600,
     "isExistingCustomer": true,
     "hasApprovedLink": false,
@@ -120,69 +138,76 @@ pre-verification, same as the previous draft).
       "firstName": "Grace",
       "lastName": "Wanjiru",
       "accounts": [
-        {
-          "id": "7b8c9d0e-1111-2222-3333-444455556666",
-          "accountNumber": "001-0000456-004-012"
-        }
+        { "id": "7b8c9d0e-1111-2222-3333-444455556666", "accountNumber": "001-0000456-004-012" }
       ]
     }
   }
 }
 ```
 
-`hasApprovedLink: false` with `isExistingCustomer: true` is the "existing
-customer, first time on WhatsApp" case — bot should go straight to linking
-(§5.4), skipping onboarding (§5.1–5.3). `isExistingCustomer: false` routes
-to onboarding first. `customer: null` when `isExistingCustomer` is `false`.
+`isExistingCustomer` is resolved two ways, in order: first by checking
+whether this phone number is already linked to **any** `AlternateChannel`
+(a member already using Sacco Link/Sparrow/etc. is still an existing
+customer, not just a WhatsApp-specific check), then by searching
+`Customer.Address.MobileLine` for a member who's never linked any channel.
+`hasApprovedLink` is specifically about a `WhatsAppBanking`-type link being
+`Approved` and unlocked. `customer` is `null` when `isExistingCustomer` is
+`false`.
+
+**Bot routing**: `isExistingCustomer: false` → §5.1 (register) then §5.2
+(link). `isExistingCustomer: true, hasApprovedLink: false` → straight to
+§5.2 (link), skip registration. `hasApprovedLink: true` → this number is
+already fully set up; route to §4.3 instead.
 
 ### 4.3 Authenticate with PIN — `POST /pin/authenticate`
 
-Used at the start of every ordinary WhatsApp Banking session, **not** OTP.
+Used at the start of every ordinary session — not OTP.
 
 ```json
 { "phoneNumber": "+254712345678", "pin": "4821" }
 ```
 
-`404` if the number has no `AlternateChannel` link at all (bot should
-route to §5.4). `403` per §2 if not `Approved`/is locked. `400`
-(`message: "Incorrect PIN"`) on mismatch — **retry-lockout behavior is not
-designed here** (`AlternateChannel.IsLocked` exists for this; how many
-attempts trip it isn't decided — `WORKFLOW.md` §9.5).
+`404` if the number has no `WhatsAppBanking`-type link at all (route to
+§5.2). `403` if not `Approved`/is locked (§2). `400`
+(`"Incorrect PIN"`) on mismatch — **retry-lockout behavior is not
+implemented** (`AlternateChannel.IsLocked` exists for this; nothing sets it
+automatically after N failed attempts — still open, see §8).
 
 ```json
-{
-  "success": true,
-  "message": "",
-  "data": { "sessionToken": "b6f2b6b0-6e0e-4d0a-9d3a-1e9a7a9c2f11", "expiresInSeconds": 900 }
-}
+{ "success": true, "message": "", "data": { "sessionToken": "b6f2b6b06e0e4d0a9d3a1e9a7a9c2f11", "expiresInSeconds": 900 } }
 ```
 
 ### 4.4 Reset PIN — `POST /pin/reset`
 
-Requires `phoneVerifiedToken` (fresh OTP verify, not a session token — PIN
-reset is deliberately step-up-authenticated with OTP again, not just the
-old PIN).
+Requires `phoneVerifiedToken` (a fresh OTP verify, not the old PIN — PIN
+reset is deliberately step-up-authenticated).
 
 ```json
-{ "phoneVerifiedToken": "9a1c4e2d-8b3f-4a6e-9c2d-5f7e1b0a3c44", "newPin": "7734" }
+{ "phoneVerifiedToken": "9a1c4e2d8b3f4a6e9c2d5f7e1b0a3c44", "newPin": "7734" }
 ```
 
-Internally: `AlternateChannelDTO.ResetMobilePIN = true` /
-`NewMobilePIN = newPin` through the existing `UpdateAlternateChannel` —
-these fields already exist on the DTO for exactly this. Should charge the
-existing `PINResetCharges` fee (`AlternateChannelKnownChargeType`) — see
-§8. `201`/`200` success shape same as §4.3's `data`.
+Internally: `IAlternateChannelAppService.SetMobilePIN` — hashed at rest via
+the same `PasswordHash` (PBKDF2) utility this codebase already uses for
+staff credentials, never stored or returned in plain text. Issues a fresh
+session immediately, same shape as §4.3.
 
-## 5. Onboarding and linking
+**Not implemented**: `AlternateChannelKnownChargeType.PINResetCharges` —
+whether/how this fee applies is a pricing decision, not an engineering
+default; no existing "charge this fee" one-liner exists elsewhere in this
+codebase to safely reuse, so it's flagged rather than guessed at.
 
-### 5.1 Onboard a new customer — `POST /customer`
+## 5. Registration and linking — `RegistrationController`
 
-Unchanged from the previous draft. Requires `phoneVerifiedToken` (§4.2),
-only valid when `isExistingCustomer` was `false`.
+### 5.1 Register a new customer — `POST /customer`
+
+Requires `phoneVerifiedToken`, only meaningful when §4.2 said
+`isExistingCustomer: false`. Refuses (`409`) if the phone number turns out
+to already resolve to a customer — enforced server-side, not just assumed
+of a well-behaved bot.
 
 ```json
 {
-  "phoneVerifiedToken": "9a1c4e2d-8b3f-4a6e-9c2d-5f7e1b0a3c44",
+  "phoneVerifiedToken": "9a1c4e2d8b3f4a6e9c2d5f7e1b0a3c44",
   "firstName": "Peter",
   "lastName": "Otieno",
   "identityCardType": 1,
@@ -192,94 +217,130 @@ only valid when `isExistingCustomer` was `false`.
 }
 ```
 
-Internally: `POST /api/registry/customer` (`Type: 0`/Individual,
-`branchId` = Digital Channel Branch, `docs/api/customer-api-spec.md`
-§5.12), then bulk-create via
-`POST /api/accounts/customer-accounts/customer/{customerId}/branch/{branchId}`
-(`docs/api/customer-accounts-api-spec.md` §4.5). Same "no product picker"
-reasoning as before. `500` if the Digital Channel Branch isn't configured
-(`WORKFLOW.md` §9.7) — surface as "try again later," route to a human.
+`identityCardType`: `IdentityCardType` enum (`1`=National ID, `2`=Passport,
+`3`=Alien ID, ...). `gender`: `Gender` enum (`1`=Male, `2`=Female).
 
-Success → `201`, `data` shape matches §4.2's `customer` object. Does
-**not** link the channel yet — proceed to §5.4.
-
-### 5.4 Link this number for WhatsApp Banking — `POST /link`
-
-Requires `phoneVerifiedToken` and a target `accountId` (from §4.2's or
-§5.1's `accounts` list — the bot should prompt if the customer has more
-than one).
+Internally: creates an Individual `Customer` under
+`DefaultSettings.Instance.DigitalChannelBranchId` (`AddressMobileLine` set
+to the verified phone number — both for a correct contact record and so
+later lookups by mobile line find this customer), then bulk-creates one
+account per product mandatory-attached to that branch's company — no
+product picker, matching how self-onboarding works elsewhere in this
+system. `500` if the Digital Channel Branch isn't configured or no longer
+exists — surface as "try again later," page a human; this is a setup
+problem, not a customer error.
 
 ```json
 {
-  "phoneVerifiedToken": "9a1c4e2d-8b3f-4a6e-9c2d-5f7e1b0a3c44",
+  "success": true,
+  "message": "Customer created",
+  "data": {
+    "id": "3a2f9e7a-6b1a-4a2b-9a1a-0e6f5c8b7a10",
+    "firstName": "Peter",
+    "lastName": "Otieno",
+    "accounts": [{ "id": "7b8c9d0e-1111-2222-3333-444455556666", "accountNumber": "001-0000457-004-012" }]
+  }
+}
+```
+
+Does **not** link the channel yet — proceed to §5.2 with one of the
+returned `accounts[].id`. The `phoneVerifiedToken` used here is still
+valid for that next call.
+
+### 5.2 Link this number for WhatsApp Banking — `POST /link`
+
+```json
+{
+  "phoneVerifiedToken": "9a1c4e2d8b3f4a6e9c2d5f7e1b0a3c44",
   "accountId": "7b8c9d0e-1111-2222-3333-444455556666",
   "pin": "4821"
 }
 ```
 
-`400` if `pin` fails whatever format rule is decided (`WORKFLOW.md` §9.5 —
-not fixed yet). `409` if this account already has a `WhatsAppBanking`-type
-link.
+`409` if this number already has a `WhatsAppBanking`-type link. `403`
+(`"This account does not belong to the verified customer"`) if `accountId`
+doesn't belong to the customer this phone number resolves to — checked
+explicitly; a `phoneVerifiedToken` only proves phone control, not which
+account it's allowed to touch. `400` if the account can't be found or the
+underlying `AlternateChannelDTO` fails validation.
 
-Internally: creates an `AlternateChannelDTO` — `Type:
-AlternateChannelType.WhatsAppBanking` (proposed new enum value, not yet
-added — `WORKFLOW.md` §9.1), `CardNumber` = the verified `phoneNumber`,
-`MobilePIN` = `pin`, `DailyLimit` = a back-office-configured default (not
-client-supplied — `WORKFLOW.md` §9.6), `RecordStatus: New`. **Important
-implementation detail, not just a formality**: `AlternateChannelDTO`'s own
-`CheckAlternateChannelNumber` validation switches behavior by `Type`, and
-its `default` case **blanks `CardNumber` to empty for any type it doesn't
-recognize** — adding `WhatsAppBanking` to that switch (MSISDN-shaped,
-same branch as `MCoopCash`/`SpotCash`/`PesaPepe`) is required, not
-optional, or every linking request will fail validation.
-
-Success → `201`:
+Internally: creates an `AlternateChannel` — `Type: WhatsAppBanking` (`512`),
+`CardNumber` = the verified phone number, `MobilePIN` = `pin` (hashed at
+rest), `DailyLimit` =
+`DefaultSettings.Instance.AlternateChannelsDefaultDailyLimit` (a
+back-office-configured default, not client-supplied — currently
+`40000`), `RecordStatus: New`.
 
 ```json
 {
   "success": true,
-  "message": "Submitted for approval — we'll confirm once your WhatsApp Banking link is active.",
+  "message": "Submitted for approval - we'll confirm once your WhatsApp Banking link is active.",
   "data": { "id": "c4d5e6f7-2222-3333-4444-555566667777", "recordStatus": 0 }
 }
 ```
 
-`recordStatus: 0` is `New` (same `RecordStatus` enum as
-`docs/api/customer-api-spec.md` §7: `0`=New, `1`=Edited, `2`=Approved,
-`3`=Rejected). The bot should not offer balance/deposit/withdraw until a
-later `POST /pin/authenticate` succeeds (§4.3), which only happens once
-this reaches `Approved` — **how a customer finds out it's approved (poll?
-push from back office?) is not designed here** — `WORKFLOW.md` §9.2.
+`recordStatus: 0` is `New` (`RecordStatus`: `0`=New, `1`=Edited,
+`2`=Approved, `3`=Rejected).
 
-## 6. Accounts & balance
+**Read this before assuming "approved" means what it sounds like**: back
+office approves via `docs/api/alternate-channel-api-spec.md`'s
+`POST /api/accounts/alternatechannels/{id}/approve` — real and callable
+today. But it is **not a maker-checker gate**: nothing checks the record
+is currently `New`, nothing checks the approver differs from whoever
+created the link. It's an authorized-staff status flip, not independently
+verified. There's also no push/poll mechanism here for the bot to learn
+*when* approval happens — the bot's only way to find out is to try
+`POST /pin/authenticate` (§4.3) periodically and see whether it still
+returns `403`.
 
-Require `X-WhatsApp-Session` (§4.3).
+## 6. Accounts & balance — `TransactionsController`
+
+Require `X-WhatsApp-Session` (§4.3/§4.4).
 
 ### 6.1 List accounts — `GET /accounts`
 
-Unchanged from the previous draft — thin passthrough over
-`GET /api/accounts/customer-accounts/customer/{customerId}`, scoped to the
-session's customer.
+```json
+{
+  "success": true,
+  "message": "",
+  "data": [
+    { "id": "7b8c9d0e-1111-2222-3333-444455556666", "accountNumber": "001-0000457-004-012", "productDescription": "Ordinary Savings" }
+  ]
+}
+```
+
+Scoped to the session's customer via `CustomerAccountsByCustomerId` — not
+just the one account that was linked in §5.2.
 
 ### 6.2 Balance — `GET /accounts/{accountId}/balance`
 
-Unchanged response shape from the previous draft. **New**: should look up
-and, if configured, charge `AlternateChannelKnownChargeType.BalanceInquiryCharges`
-for `AlternateChannelType.WhatsAppBanking` via
-`IAlternateChannelAppService.FindCachedCommissions(channelType, chargeType)`
-— the same fee hook every other channel's balance inquiry already has a
-place for. Whether this fee actually applies (some channels don't charge
-for it) is a pricing decision, not an engineering one.
+`404` if `accountId` doesn't exist or doesn't belong to the session's
+customer — checked explicitly (a session token alone does not imply
+access to every account id someone might guess).
+
+```json
+{
+  "success": true,
+  "message": "",
+  "data": {
+    "accountId": "7b8c9d0e-1111-2222-3333-444455556666",
+    "accountNumber": "001-0000457-004-012",
+    "availableBalance": 12500.00,
+    "feeApplicable": false
+  }
+}
+```
+
+`feeApplicable` reflects whether
+`AlternateChannelKnownChargeType.BalanceInquiryCharges` is configured for
+`WhatsAppBanking` — looked up, **not yet actually charged** (same
+"flagged, not guessed at" reasoning as PIN reset charges above).
 
 ## 7. Deposits & withdrawals
-
-Require `X-WhatsApp-Session`. **Both endpoints below describe the target
-design; neither is fully buildable today without additional backend work
-called out explicitly per endpoint — see `WORKFLOW.md` §3/§9 for why.**
 
 ### 7.1 Deposit — `GET /deposits/instructions`
 
 Not a money-movement call — WhatsApp Banking doesn't pull funds itself.
-Returns how to pay:
 
 ```json
 {
@@ -294,88 +355,129 @@ Returns how to pay:
 }
 ```
 
-Once the customer pays, the provider's own confirmation is expected to
-reach `MobileToBankRequestAppService.AddNewMobileToBankRequest`, which
-already matches by `MSISDN` against the `AlternateChannel` link created in
-§5.4 and posts the deposit journal, charging
-`AlternateChannelKnownChargeType.DepositCharges` per the existing pattern.
-**This requires a new inbound REST webhook that does not exist anywhere in
-this codebase yet** (`AddNewMobileToBankRequest` is currently reachable
-only via a legacy WCF passthrough, which no real payment provider posts
-to) — building that webhook is a prerequisite for this endpoint's promise
-to be real, not an implementation detail of this spec. Until it exists,
-`GET /deposits/instructions` can ship, but a customer's payment will not
-actually land in their account automatically.
+`500` if `DefaultSettings.Instance.MobileMoneyPaybillBusinessShortCode`
+isn't configured.
+
+**What actually happens after the customer pays**: the mobile money
+provider must call
+`POST /api/whatsappbanking/webhooks/c2b-confirmation` (§7.3, new, real,
+built specifically to close this loop) with the payment confirmation. That
+matches the payer's MSISDN against the `AlternateChannel` link from §5.2
+and posts a real deposit journal via the existing, already-correct
+`MobileToBankRequestAppService`. **This endpoint existing is necessary but
+not sufficient** — the provider (Safaricom or whoever) must actually be
+configured to call it. That's an external integration step, not something
+this codebase can do for you.
 
 ### 7.2 Withdrawal — `POST /withdrawals`
 
 ```json
-{
-  "accountId": "7b8c9d0e-1111-2222-3333-444455556666",
-  "amount": 500.00
-}
+{ "accountId": "7b8c9d0e-1111-2222-3333-444455556666", "amount": 500.00 }
 ```
 
-`404` if `accountId` doesn't resolve/belong to the session's customer.
-`400` if `amount` is not greater than zero or exceeds the linked channel's
-`DailyLimit`. Should charge `AlternateChannelKnownChargeType.WithdrawalCharges`.
+`404` if `accountId` doesn't belong to the session's customer. `400` if
+`amount` is not positive, exceeds the linked channel's `DailyLimit`, or
+exceeds the account's available balance.
 
-Internally, target design: creates a `BankToMobileRequestDTO` (debits the
-account, queues the payout) via the existing
-`IBankToMobileRequestAppService.AddNewBankToMobileRequest`. **The process
-that would actually pay the customer out over mobile money —
-`SwiftFinancials.BankToMobileHostInterface` — is an empty, unimplemented
-project.** A request can be created and the account debited; nothing
-disburses. This endpoint should not be considered shippable until either
-that host is implemented, or an interim manual/agent-redemption fallback
-is decided (`WORKFLOW.md` §7/§9.4) — flagged here so it isn't missed at
-build time.
-
-Response, once (if) fully wired:
+**Corrected from the earlier draft of this spec**: that draft assumed
+`IBankToMobileRequestAppService.AddNewBankToMobileRequest` "debits the
+account, queues the payout." It does **neither** — read directly, it never
+references a `CustomerAccountId` at all, it's purely an insert-only audit
+row. This endpoint instead calls a **new** method,
+`IBankToMobileRequestAppService.RequestPayout`, which does the real work:
+balance-checks, then posts a real double-entry journal (Debit the
+customer's product G/L, Credit
+`SystemGeneralLedgerAccountCode.MobileWalletB2CSettlement` — the exact
+reverse of how `MobileToBankRequestAppService` posts a C2B deposit), then
+records a `BankToMobileRequest` row for a future outbound payout process
+to pick up.
 
 ```json
 {
   "success": true,
-  "message": "Withdrawal requested — you'll receive it on your linked mobile money number shortly.",
-  "data": { "bankToMobileRequestId": "a1b2c3d4-5555-6666-7777-888899990000", "status": "Queued" }
+  "message": "Your account has been debited. Payout to your mobile money number is not yet automated - back office will process it manually.",
+  "data": { "bankToMobileRequestId": "a1b2c3d4-5555-6666-7777-888899990000", "status": "Pending" }
 }
 ```
 
-## 8. Enum reference
+**Read the message field, don't hardcode a happier one**: the debit and
+journal are real — money genuinely leaves the customer's available
+balance. The payout leg is not: `SwiftFinancials.BankToMobileHostInterface`
+(the process that would actually pay the customer out over mobile money)
+is still an empty, unimplemented stub. Until it's built, every withdrawal
+needs a manual back-office process to actually disburse funds against the
+`BankToMobileRequest` row this call creates — **do not tell the customer
+"you'll receive it shortly"** in the bot's own copy; the message above is
+deliberately honest about this and should be surfaced roughly as-is.
 
-**`RecordStatus`** (§5.4) — `0`=New, `1`=Edited, `2`=Approved, `3`=Rejected
-(same as `docs/api/customer-api-spec.md` §7).
+### 7.3 Inbound C2B webhook — `POST /webhooks/c2b-confirmation`
 
-**`AlternateChannelType`** — existing values `1`=SaccoLink, `2`=Sparrow,
-`4`=MCoopCash, `8`=SpotCash, `16`=Citius, `32`=AgencyBanking, `64`=PesaPepe,
-`128`=AbcBank, `256`=Broker. **`WhatsAppBanking` does not exist yet** —
-proposed as `512`, next in sequence. Must be added to
-`Infrastructure.Crosscutting.Framework/Utils/Enumerations.cs` *and* to
-`AlternateChannelDTO.CheckAlternateChannelNumber`'s validation switch
-(§5.4) before linking will work.
+`DepositWebhookController` — **provider-facing, not bot-facing**. No
+`Authorize`/bearer JWT (a payment provider's server callback can't
+participate in this system's staff/service JWT scheme); authenticated via
+an `X-Webhook-Secret` header checked against
+`DefaultSettings.Instance.MobileToBankWebhookSecret`. `500` for every
+request, unconditionally, if that secret isn't configured — fails closed,
+not open.
 
-**`AlternateChannelKnownChargeType`** (§4.4, §6.2, §7) — the subset this
-API touches: `Deposit` (`4`), `WithdrawalCharges` (`3`),
-`BalanceInquiryCharges` (`6`), `PINResetCharges` (`8`). Full list in
-`Infrastructure.Crosscutting.Framework/Utils/Enumerations.cs`.
+```json
+{
+  "MSISDN": "+254712345678",
+  "BusinessShortCode": "123456",
+  "TransID": "QGH7XXTS92",
+  "BillRefNumber": "+254712345678",
+  "TransAmount": 500.00,
+  "TransTime": "20260213142530",
+  "OrgAccountBalance": 1500.00,
+  "ThirdPartyTransID": "",
+  "InvoiceNumber": "",
+  "KYCInfo": "",
+  "Remarks": ""
+}
+```
 
-**`identityCardType`** / **`gender`** (§5.1) — unchanged, same as
-`docs/api/customer-api-spec.md` §7.
+Internally always sets `MatchByMSISDN: true` before calling
+`AddNewMobileToBankRequest` — this is what makes phone-number matching
+(rather than an encoded `BillRefNumber` account reference) the deposit
+story for WhatsApp and any other MSISDN-identified channel. Confirm this
+header/body shape against whatever the actual provider integration sends —
+the field names above mirror `MobileToBankRequestDTO` directly, not a
+specific provider's API (Safaricom's Daraja C2B callback shape is close
+but not guaranteed identical; map at the integration layer if needed).
 
-## 9. Open items to confirm with backend before building against this
+```json
+{
+  "success": true,
+  "message": "Matched and posted",
+  "data": { "id": "e5f6a7b8-6666-7777-8888-999900001111", "status": "Auto-Matched" }
+}
+```
 
-Full list: `WORKFLOW.md` §9. The ones most likely to block a bot
-integration starting early, in priority order:
+`status: "Unmatched"` (message: `"Recorded, unmatched - queued for manual
+back-office reconciliation"`) if no `AlternateChannel` link (or other
+matching strategy) resolves the payer — queued, not lost, but not credited
+automatically either.
 
-1. **`AlternateChannelType.WhatsAppBanking` doesn't exist yet** — needs
-   adding to the enum and the `CardNumber` validation switch (§5.4) before
-   `POST /link` can work at all.
-2. **Inbound C2B webhook** (§7.1) and **B2C payout host** (§7.2) are both
-   real, unbuilt backend work, not configuration — deposit and withdrawal
-   cannot go live without them regardless of how this API is shaped.
-3. **Linking approval turnaround** (§5.4) — no existing checker-inbox UX
-   is designed for this yet; a customer submitting `POST /link` has no way
-   to know when (or whether) they're approved without one.
-4. **PIN policy** — format, retry/lockout behavior, `DailyLimit` sourcing
-   — all open, all affect `POST /link`/`POST /pin/authenticate`'s exact
-   validation rules.
+## 8. What's still genuinely open
+
+1. **Retry-lockout policy** for `POST /pin/authenticate` — not
+   implemented. `AlternateChannel.IsLocked` exists as a field; nothing
+   sets it after N failed PIN attempts.
+2. **`AlternateChannelKnownChargeType.PINResetCharges` /
+   `BalanceInquiryCharges`** — looked up but not actually charged (§4.4,
+   §6.2). No existing "charge this fee" primitive to safely reuse.
+3. **Multi-instance session/OTP storage** (§2) — in-process cache only,
+   fine for a pilot, needs a shared store before scaling out horizontally.
+4. **Maker-checker for channel approval** (§5.2) — an authorized status
+   flip today, not independently-verified approval. Whether that's
+   acceptable for a self-service-linked financial channel is a
+   product/security decision, not resolved here.
+5. **Approval notification** (§5.2) — no push/poll mechanism; the bot
+   learns approval happened only by retrying `POST /pin/authenticate`.
+6. **Outbound B2C payout automation** (§7.2) — `SwiftFinancials.BankToMobileHostInterface`
+   is still an empty stub. Every withdrawal needs manual back-office
+   disbursement until it's built.
+7. **Provider integration for the inbound webhook** (§7.3) — the endpoint
+   is real; getting an actual mobile money provider to call it is a
+   separate, external integration step.
+8. **KYC document capture** at registration (§5.1) — not designed here.
