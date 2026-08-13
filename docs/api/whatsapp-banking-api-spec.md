@@ -147,7 +147,7 @@ Used at the start of every ordinary WhatsApp Banking session, **not** OTP.
 route to §5.4). `403` per §2 if not `Approved`/is locked. `400`
 (`message: "Incorrect PIN"`) on mismatch — **retry-lockout behavior is not
 designed here** (`AlternateChannel.IsLocked` exists for this; how many
-attempts trip it isn't decided — `WORKFLOW.md` §8.5).
+attempts trip it isn't decided — `WORKFLOW.md` §9.5).
 
 ```json
 {
@@ -198,7 +198,7 @@ Internally: `POST /api/registry/customer` (`Type: 0`/Individual,
 `POST /api/accounts/customer-accounts/customer/{customerId}/branch/{branchId}`
 (`docs/api/customer-accounts-api-spec.md` §4.5). Same "no product picker"
 reasoning as before. `500` if the Digital Channel Branch isn't configured
-(`WORKFLOW.md` §8.7) — surface as "try again later," route to a human.
+(`WORKFLOW.md` §9.7) — surface as "try again later," route to a human.
 
 Success → `201`, `data` shape matches §4.2's `customer` object. Does
 **not** link the channel yet — proceed to §5.4.
@@ -217,15 +217,15 @@ than one).
 }
 ```
 
-`400` if `pin` fails whatever format rule is decided (`WORKFLOW.md` §8.5 —
+`400` if `pin` fails whatever format rule is decided (`WORKFLOW.md` §9.5 —
 not fixed yet). `409` if this account already has a `WhatsAppBanking`-type
 link.
 
 Internally: creates an `AlternateChannelDTO` — `Type:
 AlternateChannelType.WhatsAppBanking` (proposed new enum value, not yet
-added — `WORKFLOW.md` §8.1), `CardNumber` = the verified `phoneNumber`,
+added — `WORKFLOW.md` §9.1), `CardNumber` = the verified `phoneNumber`,
 `MobilePIN` = `pin`, `DailyLimit` = a back-office-configured default (not
-client-supplied — `WORKFLOW.md` §8.6), `RecordStatus: New`. **Important
+client-supplied — `WORKFLOW.md` §9.6), `RecordStatus: New`. **Important
 implementation detail, not just a formality**: `AlternateChannelDTO`'s own
 `CheckAlternateChannelNumber` validation switches behavior by `Type`, and
 its `default` case **blanks `CardNumber` to empty for any type it doesn't
@@ -248,7 +248,7 @@ Success → `201`:
 `3`=Rejected). The bot should not offer balance/deposit/withdraw until a
 later `POST /pin/authenticate` succeeds (§4.3), which only happens once
 this reaches `Approved` — **how a customer finds out it's approved (poll?
-push from back office?) is not designed here** — `WORKFLOW.md` §8.2.
+push from back office?) is not designed here** — `WORKFLOW.md` §9.2.
 
 ## 6. Accounts & balance
 
@@ -274,7 +274,7 @@ for it) is a pricing decision, not an engineering one.
 
 Require `X-WhatsApp-Session`. **Both endpoints below describe the target
 design; neither is fully buildable today without additional backend work
-called out explicitly per endpoint — see `WORKFLOW.md` §3/§8 for why.**
+called out explicitly per endpoint — see `WORKFLOW.md` §3/§9 for why.**
 
 ### 7.1 Deposit — `GET /deposits/instructions`
 
@@ -328,7 +328,7 @@ that would actually pay the customer out over mobile money —
 project.** A request can be created and the account debited; nothing
 disburses. This endpoint should not be considered shippable until either
 that host is implemented, or an interim manual/agent-redemption fallback
-is decided (`WORKFLOW.md` §6/§8.4) — flagged here so it isn't missed at
+is decided (`WORKFLOW.md` §7/§9.4) — flagged here so it isn't missed at
 build time.
 
 Response, once (if) fully wired:
@@ -364,7 +364,7 @@ API touches: `Deposit` (`4`), `WithdrawalCharges` (`3`),
 
 ## 9. Open items to confirm with backend before building against this
 
-Full list: `WORKFLOW.md` §8. The ones most likely to block a bot
+Full list: `WORKFLOW.md` §9. The ones most likely to block a bot
 integration starting early, in priority order:
 
 1. **`AlternateChannelType.WhatsAppBanking` doesn't exist yet** — needs
