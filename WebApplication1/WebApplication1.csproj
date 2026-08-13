@@ -309,6 +309,7 @@
     <Compile Include="Areas\Accounts\Controllers\ChartOfAccountController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\AlternateChannelController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeTypeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeBookController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CommissionController.cs" />

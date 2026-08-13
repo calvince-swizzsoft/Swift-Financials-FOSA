@@ -13,7 +13,11 @@ that changes and §9 for what it doesn't solve on its own. **This latest
 revision splits the backend work into two separate, sequenced pieces** — a
 generic, channel-type-agnostic `AlternateChannelController` (no reference-app
 precedent for building this per-channel) and the WhatsApp-specific bot-facing
-API — see §4.
+API — see §4. **Piece A is now built** (`WebApplication1/Areas/Accounts/Controllers/AlternateChannelController.cs`,
+`docs/api/alternate-channel-api-spec.md`) — building it surfaced a harder
+truth than §4 originally assumed: there is no real maker-checker gate for
+`AlternateChannel` linking anywhere in this codebase, at any layer. §4 and
+§5 are updated accordingly.
 
 Audience: anyone building or reviewing the `Areas/WhatsAppBanking` API
 surface, or building the WhatsApp bot/conversation layer that calls it.
@@ -71,7 +75,7 @@ flowchart LR
     Meta["WhatsApp Business Platform\n(Meta Cloud API)"]
     Bot["Bot / Conversation Orchestrator\n(new, separate service — not this repo)"]
     API["WhatsApp Banking API\nAreas/WhatsAppBanking (proposed, Piece B)"]
-    AltChanCtrl["AlternateChannelController\n(proposed, Piece A — generic,\nall channel types)"]
+    AltChanCtrl["AlternateChannelController\n(BUILT, Piece A — generic,\nall channel types)"]
     AltChan["Alternate Channels framework\n(existing, unexposed)"]
     Core["Existing core banking API\nCustomer / CustomerAccounts / FrontOffice"]
 
@@ -95,13 +99,14 @@ flowchart LR
   `IMobileToBankRequestAppService`/`IBankToMobileRequestAppService` for
   everything channel-shaped; calls the existing Customer/CustomerAccounts
   controllers for onboarding.
-- **`AlternateChannelController`** (proposed, **Piece A** — §4) — the
-  staff-facing linking/approval/fee-configuration surface, generic across
-  every `AlternateChannelType`, not WhatsApp-specific. Sits between the
-  Alternate Channels framework and back-office staff, the same role
+- **`AlternateChannelController`** (**built, Piece A** — §4 —
+  `WebApplication1/Areas/Accounts/Controllers/AlternateChannelController.cs`,
+  `docs/api/alternate-channel-api-spec.md`) — the staff-facing linking/
+  approval/fee-configuration surface, generic across every
+  `AlternateChannelType`, not WhatsApp-specific. Sits between the Alternate
+  Channels framework and back-office staff, the same role
   `RegisterController`/`AlternateChannelsController` play in the reference
-  app. `Areas/WhatsAppBanking` depends on this existing (§4), it does not
-  reimplement it.
+  app. `Areas/WhatsAppBanking` depends on this, it does not reimplement it.
 - **Alternate Channels framework** (existing, this repo, currently
   unexposed by any controller) — owns channel linking, per-channel fees,
   and (for the money-movement pieces) C2B/B2C request logging. Detailed
@@ -116,8 +121,13 @@ flowchart LR
   channel), `MobilePIN`, `DailyLimit`, `IsThirdPartyNotified`/
   `ThirdPartyResponse`, `IsLocked`, `RecordStatus`. Every existing channel
   (Sacco Link, Sparrow, M-Co-op Cash, ...) requires a customer to be
-  **linked** before they can transact on it — a real record, a real
-  approval step, not implicit.
+  **linked** before they can transact on it — a real record with a real
+  `RecordStatus` field, not implicit. **Correction, found building Piece A
+  (§4): the *approval step* itself has no enforcement anywhere in the
+  code** — `RecordStatus` is just a field anyone with `PUT`/Update access
+  can set to anything, including `Approved`, in one call. Treat "approval"
+  as a UI/process convention this phase can build on top of (§4), not a
+  system-enforced gate that already exists.
 - **Fees** (`AlternateChannelKnownChargeType`) — Linking, Replacement,
   Renewal, **Withdrawal, Deposit, Mini Statement, Balance Inquiry**,
   Airtime, **PIN Reset**, resolved per channel type via
@@ -173,51 +183,77 @@ per channel type? For half of this work, it isn't — and that's why this is
 two separate, sequenced pieces of work, not one.
 
 **Piece A — generic `AlternateChannelController` (staff-facing, all channel
-types, not WhatsApp-specific).** The reference app never has a
+types, not WhatsApp-specific). Built.** The reference app never has a
 per-channel-type controller for linking/approval/fee management — every
 existing channel (Sacco Link, Sparrow, MCo-op Cash, SpotCash, Citius, Agency
 Banking, PesaPepe, ABC Bank, Broker) flows through the *same* generic
 controllers, keyed off `AlternateChannelDTO.Type`:
 - `RegisterController` (`Linking`/`Create`/`Edit`/`Verify`/`Authorize`/
-  `History`) — the staff-facing linking lifecycle, including the
-  maker-checker approval step §5's sequence diagram assumes exists.
+  `History`) — the staff-facing linking lifecycle.
 - `AlternateChannelsController` / `AlternatechannelManagementController` —
   per-channel-type fee/commission configuration.
 
-None of this has been adapted into `WebApplication1` yet — checked directly,
-`Areas/Accounts/Controllers` has no Channel controller of any kind. This is
-the same "fully built service, WCF-only entry point" gap as ChequeBook/
-UnPayReason before those got controllers (§3), and it should be closed the
-same generic way the reference app does it: **one** `AlternateChannelController`
-that works for every `AlternateChannelType`, adapted from the three
-controllers above — not something scoped to WhatsApp. WhatsApp Banking
-becomes just one more option in its `Type` dropdown once
-`AlternateChannelType.WhatsAppBanking` is added (§3).
+`WebApplication1/Areas/Accounts/Controllers/AlternateChannelController.cs`
+(`docs/api/alternate-channel-api-spec.md`) adapts these generically, one
+controller for every `AlternateChannelType` — link/update/replace/renew/
+stop/delink, paged/filtered listing (including a checker-inbox-shaped
+type+status query), and the type-scoped commissions sub-resource. WhatsApp
+Banking becomes just one more `Type` value once
+`AlternateChannelType.WhatsAppBanking` is added (§3) — no changes needed to
+this controller for that.
+
+**Real findings from building it, not assumptions:**
+- `RegisterController.Verify`/`Authorize` are bound to `DebitBatchDTO` and
+  call `AuditDebitBatchAsync`/`AuthorizeDebitBatchAsync` — copy-pasted from
+  a DebitBatch controller, nothing to do with `AlternateChannel` at all.
+  There was never a real maker-checker action to adapt from these two
+  reference actions specifically.
+- **There is no real maker-checker gate for `AlternateChannel` linking
+  anywhere in this codebase, at any layer** — not in the reference app
+  (see above), not in `IAlternateChannelAppService`.
+  `UpdateAlternateChannel` copies whatever `RecordStatus` the caller
+  supplies straight onto the persisted record: no check that it's
+  currently `New`/`Edited`, no maker-vs-checker identity check, nothing —
+  unlike the Batch Procedures module's real `Audited`/`Authorized` guard
+  clauses elsewhere in this same codebase. `AlternateChannelController`
+  exposes `POST {id}/approve`/`{id}/reject` as a convenience over that same
+  ungated `Update` call — it is explicitly **not** new enforcement; it
+  cannot be, since the domain layer underneath has nothing to enforce
+  against. If real maker-checker enforcement is wanted for channel linking
+  (a fair thing to want for a financial channel), it needs new domain work,
+  not just a route — this is now a confirmed, scoped gap, not a hedge.
+- `AlternateChannelDTO.CheckAlternateChannelNumber` (the `CardNumber`
+  validator) unconditionally blanks `CardNumber` for
+  `AlternateChannelType.AgencyBanking`/`.Citius` — linking can never
+  succeed for either type today, a pre-existing bug independent of this
+  work. Flagged, not fixed (no spec states the intended format for
+  either). **Directly relevant to adding `WhatsAppBanking`**: it will fall
+  into the same `default:` branch and needs a real validation case (likely
+  the same E.164-shaped regex `MCoopCash`/`SpotCash`/`PesaPepe` already
+  use), not just the enum value — part of open question 1 (§9).
 
 **Piece B — `Areas/WhatsAppBanking` (customer/bot-facing, WhatsApp-specific,
-no reference-app precedent).** OTP request/verify, PIN link/authenticate/
-reset, and the fulfillment endpoints (§5, §7). This is genuinely new
-surface: every existing channel in the reference app is staff-linked at a
-branch, so there's no self-service/bot/session concept anywhere to adapt
-from — nothing to port, unlike Piece A. It calls Piece A's underlying app
-service (`IAlternateChannelAppService`) rather than duplicating
-linking/approval logic — it does not reimplement `RecordStatus`/`IsLocked`
-handling, it consumes it.
+no reference-app precedent). Not started.** OTP request/verify, PIN
+link/authenticate/reset, and the fulfillment endpoints (§5, §7). This is
+genuinely new surface: every existing channel in the reference app is
+staff-linked at a branch, so there's no self-service/bot/session concept
+anywhere to adapt from — nothing to port, unlike Piece A. It calls Piece
+A's underlying app service (`IAlternateChannelAppService`) rather than
+duplicating linking/approval logic — it does not reimplement
+`RecordStatus`/`IsLocked` handling, it consumes it, including consuming the
+fact that "approval" is currently just a status write.
 
-**Dependency direction: Piece A blocks the parts of Piece B that need
-approval to be real.** §5's linking sequence assumes "Back office approves
-via existing maker-checker screen" — there is no existing screen; that
-screen *is* Piece A's `RegisterController.Verify`/`Authorize` adaptation,
-not yet built. Piece B's controller shape and OTP/PIN plumbing can be
-scaffolded and tested against pre-seeded or manually-flipped
-`AlternateChannel` rows before Piece A exists, but linking cannot go live
-end-to-end until it does. Build order: Piece A first (or at minimum landed
-before Piece B's linking-approval path ships), Piece B's approval-dependent
-flows after.
-
-This resolves the "is there an existing checker inbox" half of open
-question 2 (§9): there isn't yet — it's Piece A's scope, not an unknown.
-The acceptable-turnaround-time half of that question is still open.
+**Dependency direction, revised now that Piece A is real**: Piece A no
+longer blocks Piece B on "does a checker screen exist" — it does now. It
+blocks Piece B on a sharper question: **is an ungated status flip an
+acceptable approval mechanism for a financial channel a customer links to
+themselves over WhatsApp?** §5's sequence diagram's "back office approves"
+step is real and callable today, but "approves" currently means "any staff
+account with API access called `POST {id}/approve`," not "a second,
+different staff member verified a first staff member's linking decision."
+Whether that's fine as a v1 or needs real maker-checker domain work first
+is a product/security call (open question 2, §9), not an engineering
+default either way.
 
 ## 5. Identity — phone verification (OTP) + channel PIN (linking)
 
@@ -233,6 +269,16 @@ change from the previous draft, which used OTP for *every* session:
   other `AlternateChannel` in this system already uses (this is precisely
   what the field is for). The bot prompts for it at the start of a
   balance/deposit/withdraw flow, not a fresh OTP each time.
+  **Correction, found building Piece A (§4)**: `MobilePIN`/`NewMobilePIN`/
+  `ResetMobilePIN` exist on `AlternateChannelDTO`, but **no method on
+  `IAlternateChannelAppService` reads or persists any of them** —
+  `AddNewAlternateChannel` doesn't accept a PIN at all, and there is no
+  PIN-set/PIN-reset call anywhere in the app service. The fields being on
+  the DTO is not evidence this works — same "a DTO's fields aren't proof
+  of behavior" lesson `JournalVoucherController` ran into. This is real,
+  scoped Piece B backend work (a PIN-set call has to be added to
+  `IAlternateChannelAppService`/`AlternateChannelAppService`, likely
+  alongside `AddNewAlternateChannel`), not something Piece B can just call.
 
 ```mermaid
 sequenceDiagram
@@ -252,7 +298,7 @@ sequenceDiagram
     B->>A: POST /link { phoneVerifiedToken, accountId, pin }
     A-->>B: AlternateChannel created, RecordStatus: New (pending approval)
     B-->>C: "Submitted — we'll confirm once approved"
-    Note over A: Back office approves via Piece A's maker-checker screen (§4 — not yet built)
+    Note over A: Back office approves via Piece A's POST {id}/approve (§4 — built, but an ungated status flip, not a real maker-checker gate)
 
     Note over C,A: Every later session
     C->>B: Any message
@@ -354,16 +400,22 @@ first — not part of this document.
 ## 9. Open design questions — confirm before implementation
 
 1. **`AlternateChannelType.WhatsAppBanking` needs to actually be added**
-   to the enum (proposed value `512`) and to whatever back-office screens
-   list channel types (Piece A's `AlternateChannelController`, §4,
-   adapting the reference `GetAlternateChannelTypeSelectList`) — a small,
-   mechanical change, but a real one.
-2. **Self-service linking approval latency** — a new customer/number can't
-   transact until back office approves the `AlternateChannel` link
-   (`RecordStatus: New → Approved`) via Piece A's approval screen (§4 —
-   confirmed not yet built, not an "assume it exists" gap anymore). What's
-   an acceptable turnaround time for a customer waiting on WhatsApp? Still
-   needs a product answer.
+   to the enum (proposed value `512`) — a small, mechanical change, but a
+   real one, **plus a real `CheckAlternateChannelNumber` validation case**
+   (§4 — `AgencyBanking`/`.Citius` already fall through this same
+   `default:` branch and can never link today; `WhatsAppBanking` would
+   join them without a case of its own). Piece A's
+   `AlternateChannelController` needs no changes for the new type once
+   both exist — it's already generic.
+2. **Self-service linking approval mechanism, not just latency** — Piece A
+   (§4) is built and callable today, so the question isn't "does an
+   approval screen exist" anymore, it's whether an **ungated** status flip
+   (any staff account with API access can call `POST {id}/approve`, with
+   no check the record is currently `New`, no maker-vs-checker identity
+   check) is acceptable for a channel a customer links to themselves over
+   WhatsApp — or whether real maker-checker domain work is a prerequisite.
+   Separately, whatever the answer: what's an acceptable turnaround time
+   for a customer waiting on WhatsApp? Both need a product/security answer.
 3. **Inbound C2B webhook** — building a REST endpoint that a mobile money
    provider can call with a live payment confirmation, mapped to
    `MobileToBankRequestAppService.AddNewMobileToBankRequest`. This is the
@@ -378,7 +430,11 @@ first — not part of this document.
    OTP-per-session for a financial channel? What's the lockout policy
    behind `AlternateChannel.IsLocked`, and is there a PIN-reset flow
    (`PINResetCharges` fee already exists as a concept) designed anywhere
-   yet? Not resolved here — needs security/compliance input.
+   yet? Not resolved here — needs security/compliance input. **Sharper now
+   (§4/§5): `MobilePIN`/`NewMobilePIN`/`ResetMobilePIN` exist on the DTO
+   but nothing in `IAlternateChannelAppService` sets or reads any of them
+   — PIN storage/hashing/lockout has to be designed and built from scratch,
+   it isn't "wire up the existing field."**
 6. **`DailyLimit` sourcing** — customer-requested (up to a back-office
    ceiling) or fixed by back office entirely? Existing channels don't
    answer this generically; check how Sacco Link/Sparrow linking currently

@@ -147,6 +147,36 @@ drift out of sync with the actual code.
   `ILoanProductAppService`; read-only list endpoint added to unblock
   `ChequeTypeController`'s Create picker — no working route existed before,
   see `docs/api/loan-product-api-spec.md`)
+- `Areas/Accounts/Controllers/AlternateChannelController.cs` (new, existing
+  `IAlternateChannelAppService`; full CRUD — link/update/replace/renew/
+  stop/delink + approve/reject convenience actions + type-scoped
+  commissions sub-resource) — generic across every `AlternateChannelType`
+  (Sacco Link, Sparrow, MCo-op Cash, SpotCash, Citius, Agency Banking,
+  PesaPepe, ABC Bank, Broker), same as the reference app's
+  `RegisterController`/`AlternateChannelsController`/
+  `AlternatechannelManagementController`, none of which are per-channel —
+  this is "Piece A" from `WebApplication1/Areas/WhatsAppBanking/WORKFLOW.md`
+  §4, built first and generically so WhatsApp Banking becomes just one more
+  `Type` value later, not a reason to duplicate this controller. Real bugs
+  found in the reference `RegisterController`, not ported: `Verify`/
+  `Authorize` are bound to `DebitBatchDTO` and call `AuditDebitBatchAsync`/
+  `AuthorizeDebitBatchAsync` — copy-pasted from a DebitBatch controller,
+  nothing to do with `AlternateChannel`; `History`'s POST action is
+  byte-for-byte identical to `Linking`'s POST (creates another channel, does
+  not fetch history). **Important correction to `WORKFLOW.md`'s working
+  assumption**: there is no real maker-checker gate for `AlternateChannel`
+  anywhere in this codebase — `UpdateAlternateChannel` copies whatever
+  `RecordStatus` the caller supplies straight onto the persisted record, no
+  guard clause, unlike the Batch Procedures module's real Audited/Authorized
+  checks. This controller's `approve`/`reject` actions are a thin
+  convenience over that same ungated `Update`, not new enforcement. Also
+  flagged, not fixed: `AlternateChannelDTO.CheckAlternateChannelNumber`
+  unconditionally blanks `CardNumber` for `AlternateChannelType.
+  AgencyBanking`/`.Citius`, so linking can never succeed for either type
+  today — no spec states the intended format for either, so it's flagged
+  rather than guessed at (whoever adds `WhatsAppBanking` will hit the same
+  `default:` branch and needs a real case, not just the enum value). See
+  `docs/api/alternate-channel-api-spec.md`.
 - `Areas/Accounts/Controllers/CommissionController.cs` (existing
   `ICommissionAppService`; full CRUD + graduated-scales/splits/levies
   sub-resources) and `Areas/Accounts/Controllers/LevyController.cs` (new,
