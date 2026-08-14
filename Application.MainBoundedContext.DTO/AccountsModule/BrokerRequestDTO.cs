@@ -53,7 +53,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return Enum.IsDefined(typeof(BrokerRequestStatus), Status) ? EnumHelper.GetDescription((BrokerRequestStatus)Status) : string.Empty;
+                return Enum.IsDefined(typeof(BrokerRequestStatus), (int)Status) ? EnumHelper.GetDescription((BrokerRequestStatus)Status) : string.Empty;
             }
         }
 
