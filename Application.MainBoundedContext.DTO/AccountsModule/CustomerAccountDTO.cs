@@ -46,7 +46,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((CustomerType)CustomerType);
+                return Enum.IsDefined(typeof(CustomerType), (int)CustomerType) ? EnumHelper.GetDescription((CustomerType)CustomerType) : string.Empty;
             }
         }
 
@@ -60,7 +60,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((Salutation)CustomerIndividualSalutation);
+                return Enum.IsDefined(typeof(Salutation), (int)CustomerIndividualSalutation) ? EnumHelper.GetDescription((Salutation)CustomerIndividualSalutation) : string.Empty;
             }
         }
 
@@ -74,7 +74,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((Gender)CustomerIndividualGender);
+                return Enum.IsDefined(typeof(Gender), (int)CustomerIndividualGender) ? EnumHelper.GetDescription((Gender)CustomerIndividualGender) : string.Empty;
             }
         }
 
@@ -88,7 +88,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((MaritalStatus)CustomerIndividualMaritalStatus);
+                return Enum.IsDefined(typeof(MaritalStatus), (int)CustomerIndividualMaritalStatus) ? EnumHelper.GetDescription((MaritalStatus)CustomerIndividualMaritalStatus) : string.Empty;
             }
         }
 
@@ -102,7 +102,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((IdentityCardType)CustomerIndividualIdentityCardType);
+                return Enum.IsDefined(typeof(IdentityCardType), (int)CustomerIndividualIdentityCardType) ? EnumHelper.GetDescription((IdentityCardType)CustomerIndividualIdentityCardType) : string.Empty;
             }
         }
 
@@ -120,7 +120,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((Nationality)CustomerIndividualNationality);
+                return Enum.IsDefined(typeof(Nationality), (int)CustomerIndividualNationality) ? EnumHelper.GetDescription((Nationality)CustomerIndividualNationality) : string.Empty;
             }
         }
 
@@ -174,7 +174,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((IndividualType)CustomerIndividualType);
+                return Enum.IsDefined(typeof(IndividualType), (int)CustomerIndividualType) ? EnumHelper.GetDescription((IndividualType)CustomerIndividualType) : string.Empty;
             }
         }
 
@@ -186,7 +186,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             get
             {
-                return EnumHelper.GetDescription((CustomerClassification)CustomerIndividualClassification);
+                return Enum.IsDefined(typeof(CustomerClassification), (int)CustomerIndividualClassification) ? EnumHelper.GetDescription((CustomerClassification)CustomerIndividualClassification) : string.Empty;
             }
         }
 
