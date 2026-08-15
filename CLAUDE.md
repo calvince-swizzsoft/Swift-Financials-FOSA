@@ -491,6 +491,27 @@ drift out of sync with the actual code.
   `fileUploadDirectory` and are a real photo/ID-scan feature) — separate,
   larger work, not needed for this picker.
 
+- `Areas/Channels/Controllers/CanonicalAccountsController.cs` (new,
+  `v1/accounts/balance` + `v1/accounts/transactions` — BALANCE and
+  MINI_STATEMENT only) — not an adapted MVC controller like everything else
+  in this list; implements the fixed HTTP contract required to register
+  SwiftFinancialz as an institution on
+  `C:\Users\ckoda\source\repos\SwizzChannels`, a separate connector platform
+  that puts WhatsApp banking (and later USSD/Telegram/web) in front of any
+  registered institution with no per-institution code on its side. Uses that
+  platform's envelope (`{ success, data }` / `{ success, error }`), not this
+  project's `{ success, message, data }` convention — see
+  `docs/api/channels-canonical-api-spec.md`. `customerReference` resolves via
+  `ICustomerAppService.FindCustomerBySerialNumber`, `accountReference` via
+  `ICustomerAccountAppService.FindCustomerAccountDTO(fullAccountNumber)`,
+  cross-checked against each other before any data returns. Not built yet:
+  `CUSTOMER_VERIFICATION` (needs a new OTP/challenge mechanism — nothing in
+  this domain does this today; `MobileToBankRequestAuthOption.Verify` is an
+  unrelated M-Pesa reconciliation concept, checked and ruled out) and
+  institution-side call-in authentication (SwizzChannels calls in via OAuth2
+  client-credentials; this project has no token endpoint for that, only
+  human username/password login). Both deferred to a follow-up pass.
+
 Not yet started: loan request intake, guarantor/collateral management
 beyond initial attach (substitute/relieve/release), restructuring,
 cancellation, and payroll check-off data capture (`BackOfficeModule`).

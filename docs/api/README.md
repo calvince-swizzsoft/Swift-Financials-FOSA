@@ -26,6 +26,7 @@ what to go update.
 | Area | Base path | Doc |
 |---|---|---|
 | Customers | `api/registry/customer` | [`customer-api-spec.md`](customer-api-spec.md) |
+| Channels canonical API (SwizzChannels/WhatsApp banking integration — not the frontend) | `v1/accounts` | [`channels-canonical-api-spec.md`](channels-canonical-api-spec.md) |
 | Customer verification (maker-checker) | `api/administration/workflows` (generic engine, used with a specific permission type) | [`customer-verification-api-spec.md`](customer-verification-api-spec.md) |
 | Customer accounts (base resource) | `api/accounts/customer-accounts` | [`customer-accounts-api-spec.md`](customer-accounts-api-spec.md) |
 | Customer account management (activate/freeze/close/remark) | `api/accounts/customer-accounts/{id}/...` | [`customer-account-management-api-spec.md`](customer-account-management-api-spec.md) |
@@ -60,6 +61,31 @@ what to go update.
 
 Newest first. Each entry says what to build and, where relevant, what to
 change in code that already exists.
+
+### Channels Canonical API — new, first two capabilities for SwizzChannels/WhatsApp banking
+
+`CanonicalAccountsController` (`v1/accounts/balance`, `v1/accounts/transactions`)
+— not for the SwiftFinancialz frontend. This implements the `BALANCE` and
+`MINI_STATEMENT` capabilities of the canonical financial API contract
+consumed by [SwizzChannels](../../../SwizzChannels), a separate connector
+platform that puts WhatsApp banking (and later USSD/Telegram/web) in front
+of any registered institution without per-institution integration code on
+its side. SwiftFinancialz is the institution; these two endpoints are what
+it must expose to be registered.
+
+Uses a different response envelope than every other endpoint in this API —
+`{ success, data }` / `{ success, error: { code, message } }`, dictated by
+the external contract, not this project's `{ success, message, data }`
+convention. `customerReference` = customer's serial number,
+`accountReference` = `fullAccountNumber`; a mismatched pair reports
+`ACCOUNT_NOT_FOUND` rather than leaking which reference was wrong.
+
+Not built yet, tracked as known gaps: `CUSTOMER_VERIFICATION` (no OTP/
+challenge mechanism exists anywhere in this domain today — needed before
+SwizzChannels can `LINK` a WhatsApp number to a customer at all) and
+institution-side call-in authentication (SwizzChannels' OAuth2
+client-credentials authenticator has no token endpoint to call on this side
+yet). Full reference: `channels-canonical-api-spec.md`.
 
 ### Loan Back Office Catalogues API + collateral document picker — new, unblocks the loan-case registration/appraisal forms
 

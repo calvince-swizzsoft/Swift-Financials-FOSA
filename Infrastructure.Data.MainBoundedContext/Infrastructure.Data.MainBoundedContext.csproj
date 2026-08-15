@@ -230,12 +230,14 @@
     <Compile Include="UnitOfWork\Mapping\AccountsModule\TellerEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AccountsModule\TreasuryEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AccountsModule\UnPayReasonCommissionEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AccountsModule\ChannelVerificationChallengeEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AccountsModule\UnPayReasonEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferBatchEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferBatchEntryEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferTypeCommissionEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AccountsModule\WireTransferTypeEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AdministrationModule\BankBranchEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\AdministrationModule\ApiClientEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AdministrationModule\BankEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AdministrationModule\BranchEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\AdministrationModule\CompanyAttachedProductEntityConfiguration.cs" />

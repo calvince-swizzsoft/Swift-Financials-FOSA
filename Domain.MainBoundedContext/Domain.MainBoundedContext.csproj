@@ -379,6 +379,8 @@
     <Compile Include="AccountsModule\Aggregates\TreasuryAgg\Treasury.cs" />
     <Compile Include="AccountsModule\Aggregates\TreasuryAgg\TreasuryFactory.cs" />
     <Compile Include="AccountsModule\Aggregates\TreasuryAgg\TreasurySpecifications.cs" />
+    <Compile Include="AccountsModule\Aggregates\ChannelVerificationChallengeAgg\ChannelVerificationChallenge.cs" />
+    <Compile Include="AccountsModule\Aggregates\ChannelVerificationChallengeAgg\ChannelVerificationChallengeFactory.cs" />
     <Compile Include="AccountsModule\Aggregates\UnPayReasonAgg\UnPayReason.cs" />
     <Compile Include="AccountsModule\Aggregates\UnPayReasonAgg\UnPayReasonFactory.cs" />
     <Compile Include="AccountsModule\Aggregates\UnPayReasonAgg\UnPayReasonSpecifications.cs" />
@@ -399,6 +401,9 @@
     <Compile Include="AccountsModule\Aggregates\WireTransferTypeCommissionAgg\WireTransferTypeCommissionSpecifications.cs" />
     <Compile Include="AccountsModule\Aggregates\ImprestLineAgg\ImprestLine.cs" />
     <Compile Include="AccountsModule\Aggregates\ImprestLineAgg\ImprestLineFactory.cs" />
+    <Compile Include="AdministrationModule\Aggregates\ApiClientAgg\ApiClient.cs" />
+    <Compile Include="AdministrationModule\Aggregates\ApiClientAgg\ApiClientFactory.cs" />
+    <Compile Include="AdministrationModule\Aggregates\ApiClientAgg\ApiClientSpecifications.cs" />
     <Compile Include="AdministrationModule\Aggregates\BankAgg\Bank.cs" />
     <Compile Include="AdministrationModule\Aggregates\BankAgg\BankFactory.cs" />
     <Compile Include="AdministrationModule\Aggregates\BankAgg\BankSpecifications.cs" />
