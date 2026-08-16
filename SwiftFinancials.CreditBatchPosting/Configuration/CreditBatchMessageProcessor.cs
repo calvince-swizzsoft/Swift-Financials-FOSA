@@ -1,22 +1,22 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.CreditBatchPosting.Configuration
 {
     public class CreditBatchMessageProcessor : MessageProcessor<QueueDTO>
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
         private readonly CreditBatchPostingConfigSection _creditBatchPostingConfigSection;
 
-        public CreditBatchMessageProcessor(IChannelService channelService, ILogger logger, CreditBatchPostingConfigSection creditBatchPostingConfigSection)
+        public CreditBatchMessageProcessor(ILogger logger, CreditBatchPostingConfigSection creditBatchPostingConfigSection)
             : base(creditBatchPostingConfigSection.CreditBatchPostingSettingsItems.QueuePath, creditBatchPostingConfigSection.CreditBatchPostingSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _logger = logger;
             _creditBatchPostingConfigSection = creditBatchPostingConfigSection;
         }
@@ -36,7 +36,8 @@ namespace SwiftFinancials.CreditBatchPosting.Configuration
             {
                 case MessageCategory.CreditBatchEntry:
 
-                    await _channelService.PostCreditBatchEntryAsync(queueDTO.RecordId, 0x8888, serviceHeader);
+                    Container.Current.Resolve<ICreditBatchAppService>()
+                        .PostCreditBatchEntry(queueDTO.RecordId, 0x8888, serviceHeader);
 
                     break;
                 default:

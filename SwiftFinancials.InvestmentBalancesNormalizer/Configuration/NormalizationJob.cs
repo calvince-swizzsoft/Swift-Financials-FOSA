@@ -1,29 +1,25 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.InvestmentBalancesNormalizer.Configuration
 {
     public class NormalizationJob : IJob
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public NormalizationJob(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -47,7 +43,10 @@ namespace SwiftFinancials.InvestmentBalancesNormalizer.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = investmentBalancesNormalizerSettingsElement.UniqueId };
 
-                            await _channelService.NormalizeInvestmentBalancesAsync(investmentBalancesNormalizerSettingsElement.NormalizationSets, (int)QueuePriority.Normal, investmentBalancesNormalizerSettingsElement.EnforceCeiling == 1, serviceHeader);
+                            // Real app-service method is AdjustInvestmentBalances — the WCF
+                            // operation name (NormalizeInvestmentBalances) diverges from it.
+                            Container.Current.Resolve<IRecurringBatchAppService>()
+                                .AdjustInvestmentBalances(investmentBalancesNormalizerSettingsElement.NormalizationSets, (int)QueuePriority.Normal, investmentBalancesNormalizerSettingsElement.EnforceCeiling == 1, serviceHeader);
                         }
                     }
                 }

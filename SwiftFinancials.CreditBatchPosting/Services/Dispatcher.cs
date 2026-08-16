@@ -13,22 +13,15 @@ namespace SwiftFinancials.CreditBatchPosting.Services
     {
         private CreditBatchMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         [ImportingConstructor]
         public Dispatcher(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -52,7 +45,7 @@ namespace SwiftFinancials.CreditBatchPosting.Services
 
                 if (creditBatchPostingConfigSection != null)
                 {
-                    _messageProcessor = new CreditBatchMessageProcessor(_channelService, _logger, creditBatchPostingConfigSection);
+                    _messageProcessor = new CreditBatchMessageProcessor(_logger, creditBatchPostingConfigSection);
 
                     _messageProcessor.Open();
                 }

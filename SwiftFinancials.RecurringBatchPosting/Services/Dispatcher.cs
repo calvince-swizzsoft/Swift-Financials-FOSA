@@ -13,22 +13,15 @@ namespace SwiftFinancials.RecurringBatchPosting.Services
     {
         private RecurringBatchMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         [ImportingConstructor]
         public Dispatcher(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -52,7 +45,7 @@ namespace SwiftFinancials.RecurringBatchPosting.Services
 
                 if (recurringBatchPostingConfigSection != null)
                 {
-                    _messageProcessor = new RecurringBatchMessageProcessor(_channelService, _logger, recurringBatchPostingConfigSection);
+                    _messageProcessor = new RecurringBatchMessageProcessor(_logger, recurringBatchPostingConfigSection);
 
                     _messageProcessor.Open();
                 }

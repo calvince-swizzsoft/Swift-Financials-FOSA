@@ -14,16 +14,13 @@ namespace SwiftFinancials.EmailAlertDispatcher.Services
     {
         private EmailMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         private readonly ISmtpService _smtpService;
 
         [ImportingConstructor]
-        public Dispatcher(IChannelService channelService, ILogger logger, ISmtpService smtpService)
+        public Dispatcher(ILogger logger, ISmtpService smtpService)
         {
-            _channelService = channelService ?? throw new ArgumentNullException(nameof(channelService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _smtpService = smtpService ?? throw new ArgumentNullException(nameof(smtpService));
         }
@@ -48,7 +45,7 @@ namespace SwiftFinancials.EmailAlertDispatcher.Services
 
                 if (emailDispatcherConfigSection != null)
                 {
-                    _messageProcessor = new EmailMessageProcessor(_channelService, _logger, _smtpService, emailDispatcherConfigSection);
+                    _messageProcessor = new EmailMessageProcessor(_logger, _smtpService, emailDispatcherConfigSection);
 
                     _messageProcessor.Open();
                 }

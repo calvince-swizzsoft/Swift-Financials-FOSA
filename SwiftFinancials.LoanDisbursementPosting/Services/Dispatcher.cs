@@ -13,22 +13,15 @@ namespace SwiftFinancials.LoanDisbursementBatchPosting.Services
     {
         private LoanDisbursementBatchMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         [ImportingConstructor]
         public Dispatcher(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -52,7 +45,7 @@ namespace SwiftFinancials.LoanDisbursementBatchPosting.Services
 
                 if (loanDisbursementBatchPostingConfigSection != null)
                 {
-                    _messageProcessor = new LoanDisbursementBatchMessageProcessor(_channelService, _logger, loanDisbursementBatchPostingConfigSection);
+                    _messageProcessor = new LoanDisbursementBatchMessageProcessor(_logger, loanDisbursementBatchPostingConfigSection);
 
                     _messageProcessor.Open();
                 }

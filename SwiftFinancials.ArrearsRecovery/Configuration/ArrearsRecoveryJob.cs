@@ -1,29 +1,25 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.ArrearsRecovery.Configuration
 {
     public class ArrearsRecoveryJob : IJob
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public ArrearsRecoveryJob(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -45,7 +41,8 @@ namespace SwiftFinancials.ArrearsRecovery.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = arrearsRecoverySettingsElement.UniqueId };
 
-                            await _channelService.RecoverArrearsAsync((int)QueuePriority.Normal, arrearsRecoverySettingsElement.QueuePageSize, serviceHeader);
+                            Container.Current.Resolve<IRecurringBatchAppService>()
+                                .RecoverArrears((int)QueuePriority.Normal, arrearsRecoverySettingsElement.QueuePageSize, serviceHeader);
                         }
                     }
                 }

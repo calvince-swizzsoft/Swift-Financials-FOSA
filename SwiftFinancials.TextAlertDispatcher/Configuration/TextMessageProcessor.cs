@@ -1,7 +1,9 @@
-﻿using Infrastructure.Crosscutting.Framework.Extensions;
+﻿using Application.MainBoundedContext.MessagingModule.Services;
+using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -10,22 +12,20 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
 {
     public class TextMessageProcessor : MessageProcessor<QueueDTO>
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
         private readonly TextDispatcherConfigSection _textDispatcherConfigSection;
 
         private readonly LimitedPool<HttpClient> _httpClientPool;
 
-        public TextMessageProcessor(IChannelService channelService, ILogger logger, TextDispatcherConfigSection textDispatcherConfigSection)
+        public TextMessageProcessor(ILogger logger, TextDispatcherConfigSection textDispatcherConfigSection)
             : base(textDispatcherConfigSection.TextDispatcherSettingsItems.QueuePath, textDispatcherConfigSection.TextDispatcherSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _logger = logger;
             _textDispatcherConfigSection = textDispatcherConfigSection;
             _httpClientPool = new LimitedPool<HttpClient>(() =>
@@ -63,7 +63,7 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
 
                             #region sms
 
-                            var smsAlert = await _channelService.FindTextAlertAsync(queueDTO.RecordId, serviceHeader);
+                            var smsAlert = Container.Current.Resolve<ITextAlertAppService>().FindTextAlert(queueDTO.RecordId, serviceHeader);
 
                             if (smsAlert == null) return;
 
@@ -190,7 +190,7 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
                                         smsAlert.TextMessageReference = string.Format("{0}:{1}", responseTuple.Item1, responseTuple.Item2);
                                     }
 
-                                    await _channelService.UpdateTextAlertAsync(smsAlert, serviceHeader);
+                                    Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader);
 
                                     break;
                                 default:

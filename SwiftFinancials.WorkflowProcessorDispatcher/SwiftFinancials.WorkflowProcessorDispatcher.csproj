@@ -90,9 +90,9 @@
       <Project>{2EF2ACE9-B5DB-4B61-A6ED-66F976783689}</Project>
       <Name>Application.MainBoundedContext</Name>
     </ProjectReference>
-    <ProjectReference Include="..\DistributedServices.MainBoundedContext\DistributedServices.MainBoundedContext.csproj">
-      <Project>{054DA3E1-DAAD-4DF5-95B7-0FC9096BEC39}</Project>
-      <Name>DistributedServices.MainBoundedContext</Name>
+    <ProjectReference Include="..\SwiftFinancials.AppServiceContainer\SwiftFinancials.AppServiceContainer.csproj">
+      <Project>{A1B2C3D4-E5F6-47A8-9B0C-D1E2F3A4B5C6}</Project>
+      <Name>SwiftFinancials.AppServiceContainer</Name>
     </ProjectReference>
     <ProjectReference Include="..\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj">
       <Project>{E839A387-3A87-49A7-9039-D114D02F05B1}</Project>

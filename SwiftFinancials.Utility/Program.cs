@@ -1,10 +1,16 @@
-﻿using Application.MainBoundedContext.DTO.AdministrationModule;
+﻿using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.DTO.AdministrationModule;
+using Application.MainBoundedContext.Services;
+using Infrastructure.Data.MainBoundedContext.UnitOfWork;
+using Numero3.EntityFramework.Interfaces;
+using SwiftFinancials.AppServiceContainer;
+using SwiftFinancials.Utility.Identity;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
-using SwiftFinancials.Presentation.Infrastructure.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Unity;
 
 namespace SwiftFinancials.Utility
 {
@@ -15,8 +21,6 @@ namespace SwiftFinancials.Utility
             ConfigureFactories();
 
             ILogger logger = new SerilogLogger();
-
-            IChannelService channelService = new ChannelService(logger);
 
             var navigationItems = GetAvailableNavigationMenus();
 
@@ -40,19 +44,42 @@ namespace SwiftFinancials.Utility
 
                         Console.WriteLine("CurrentAppDomainName>{0}", serviceHeader.ApplicationDomainName);
 
-                        result = await channelService.ConfigureAspNetIdentityDatabaseAsync(serviceHeader, 180d);
-                        Console.WriteLine("ConfigureAspNetIdentityDatabaseAsync>{0}", result);
+                        // Both migration calls used to go through UtilityService.svc.cs — a class
+                        // that lives in DistributedServices.MainBoundedContext, which this tool no
+                        // longer references at all. Reproduced directly instead: constructing either
+                        // DbContext against a not-yet-existing database and touching it is enough to
+                        // create/migrate it (BoundedContextUnitOfWork has MigrateDatabaseToLatestVersion
+                        // wired up via BoundedContextConfiguration; ApplicationDbContext has no custom
+                        // initializer so EF's default CreateDatabaseIfNotExists applies).
+                        //
+                        // NOTE: neither call is actually parameterized by args[0]/ApplicationDomainName —
+                        // this was already true of the WCF methods they replace (UtilityService.svc.cs
+                        // read serviceHeader but never passed it through). Preserved as-is, not silently
+                        // fixed here — see CLAUDE.md's multi-tenancy notes on the
+                        // feature/multitenant-db-per-tenant branch for the real fix
+                        // (RuntimeContextFactory/MigrationsContextFactory both hardcode
+                        // "AuthStore"/"SwiftFin_Dev" today).
+                        using (var identityContext = new ApplicationDbContext("AuthStore"))
+                        {
+                            identityContext.Database.Initialize(force: true);
+                        }
+                        result = true;
+                        Console.WriteLine("ConfigureAspNetIdentityDatabase>{0}", result);
 
-                        result = await channelService.ConfigureApplicationDatabaseAsync(serviceHeader, 180d);
-                        Console.WriteLine("ConfigureApplicationDatabaseAsync>{0}", result);
+                        using (var applicationContext = Container.Current.Resolve<IDbContextFactory>().CreateDbContext<BoundedContextUnitOfWork>(serviceHeader))
+                        {
+                            applicationContext.Database.Initialize(force: true);
+                        }
+                        result = true;
+                        Console.WriteLine("ConfigureApplicationDatabase>{0}", result);
 
-                        result = await channelService.AddNavigationItemsAsync(navigationItems, serviceHeader);
+                        result = await Container.Current.Resolve<INavigationItemAppService>().AddNavigationItemsAsync(navigationItems, serviceHeader);
                         Console.WriteLine("AddNavigationItemsAsync>{0}", result);
 
                         if (result)
                         {
-                            result = await channelService.SeedEnumerationsAsync(serviceHeader, 180d);
-                            Console.WriteLine("ApplicationDatabase>SeedEnumerationsAsync>{0}", result);
+                            result = Container.Current.Resolve<IEnumerationAppService>().SeedEnumerations(serviceHeader);
+                            Console.WriteLine("ApplicationDatabase>SeedEnumerations>{0}", result);
                         }
 
                         Console.WriteLine("DONE!");

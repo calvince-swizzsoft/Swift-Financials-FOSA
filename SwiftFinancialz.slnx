@@ -12,6 +12,7 @@
   <Project Path="Infrastructure.Crosscutting.Framework/Infrastructure.Crosscutting.Framework.csproj" Id="e839a387-3a87-49a7-9039-d114d02f05b1" />
   <Project Path="Infrastructure.Data.MainBoundedContext/Infrastructure.Data.MainBoundedContext.csproj" Id="3167a4c1-44e6-499a-8fc7-682d875429f5" />
   <Project Path="SwiftApis/SwiftApis.csproj" />
+  <Project Path="SwiftFinancials.AppServiceContainer/SwiftFinancials.AppServiceContainer.csproj" Id="a1b2c3d4-e5f6-47a8-9b0c-d1e2f3a4b5c6" />
   <Project Path="SwiftFinancials.AccountAlertDispatcher/SwiftFinancials.AccountAlertDispatcher.csproj" Id="3ef92022-05ad-4123-95e1-1afbff7d149d" />
   <Project Path="SwiftFinancials.ArrearsRecovery/SwiftFinancials.ArrearsRecovery.csproj" Id="efa1015e-b838-464d-acb3-7d590127ce1d" />
   <Project Path="SwiftFinancials.AuditLogDispatcher/SwiftFinancials.AuditLogDispatcher.csproj" Id="58f264dc-28b4-4882-ac95-95cdf04c959c" />

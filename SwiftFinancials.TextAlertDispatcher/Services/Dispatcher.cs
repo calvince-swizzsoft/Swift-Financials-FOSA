@@ -13,14 +13,11 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Celcom.Services
     {
         private TextMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         [ImportingConstructor]
-        public Dispatcher(IChannelService channelService, ILogger logger)
+        public Dispatcher(ILogger logger)
         {
-            _channelService = channelService ?? throw new ArgumentNullException(nameof(channelService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -38,7 +35,7 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Celcom.Services
 
                 if (textDispatcherConfigSection != null)
                 {
-                    _messageProcessor = new TextMessageProcessor(_channelService, _logger, textDispatcherConfigSection);
+                    _messageProcessor = new TextMessageProcessor(_logger, textDispatcherConfigSection);
 
                     _messageProcessor.Open();
                 }

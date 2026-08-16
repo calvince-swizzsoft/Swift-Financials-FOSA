@@ -1,38 +1,34 @@
-﻿using Application.MainBoundedContext.Services;
+﻿using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Configuration;
 using System.Messaging;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.SalaryPeriodPosting.Configuration
 {
     public class QueueingJob : IJob
     {
         private readonly IMessageQueueService _messageQueueService;
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public QueueingJob(
             IMessageQueueService messageQueueService,
-            IChannelService channelService,
             ILogger logger)
         {
             if (messageQueueService == null)
                 throw new ArgumentNullException(nameof(messageQueueService));
 
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
             _messageQueueService = messageQueueService;
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -56,7 +52,8 @@ namespace SwiftFinancials.SalaryPeriodPosting.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = salaryPeriodPostingSettingsElement.UniqueId };
 
-                            var pageCollectionInfo = await _channelService.FindQueablePaySlipsInPageAsync(0, salaryPeriodPostingSettingsElement.QueuePageSize, serviceHeader);
+                            var pageCollectionInfo = Container.Current.Resolve<IPaySlipAppService>()
+                                .FindQueablePaySlips(0, salaryPeriodPostingSettingsElement.QueuePageSize, serviceHeader);
 
                             if (pageCollectionInfo != null && pageCollectionInfo.PageCollection != null)
                             {

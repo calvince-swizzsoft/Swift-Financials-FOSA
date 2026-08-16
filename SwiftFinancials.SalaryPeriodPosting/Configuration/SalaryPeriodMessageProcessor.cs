@@ -1,22 +1,21 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.SalaryPeriodPosting.Configuration
 {
     public class SalaryPeriodMessageProcessor : MessageProcessor<QueueDTO>
     {
-        private readonly IChannelService _channelService;
-
         private readonly SalaryPeriodPostingConfigSection _salaryPeriodPostingConfigSection;
 
-        public SalaryPeriodMessageProcessor(IChannelService channelService, SalaryPeriodPostingConfigSection salaryPeriodPostingConfigSection)
+        public SalaryPeriodMessageProcessor(SalaryPeriodPostingConfigSection salaryPeriodPostingConfigSection)
             : base(salaryPeriodPostingConfigSection.SalaryPeriodPostingSettingsItems.QueuePath, salaryPeriodPostingConfigSection.SalaryPeriodPostingSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _salaryPeriodPostingConfigSection = salaryPeriodPostingConfigSection;
         }
 
@@ -35,7 +34,8 @@ namespace SwiftFinancials.SalaryPeriodPosting.Configuration
                 {
                     case MessageCategory.PaySlip:
 
-                        await _channelService.PostPaySlipAsync(queueDTO.RecordId, 0x8888, serviceHeader);
+                        Container.Current.Resolve<ISalaryPeriodAppService>()
+                            .PostPaySlip(queueDTO.RecordId, 0x8888, serviceHeader);
 
                         break;
                     default:

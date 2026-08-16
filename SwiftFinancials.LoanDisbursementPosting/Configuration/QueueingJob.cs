@@ -1,39 +1,35 @@
-﻿using Application.MainBoundedContext.Services;
+﻿using Application.MainBoundedContext.BackOfficeModule.Services;
+using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Configuration;
 using System.Linq;
 using System.Messaging;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.LoanDisbursementBatchPosting.Configuration
 {
     public class QueueingJob : IJob
     {
         private readonly IMessageQueueService _messageQueueService;
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public QueueingJob(
             IMessageQueueService messageQueueService,
-            IChannelService channelService,
             ILogger logger)
         {
             if (messageQueueService == null)
                 throw new ArgumentNullException(nameof(messageQueueService));
 
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
             _messageQueueService = messageQueueService;
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -55,7 +51,8 @@ namespace SwiftFinancials.LoanDisbursementBatchPosting.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = loanDisbursementBatchPostingSettingsElement.UniqueId };
 
-                            var pageCollectionInfo = await _channelService.FindQueableLoanDisbursementBatchEntriesInPageAsync(0, loanDisbursementBatchPostingSettingsElement.QueuePageSize, serviceHeader);
+                            var pageCollectionInfo = Container.Current.Resolve<ILoanDisbursementBatchAppService>()
+                                .FindQueableLoanDisbursementBatchEntries(0, loanDisbursementBatchPostingSettingsElement.QueuePageSize, serviceHeader);
 
                             if (pageCollectionInfo != null && pageCollectionInfo.PageCollection != null)
                             {

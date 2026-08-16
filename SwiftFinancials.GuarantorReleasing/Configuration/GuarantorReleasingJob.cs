@@ -1,29 +1,25 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.GuarantorReleasing.Configuration
 {
     public class GuarantorReleasingJob : IJob
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public GuarantorReleasingJob(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -45,7 +41,8 @@ namespace SwiftFinancials.GuarantorReleasing.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = guarantorReleasingSettingsElement.UniqueId };
 
-                            await _channelService.ReleaseLoanGuarantorsAsync((int)QueuePriority.Normal, serviceHeader);
+                            Container.Current.Resolve<IRecurringBatchAppService>()
+                                .ReleaseLoanGuarantors((int)QueuePriority.Normal, serviceHeader);
                         }
                     }
                 }

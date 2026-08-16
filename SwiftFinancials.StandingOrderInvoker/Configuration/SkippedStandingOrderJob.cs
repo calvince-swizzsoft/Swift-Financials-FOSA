@@ -1,29 +1,25 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.StandingOrderInvoker.Configuration
 {
     public class SkippedStandingOrderJob : IJob
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public SkippedStandingOrderJob(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -47,7 +43,8 @@ namespace SwiftFinancials.StandingOrderInvoker.Configuration
 
                             var targetDate = DateTime.Today.AddDays(-1);
 
-                            await _channelService.FixSkippedStandingOrdersAsync(targetDate, standingOrderInvokerSettingsElement.QueuePageSize, serviceHeader);
+                            Container.Current.Resolve<IStandingOrderAppService>()
+                                .FixSkippedStandingOrders(targetDate, standingOrderInvokerSettingsElement.QueuePageSize, serviceHeader);
                         }
                     }
                 }

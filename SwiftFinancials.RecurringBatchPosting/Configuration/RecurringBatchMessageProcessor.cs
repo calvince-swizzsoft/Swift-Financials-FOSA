@@ -1,22 +1,23 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
+using SwiftFinancials.AppServiceContainer;
 using System;
+using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.RecurringBatchPosting.Configuration
 {
     public class RecurringBatchMessageProcessor : MessageProcessor<QueueDTO>
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
         private readonly RecurringBatchPostingConfigSection _recurringBatchPostingConfigSection;
 
-        public RecurringBatchMessageProcessor(IChannelService channelService, ILogger logger, RecurringBatchPostingConfigSection recurringBatchPostingConfigSection)
+        public RecurringBatchMessageProcessor(ILogger logger, RecurringBatchPostingConfigSection recurringBatchPostingConfigSection)
             : base(recurringBatchPostingConfigSection.RecurringBatchPostingSettingsItems.QueuePath, recurringBatchPostingConfigSection.RecurringBatchPostingSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _logger = logger;
             _recurringBatchPostingConfigSection = recurringBatchPostingConfigSection;
         }
@@ -36,7 +37,13 @@ namespace SwiftFinancials.RecurringBatchPosting.Configuration
             {
                 case MessageCategory.RecurringBatchEntry:
 
-                    await _channelService.PostRecurringBatchEntryAsync(queueDTO.RecordId, 0x8888, serviceHeader);
+                    // Real app-service method takes two extra params the WCF operation derived
+                    // server-side: fileDirectory (serviceBrokerConfiguration's fileExportDirectory)
+                    // and the BLOBStore connection string.
+                    var serviceBrokerSettingsElement = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
+
+                    Container.Current.Resolve<IRecurringBatchAppService>()
+                        .PostRecurringBatchEntry(queueDTO.RecordId, 0x8888, serviceBrokerSettingsElement.FileExportDirectory, ConfigurationManager.ConnectionStrings["BLOBStore"].ConnectionString, serviceHeader);
 
                     break;
                 default:

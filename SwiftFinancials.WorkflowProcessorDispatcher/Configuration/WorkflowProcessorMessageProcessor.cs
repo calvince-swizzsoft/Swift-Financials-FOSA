@@ -1,5 +1,5 @@
 using Application.MainBoundedContext.AdministrationModule.Services;
-using DistributedServices.MainBoundedContext.UnityContainers;
+using SwiftFinancials.AppServiceContainer;
 using Infrastructure.Crosscutting.Framework.Configuration;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;

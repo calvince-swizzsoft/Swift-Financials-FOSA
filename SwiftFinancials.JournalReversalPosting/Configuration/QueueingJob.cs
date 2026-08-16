@@ -1,38 +1,34 @@
-﻿using Application.MainBoundedContext.Services;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Configuration;
 using System.Messaging;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.JournalReversalBatchPosting.Configuration
 {
     public class QueueingJob : IJob
     {
         private readonly IMessageQueueService _messageQueueService;
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public QueueingJob(
             IMessageQueueService messageQueueService,
-            IChannelService channelService,
             ILogger logger)
         {
             if (messageQueueService == null)
                 throw new ArgumentNullException(nameof(messageQueueService));
 
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
             _messageQueueService = messageQueueService;
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -54,7 +50,8 @@ namespace SwiftFinancials.JournalReversalBatchPosting.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = journalReversalBatchPostingSettingsElement.UniqueId };
 
-                            var pageCollectionInfo = await _channelService.FindQueableJournalReversalBatchEntriesInPageAsync(0, journalReversalBatchPostingSettingsElement.QueuePageSize, serviceHeader);
+                            var pageCollectionInfo = Container.Current.Resolve<IJournalReversalBatchAppService>()
+                                .FindQueableJournalReversalBatchEntries(0, journalReversalBatchPostingSettingsElement.QueuePageSize, serviceHeader);
 
                             if (pageCollectionInfo != null && pageCollectionInfo.PageCollection != null)
                             {

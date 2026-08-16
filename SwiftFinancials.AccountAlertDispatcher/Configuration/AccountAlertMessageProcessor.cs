@@ -11,34 +11,91 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using System.Linq;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO.FrontOfficeModule;
 using System.Globalization;
+using SwiftFinancials.AppServiceContainer;
+using Unity;
+using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Application.MainBoundedContext.BackOfficeModule.Services;
+using Application.MainBoundedContext.FrontOfficeModule.Services;
+using Application.MainBoundedContext.RegistryModule.Services;
+using Application.MainBoundedContext.MessagingModule.Services;
 
 namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 {
     public class AccountAlertMessageProcessor : MessageProcessor<List<QueueDTO>>
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
         private readonly AccountAlertDispatcherConfigSection _accountAlertDispatcherConfigSection;
 
         private readonly NumberFormatInfo _nfi;
 
-        public AccountAlertMessageProcessor(IChannelService channelService, ILogger logger, AccountAlertDispatcherConfigSection accountAlertDispatcherConfigSection)
+        public AccountAlertMessageProcessor(ILogger logger, AccountAlertDispatcherConfigSection accountAlertDispatcherConfigSection)
             : base(accountAlertDispatcherConfigSection.AccountAlertDispatcherSettingsItems.QueuePath, accountAlertDispatcherConfigSection.AccountAlertDispatcherSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _logger = logger;
             _accountAlertDispatcherConfigSection = accountAlertDispatcherConfigSection;
 
             _nfi = new NumberFormatInfo();
             _nfi.CurrencySymbol = string.Empty;
+        }
+
+        // Mirrors CustomerAccountService.svc.cs's FindCustomerAccount wrapper — the WCF op
+        // conditionally enriches a bare CustomerAccountDTO lookup with balance/product-description.
+        private CustomerAccountDTO FindCustomerAccount(Guid customerAccountId, bool includeBalance, bool includeProductDescription, bool includeInterestBalanceForLoanAccounts, bool considerMaturityPeriodForInvestmentAccounts, ServiceHeader serviceHeader)
+        {
+            var customerAccountAppService = Container.Current.Resolve<ICustomerAccountAppService>();
+
+            var customerAccount = customerAccountAppService.FindCustomerAccountDTO(customerAccountId, serviceHeader);
+
+            if (customerAccount != null)
+            {
+                if (includeBalance)
+                    customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { customerAccount }, serviceHeader, includeInterestBalanceForLoanAccounts, considerMaturityPeriodForInvestmentAccounts);
+
+                if (includeProductDescription)
+                    customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
+            }
+
+            return customerAccount;
+        }
+
+        // Mirrors CustomerAccountService.svc.cs's FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId wrapper.
+        private List<CustomerAccountDTO> FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(Guid customerId, Guid targetProductId, bool includeBalances, bool includeProductDescription, bool includeInterestBalanceForLoanAccounts, bool considerMaturityPeriodForInvestmentAccounts, ServiceHeader serviceHeader)
+        {
+            var customerAccountAppService = Container.Current.Resolve<ICustomerAccountAppService>();
+
+            var customerAccounts = customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(customerId, targetProductId, serviceHeader);
+
+            if (customerAccounts != null)
+            {
+                if (includeBalances)
+                    customerAccountAppService.FetchCustomerAccountBalances(customerAccounts, serviceHeader, includeInterestBalanceForLoanAccounts, considerMaturityPeriodForInvestmentAccounts);
+
+                if (includeProductDescription)
+                    customerAccountAppService.FetchCustomerAccountsProductDescription(customerAccounts, serviceHeader);
+            }
+
+            return customerAccounts;
+        }
+
+        // Mirrors AccountClosureRequestService.svc.cs's FindAccountClosureRequest wrapper.
+        private AccountClosureRequestDTO FindAccountClosureRequest(Guid accountClosureRequestId, bool includeProductDescription, ServiceHeader serviceHeader)
+        {
+            var accountClosureRequest = Container.Current.Resolve<IAccountClosureRequestAppService>().FindAccountClosureRequest(accountClosureRequestId, serviceHeader);
+
+            if (includeProductDescription && accountClosureRequest != null)
+                Container.Current.Resolve<ICustomerAccountAppService>().FetchCustomerAccountsProductDescription(new List<AccountClosureRequestDTO> { accountClosureRequest }, serviceHeader);
+
+            return accountClosureRequest;
         }
 
         protected override void LogError(Exception exception)
@@ -75,11 +132,11 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    userDTO = await _channelService.FindMembershipAsync(queueDTO.RecordId.ToString(), serviceHeader);
+                                    userDTO = SwiftFinancials.AppServiceContainer.Identity.MembershipLookup.FindMembership(queueDTO.RecordId.ToString());
 
                                     if (userDTO != null)
                                     {
-                                        var branchDTO = await _channelService.FindBranchAsync((Guid)userDTO.BranchId, serviceHeader);
+                                        var branchDTO = Container.Current.Resolve<IBranchAppService>().FindBranch((Guid)userDTO.BranchId, serviceHeader);
 
                                         #region Email Alert
 
@@ -114,7 +171,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                 MailMessageSecurityCritical = true
                                             };
 
-                                            await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                            Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                         }
 
                                         #endregion
@@ -128,11 +185,11 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    userDTO = await _channelService.FindMembershipAsync(queueDTO.RecordId.ToString(), serviceHeader);
+                                    userDTO = SwiftFinancials.AppServiceContainer.Identity.MembershipLookup.FindMembership(queueDTO.RecordId.ToString());
 
                                     if (userDTO != null)
                                     {
-                                        var branchDTO = await _channelService.FindBranchAsync((Guid)userDTO.BranchId, serviceHeader);
+                                        var branchDTO = Container.Current.Resolve<IBranchAppService>().FindBranch((Guid)userDTO.BranchId, serviceHeader);
 
                                         switch ((TwoFactorProviders)queueDTO.Provider)
                                         {
@@ -207,7 +264,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                         MailMessageSecurityCritical = true
                                                     };
 
-                                                    await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                    Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                 }
 
                                                 #endregion
@@ -224,11 +281,11 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    userDTO = await _channelService.FindMembershipAsync(queueDTO.RecordId.ToString(), serviceHeader);
+                                    userDTO = SwiftFinancials.AppServiceContainer.Identity.MembershipLookup.FindMembership(queueDTO.RecordId.ToString());
 
                                     if (userDTO != null)
                                     {
-                                        var branchDTO = await _channelService.FindBranchAsync((Guid)userDTO.BranchId, serviceHeader);
+                                        var branchDTO = Container.Current.Resolve<IBranchAppService>().FindBranch((Guid)userDTO.BranchId, serviceHeader);
 
                                         #region Email Alert
 
@@ -261,7 +318,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                 MailMessageSecurityCritical = true
                                             };
 
-                                            await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                            Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                         }
 
                                         #endregion
@@ -275,7 +332,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var journalEntryDTOs = await _channelService.FindJournalEntriesByJournalIdAsync(queueDTO.RecordId, serviceHeader);
+                                    var journalEntryDTOs = Container.Current.Resolve<IJournalAppService>().FindJournalEntries(serviceHeader, queueDTO.RecordId);
 
                                     if (journalEntryDTOs != null && journalEntryDTOs.Any(x => x.CustomerAccountId.HasValue))
                                     {
@@ -293,9 +350,9 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                     continue;
                                                 else skipList.Add(journalEntryDTO.CustomerAccountCustomerId.Value);
 
-                                                var customerAccountDTO = await _channelService.FindCustomerAccountAsync(journalEntryDTO.CustomerAccountId.Value, true, true, false, false, serviceHeader);
+                                                var customerAccountDTO = FindCustomerAccount(journalEntryDTO.CustomerAccountId.Value, true, true, false, false, serviceHeader);
 
-                                                var transactionAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(customerAccountDTO.CustomerId, journalEntryDTO.JournalTransactionCode, serviceHeader);
+                                                var transactionAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(customerAccountDTO.CustomerId, journalEntryDTO.JournalTransactionCode, serviceHeader);
 
                                                 if (transactionAccountAlertDTOs != null && transactionAccountAlertDTOs.Any())
                                                 {
@@ -340,23 +397,23 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                                     serviceHeader.ApplicationUserName = textAlertDTO.CreatedBy;
 
-                                                                    var textMessageTariffs = new ObservableCollection<TariffWrapper>();
+                                                                    var textMessageTariffs = new List<TariffWrapper>();
 
                                                                     switch ((ProductCode)customerAccountDTO.CustomerAccountTypeProductCode)
                                                                     {
                                                                         case ProductCode.Savings:
 
-                                                                            textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync(journalEntryDTO.JournalTransactionCode, journalEntryDTO.JournalTotalValue, customerAccountDTO, serviceHeader);
+                                                                            textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert(journalEntryDTO.JournalTransactionCode, journalEntryDTO.JournalTotalValue, customerAccountDTO, serviceHeader);
 
                                                                             var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                                             if ((customerAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                                             {
-                                                                                if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                                if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                                 {
                                                                                     if (textMessageTariffs.Any())
                                                                                     {
-                                                                                        await _channelService.AddTariffJournalsWithCustomerAccountAsync(journalEntryDTO.JournalId, journalEntryDTO.JournalBranchId, journalEntryDTO.JournalAlternateChannelLogId ?? Guid.Empty, journalEntryDTO.JournalSecondaryDescription, journalEntryDTO.JournalReference, journalEntryDTO.JournalModuleNavigationItemCode, journalEntryDTO.JournalTransactionCode, customerAccountDTO, customerAccountDTO, textMessageTariffs, serviceHeader);
+                                                                                        Container.Current.Resolve<IJournalAppService>().AddNewJournals(journalEntryDTO.JournalId, journalEntryDTO.JournalBranchId, journalEntryDTO.JournalAlternateChannelLogId ?? Guid.Empty, journalEntryDTO.JournalSecondaryDescription, journalEntryDTO.JournalReference, journalEntryDTO.JournalModuleNavigationItemCode, journalEntryDTO.JournalTransactionCode, null, customerAccountDTO, customerAccountDTO, textMessageTariffs, serviceHeader);
                                                                                     }
                                                                                 }
                                                                             }
@@ -368,25 +425,25 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                                             CustomerAccountDTO customerSavingsAccountDTO = null;
 
-                                                                            var defaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                                                            var defaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
-                                                                            var customerSavingsAccounts = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(customerAccountDTO.CustomerId, defaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                                                            var customerSavingsAccounts = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(customerAccountDTO.CustomerId, defaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                                                             if (customerSavingsAccounts != null && customerSavingsAccounts.Any())
                                                                             {
                                                                                 customerSavingsAccountDTO = customerSavingsAccounts.First();
 
-                                                                                textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync(journalEntryDTO.JournalTransactionCode, journalEntryDTO.JournalTotalValue, customerSavingsAccountDTO, serviceHeader);
+                                                                                textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert(journalEntryDTO.JournalTransactionCode, journalEntryDTO.JournalTotalValue, customerSavingsAccountDTO, serviceHeader);
 
                                                                                 var tariffAmount_1 = textMessageTariffs.Sum(x => x.Amount);
 
                                                                                 if ((customerSavingsAccountDTO.AvailableBalance - tariffAmount_1) >= 0)
                                                                                 {
-                                                                                    if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                                    if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                                     {
                                                                                         if (textMessageTariffs.Any())
                                                                                         {
-                                                                                            await _channelService.AddTariffJournalsWithCustomerAccountAsync(journalEntryDTO.JournalId, journalEntryDTO.JournalBranchId, journalEntryDTO.JournalAlternateChannelLogId ?? Guid.Empty, journalEntryDTO.JournalSecondaryDescription, journalEntryDTO.JournalReference, journalEntryDTO.JournalModuleNavigationItemCode, journalEntryDTO.JournalTransactionCode, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                                            Container.Current.Resolve<IJournalAppService>().AddNewJournals(journalEntryDTO.JournalId, journalEntryDTO.JournalBranchId, journalEntryDTO.JournalAlternateChannelLogId ?? Guid.Empty, journalEntryDTO.JournalSecondaryDescription, journalEntryDTO.JournalReference, journalEntryDTO.JournalModuleNavigationItemCode, journalEntryDTO.JournalTransactionCode, null, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                                         }
                                                                                     }
                                                                                 }
@@ -438,7 +495,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                                         serviceHeader.ApplicationUserName = emailAlertDTO.CreatedBy;
 
-                                                                        await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                        Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                                     }
                                                                 }
                                                             }
@@ -460,15 +517,15 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var loanCaseDTO = await _channelService.FindLoanCaseAsync(queueDTO.RecordId, serviceHeader);
+                                    var loanCaseDTO = Container.Current.Resolve<ILoanCaseAppService>().FindLoanCase(queueDTO.RecordId, serviceHeader);
 
-                                    var loanGuarantorDTOs = await _channelService.FindLoanGuarantorsByLoanCaseIdAsync(loanCaseDTO.Id, serviceHeader);
+                                    var loanGuarantorDTOs = Container.Current.Resolve<ILoanCaseAppService>().FindLoanGuarantorsByLoanCaseId(loanCaseDTO.Id, serviceHeader);
 
                                     if (loanGuarantorDTOs != null && loanGuarantorDTOs.Any())
                                     {
                                         CustomerAccountDTO loaneeSavingsAccountDTO = null;
 
-                                        var loaneeSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(loanCaseDTO.CustomerId, loanCaseDTO.SavingsProductId ?? Guid.Empty, true, true, false, false, serviceHeader);
+                                        var loaneeSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(loanCaseDTO.CustomerId, loanCaseDTO.SavingsProductId ?? Guid.Empty, true, true, false, false, serviceHeader);
 
                                         if (loaneeSavingsAccountDTOs != null && loaneeSavingsAccountDTOs.Any())
                                             loaneeSavingsAccountDTO = loaneeSavingsAccountDTOs[0];
@@ -477,7 +534,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                         {
                                             foreach (var item in loanGuarantorDTOs)
                                             {
-                                                var loanGuaranteeAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(item.CustomerId, (int)SystemTransactionCode.LoanGuarantee, serviceHeader);
+                                                var loanGuaranteeAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(item.CustomerId, (int)SystemTransactionCode.LoanGuarantee, serviceHeader);
 
                                                 if (loanGuaranteeAccountAlertDTOs != null && loanGuaranteeAccountAlertDTOs.Any())
                                                 {
@@ -491,7 +548,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                             if (System.IO.File.Exists(textAlertTemplatePath))
                                                             {
-                                                                var loanee = await _channelService.FindCustomerAsync(loanCaseDTO.CustomerId, serviceHeader);
+                                                                var loanee = await Container.Current.Resolve<ICustomerAppService>().FindCustomerAsync(loanCaseDTO.CustomerId, serviceHeader);
 
                                                                 dynamic expando = new ExpandoObject();
 
@@ -522,17 +579,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                                 serviceHeader.ApplicationUserName = textAlertDTO.CreatedBy;
 
-                                                                var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.LoanGuarantee, loanCaseDTO.AmountApplied, loaneeSavingsAccountDTO, serviceHeader);
+                                                                var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.LoanGuarantee, loanCaseDTO.AmountApplied, loaneeSavingsAccountDTO, serviceHeader);
 
                                                                 var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                                 if ((loaneeSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                                 {
-                                                                    if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                    if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                     {
                                                                         if (textMessageTariffs.Any())
                                                                         {
-                                                                            await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, loanCaseDTO.BranchId, Guid.Empty, loanCaseDTO.LoanProductDescription, loanee.Reference3, 0x9999, (int)SystemTransactionCode.LoanGuarantee, loaneeSavingsAccountDTO, loaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                            Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, loanCaseDTO.BranchId, Guid.Empty, loanCaseDTO.LoanProductDescription, loanee.Reference3, 0x9999, (int)SystemTransactionCode.LoanGuarantee, null, loaneeSavingsAccountDTO, loaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                         }
                                                                     }
                                                                 }
@@ -551,7 +608,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                                 if (System.IO.File.Exists(emailAlertTemplatePath))
                                                                 {
-                                                                    var loanee = await _channelService.FindCustomerAsync(loanCaseDTO.CustomerId, serviceHeader);
+                                                                    var loanee = await Container.Current.Resolve<ICustomerAppService>().FindCustomerAsync(loanCaseDTO.CustomerId, serviceHeader);
 
                                                                     dynamic expando = new ExpandoObject();
 
@@ -582,7 +639,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                                     serviceHeader.ApplicationUserName = emailAlertDTO.CreatedBy;
 
-                                                                    await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                    Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                                 }
                                                             }
                                                         }
@@ -603,22 +660,22 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var substitutionDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var substitutionDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (substitutionDefaultSavingsProductDTO != null)
                                     {
-                                        var substitutionLoanGuarantorDTO = await _channelService.FindLoanGuarantorAsync(queueDTO.RecordId, serviceHeader);
+                                        var substitutionLoanGuarantorDTO = Container.Current.Resolve<ILoanCaseAppService>().FindLoanGuarantor(queueDTO.RecordId, serviceHeader);
 
                                         CustomerAccountDTO substitutionLoanGuarantorSavingsAccountDTO = null;
 
-                                        var substitutionLoanGuarantorSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(queueDTO.AccountAlertCustomerId, substitutionDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var substitutionLoanGuarantorSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(queueDTO.AccountAlertCustomerId, substitutionDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (substitutionLoanGuarantorSavingsAccountDTOs != null && substitutionLoanGuarantorSavingsAccountDTOs.Any())
                                             substitutionLoanGuarantorSavingsAccountDTO = substitutionLoanGuarantorSavingsAccountDTOs[0];
 
                                         if (substitutionLoanGuarantorSavingsAccountDTO != null)
                                         {
-                                            var guarantorSubstitutionAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(substitutionLoanGuarantorDTO.CustomerId, (int)SystemTransactionCode.GuarantorSubstitution, serviceHeader);
+                                            var guarantorSubstitutionAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(substitutionLoanGuarantorDTO.CustomerId, (int)SystemTransactionCode.GuarantorSubstitution, serviceHeader);
 
                                             if (guarantorSubstitutionAccountAlertDTOs != null && guarantorSubstitutionAccountAlertDTOs.Any())
                                             {
@@ -660,17 +717,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 TextMessagePriority = (int)QueuePriority.Highest,
                                                             };
 
-                                                            var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.GuarantorSubstitution, 0m, substitutionLoanGuarantorSavingsAccountDTO, serviceHeader);
+                                                            var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.GuarantorSubstitution, 0m, substitutionLoanGuarantorSavingsAccountDTO, serviceHeader);
 
                                                             var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                             if ((substitutionLoanGuarantorSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                             {
-                                                                if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                 {
                                                                     if (textMessageTariffs.Any())
                                                                     {
-                                                                        await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, substitutionLoanGuarantorSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.GuarantorSubstitution, substitutionLoanGuarantorSavingsAccountDTO, substitutionLoanGuarantorSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                        Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, substitutionLoanGuarantorSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.GuarantorSubstitution, null, substitutionLoanGuarantorSavingsAccountDTO, substitutionLoanGuarantorSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                     }
                                                                 }
                                                             }
@@ -716,7 +773,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     MailMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                             }
                                                         }
                                                     }
@@ -735,22 +792,22 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var attachmentDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var attachmentDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (attachmentDefaultSavingsProductDTO != null)
                                     {
-                                        var attachmentLoanGuarantorDTO = await _channelService.FindLoanGuarantorAsync(queueDTO.RecordId, serviceHeader);
+                                        var attachmentLoanGuarantorDTO = Container.Current.Resolve<ILoanCaseAppService>().FindLoanGuarantor(queueDTO.RecordId, serviceHeader);
 
                                         CustomerAccountDTO attachmentLoanGuarantorSavingsAccountDTO = null;
 
-                                        var attachmentLoanGuarantorSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(attachmentLoanGuarantorDTO.CustomerId, attachmentDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var attachmentLoanGuarantorSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(attachmentLoanGuarantorDTO.CustomerId, attachmentDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (attachmentLoanGuarantorSavingsAccountDTOs != null && attachmentLoanGuarantorSavingsAccountDTOs.Any())
                                             attachmentLoanGuarantorSavingsAccountDTO = attachmentLoanGuarantorSavingsAccountDTOs[0];
 
                                         if (attachmentLoanGuarantorSavingsAccountDTO != null)
                                         {
-                                            var guarantorAttachmentAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(attachmentLoanGuarantorDTO.CustomerId, (int)SystemTransactionCode.GuarantorAttachment, serviceHeader);
+                                            var guarantorAttachmentAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(attachmentLoanGuarantorDTO.CustomerId, (int)SystemTransactionCode.GuarantorAttachment, serviceHeader);
 
                                             if (guarantorAttachmentAccountAlertDTOs != null && guarantorAttachmentAccountAlertDTOs.Any())
                                             {
@@ -791,17 +848,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 TextMessagePriority = (int)QueuePriority.Highest,
                                                             };
 
-                                                            var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.GuarantorAttachment, 0m, attachmentLoanGuarantorSavingsAccountDTO, serviceHeader);
+                                                            var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.GuarantorAttachment, 0m, attachmentLoanGuarantorSavingsAccountDTO, serviceHeader);
 
                                                             var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                             if ((attachmentLoanGuarantorSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                             {
-                                                                if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                 {
                                                                     if (textMessageTariffs.Any())
                                                                     {
-                                                                        await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, attachmentLoanGuarantorSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.GuarantorAttachment, attachmentLoanGuarantorSavingsAccountDTO, attachmentLoanGuarantorSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                        Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, attachmentLoanGuarantorSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.GuarantorAttachment, null, attachmentLoanGuarantorSavingsAccountDTO, attachmentLoanGuarantorSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                     }
                                                                 }
                                                             }
@@ -847,7 +904,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     MailMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                             }
                                                         }
                                                     }
@@ -866,22 +923,22 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var relievingDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var relievingDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (relievingDefaultSavingsProductDTO != null)
                                     {
-                                        var loanGuarantorAttachmentHistoryEntryDTO = await _channelService.FindLoanGuarantorAttachmentHistoryEntryAsync(queueDTO.RecordId, serviceHeader);
+                                        var loanGuarantorAttachmentHistoryEntryDTO = Container.Current.Resolve<ILoanCaseAppService>().FindLoanGuarantorAttachmentHistoryEntry(queueDTO.RecordId, serviceHeader);
 
                                         CustomerAccountDTO loaneeSavingsAccountDTO = null;
 
-                                        var loaneeSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(queueDTO.AccountAlertCustomerId, relievingDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var loaneeSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(queueDTO.AccountAlertCustomerId, relievingDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (loaneeSavingsAccountDTOs != null && loaneeSavingsAccountDTOs.Any())
                                             loaneeSavingsAccountDTO = loaneeSavingsAccountDTOs[0];
 
                                         if (loaneeSavingsAccountDTO != null)
                                         {
-                                            var guarantorRelievingAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(loanGuarantorAttachmentHistoryEntryDTO.DestinationCustomerAccountCustomerId, (int)SystemTransactionCode.GuarantorRelieving, serviceHeader);
+                                            var guarantorRelievingAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(loanGuarantorAttachmentHistoryEntryDTO.DestinationCustomerAccountCustomerId, (int)SystemTransactionCode.GuarantorRelieving, serviceHeader);
 
                                             if (guarantorRelievingAccountAlertDTOs != null && guarantorRelievingAccountAlertDTOs.Any())
                                             {
@@ -922,17 +979,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 TextMessagePriority = (int)QueuePriority.Highest,
                                                             };
 
-                                                            var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.GuarantorRelieving, 0m, loaneeSavingsAccountDTO, serviceHeader);
+                                                            var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.GuarantorRelieving, 0m, loaneeSavingsAccountDTO, serviceHeader);
 
                                                             var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                             if ((loaneeSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                             {
-                                                                if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                 {
                                                                     if (textMessageTariffs.Any())
                                                                     {
-                                                                        await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, loaneeSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.GuarantorRelieving, loaneeSavingsAccountDTO, loaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                        Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, loaneeSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.GuarantorRelieving, null, loaneeSavingsAccountDTO, loaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                     }
                                                                 }
                                                             }
@@ -978,7 +1035,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     MailMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                             }
                                                         }
                                                     }
@@ -998,7 +1055,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Generate email with attachment?
 
-                                    var electronicStatementOrderHistoryDTO = await _channelService.FindElectronicStatementOrderHistoryAsync(queueDTO.RecordId, serviceHeader);
+                                    var electronicStatementOrderHistoryDTO = Container.Current.Resolve<IElectronicStatementOrderAppService>().FindElectronicStatementOrderHistory(queueDTO.RecordId, serviceHeader);
 
                                     if (electronicStatementOrderHistoryDTO != null)
                                     {
@@ -1037,7 +1094,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                 serviceHeader.ApplicationUserName = electronicStatementOrderHistoryDTO.CreatedBy;
 
-                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                             }
                                         }
                                     }
@@ -1049,22 +1106,22 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var loanRequestDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var loanRequestDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (loanRequestDefaultSavingsProductDTO != null)
                                     {
-                                        var loanRequestDTO = await _channelService.FindLoanRequestAsync(queueDTO.RecordId, serviceHeader);
+                                        var loanRequestDTO = Container.Current.Resolve<ILoanRequestAppService>().FindLoanRequest(queueDTO.RecordId, serviceHeader);
 
                                         CustomerAccountDTO loaneeSavingsAccountDTO = null;
 
-                                        var loaneeSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(loanRequestDTO.CustomerId, loanRequestDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var loaneeSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(loanRequestDTO.CustomerId, loanRequestDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (loaneeSavingsAccountDTOs != null && loaneeSavingsAccountDTOs.Any())
                                             loaneeSavingsAccountDTO = loaneeSavingsAccountDTOs[0];
 
                                         if (loaneeSavingsAccountDTO != null)
                                         {
-                                            var loanRequestAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(loanRequestDTO.CustomerId, (int)SystemTransactionCode.LoanRequest, serviceHeader);
+                                            var loanRequestAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(loanRequestDTO.CustomerId, (int)SystemTransactionCode.LoanRequest, serviceHeader);
 
                                             if (loanRequestAccountAlertDTOs != null && loanRequestAccountAlertDTOs.Any())
                                             {
@@ -1104,17 +1161,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 TextMessagePriority = (int)QueuePriority.Highest,
                                                             };
 
-                                                            var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.LoanRequest, 0m, loaneeSavingsAccountDTO, serviceHeader);
+                                                            var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.LoanRequest, 0m, loaneeSavingsAccountDTO, serviceHeader);
 
                                                             var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                             if ((loaneeSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                             {
-                                                                if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                 {
                                                                     if (textMessageTariffs.Any())
                                                                     {
-                                                                        await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, loaneeSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.LoanRequest, loaneeSavingsAccountDTO, loaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                        Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, loaneeSavingsAccountDTO.BranchId, Guid.Empty, queueDTO.AccountAlertSecondaryDescription, queueDTO.AccountAlertReference, 0x9999, (int)SystemTransactionCode.LoanRequest, null, loaneeSavingsAccountDTO, loaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                     }
                                                                 }
                                                             }
@@ -1160,7 +1217,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     MailMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                             }
                                                         }
                                                     }
@@ -1180,22 +1237,22 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var mobileToBankDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var mobileToBankDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (mobileToBankDefaultSavingsProductDTO != null)
                                     {
-                                        var mobileToBankRequestDTO = await _channelService.FindMobileToBankRequestAsync(queueDTO.RecordId, serviceHeader);
+                                        var mobileToBankRequestDTO = Container.Current.Resolve<IMobileToBankRequestAppService>().FindMobileToBankRequest(queueDTO.RecordId, serviceHeader);
 
                                         CustomerAccountDTO mobileToBankRecipientSavingsAccountDTO = null;
 
-                                        var mobileToBankRecipientSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(mobileToBankRequestDTO.CustomerAccountCustomerId, mobileToBankDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var mobileToBankRecipientSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(mobileToBankRequestDTO.CustomerAccountCustomerId, mobileToBankDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (mobileToBankRecipientSavingsAccountDTOs != null && mobileToBankRecipientSavingsAccountDTOs.Any())
                                             mobileToBankRecipientSavingsAccountDTO = mobileToBankRecipientSavingsAccountDTOs[0];
 
                                         if (mobileToBankRecipientSavingsAccountDTO != null)
                                         {
-                                            var mobileToBankSenderAcknowledgementAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(mobileToBankRequestDTO.CustomerAccountCustomerId, (int)SystemTransactionCode.MobileToBankSenderAcknowledgement, serviceHeader);
+                                            var mobileToBankSenderAcknowledgementAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(mobileToBankRequestDTO.CustomerAccountCustomerId, (int)SystemTransactionCode.MobileToBankSenderAcknowledgement, serviceHeader);
 
                                             if (mobileToBankSenderAcknowledgementAccountAlertDTOs != null && mobileToBankSenderAcknowledgementAccountAlertDTOs.Any())
                                             {
@@ -1238,17 +1295,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 TextMessagePriority = (int)QueuePriority.Highest,
                                                             };
 
-                                                            var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.MobileToBankSenderAcknowledgement, 0m, mobileToBankRecipientSavingsAccountDTO, serviceHeader);
+                                                            var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.MobileToBankSenderAcknowledgement, 0m, mobileToBankRecipientSavingsAccountDTO, serviceHeader);
 
                                                             var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                             if ((mobileToBankRecipientSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                             {
-                                                                if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                 {
                                                                     if (textMessageTariffs.Any())
                                                                     {
-                                                                        await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, mobileToBankRecipientSavingsAccountDTO.BranchId, Guid.Empty, mobileToBankRequestDTO.KYCInfo, mobileToBankRequestDTO.TransID, 0x9999, (int)SystemTransactionCode.MobileToBankSenderAcknowledgement, mobileToBankRecipientSavingsAccountDTO, mobileToBankRecipientSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                        Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, mobileToBankRecipientSavingsAccountDTO.BranchId, Guid.Empty, mobileToBankRequestDTO.KYCInfo, mobileToBankRequestDTO.TransID, 0x9999, (int)SystemTransactionCode.MobileToBankSenderAcknowledgement, null, mobileToBankRecipientSavingsAccountDTO, mobileToBankRecipientSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                     }
                                                                 }
                                                             }
@@ -1271,26 +1328,26 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var closureDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var closureDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (closureDefaultSavingsProductDTO != null)
                                     {
                                         CustomerAccountDTO customerSavingsAccountDTO = null;
 
-                                        var accountClosureRequestDTO = await _channelService.FindAccountClosureRequestAsync(queueDTO.RecordId, true, serviceHeader);
+                                        var accountClosureRequestDTO = FindAccountClosureRequest(queueDTO.RecordId, true, serviceHeader);
 
                                         if (accountClosureRequestDTO != null)
                                         {
-                                            var customerAccount = await _channelService.FindCustomerAccountAsync(accountClosureRequestDTO.CustomerAccountId, false, false, false, false, serviceHeader);
+                                            var customerAccount = FindCustomerAccount(accountClosureRequestDTO.CustomerAccountId, false, false, false, false, serviceHeader);
 
-                                            var customerSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(customerAccount.CustomerId, closureDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                            var customerSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(customerAccount.CustomerId, closureDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                             if (customerSavingsAccountDTOs != null && customerSavingsAccountDTOs.Any())
                                                 customerSavingsAccountDTO = customerSavingsAccountDTOs[0];
 
                                             if (customerSavingsAccountDTO != null)
                                             {
-                                                var accountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(customerAccount.CustomerId, (int)SystemTransactionCode.AccountClosure, serviceHeader);
+                                                var accountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(customerAccount.CustomerId, (int)SystemTransactionCode.AccountClosure, serviceHeader);
 
                                                 if (accountAlertDTOs != null && accountAlertDTOs.Any())
                                                 {
@@ -1329,17 +1386,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     TextMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.AccountClosure, 0m, customerSavingsAccountDTO, serviceHeader);
+                                                                var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.AccountClosure, 0m, customerSavingsAccountDTO, serviceHeader);
 
                                                                 var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                                 if ((customerSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                                 {
-                                                                    if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                    if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                     {
                                                                         if (textMessageTariffs.Any())
                                                                         {
-                                                                            await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, accountClosureRequestDTO.BranchId, Guid.Empty, customerAccount.CustomerAccountTypeTargetProductDescription, accountClosureRequestDTO.Reason, 0x9999, (int)SystemTransactionCode.AccountClosure, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                            Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, accountClosureRequestDTO.BranchId, Guid.Empty, customerAccount.CustomerAccountTypeTargetProductDescription, accountClosureRequestDTO.Reason, 0x9999, (int)SystemTransactionCode.AccountClosure, null, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                         }
                                                                     }
                                                                 }
@@ -1385,7 +1442,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                         MailMessagePriority = (int)QueuePriority.Highest,
                                                                     };
 
-                                                                    await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                    Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                                 }
                                                             }
                                                         }
@@ -1405,7 +1462,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var customer = await _channelService.FindCustomerAsync(queueDTO.RecordId, serviceHeader);
+                                    var customer = await Container.Current.Resolve<ICustomerAppService>().FindCustomerAsync(queueDTO.RecordId, serviceHeader);
 
                                     if (customer != null)
                                     {
@@ -1446,7 +1503,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                         TextMessagePriority = (int)QueuePriority.Highest,
                                                     };
 
-                                                    await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                                    Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
                                                 }
                                             }
                                         }
@@ -1489,7 +1546,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                         MailMessagePriority = (int)QueuePriority.Highest,
                                                     };
 
-                                                    await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                    Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                 }
                                             }
                                         }
@@ -1506,22 +1563,22 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var freezingDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var freezingDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (freezingDefaultSavingsProductDTO != null)
                                     {
                                         CustomerAccountDTO customerSavingsAccountDTO = null;
 
-                                        var freezedCustomerAccountDTO = await _channelService.FindCustomerAccountAsync(queueDTO.RecordId, false, false, false, false, serviceHeader);
+                                        var freezedCustomerAccountDTO = FindCustomerAccount(queueDTO.RecordId, false, false, false, false, serviceHeader);
 
-                                        var customerSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(freezedCustomerAccountDTO.CustomerId, freezingDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var customerSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(freezedCustomerAccountDTO.CustomerId, freezingDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (customerSavingsAccountDTOs != null && customerSavingsAccountDTOs.Any())
                                             customerSavingsAccountDTO = customerSavingsAccountDTOs[0];
 
                                         if (customerSavingsAccountDTO != null)
                                         {
-                                            var accountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(freezedCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AccountFreezing, serviceHeader);
+                                            var accountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(freezedCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AccountFreezing, serviceHeader);
 
                                             if (accountAlertDTOs != null && accountAlertDTOs.Any())
                                             {
@@ -1563,17 +1620,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     TextMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.AccountFreezing, 0m, customerSavingsAccountDTO, serviceHeader);
+                                                                var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.AccountFreezing, 0m, customerSavingsAccountDTO, serviceHeader);
 
                                                                 var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                                 if ((customerSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                                 {
-                                                                    if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                    if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                     {
                                                                         if (textMessageTariffs.Any())
                                                                         {
-                                                                            await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, freezedCustomerAccountDTO.BranchId, Guid.Empty, freezedCustomerAccountDTO.Remarks, freezedCustomerAccountDTO.FullAccountNumber, 0x9999, (int)SystemTransactionCode.AccountFreezing, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                            Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, freezedCustomerAccountDTO.BranchId, Guid.Empty, freezedCustomerAccountDTO.Remarks, freezedCustomerAccountDTO.FullAccountNumber, 0x9999, (int)SystemTransactionCode.AccountFreezing, null, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                         }
                                                                     }
                                                                 }
@@ -1619,7 +1676,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     MailMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                             }
                                                         }
                                                     }
@@ -1646,18 +1703,18 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var deferredLoanCaseDTO = await _channelService.FindLoanCaseAsync(queueDTO.RecordId, serviceHeader);
+                                    var deferredLoanCaseDTO = Container.Current.Resolve<ILoanCaseAppService>().FindLoanCase(queueDTO.RecordId, serviceHeader);
 
                                     CustomerAccountDTO deferredLoaneeSavingsAccountDTO = null;
 
-                                    var deferredLoaneeSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(deferredLoanCaseDTO.CustomerId, deferredLoanCaseDTO.SavingsProductId ?? Guid.Empty, true, true, false, false, serviceHeader);
+                                    var deferredLoaneeSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(deferredLoanCaseDTO.CustomerId, deferredLoanCaseDTO.SavingsProductId ?? Guid.Empty, true, true, false, false, serviceHeader);
 
                                     if (deferredLoaneeSavingsAccountDTOs != null && deferredLoaneeSavingsAccountDTOs.Any())
                                         deferredLoaneeSavingsAccountDTO = deferredLoaneeSavingsAccountDTOs[0];
 
                                     if (deferredLoaneeSavingsAccountDTO != null)
                                     {
-                                        var deferredLoaneeAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(deferredLoanCaseDTO.CustomerId, (int)SystemTransactionCode.LoanDeffered, serviceHeader);
+                                        var deferredLoaneeAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(deferredLoanCaseDTO.CustomerId, (int)SystemTransactionCode.LoanDeffered, serviceHeader);
 
                                         foreach (var accountAlertDTO in deferredLoaneeAlertDTOs)
                                         {
@@ -1669,7 +1726,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                 if (System.IO.File.Exists(textAlertTemplatePath))
                                                 {
-                                                    var loanee = await _channelService.FindCustomerAsync(deferredLoanCaseDTO.CustomerId, serviceHeader);
+                                                    var loanee = await Container.Current.Resolve<ICustomerAppService>().FindCustomerAsync(deferredLoanCaseDTO.CustomerId, serviceHeader);
 
                                                     dynamic expando = new ExpandoObject();
 
@@ -1698,17 +1755,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                     serviceHeader.ApplicationUserName = textAlertDTO.CreatedBy;
 
-                                                    var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.LoanDeffered, 0m, deferredLoaneeSavingsAccountDTO, serviceHeader);
+                                                    var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.LoanDeffered, 0m, deferredLoaneeSavingsAccountDTO, serviceHeader);
 
                                                     var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                     if ((deferredLoaneeSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                     {
-                                                        if (await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                        if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                         {
                                                             if (textMessageTariffs.Any())
                                                             {
-                                                                await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, deferredLoanCaseDTO.BranchId, Guid.Empty, deferredLoanCaseDTO.LoanProductDescription, loanee.Reference3, 0x9999, (int)SystemTransactionCode.LoanDeffered, deferredLoaneeSavingsAccountDTO, deferredLoaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, deferredLoanCaseDTO.BranchId, Guid.Empty, deferredLoanCaseDTO.LoanProductDescription, loanee.Reference3, 0x9999, (int)SystemTransactionCode.LoanDeffered, null, deferredLoaneeSavingsAccountDTO, deferredLoaneeSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                             }
                                                         }
                                                     }
@@ -1727,7 +1784,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                     if (System.IO.File.Exists(emailAlertTemplatePath))
                                                     {
-                                                        var loanee = await _channelService.FindCustomerAsync(deferredLoanCaseDTO.CustomerId, serviceHeader);
+                                                        var loanee = await Container.Current.Resolve<ICustomerAppService>().FindCustomerAsync(deferredLoanCaseDTO.CustomerId, serviceHeader);
 
                                                         dynamic expando = new ExpandoObject();
 
@@ -1756,7 +1813,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                                         serviceHeader.ApplicationUserName = emailAlertDTO.CreatedBy;
 
-                                                        await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                        Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -1775,9 +1832,9 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var channelLinkingCustomerAccountDTO = await _channelService.FindCustomerAccountAsync(queueDTO.RecordId, false, false, false, false, serviceHeader);
+                                    var channelLinkingCustomerAccountDTO = FindCustomerAccount(queueDTO.RecordId, false, false, false, false, serviceHeader);
 
-                                    var channelLinkingAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(channelLinkingCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelLinking, serviceHeader);
+                                    var channelLinkingAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(channelLinkingCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelLinking, serviceHeader);
 
                                     if (channelLinkingAccountAlertDTOs != null && channelLinkingAccountAlertDTOs.Any())
                                     {
@@ -1820,7 +1877,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             TextMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                                        Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -1864,7 +1921,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             MailMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                        Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -1883,9 +1940,9 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var channelReplacementCustomerAccountDTO = await _channelService.FindCustomerAccountAsync(queueDTO.RecordId, false, false, false, false, serviceHeader);
+                                    var channelReplacementCustomerAccountDTO = FindCustomerAccount(queueDTO.RecordId, false, false, false, false, serviceHeader);
 
-                                    var channelReplacementAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(channelReplacementCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelReplacement, serviceHeader);
+                                    var channelReplacementAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(channelReplacementCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelReplacement, serviceHeader);
 
                                     if (channelReplacementAccountAlertDTOs != null && channelReplacementAccountAlertDTOs.Any())
                                     {
@@ -1928,7 +1985,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             TextMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                                        Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -1972,7 +2029,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             MailMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                        Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -1991,9 +2048,9 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var channelRenewalCustomerAccountDTO = await _channelService.FindCustomerAccountAsync(queueDTO.RecordId, false, false, false, false, serviceHeader);
+                                    var channelRenewalCustomerAccountDTO = FindCustomerAccount(queueDTO.RecordId, false, false, false, false, serviceHeader);
 
-                                    var channelRenewalAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(channelRenewalCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelRenewal, serviceHeader);
+                                    var channelRenewalAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(channelRenewalCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelRenewal, serviceHeader);
 
                                     if (channelRenewalAccountAlertDTOs != null && channelRenewalAccountAlertDTOs.Any())
                                     {
@@ -2036,7 +2093,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             TextMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                                        Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -2080,7 +2137,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             MailMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                        Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -2099,9 +2156,9 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var channelDelinkingCustomerAccountDTO = await _channelService.FindCustomerAccountAsync(queueDTO.RecordId, false, false, false, false, serviceHeader);
+                                    var channelDelinkingCustomerAccountDTO = FindCustomerAccount(queueDTO.RecordId, false, false, false, false, serviceHeader);
 
-                                    var channelDelinkingAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(channelDelinkingCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelDelinking, serviceHeader);
+                                    var channelDelinkingAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(channelDelinkingCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelDelinking, serviceHeader);
 
                                     if (channelDelinkingAccountAlertDTOs != null && channelDelinkingAccountAlertDTOs.Any())
                                     {
@@ -2144,7 +2201,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             TextMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                                        Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -2188,7 +2245,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             MailMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                        Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -2207,9 +2264,9 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var channelStoppageCustomerAccountDTO = await _channelService.FindCustomerAccountAsync(queueDTO.RecordId, false, false, false, false, serviceHeader);
+                                    var channelStoppageCustomerAccountDTO = FindCustomerAccount(queueDTO.RecordId, false, false, false, false, serviceHeader);
 
-                                    var channelStoppageAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(channelStoppageCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelStoppage, serviceHeader);
+                                    var channelStoppageAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(channelStoppageCustomerAccountDTO.CustomerId, (int)SystemTransactionCode.AlternateChannelStoppage, serviceHeader);
 
                                     if (channelStoppageAccountAlertDTOs != null && channelStoppageAccountAlertDTOs.Any())
                                     {
@@ -2252,7 +2309,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             TextMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddTextAlertsAsync(new System.Collections.ObjectModel.ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                                        Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -2296,7 +2353,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                             MailMessagePriority = (int)QueuePriority.Highest,
                                                         };
 
-                                                        await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                        Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                     }
                                                 }
                                             }
@@ -2315,22 +2372,22 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var leaveApplicationDTO = await _channelService.FindLeaveApplicationAsync(queueDTO.RecordId, serviceHeader);
+                                    var leaveApplicationDTO = Container.Current.Resolve<ILeaveApplicationAppService>().FindLeaveApplication(queueDTO.RecordId, serviceHeader);
 
-                                    var leaveApplicationDefaultSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var leaveApplicationDefaultSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (leaveApplicationDTO != null && leaveApplicationDefaultSavingsProductDTO != null)
                                     {
                                         CustomerAccountDTO customerSavingsAccountDTO = null;
 
-                                        var customerSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(leaveApplicationDTO.EmployeeCustomerId, leaveApplicationDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var customerSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(leaveApplicationDTO.EmployeeCustomerId, leaveApplicationDefaultSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (customerSavingsAccountDTOs != null && customerSavingsAccountDTOs.Any())
                                             customerSavingsAccountDTO = customerSavingsAccountDTOs[0];
 
                                         if (customerSavingsAccountDTO != null)
                                         {
-                                            var leaveApprovalAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(customerSavingsAccountDTO.CustomerId, (int)SystemTransactionCode.LeaveApproval, serviceHeader);
+                                            var leaveApprovalAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(customerSavingsAccountDTO.CustomerId, (int)SystemTransactionCode.LeaveApproval, serviceHeader);
 
                                             if (leaveApprovalAccountAlertDTOs != null && leaveApprovalAccountAlertDTOs.Any())
                                             {
@@ -2372,17 +2429,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     TextMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.LeaveApproval, 0m, customerSavingsAccountDTO, serviceHeader);
+                                                                var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.LeaveApproval, 0m, customerSavingsAccountDTO, serviceHeader);
 
                                                                 var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                                 if ((customerSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                                 {
-                                                                    if (await _channelService.AddTextAlertsAsync(new ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                    if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                     {
                                                                         if (textMessageTariffs.Any())
                                                                         {
-                                                                            await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, customerSavingsAccountDTO.BranchId, Guid.Empty, leaveApplicationDTO.LeaveTypeDescription, string.Format("{0} - {1}", leaveApplicationDTO.StatusDescription, leaveApplicationDTO.AuthorizationRemarks), 0x9999, (int)SystemTransactionCode.LeaveApproval, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                            Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, customerSavingsAccountDTO.BranchId, Guid.Empty, leaveApplicationDTO.LeaveTypeDescription, string.Format("{0} - {1}", leaveApplicationDTO.StatusDescription, leaveApplicationDTO.AuthorizationRemarks), 0x9999, (int)SystemTransactionCode.LeaveApproval, null, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                         }
                                                                     }
                                                                 }
@@ -2428,7 +2485,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     MailMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                             }
                                                         }
                                                     }
@@ -2449,20 +2506,20 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
 
                                     #region Do we need to send alerts?
 
-                                    var customerDetailsEditingSavingsProductDTO = await _channelService.FindDefaultSavingsProductAsync(serviceHeader);
+                                    var customerDetailsEditingSavingsProductDTO = Container.Current.Resolve<ISavingsProductAppService>().FindDefaultSavingsProduct(serviceHeader);
 
                                     if (customerDetailsEditingSavingsProductDTO != null)
                                     {
                                         CustomerAccountDTO customerSavingsAccountDTO = null;
 
-                                        var customerSavingsAccountDTOs = await _channelService.FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductIdAsync(queueDTO.RecordId, customerDetailsEditingSavingsProductDTO.Id, true, true, false, false, serviceHeader);
+                                        var customerSavingsAccountDTOs = FindCustomerAccountsByCustomerIdAndCustomerAccountTypeTargetProductId(queueDTO.RecordId, customerDetailsEditingSavingsProductDTO.Id, true, true, false, false, serviceHeader);
 
                                         if (customerSavingsAccountDTOs != null && customerSavingsAccountDTOs.Any())
                                             customerSavingsAccountDTO = customerSavingsAccountDTOs[0];
 
                                         if (customerSavingsAccountDTO != null)
                                         {
-                                            var customerDetailsEditingAccountAlertDTOs = await _channelService.FindAccountAlertCollectionByCustomerIdAndAccountAlertTypeAsync(customerSavingsAccountDTO.CustomerId, (int)SystemTransactionCode.CustomerDetailsEditing, serviceHeader);
+                                            var customerDetailsEditingAccountAlertDTOs = Container.Current.Resolve<ICustomerAppService>().FindAccountAlertCollection(customerSavingsAccountDTO.CustomerId, (int)SystemTransactionCode.CustomerDetailsEditing, serviceHeader);
 
                                             if (customerDetailsEditingAccountAlertDTOs != null && customerDetailsEditingAccountAlertDTOs.Any())
                                             {
@@ -2499,17 +2556,17 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 TextMessagePriority = (int)QueuePriority.Highest,
                                                             };
 
-                                                            var textMessageTariffs = await _channelService.ComputeTariffsByTextAlertAsync((int)SystemTransactionCode.CustomerDetailsEditing, 0m, customerSavingsAccountDTO, serviceHeader);
+                                                            var textMessageTariffs = Container.Current.Resolve<ICommissionAppService>().ComputeTariffsByTextAlert((int)SystemTransactionCode.CustomerDetailsEditing, 0m, customerSavingsAccountDTO, serviceHeader);
 
                                                             var tariffAmount = textMessageTariffs.Sum(x => x.Amount);
 
                                                             if ((customerSavingsAccountDTO.AvailableBalance - tariffAmount) >= 0)
                                                             {
-                                                                if (await _channelService.AddTextAlertsAsync(new ObservableCollection<TextAlertDTO> { textAlertDTO }, serviceHeader))
+                                                                if (Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader))
                                                                 {
                                                                     if (textMessageTariffs.Any())
                                                                     {
-                                                                        await _channelService.AddTariffJournalsWithCustomerAccountAsync(null, customerSavingsAccountDTO.BranchId, Guid.Empty, "Customer Details Editing", "Customer Details Editing", 0x9999, (int)SystemTransactionCode.CustomerDetailsEditing, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
+                                                                        Container.Current.Resolve<IJournalAppService>().AddNewJournals(null, customerSavingsAccountDTO.BranchId, Guid.Empty, "Customer Details Editing", "Customer Details Editing", 0x9999, (int)SystemTransactionCode.CustomerDetailsEditing, null, customerSavingsAccountDTO, customerSavingsAccountDTO, textMessageTariffs, serviceHeader);
                                                                     }
                                                                 }
                                                             }
@@ -2551,7 +2608,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                     MailMessagePriority = (int)QueuePriority.Highest,
                                                                 };
 
-                                                                await _channelService.AddEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
                                                             }
                                                         }
                                                     }

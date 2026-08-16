@@ -13,14 +13,11 @@ namespace SwiftFinancials.AccountAlertDispatcher.Services
     {
         private AccountAlertMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         [ImportingConstructor]
-        public Dispatcher(IChannelService channelService, ILogger logger)
+        public Dispatcher(ILogger logger)
         {
-            _channelService = channelService ?? throw new ArgumentNullException(nameof(channelService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -44,7 +41,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Services
 
                 if (accountAlertDispatcherConfigSection != null)
                 {
-                    _messageProcessor = new AccountAlertMessageProcessor(_channelService, _logger, accountAlertDispatcherConfigSection);
+                    _messageProcessor = new AccountAlertMessageProcessor(_logger, accountAlertDispatcherConfigSection);
 
                     _messageProcessor.Open();
                 }

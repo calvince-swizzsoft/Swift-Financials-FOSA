@@ -1,26 +1,26 @@
-﻿using Application.MainBoundedContext.Services;
+﻿using Application.MainBoundedContext.MessagingModule.Services;
+using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.EmailAlertDispatcher.Configuration
 {
     public class EmailMessageProcessor : MessageProcessor<QueueDTO>
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
         private readonly ISmtpService _smtpService;
         private readonly EmailDispatcherConfigSection _emailDispatcherConfigSection;
 
-        public EmailMessageProcessor(IChannelService channelService, ILogger logger, ISmtpService smtpService, EmailDispatcherConfigSection emailDispatcherConfigSection)
+        public EmailMessageProcessor(ILogger logger, ISmtpService smtpService, EmailDispatcherConfigSection emailDispatcherConfigSection)
             : base(emailDispatcherConfigSection.EmailDispatcherSettingsItems.QueuePath, emailDispatcherConfigSection.EmailDispatcherSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _logger = logger;
             _smtpService = smtpService;
             _emailDispatcherConfigSection = emailDispatcherConfigSection;
@@ -58,7 +58,7 @@ namespace SwiftFinancials.EmailAlertDispatcher.Configuration
 
                             #region email
 
-                            var emailAlertDTO = await _channelService.FindEmailAlertAsync(queueDTO.RecordId, serviceHeader);
+                            var emailAlertDTO = Container.Current.Resolve<IEmailAlertAppService>().FindEmailAlert(queueDTO.RecordId, serviceHeader);
 
                             if (emailAlertDTO == null) return;
 
@@ -93,7 +93,7 @@ namespace SwiftFinancials.EmailAlertDispatcher.Configuration
                                     emailAlertDTO.MailMessageDLRStatus = (int)DLRStatus.Delivered;
                                     emailAlertDTO.MailMessageSendRetry = 1;
 
-                                    await _channelService.UpdateEmailAlertAsync(emailAlertDTO, serviceHeader);
+                                    Container.Current.Resolve<IEmailAlertAppService>().UpdateEmailAlert(emailAlertDTO, serviceHeader);
 
                                     break;
                                 default:

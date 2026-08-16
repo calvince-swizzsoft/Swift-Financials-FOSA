@@ -13,22 +13,15 @@ namespace SwiftFinancials.DebitBatchPosting.Services
     {
         private DebitBatchMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         [ImportingConstructor]
         public Dispatcher(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -52,7 +45,7 @@ namespace SwiftFinancials.DebitBatchPosting.Services
 
                 if (debitBatchPostingConfigSection != null)
                 {
-                    _messageProcessor = new DebitBatchMessageProcessor(_channelService, _logger, debitBatchPostingConfigSection);
+                    _messageProcessor = new DebitBatchMessageProcessor(_logger, debitBatchPostingConfigSection);
 
                     _messageProcessor.Open();
                 }

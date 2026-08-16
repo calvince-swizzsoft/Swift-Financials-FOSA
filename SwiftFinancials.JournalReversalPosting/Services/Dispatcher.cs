@@ -13,22 +13,15 @@ namespace SwiftFinancials.JournalReversalBatchPosting.Services
     {
         private JournalReversalBatchMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         private readonly ILogger _logger;
 
         [ImportingConstructor]
         public Dispatcher(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -52,7 +45,7 @@ namespace SwiftFinancials.JournalReversalBatchPosting.Services
 
                 if (journalReversalBatchPostingConfigSection != null)
                 {
-                    _messageProcessor = new JournalReversalBatchMessageProcessor(_channelService, _logger, journalReversalBatchPostingConfigSection);
+                    _messageProcessor = new JournalReversalBatchMessageProcessor(_logger, journalReversalBatchPostingConfigSection);
 
                     _messageProcessor.Open();
                 }

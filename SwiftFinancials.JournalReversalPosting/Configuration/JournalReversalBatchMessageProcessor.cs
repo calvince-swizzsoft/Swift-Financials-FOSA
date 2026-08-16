@@ -1,22 +1,22 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.JournalReversalBatchPosting.Configuration
 {
     public class JournalReversalBatchMessageProcessor : MessageProcessor<QueueDTO>
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
         private readonly JournalReversalBatchPostingConfigSection _journalReversalBatchPostingConfigSection;
 
-        public JournalReversalBatchMessageProcessor(IChannelService channelService, ILogger logger, JournalReversalBatchPostingConfigSection journalReversalBatchPostingConfigSection)
+        public JournalReversalBatchMessageProcessor(ILogger logger, JournalReversalBatchPostingConfigSection journalReversalBatchPostingConfigSection)
             : base(journalReversalBatchPostingConfigSection.JournalReversalBatchPostingSettingsItems.QueuePath, journalReversalBatchPostingConfigSection.JournalReversalBatchPostingSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _logger = logger;
             _journalReversalBatchPostingConfigSection = journalReversalBatchPostingConfigSection;
         }
@@ -36,7 +36,8 @@ namespace SwiftFinancials.JournalReversalBatchPosting.Configuration
             {
                 case MessageCategory.JournalReversalBatchEntry:
 
-                    await _channelService.PostJournalReversalBatchEntryAsync(queueDTO.RecordId, 0x8888, serviceHeader);
+                    Container.Current.Resolve<IJournalReversalBatchAppService>()
+                        .PostJournalReversalBatchEntry(queueDTO.RecordId, 0x8888, serviceHeader);
 
                     break;
                 default:

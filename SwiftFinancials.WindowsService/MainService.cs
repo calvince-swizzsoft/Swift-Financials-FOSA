@@ -1,7 +1,5 @@
-﻿using Application.MainBoundedContext.Services;
-using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Infrastructure.Crosscutting.Framework.Logging;
 using Quartz;
-using SwiftFinancials.Presentation.Infrastructure.Services;
 using System;
 using System.ServiceProcess;
 using System.Threading.Tasks;
@@ -91,8 +89,6 @@ namespace SwiftFinancials.WindowsService
             var unityContainer = new UnityContainer();
 
             unityContainer.AddNewExtension<QuartzUnityExtension>();
-            unityContainer.RegisterType<IChannelService, ChannelService>();
-            unityContainer.RegisterType<IMessageQueueService, MessageQueueService>();
 
             _logger = unityContainer.Resolve<ILogger>();
             _schedulerFactory = unityContainer.Resolve<ISchedulerFactory>();

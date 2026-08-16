@@ -1,29 +1,25 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.StandingOrderInvoker.Configuration
 {
     public class StandingOrderJob : IJob
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public StandingOrderJob(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -45,7 +41,10 @@ namespace SwiftFinancials.StandingOrderInvoker.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = standingOrderInvokerSettingsElement.UniqueId };
 
-                            await _channelService.ExecuteScheduledStandingOrdersAsync(DateTime.Today, standingOrderInvokerSettingsElement.TargetDateOption, (int)QueuePriority.Normal, standingOrderInvokerSettingsElement.MaximumStandingOrderExecuteAttemptCount, standingOrderInvokerSettingsElement.QueuePageSize, serviceHeader);
+                            // Real app-service method is ExecuteStandingOrders — the WCF
+                            // operation name (ExecuteScheduledStandingOrders) diverges from it.
+                            Container.Current.Resolve<IRecurringBatchAppService>()
+                                .ExecuteStandingOrders(DateTime.Today, standingOrderInvokerSettingsElement.TargetDateOption, (int)QueuePriority.Normal, standingOrderInvokerSettingsElement.MaximumStandingOrderExecuteAttemptCount, standingOrderInvokerSettingsElement.QueuePageSize, serviceHeader);
                         }
                     }
                 }

@@ -13,16 +13,9 @@ namespace SwiftFinancials.SalaryPeriodPosting.Services
     {
         private SalaryPeriodMessageProcessor _messageProcessor;
 
-        private readonly IChannelService _channelService;
-
         [ImportingConstructor]
-        public Dispatcher(
-            IChannelService channelService)
+        public Dispatcher()
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
-            _channelService = channelService;
         }
 
         #region IPlugin
@@ -45,7 +38,7 @@ namespace SwiftFinancials.SalaryPeriodPosting.Services
 
                 if (salaryPeriodPostingConfigSection != null)
                 {
-                    _messageProcessor = new SalaryPeriodMessageProcessor(_channelService, salaryPeriodPostingConfigSection);
+                    _messageProcessor = new SalaryPeriodMessageProcessor(salaryPeriodPostingConfigSection);
 
                     _messageProcessor.Open();
                 }

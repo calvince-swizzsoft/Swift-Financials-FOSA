@@ -1,29 +1,25 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.InterestCapitalization.Configuration
 {
     public class InterestCapitalizationJob : IJob
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public InterestCapitalizationJob(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -45,7 +41,8 @@ namespace SwiftFinancials.InterestCapitalization.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = interestCapitalizationSettingsElement.UniqueId };
 
-                            await _channelService.CapitalizeInterestAsync((int)QueuePriority.Normal, serviceHeader);
+                            Container.Current.Resolve<IRecurringBatchAppService>()
+                                .CapitalizeInterest((int)QueuePriority.Normal, serviceHeader);
                         }
                     }
                 }

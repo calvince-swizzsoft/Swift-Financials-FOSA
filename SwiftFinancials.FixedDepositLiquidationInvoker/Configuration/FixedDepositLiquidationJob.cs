@@ -1,29 +1,25 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.FrontOfficeModule.Services;
+using SwiftFinancials.AppServiceContainer;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Quartz;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.FixedDepositLiquidationInvoker.Configuration
 {
     public class FixedDepositLiquidationJob : IJob
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
 
         public FixedDepositLiquidationJob(
-            IChannelService channelService,
             ILogger logger)
         {
-            if (channelService == null)
-                throw new ArgumentNullException(nameof(channelService));
-
             if (logger == null)
                 throw new ArgumentNullException(nameof(logger));
 
-            _channelService = channelService;
             _logger = logger;
         }
 
@@ -45,7 +41,8 @@ namespace SwiftFinancials.FixedDepositLiquidationInvoker.Configuration
                         {
                             var serviceHeader = new ServiceHeader { ApplicationDomainName = fixedDepositLiquidationInvokerSettingsElement.UniqueId };
 
-                            await _channelService.ExecutePayableFixedDepositsAsync(DateTime.Today, fixedDepositLiquidationInvokerSettingsElement.QueuePageSize, serviceHeader);
+                            Container.Current.Resolve<IFixedDepositAppService>()
+                                .ExecutePayableFixedDeposits(DateTime.Today, fixedDepositLiquidationInvokerSettingsElement.QueuePageSize, serviceHeader);
                         }
                     }
                 }

@@ -1,22 +1,22 @@
-﻿using Infrastructure.Crosscutting.Framework.Logging;
+﻿using Application.MainBoundedContext.BackOfficeModule.Services;
+using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
 using Infrastructure.Crosscutting.Framework.Utils;
-using SwiftFinancials.Presentation.Infrastructure.Services;
+using SwiftFinancials.AppServiceContainer;
 using System;
 using System.Threading.Tasks;
+using Unity;
 
 namespace SwiftFinancials.LoanDisbursementBatchPosting.Configuration
 {
     public class LoanDisbursementBatchMessageProcessor : MessageProcessor<QueueDTO>
     {
-        private readonly IChannelService _channelService;
         private readonly ILogger _logger;
         private readonly LoanDisbursementBatchPostingConfigSection _loanDisbursementBatchPostingConfigSection;
 
-        public LoanDisbursementBatchMessageProcessor(IChannelService channelService, ILogger logger, LoanDisbursementBatchPostingConfigSection loanDisbursementBatchPostingConfigSection)
+        public LoanDisbursementBatchMessageProcessor(ILogger logger, LoanDisbursementBatchPostingConfigSection loanDisbursementBatchPostingConfigSection)
             : base(loanDisbursementBatchPostingConfigSection.LoanDisbursementBatchPostingSettingsItems.QueuePath, loanDisbursementBatchPostingConfigSection.LoanDisbursementBatchPostingSettingsItems.QueueReceivers)
         {
-            _channelService = channelService;
             _logger = logger;
             _loanDisbursementBatchPostingConfigSection = loanDisbursementBatchPostingConfigSection;
         }
@@ -36,7 +36,8 @@ namespace SwiftFinancials.LoanDisbursementBatchPosting.Configuration
             {
                 case MessageCategory.LoanDisbursementBatchEntry:
 
-                    await _channelService.PostLoanDisbursementBatchEntryAsync(queueDTO.RecordId, 0x8888, serviceHeader);
+                    Container.Current.Resolve<ILoanDisbursementBatchAppService>()
+                        .PostLoanDisbursementBatchEntry(queueDTO.RecordId, 0x8888, serviceHeader);
 
                     break;
                 default:
