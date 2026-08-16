@@ -294,6 +294,51 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        // Full-replace of a loan case's attached collateral documents —
+        // UpdateLoanCollaterals already existed on ILoanCaseAppService and
+        // was only ever called internally from Create; this is the "beyond
+        // initial attach" gap. The reference AddCollateralController is
+        // dead/mislabeled code (never touches LoanCollateralDTO or any real
+        // collateral operation despite its name — see class comment) and
+        // was not ported; this exposes the real app-service method
+        // directly instead.
+        [HttpPut]
+        [Route("{id:guid}/collaterals")]
+        public IHttpActionResult PutCollaterals(Guid id, List<Guid> documentIds)
+        {
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var loanCase = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+                if (loanCase == null)
+                    return NotFound();
+
+                var collateralDocuments = new List<CustomerDocumentDTO>();
+
+                foreach (var documentId in documentIds ?? new List<Guid>())
+                {
+                    var document = _customerDocumentAppService.FindCustomerDocument(documentId, serviceHeader);
+                    if (document == null)
+                        return ErrorResponse($"Document {documentId} not found");
+
+                    collateralDocuments.Add(document);
+                }
+
+                var updated = _loanCaseAppService.UpdateLoanCollaterals(id, collateralDocuments, serviceHeader);
+                if (!updated)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Failed to update loan case collaterals"));
+
+                var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, serviceHeader);
+
+                return Ok(ApiResponse("Loan case collaterals updated successfully", collaterals ?? new List<LoanCollateralDTO>()));
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
         // Same duplicate-application guard AddNewLoanCase enforces server-
         // side (see class comment) — exposed so the registration screen can
         // warn the loan officer before a submit gets rejected.
@@ -792,6 +837,52 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        // Cancellation — reference: Areas/Loaning/Controllers/LoanCancellationController.cs.
+        // CancelLoanCase only reads loanCaseDTO.Id off the incoming DTO —
+        // the status transition, CancelledBy/CancelledDate, and (on Reject)
+        // guarantor release are all computed from the persisted entity
+        // inside the app service itself, so this endpoint needs nothing but
+        // the option. Only ever succeeds against an Audited case (the
+        // reference screen exists specifically for the audited-but-not-yet-
+        // disbursed window): Defer sends it back to Deferred, Reject sends
+        // it to Rejected and releases its guarantors.
+        [HttpPost]
+        [Route("{id:guid}/cancel")]
+        public IHttpActionResult Cancel(Guid id, CancelLoanCaseRequest request)
+        {
+            if (request == null)
+                return ErrorResponse("Request body is required");
+
+            if (!Enum.IsDefined(typeof(LoanCancellationOption), request.Option))
+                return ErrorResponse("Invalid cancellation option");
+
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var existing = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+                if (existing == null)
+                    return NotFound();
+
+                var cancelled = _loanCaseAppService.CancelLoanCase(existing, request.Option, serviceHeader);
+
+                if (!cancelled)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in an Audited state, or the cancellation option is invalid"));
+
+                var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                var message = request.Option == (int)LoanCancellationOption.Reject
+                    ? "Loan case cancelled and its guarantors released"
+                    : "Loan case deferred successfully";
+
+                return Ok(ApiResponse(message, refreshed));
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
         // Returns an error message on failure, null on success. Mutates each
         // guarantor with server-computed share data — see class comment.
         private string EnrichAndValidateGuarantors(List<LoanGuarantorDTO> guarantors, LoanCaseDTO loanCaseDTO, LoanProductDTO loanProduct, ServiceHeader serviceHeader)
@@ -991,5 +1082,11 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
         // Required for every option.
         public string AuditRemarks { get; set; }
+    }
+
+    public class CancelLoanCaseRequest
+    {
+        // LoanCancellationOption: 1 = Defer, 2 = Reject.
+        public int Option { get; set; }
     }
 }

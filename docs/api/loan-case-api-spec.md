@@ -14,10 +14,11 @@ Audited`). Disbursement (`LoanCaseStatus.Audited → Disbursed`) is already
 documented separately: `batch-procedures-api-spec.md` §6. Picker
 dependencies for the registration/appraisal screens (loan purpose,
 registration remark, income adjustment, collateral document — §15.2) are
-covered by `loan-backoffice-catalogues-api-spec.md` and §11 below. What's
-left outside this doc: loan request intake, guarantor sub-flows beyond
-initial attach, restructuring, and cancellation — see `WORKFLOW.md` §5,
-§9-10.
+covered by `loan-backoffice-catalogues-api-spec.md` and §11 below.
+Collateral replace (§12) and cancellation (§13) are covered at the end of
+this doc; loan request intake, guarantor sub-flows beyond initial attach,
+and restructuring are separate docs — see "Also live, documented
+separately" at the end.
 
 ## Conventions
 
@@ -381,8 +382,55 @@ Deliberately read-only: document upload
 separate, larger piece of work, not needed just to let a loan case pick an
 already-existing collateral document.
 
-## Not built yet
+## 12. Update collateral documents
 
-Cancellation, restructuring, loan request intake, and every guarantor
-sub-flow beyond initial attach (substitute/relieve/release) — see
-`WORKFLOW.md` §5, §9-10 for the design and current status of each.
+`PUT /{id}/collaterals` — body: `["documentId1", "documentId2", ...]` (a
+plain array of `CustomerDocumentId`s, same as `collateralDocumentIds` in
+§5, not wrapped in an object).
+
+Full-replace, not an add — whatever list you send becomes the case's
+entire collateral set. Each id must resolve to a real
+`CustomerDocumentDTO`; an unknown id is a hard `400` here (**unlike §5's
+Create, which silently drops unknown ids** — Create is describing a picker
+selection made moments earlier, this is a deliberate edit, so a typo
+should be caught, not swallowed). `404` if the loan case itself doesn't
+exist. Returns the refreshed `LoanCollateralDTO[]` on success.
+
+This was previously only reachable internally, from inside `Create` (§5)
+— `ILoanCaseAppService.UpdateLoanCollaterals` already existed and already
+did the real work; this route just exposes it standalone so collateral can
+be added/removed/replaced after registration, which the reference app
+never actually supported (its `AddCollateralController`, despite the
+name, never touches `LoanCollateralDTO` or any real collateral operation
+at all — confirmed dead/mislabeled guarantor-attach code, not ported).
+
+## 13. Cancel a loan case
+
+`POST /{id}/cancel`
+
+```json
+{ "option": 2 }
+```
+
+`option`: `LoanCancellationOption` — `1` = Defer (→ `Deferred`, can be
+re-appraised/approved/audited again later), `2` = Reject (→ `Rejected`,
+and the app service releases every one of the case's guarantors as part of
+the same call). Only succeeds against a case that's currently `Audited`
+— **this is specifically the "audited but not yet disbursed" cancellation
+window**, matching the reference `LoanCancellationController` screen; it
+is not a general-purpose cancel for any status. `409` otherwise.
+
+`CancelLoanCase` only reads the case's `id` off what you send it — there's
+nothing else to populate on the request. `CancelledBy`/`CancelledDate` and
+the status transition are all computed server-side from the persisted
+entity.
+
+## Also live, documented separately
+
+- Standalone guarantor CRUD/search (not the enrichment `Create`, §5, does)
+  — `loan-guarantor-api-spec.md`.
+- Post-registration guarantor attach, attachment-history browse/entries,
+  relieve, substitute — `loan-guarantor-attachment-api-spec.md`.
+- Restructuring a disbursed loan — `loan-restructuring-api-spec.md`.
+- Loan request intake (the pre-case stage upstream of this whole doc) —
+  `loan-request-api-spec.md`.

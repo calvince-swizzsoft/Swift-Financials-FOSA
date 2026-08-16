@@ -357,10 +357,10 @@ their turn comes, rather than assuming they belong under `Areas/BackOffice`.
 
 ## 14. Implementation status in this repo
 
-Nothing in this module has a controller yet except the disbursement tail.
-No `Areas/BackOffice` (or `Areas/Loaning`) folder exists in
-`WebApplication1` before this doc — creating one is the first step of
-building any of the rows below.
+The core loan-origination pipeline plus every guarantor/collateral/
+restructuring/cancellation/loan-request-intake gap is now live — see the
+table below and CLAUDE.md's "Controllers adapted so far" for what was
+found/fixed/not-ported building each one.
 
 | Functional area | Reference MVC controller | This repo | Status |
 |---|---|---|---|
@@ -369,14 +369,15 @@ building any of the rows below.
 | Appraisal | `AppraiseLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.2 |
 | Approval | `ApproveLoanController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.3 |
 | Audit / verification | `LoanVerificationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` | **Live** — see §14.4 |
-| Cancellation | `LoanCancellationController` | — | Not built |
-| Restructuring | `LoanRestructuringController` | — | Not built |
-| Collateral | `AddCollateralController` | — | Not built |
-| Guarantor attach | `AttachGuarantorController`, `GuarantorManagementController` | — | Not built |
-| Guarantor attachment history | `GuarantorAttachmentController` | — | Not built |
-| Guarantor relieving | `GuarantorRelievingController` | — | Not built |
-| Guarantor substitution | `GuarantorSubstitutionController` | — | Not built |
-| Guarantor CRUD/search | `LoanGuarantorController` | — | Not built |
+| Loan request intake | `LoanRequestController` | `Areas/BackOffice/Controllers/LoanRequestController.cs` | **Live** |
+| Cancellation | `LoanCancellationController` | `Areas/BackOffice/Controllers/LoanCaseController.cs` (`POST {id}/cancel`) | **Live** |
+| Restructuring | `LoanRestructuringController` | `Areas/BackOffice/Controllers/LoanRestructuringController.cs` | **Live** |
+| Collateral (beyond initial attach) | `AddCollateralController` (dead/mislabeled — not ported) | `Areas/BackOffice/Controllers/LoanCaseController.cs` (`PUT {id}/collaterals`) | **Live** |
+| Guarantor attach | `AttachGuarantorController`, `GuarantorManagementController` (dead — not ported) | `Areas/BackOffice/Controllers/LoanGuarantorAttachmentController.cs` | **Live** |
+| Guarantor attachment history | `GuarantorAttachmentController` | `Areas/BackOffice/Controllers/LoanGuarantorAttachmentController.cs` | **Live** |
+| Guarantor relieving | `GuarantorRelievingController` | `Areas/BackOffice/Controllers/LoanGuarantorAttachmentController.cs` | **Live** |
+| Guarantor substitution | `GuarantorSubstitutionController` | `Areas/BackOffice/Controllers/LoanGuarantorAttachmentController.cs` | **Live** |
+| Guarantor CRUD/search | `LoanGuarantorController` | `Areas/BackOffice/Controllers/LoanGuarantorController.cs` | **Live** |
 | Loan purpose catalogue | `LoanPurposeController` | `Areas/BackOffice/Controllers/LoanPurposeController.cs` | **Live** — see §13 |
 | Loaning remark catalogue | `LoaningRemarkController` | `Areas/BackOffice/Controllers/LoaningRemarkController.cs` | **Live** — see §13 |
 | Income adjustment catalogue | `IncomeAdjustmentsController` | `Areas/BackOffice/Controllers/IncomeAdjustmentController.cs` | **Live** — see §13 |

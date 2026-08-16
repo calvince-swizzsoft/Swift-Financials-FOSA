@@ -53,9 +53,13 @@ what to go update.
 | Batch procedures — all nine types (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger, Inter Account Transfer) | `api/accounts/{creditbatches,debitbatches,wiretransferbatches,journalreversalbatches,overdeductionbatches,loandisbursementbatches,journalvouchers,generalledgers,interaccounttransferbatches}` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
-| Loan case registration + appraisal + approval + audit/verification (back office — full core loan origination pipeline) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
+| Loan case registration + appraisal + approval + audit/verification + collateral replace + cancellation (back office — full core loan origination pipeline) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
 | Loan back office catalogues (loan purposes, loaning remarks, income adjustments) | `api/backoffice/{loanpurposes,loaningremarks,incomeadjustments}` | [`loan-backoffice-catalogues-api-spec.md`](loan-backoffice-catalogues-api-spec.md) |
 | Customer document picker (read-only, collateral picker for loan case registration) | `api/registry/customerdocuments` | [`loan-case-api-spec.md`](loan-case-api-spec.md) §11 |
+| Loan guarantor CRUD/search (standalone, not case-registration guarantors) | `api/backoffice/loanguarantors` | [`loan-guarantor-api-spec.md`](loan-guarantor-api-spec.md) |
+| Loan guarantor attachment (post-registration attach, history, relieve, substitute) | `api/backoffice/loanguarantorattachments` | [`loan-guarantor-attachment-api-spec.md`](loan-guarantor-attachment-api-spec.md) |
+| Loan restructuring (new term/payment for a disbursed loan) | `api/backoffice/loanrestructuring` | [`loan-restructuring-api-spec.md`](loan-restructuring-api-spec.md) |
+| Loan request intake (optional pre-case stage) | `api/backoffice/loanrequests` | [`loan-request-api-spec.md`](loan-request-api-spec.md) |
 
 ## Changelog — what's new and what needs frontend action
 

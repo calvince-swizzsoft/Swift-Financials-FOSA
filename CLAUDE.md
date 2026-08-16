@@ -512,9 +512,67 @@ drift out of sync with the actual code.
   client-credentials; this project has no token endpoint for that, only
   human username/password login). Both deferred to a follow-up pass.
 
-Not yet started: loan request intake, guarantor/collateral management
-beyond initial attach (substitute/relieve/release), restructuring,
-cancellation, and payroll check-off data capture (`BackOfficeModule`).
-Before starting any of the above, read `Areas/BackOffice/WORKFLOW.md` for
-the module's full design and the reference MVC app's 23-controller
-`Areas/Loaning` inventory.
+- `Areas/BackOffice/Controllers/LoanCaseController.cs` extended with two
+  more lifecycle routes: `PUT {id}/collaterals` (full-replace via the
+  already-existing `UpdateLoanCollaterals`, previously only reachable
+  internally from `Create`) and `POST {id}/cancel` (`CancelLoanCase`/
+  `LoanCancellationOption` — Defer/Reject, only valid against an Audited
+  case; on Reject the app service releases the case's guarantors itself).
+  The reference `AddCollateralController` (despite its name) never touches
+  `LoanCollateralDTO` or any real collateral operation at all — confirmed
+  dead/mislabeled guarantor-attach code, not ported.
+- `Areas/BackOffice/Controllers/LoanGuarantorController.cs` (new, existing
+  `ILoanCaseAppService`; standalone `LoanGuarantorDTO` search/read/create) —
+  the reference controller's Edit view has its POST entirely commented out
+  (no `UpdateLoanGuarantorAsync` call exists), so there's no Update action
+  here either.
+- `Areas/BackOffice/Controllers/LoanGuarantorAttachmentController.cs` (new,
+  existing `ILoanCaseAppService`; post-registration guarantor attach,
+  attachment-history browse/entries, relieve, substitute) — consolidates
+  three reference controllers
+  (`GuarantorAttachmentController`/`GuarantorRelievingController`/
+  `GuarantorSubstitutionController`) that all operate on the same
+  `LoanGuarantorAttachmentHistory`-family resource into one controller, per
+  `LoanCaseController`'s own "one controller per resource" convention.
+  `GuarantorAttachmentController`'s raw ADO.NET queries against
+  `swiftFin_LoanGuarantors`/`swiftFin_Customers` were not reproduced (the
+  real equivalent is `LoanGuarantorController`'s own endpoints), and
+  `GuarantorManagementController` was skipped entirely — its `Add()`
+  accumulates guarantors in `Session` with real validation, but the
+  `Create(LoanCaseDTO)` POST that should commit them does nothing
+  (`Session["LoanProductId"] = null; return View();`, no persistence call
+  at all) — dead/non-functional in the reference itself, and a
+  near-duplicate of `LoanCaseController.EnrichAndValidateGuarantors`
+  besides.
+- `Areas/BackOffice/Controllers/LoanRestructuringController.cs` (new,
+  existing `ILoanCaseAppService`; single `RestructureLoan` action) — acts
+  on a disbursed loan's `CustomerAccountId` directly (new term/payment via
+  `NPer`/`Pmt`), unlike every other lifecycle action in this module which
+  is keyed by `LoanCaseId`. The reference screen's picker lookups
+  (customer accounts by product code, loan product detail) are already
+  covered by existing `CustomerAccountController`/`LoanProductController`
+  endpoints elsewhere in this repo, so only the real operation is exposed.
+- `Areas/BackOffice/Controllers/LoanRequestController.cs` (new, existing
+  `ILoanRequestAppService`; full CRUD + register/cancel lifecycle) — the
+  optional pre-case intake stage before a real `LoanCase` is registered.
+  The reference `Create` action is a four-screen Session wizard (Customers
+  -> LoanProducts -> LoansPurpose -> Create submit) with no behavior beyond
+  populating four ids onto one DTO — collapsed into a single `Create` call.
+  `RegisterLoanRequest`/`CancelLoanRequest`/`RemoveLoanRequest` exist on
+  the app service but have no reference MVC screen at all (the reference
+  app never actually converts a `LoanRequest` into a `LoanCase`, despite
+  `LoanRequestDTO` carrying `LoanCaseId`/`LoanCaseNumber` fields for
+  exactly that) — exposed here as real lifecycle actions since the
+  app-service methods themselves are real.
+
+This completes the guarantor substitution/relieving/CRUD/attachment-
+history, collateral-beyond-initial-attach, restructuring, and loan-request-
+intake gaps. Not yet started: payroll/check-off data capture
+(`DataCaptureController`, `DataProcessingController`, `ClosingController`,
+`CatalogueController`), `LoanProductAppraisalController`,
+`RepaymentScheduleController` preview, `ReportsController`, the "composite
+customer 360 view" gap, document/photo retrieval, server-side `BranchId`
+resolution, branch budget-balance check, and SMS/MPESA disbursement
+notification (`BackOfficeModule`). Before starting any of the above, read
+`Areas/BackOffice/WORKFLOW.md` for the module's full design and the
+reference MVC app's 23-controller `Areas/Loaning` inventory.

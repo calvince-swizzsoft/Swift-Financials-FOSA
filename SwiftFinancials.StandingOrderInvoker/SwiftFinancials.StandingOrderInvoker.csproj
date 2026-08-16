@@ -125,6 +125,8 @@
 
 %25systemroot%25\System32\xcopy /y "$(TargetDir)Common.Logging.dll" "$(SolutionDir)SwiftFinancials.WindowsService\$(OutDir)"
 
-%25systemroot%25\System32\xcopy /y "$(TargetDir)Common.Logging.Core.dll" "$(SolutionDir)SwiftFinancials.WindowsService\$(OutDir)"</PostBuildEvent>
+%25systemroot%25\System32\xcopy /y "$(TargetDir)Common.Logging.Core.dll" "$(SolutionDir)SwiftFinancials.WindowsService\$(OutDir)"
+
+%25systemroot%25\System32\xcopy /y "$(TargetDir)SwiftFinancials.AppServiceContainer.dll" "$(SolutionDir)SwiftFinancials.WindowsService\$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
 </Project>

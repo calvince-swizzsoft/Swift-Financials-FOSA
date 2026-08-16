@@ -317,6 +317,7 @@
     <Compile Include="Areas\Accounts\Controllers\ChequeBookController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CommissionController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LoanProductController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\FixedDepositTypeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LevyController.cs" />
     <Compile Include="Areas\Accounts\Controllers\UnPayReasonController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CreditBatchController.cs" />
@@ -329,6 +330,10 @@
     <Compile Include="Areas\Accounts\Controllers\GeneralLedgerController.cs" />
     <Compile Include="Areas\Accounts\Controllers\InterAccountTransferBatchController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoanCaseController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\LoanGuarantorController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\LoanGuarantorAttachmentController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\LoanRestructuringController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\LoanRequestController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoanPurposeController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoaningRemarkController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\IncomeAdjustmentController.cs" />

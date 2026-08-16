@@ -13,6 +13,8 @@ namespace SwiftFinancials.SalaryPeriodPosting.Services
     {
         #region IPlugin
         private readonly ILogger _logger;
+
+        [ImportingConstructor]
         public Queuer(
             ILogger logger)
         {

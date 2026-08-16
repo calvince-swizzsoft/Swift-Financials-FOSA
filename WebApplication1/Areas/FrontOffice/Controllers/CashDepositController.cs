@@ -1010,9 +1010,17 @@ namespace WebApplication1.Controllers
                                     );
 
 
+                                    // Success must be false here — no journal was posted, only a Pending
+                                    // CashDepositRequest + Workflow item was created. Create()'s dispatch
+                                    // checks `if (result.Success)` first and returns TransactionJournal
+                                    // (null in this branch) with a hardcoded "Operation Success" message —
+                                    // Success=true here previously made that always fire instead of the
+                                    // documented "Authorization required" dialog response
+                                    // (docs/api/frontoffice-api-spec.md §4.2), silently telling the caller
+                                    // a deposit succeeded when it hadn't.
                                     return new OperationResult
                                     {
-                                        Success = true,
+                                        Success = false,
                                         Dialog = true,
                                         Message = message,
                                         TransactionData = new CustomerTransactionModel
@@ -1203,10 +1211,17 @@ namespace WebApplication1.Controllers
                                         string message = string.Format("{0}.\nSuccessfully placed cash withdrawal authorization request", EnumHelper.GetDescription(cashWithdrawalCategory));
 
 
+                                        // Success must be false / Dialog true here — no journal was posted,
+                                        // only a Pending CashWithdrawalRequest + Workflow item. Same bug and
+                                        // same fix as the CashDeposit "AboveMaximumAllowed" branch above:
+                                        // Create()'s dispatch checks `if (result.Success)` first, so
+                                        // Success=true/Dialog=false here previously returned a hardcoded
+                                        // "Operation Success" with a null TransactionJournal instead of the
+                                        // documented "Authorization required" dialog response.
                                         return new OperationResult
                                         {
-                                            Success = true,
-                                            Dialog = false,
+                                            Success = false,
+                                            Dialog = true,
                                             Message = message,
                                             TransactionData = new CustomerTransactionModel
                                             {
