@@ -12,6 +12,7 @@ using Numero3.EntityFramework.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Configuration;
 using System.Data;
 using System.Data.Entity;
 using System.Data.Entity.Core.Mapping;
@@ -619,6 +620,15 @@ namespace Numero3.EntityFramework.Implementation
         private static void Log(string message)
         {
             var serviceBrokerConfigSection = ConfigurationHelper.GetServiceBrokerConfiguration();
+
+            if (serviceBrokerConfigSection == null)
+                throw new ConfigurationErrorsException(
+                    "The serviceBrokerConfiguration section is missing from " +
+                    AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+
+            if (serviceBrokerConfigSection.ServiceBrokerSettingsItems == null)
+                throw new ConfigurationErrorsException(
+                    "serviceBrokerConfiguration/serviceBrokerSettings is missing.");
 
             if (serviceBrokerConfigSection.ServiceBrokerSettingsItems.LogEnabled == 1)
                 LoggerFactory.CreateLog().LogInfo("{0}****{0}EF Message:{0}{1}{0}***{0}", Environment.NewLine, message);

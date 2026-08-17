@@ -2,6 +2,8 @@
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Application.MainBoundedContext.DTO.MessagingModule;
+using Application.MainBoundedContext.MessagingModule.Services;
 using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -11,6 +13,10 @@ using Microsoft.AspNet.Identity.EntityFramework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Configuration;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace WebApplication1.Areas.Identity.Services
@@ -21,19 +27,23 @@ namespace WebApplication1.Areas.Identity.Services
 
         private readonly IAuditLogAppService _auditLogAppService;
         private readonly IEmployeeAppService _employeeAppService;
+        private readonly IEmailAlertAppService _emailAlertAppService;
         // public readonly ApplicationDbContext _applicationDbContext;
 
         public UserManagerService(IAuditLogAppService auditLogAppService,
-            IEmployeeAppService employeeAppService
+            IEmployeeAppService employeeAppService,
+            IEmailAlertAppService emailAlertAppService
 
             )
         {
 
             Guard.ArgumentNotNull(auditLogAppService, nameof(auditLogAppService));
             Guard.ArgumentNotNull(employeeAppService, nameof(employeeAppService));
+            Guard.ArgumentNotNull(emailAlertAppService, nameof(emailAlertAppService));
 
             _auditLogAppService = auditLogAppService;
             _employeeAppService = employeeAppService;
+            _emailAlertAppService = emailAlertAppService;
         }
 
 
@@ -106,8 +116,47 @@ namespace WebApplication1.Areas.Identity.Services
 
                 if (newUser.Succeeded)
                 {
-
                     success = true;
+
+                    var loginUrl = ConfigurationManager.AppSettings["Frontend:LoginUrl"];
+                    if (string.IsNullOrWhiteSpace(loginUrl))
+                        loginUrl = "http://localhost:5173/login";
+
+                    var displayName = string.Join(" ", new[] { user.FirstName, user.OtherNames }
+                        .Where(value => !string.IsNullOrWhiteSpace(value)));
+                    if (string.IsNullOrWhiteSpace(displayName))
+                        displayName = user.UserName;
+
+                    var emailBody = new StringBuilder()
+                        .AppendFormat("Dear {0},<br /><br />", HttpUtility.HtmlEncode(displayName))
+                        .Append("Welcome to Swift Financial. Your user account has been created.<br /><br />")
+                        .AppendFormat("Username: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(user.UserName))
+                        .AppendFormat("Email: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(user.Email))
+                        .AppendFormat("Temporary password: <strong>{0}</strong><br /><br />", HttpUtility.HtmlEncode(userDTO.Password))
+                        .Append("For your security, you must change this password the first time you sign in.<br /><br />")
+                        .AppendFormat("<a href=\"{0}\">Access Swift Financial</a>", HttpUtility.HtmlAttributeEncode(loginUrl))
+                        .ToString();
+
+                    var welcomeEmail = new EmailAlertDTO
+                    {
+                        BranchId = user.BranchId,
+                        MailMessageFrom = DefaultSettings.Instance.RootEmail,
+                        MailMessageTo = user.Email,
+                        MailMessageSubject = "Swift Financial - Login Details",
+                        MailMessageBody = emailBody,
+                        MailMessageIsBodyHtml = true,
+                        MailMessageOrigin = (int)MessageOrigin.Within,
+                        MailMessageSecurityCritical = true,
+                        MailMessagePriority = (int)QueuePriority.Highest
+                    };
+
+                    // The email app service persists the alert and then invokes
+                    // the MSMQ broker. A stopped/unavailable broker must not hold
+                    // the user-creation HTTP request open indefinitely after the
+                    // Identity record has already committed. Run notification
+                    // delivery out of band; failures remain visible on the email
+                    // alert/dispatcher side and do not roll back the user.
+                    Task.Run(() => _emailAlertAppService.AddNewEmailAlert(welcomeEmail, serviceHeader));
                 }
             }
 
@@ -225,6 +274,150 @@ namespace WebApplication1.Areas.Identity.Services
             #endregion
 
             return true;
+        }
+
+        public bool ResetUserPassword(string userName)
+        {
+            if (string.IsNullOrWhiteSpace(userName))
+                throw new ArgumentException("A username is required.", nameof(userName));
+
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+
+            if (serviceHeader.ApplicationUserName.ToUpper().In(
+                string.Format("{0}_{1}", DefaultSettings.Instance.AuditUser, serviceHeader.ApplicationDomainName).ToUpper()))
+                return false;
+
+            using (var context = new ApplicationDbContext("AuthStore"))
+            {
+                var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(context));
+                var user = userManager.FindByName(userName.Trim());
+
+                if (user == null)
+                    throw new InvalidOperationException("The selected user no longer exists.");
+                if (string.IsNullOrWhiteSpace(user.Email))
+                    throw new InvalidOperationException("The selected user does not have an email address.");
+
+                var temporaryPassword = GenerateTemporaryPassword();
+
+                // An administrator does not need to know the existing password. Clearing this date
+                // activates AuthController's existing forced-password-change flow on the next login.
+                user.PasswordHash = userManager.PasswordHasher.HashPassword(temporaryPassword);
+                user.SecurityStamp = Guid.NewGuid().ToString();
+                user.LastPasswordChangedDate = null;
+                user.AccessFailedCount = 0;
+                user.LockoutEndDateUtc = null;
+
+                var updateResult = userManager.Update(user);
+                if (!updateResult.Succeeded)
+                    throw new InvalidOperationException(string.Join("; ", updateResult.Errors));
+
+                var loginUrl = ConfigurationManager.AppSettings["Frontend:LoginUrl"];
+                if (string.IsNullOrWhiteSpace(loginUrl))
+                    loginUrl = "http://localhost:5173/login";
+
+                var displayName = string.Join(" ", new[] { user.FirstName, user.OtherNames }
+                    .Where(value => !string.IsNullOrWhiteSpace(value)));
+                if (string.IsNullOrWhiteSpace(displayName))
+                    displayName = user.UserName;
+
+                var emailBody = new StringBuilder()
+                    .AppendFormat("Dear {0},<br /><br />", HttpUtility.HtmlEncode(displayName))
+                    .Append("An administrator has reset your Swift Financial password.<br /><br />")
+                    .AppendFormat("Username: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(user.UserName))
+                    .AppendFormat("Temporary password: <strong>{0}</strong><br /><br />", HttpUtility.HtmlEncode(temporaryPassword))
+                    .Append("You must change this temporary password when you next sign in.<br /><br />")
+                    .AppendFormat("<a href=\"{0}\">Access Swift Financial</a>", HttpUtility.HtmlAttributeEncode(loginUrl))
+                    .ToString();
+
+                var emailAlert = _emailAlertAppService.AddNewEmailAlert(new EmailAlertDTO
+                {
+                    BranchId = user.BranchId,
+                    MailMessageFrom = DefaultSettings.Instance.RootEmail,
+                    MailMessageTo = user.Email,
+                    MailMessageSubject = "Swift Financial - Password Reset",
+                    MailMessageBody = emailBody,
+                    MailMessageIsBodyHtml = true,
+                    MailMessageOrigin = (int)MessageOrigin.Within,
+                    MailMessageSecurityCritical = true,
+                    MailMessagePriority = (int)QueuePriority.Highest
+                }, serviceHeader);
+
+                if (emailAlert == null)
+                    throw new InvalidOperationException("The password was reset, but the notification email could not be queued. Reset it again after correcting the user's email configuration.");
+            }
+
+            var loggedInUser = FindEmployee(serviceHeader);
+            _auditLogAppService.AddNewAuditTrail(new AuditTrailDTO
+            {
+                EventType = EnumHelper.GetDescription(AuditLogEventType.Sys_Other),
+                Activity = string.Format("ResetUserPassword->{0}", userName),
+                ApplicationUserName = serviceHeader.ApplicationUserName,
+                ApplicationUserDesignation = loggedInUser?.DesignationDescription ?? string.Empty,
+                EnvironmentUserName = serviceHeader.EnvironmentUserName,
+                EnvironmentMachineName = serviceHeader.EnvironmentMachineName,
+                EnvironmentDomainName = serviceHeader.EnvironmentDomainName,
+                EnvironmentOSVersion = serviceHeader.EnvironmentOSVersion,
+                EnvironmentMACAddress = serviceHeader.EnvironmentMACAddress,
+                EnvironmentMotherboardSerialNumber = serviceHeader.EnvironmentMotherboardSerialNumber,
+                EnvironmentProcessorId = serviceHeader.EnvironmentProcessorId,
+                EnvironmentIPAddress = serviceHeader.EnvironmentIPAddress,
+                CreatedBy = serviceHeader.ApplicationUserName,
+                CreatedDate = DateTime.Now
+            }, serviceHeader);
+
+            return true;
+        }
+
+        private static string GenerateTemporaryPassword()
+        {
+            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string lower = "abcdefghijkmnopqrstuvwxyz";
+            const string digits = "23456789";
+            const string symbols = "!@$?_-";
+            const string all = upper + lower + digits + symbols;
+
+            var characters = new char[16];
+            using (var random = RandomNumberGenerator.Create())
+            {
+                characters[0] = RandomCharacter(random, upper);
+                characters[1] = RandomCharacter(random, lower);
+                characters[2] = RandomCharacter(random, digits);
+                characters[3] = RandomCharacter(random, symbols);
+
+                for (var index = 4; index < characters.Length; index++)
+                    characters[index] = RandomCharacter(random, all);
+
+                for (var index = characters.Length - 1; index > 0; index--)
+                {
+                    var swapIndex = RandomIndex(random, index + 1);
+                    var current = characters[index];
+                    characters[index] = characters[swapIndex];
+                    characters[swapIndex] = current;
+                }
+            }
+
+            return new string(characters);
+        }
+
+        private static char RandomCharacter(RandomNumberGenerator random, string characters)
+        {
+            return characters[RandomIndex(random, characters.Length)];
+        }
+
+        private static int RandomIndex(RandomNumberGenerator random, int maximumExclusive)
+        {
+            var buffer = new byte[4];
+            uint value;
+            var limit = uint.MaxValue - (uint.MaxValue % (uint)maximumExclusive);
+
+            do
+            {
+                random.GetBytes(buffer);
+                value = BitConverter.ToUInt32(buffer, 0);
+            }
+            while (value >= limit);
+
+            return (int)(value % (uint)maximumExclusive);
         }
 
  

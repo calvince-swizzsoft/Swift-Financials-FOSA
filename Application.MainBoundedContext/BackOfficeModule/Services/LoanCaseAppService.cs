@@ -265,7 +265,18 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         {
                             #region Do we need to send alerts?
 
-                            _brokerService.ProcessLoanGuaranteeAccountAlerts(DMLCommand.None, serviceHeader, loanCaseDTO);
+                            // The appraisal transaction has already committed at this point.
+                            // A missing/unavailable message queue must not report that durable
+                            // business operation as failed or prevent its workflow from advancing.
+                            try
+                            {
+                                _brokerService.ProcessLoanGuaranteeAccountAlerts(DMLCommand.None, serviceHeader, loanCaseDTO);
+                            }
+                            catch
+                            {
+                                // Alert delivery is best-effort and is monitored/retried by the
+                                // dispatcher infrastructure independently of loan processing.
+                            }
 
                             #endregion
                         }
@@ -498,6 +509,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                 persisted.Status = (int)LoanCaseStatus.Audited;
 
                                 persisted.AuditRemarks = loanCaseDTO.AuditRemarks;
+                                persisted.Reference = loanCaseDTO.Reference;
 
                                 persisted.AuditedBy = serviceHeader.ApplicationUserName;
                                 persisted.AuditedDate = DateTime.Now;
@@ -719,6 +731,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                 persisted.Status = (int)LoanCaseStatus.Audited;
 
                                 persisted.AuditRemarks = loanCaseDTO.AuditRemarks;
+                                persisted.Reference = loanCaseDTO.Reference;
 
                                 persisted.AuditedBy = serviceHeader.ApplicationUserName;
                                 persisted.AuditedDate = DateTime.Now;
@@ -923,7 +936,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public bool CancelLoanCase(LoanCaseDTO loanCaseDTO, int loanCancellationOption, ServiceHeader serviceHeader)
         {
-            if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanAuditOption), loanCancellationOption))
+            if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanCancellationOption), loanCancellationOption))
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
@@ -951,6 +964,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         persisted.CancelledDate = DateTime.Now;
 
                         var existing = FindLoanDisbursementBatchEntriesByLoanCaseId(persisted.Id, serviceHeader);
+
+                        if (existing != null && existing.Any(item => item.Status == (int)BatchEntryStatus.Posted))
+                            return false;
 
                         if (existing != null && existing.Any())
                         {
@@ -1031,6 +1047,10 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 if (persisted != null && persisted.Status == (int)LoanCaseStatus.Audited)
                 {
+                    var existing = FindLoanDisbursementBatchEntriesByLoanCaseId(persisted.Id, serviceHeader);
+                    if (existing != null && existing.Any(item => item.Status == (int)BatchEntryStatus.Posted))
+                        return false;
+
                     switch ((LoanCancellationOption)loanCancellationOption)
                     {
                         case LoanCancellationOption.Defer:
@@ -1049,8 +1069,6 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                     persisted.BatchedBy = null;
                     persisted.CancelledBy = serviceHeader.ApplicationUserName;
                     persisted.CancelledDate = DateTime.Now;
-
-                    var existing = FindLoanDisbursementBatchEntriesByLoanCaseId(persisted.Id, serviceHeader);
 
                     if (existing != null && existing.Any())
                     {

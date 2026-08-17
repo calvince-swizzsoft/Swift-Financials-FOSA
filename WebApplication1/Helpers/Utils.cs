@@ -19,12 +19,16 @@ namespace WebApplication1.Helpers
 
             // Roles come from the validated JWT's role claims, not any client-supplied value.
             var applicationUserRoles = principal?.FindAll(ClaimTypes.Role)?.Select(c => c.Value).ToList() ?? new List<string>();
+            Guid applicationUserBranchId;
+            var branchClaim = principal?.FindFirst("BranchId")?.Value;
+            var hasApplicationUserBranch = Guid.TryParse(branchClaim, out applicationUserBranchId);
 
             return new ServiceHeader
             {
                 ApplicationDomainName = "SwiftApis",
                 ApplicationUserName = applicationUserName,   // was hardcoded — now pulled from the validated JWT
                 ApplicationUserRoles = applicationUserRoles,
+                ApplicationUserBranchId = hasApplicationUserBranch ? (Guid?)applicationUserBranchId : null,
                 EnvironmentDomainName = "SwiftApis",
                 EnvironmentIPAddress = HttpContext.Current?.Request?.UserHostAddress ?? "",
                 EnvironmentMACAddress = "",

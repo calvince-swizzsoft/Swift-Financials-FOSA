@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.FrontOfficeModule.Services;
 using Application.MainBoundedContext.RegistryModule.Services;
+using Application.MainBoundedContext.BackOfficeModule.Services;
+using Application.MainBoundedContext.DTO.RegistryModule;
+using Newtonsoft.Json;
 
 namespace Application.MainBoundedContext.AdministrationModule.Services
 {
@@ -32,6 +35,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
         private readonly ICustomerAppService _customerAppService;
 
+        private readonly ILoanCaseAppService _loanCaseAppService;
+
         public WorkflowProcessorAppService(
 
             ICashDepositRequestAppService cashDepositRequestAppService,
@@ -48,7 +53,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             ICustomerAccountAppService customerAccountAppService,
 
-            ICustomerAppService customerAppService
+            ICustomerAppService customerAppService,
+
+            ILoanCaseAppService loanCaseAppService
             )
         {
             if (cashDepositRequestAppService == null)
@@ -75,6 +82,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             if (customerAppService == null)
                 throw new ArgumentNullException(nameof(customerAppService));
 
+            if (loanCaseAppService == null)
+                throw new ArgumentNullException(nameof(loanCaseAppService));
+
             _cashDepositRequestAppService = cashDepositRequestAppService;
 
             _cashWithdrawalRequestAppService = cashWithdrawalRequestAppService;
@@ -91,6 +101,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             _customerAppService = customerAppService;
 
+            _loanCaseAppService = loanCaseAppService;
+
             _moduleNavigationCode = 0;
         }
 
@@ -104,6 +116,57 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             switch (_workflowRecordType)
             {
+                case SystemPermissionType.BackOfficeLoanAppraisal:
+                case SystemPermissionType.FrontOfficeLoanAppraisal:
+                {
+                    // Successful appraisal needs the full worksheet payload
+                    // and is completed synchronously by LoanCaseController.
+                    // Only a generic workflow rejection reaches the queue.
+                    if (approved) break;
+
+                    var loanCase = _loanCaseAppService.FindLoanCase(recordId, serviceHeader);
+                    if (loanCase != null)
+                    {
+                        loanCase.LoanAppraisalOption = (int)LoanAppraisalOption.Reject;
+                        loanCase.AppraisalRemarks = "Rejected through workflow";
+                        result = _loanCaseAppService.AppraiseLoanCase(loanCase, (int)LoanAppraisalOption.Reject, 0, serviceHeader);
+                        if (result) result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
+                    break;
+                }
+
+                case SystemPermissionType.BackOfficeLoanApproval:
+                case SystemPermissionType.FrontOfficeLoanApproval:
+                {
+                    if (approved) break;
+
+                    var loanCase = _loanCaseAppService.FindLoanCase(recordId, serviceHeader);
+                    if (loanCase != null)
+                    {
+                        loanCase.LoanApprovalOption = (int)LoanApprovalOption.Reject;
+                        loanCase.ApprovalRemarks = "Rejected through workflow";
+                        result = _loanCaseAppService.ApproveLoanCase(loanCase, (int)LoanApprovalOption.Reject, serviceHeader);
+                        if (result) result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
+                    break;
+                }
+
+                case SystemPermissionType.BackOfficeLoanAudit:
+                case SystemPermissionType.FrontOfficeLoanAudit:
+                {
+                    if (approved) break;
+
+                    var loanCase = _loanCaseAppService.FindLoanCase(recordId, serviceHeader);
+                    if (loanCase != null)
+                    {
+                        loanCase.LoanAuditOption = (int)LoanAuditOption.Reject;
+                        loanCase.AuditRemarks = "Rejected through workflow";
+                        result = _loanCaseAppService.AuditLoanCase(loanCase, (int)LoanAuditOption.Reject, serviceHeader);
+                        if (result) result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
+                    break;
+                }
+
                 #region Requisition
 
                 //case SystemPermissionType.RequisitionOrigination:
@@ -249,6 +312,25 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                             result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
                     }
 
+                    break;
+
+                case SystemPermissionType.CustomerEditVerification:
+                    var editWorkflow = _workflowAppService.FindWorkflow(recordId, workflowRecordType, serviceHeader);
+                    if (!approved)
+                    {
+                        result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                        break;
+                    }
+
+                    var proposedCustomer = editWorkflow == null || string.IsNullOrWhiteSpace(editWorkflow.Payload)
+                        ? null
+                        : JsonConvert.DeserializeObject<CustomerDTO>(editWorkflow.Payload);
+                    if (proposedCustomer != null && proposedCustomer.Id == recordId)
+                    {
+                        result = await _customerAppService.UpdateCustomerAsync(proposedCustomer, serviceHeader);
+                        if (result)
+                            result = _workflowAppService.MarkWorkflowMatched(recordId, workflowRecordType, serviceHeader);
+                    }
                     break;
 
                 case SystemPermissionType.FuneralRiderClaimPayableAuthorization:

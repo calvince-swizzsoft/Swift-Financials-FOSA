@@ -52,6 +52,7 @@ what to go update.
 | UnPay reasons (+ attached commissions) | `api/accounts/unpayreasons` | [`unpayreason-api-spec.md`](unpayreason-api-spec.md) |
 | Batch procedures — all nine types (Credit, Debit, Wire Transfer, Journal Reversal, Refund, Loan Disbursement, Journal Voucher, General Ledger, Inter Account Transfer) | `api/accounts/{creditbatches,debitbatches,wiretransferbatches,journalreversalbatches,overdeductionbatches,loandisbursementbatches,journalvouchers,generalledgers,interaccounttransferbatches}` | [`batch-procedures-api-spec.md`](batch-procedures-api-spec.md) |
 | Text alerts | `api/messaging/textalert` | [`textalert-api-spec.md`](textalert-api-spec.md) |
+| Email alerts | `api/messaging/emailalerts` | [`email-alert-api-spec.md`](email-alert-api-spec.md) |
 | Front office (teller transactions, treasury, cheques, EOD, account closure, fixed deposits, expense payables, sundry payments, in-house cheques, automated clearing, fiscal counts) | `api/frontoffice/*` | [`frontoffice-api-spec.md`](frontoffice-api-spec.md) |
 | Loan case registration + appraisal + approval + audit/verification + collateral replace + cancellation (back office — full core loan origination pipeline) | `api/backoffice/loancases` | [`loan-case-api-spec.md`](loan-case-api-spec.md) |
 | Loan back office catalogues (loan purposes, loaning remarks, income adjustments) | `api/backoffice/{loanpurposes,loaningremarks,incomeadjustments}` | [`loan-backoffice-catalogues-api-spec.md`](loan-backoffice-catalogues-api-spec.md) |

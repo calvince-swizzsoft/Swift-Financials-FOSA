@@ -25,9 +25,14 @@ namespace WebApplication1.Areas.Admin.Services
             new Claim(ClaimTypes.NameIdentifier, user.Id),
         };
 
-            // Assumes ApplicationUser.EmployeeId exists (per the commented Register code) — confirm this
-            if (user.EmployeeId != Guid.Empty)
-                claims.Add(new Claim("EmployeeId", user.EmployeeId.ToString()));
+            if (user.EmployeeId.HasValue && user.EmployeeId.Value != Guid.Empty)
+                claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
+
+            if (user.BranchId.HasValue && user.BranchId.Value != Guid.Empty)
+                claims.Add(new Claim(ApplicationUserProperties.BranchId, user.BranchId.Value.ToString()));
+
+            if (user.CustomerId.HasValue && user.CustomerId.Value != Guid.Empty)
+                claims.Add(new Claim(ApplicationUserProperties.CustomerId, user.CustomerId.Value.ToString()));
 
             foreach (var role in roles)
                 claims.Add(new Claim(ClaimTypes.Role, role));

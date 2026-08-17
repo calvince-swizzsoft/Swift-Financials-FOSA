@@ -14,6 +14,9 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         /// </summary>
         public List<string> ApplicationUserRoles { get; set; } = new List<string>();
 
+        /// <summary>Branch from the authenticated identity. This is server-derived and must not be populated from request bodies.</summary>
+        public System.Guid? ApplicationUserBranchId { get; set; }
+
         public string EnvironmentUserName { get; set; }
 
         public string EnvironmentMachineName { get; set; }

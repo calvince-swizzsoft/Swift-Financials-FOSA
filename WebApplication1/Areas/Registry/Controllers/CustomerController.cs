@@ -2,7 +2,9 @@ using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.RegistryModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -16,10 +18,19 @@ namespace WebApplication1.Controllers
     public class CustomerController : ApiController
     {
         private readonly ICustomerAppService _customerAppService;
+        private readonly IAuthorizationAppService _authorizationAppService;
 
-        public CustomerController(ICustomerAppService customerAppService)
+        public CustomerController(ICustomerAppService customerAppService, IAuthorizationAppService authorizationAppService)
         {
             _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
+            _authorizationAppService = authorizationAppService ?? throw new ArgumentNullException(nameof(authorizationAppService));
+        }
+
+        private bool CanEditCustomer(ServiceHeader serviceHeader)
+        {
+            var configuredRoles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CustomerEditing, serviceHeader);
+            return configuredRoles != null && configuredRoles.Any(x =>
+                serviceHeader.ApplicationUserRoles.Any(role => string.Equals(role, x.RoleName, StringComparison.OrdinalIgnoreCase)));
         }
 
         private IHttpActionResult ApiResponse(bool success, string message, object data = null)
@@ -95,6 +106,13 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet, Route("edit-access")]
+        public IHttpActionResult GetEditAccess()
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            return ApiResponse(true, "Customer edit access resolved", new { canEdit = CanEditCustomer(serviceHeader) });
+        }
+
         [HttpGet, Route("by-type/{type:int}")]
         public async Task<IHttpActionResult> GetByType(
             int type,
@@ -106,6 +124,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+
                 var page = await _customerAppService.FindCustomersByTypeAsync(type, text, customerFilter, pageIndex, pageSize, serviceHeader);
                 return ApiResponse(true, "Customers retrieved successfully", page);
             }
@@ -379,12 +398,17 @@ namespace WebApplication1.Controllers
                 if (existingCustomer == null)
                     return ErrorResponse(HttpStatusCode.NotFound, "Customer not found");
 
-                var updated = await _customerAppService.UpdateCustomerAsync(customer, serviceHeader);
+                if (!CanEditCustomer(serviceHeader))
+                    return ErrorResponse(HttpStatusCode.Forbidden, "Customer Editing permission is required.");
+
+                // RecordStatus is deliberately ignored by the application service. With maker-checker enabled
+                // this stages the snapshot; otherwise it updates the live record immediately.
+                var updated = await _customerAppService.SubmitCustomerEditAsync(customer, serviceHeader);
                 if (!updated)
                     return ErrorResponse(HttpStatusCode.InternalServerError, "Failed to update customer");
 
                 var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
-                return ApiResponse(true, "Customer updated successfully", updatedCustomer);
+                return ApiResponse(true, "Customer edit submitted successfully", updatedCustomer);
             }
             catch (Exception ex)
             {

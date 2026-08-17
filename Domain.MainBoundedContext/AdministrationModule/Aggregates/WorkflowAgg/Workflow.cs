@@ -23,5 +23,6 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.WorkflowAgg
         public int RequiredApprovals { get; set; }
 
         public int CurrentApprovals { get; set; }
+        public string Payload { get; set; }
     }
 }

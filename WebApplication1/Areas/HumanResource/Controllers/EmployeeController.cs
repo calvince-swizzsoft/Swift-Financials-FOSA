@@ -52,6 +52,26 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("{id:guid}")]
+        public IHttpActionResult Find(Guid id)
+        {
+            try
+            {
+                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+                var employee = _employeeAppService.FindEmployee(id, serviceHeader);
+
+                if (employee == null)
+                    return NotFound();
+
+                return Ok(employee);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
+
         [HttpPost]
         [Route("")]
         public async Task<IHttpActionResult> Create(EmployeeDTO employeeDTO)
@@ -87,11 +107,19 @@ namespace WebApplication1.Controllers
 
         [HttpPut]
         [Route("{id}")]
-        public async Task<IHttpActionResult> UpdateEmployee(EmployeeDTO employeeDTO)
+        public async Task<IHttpActionResult> UpdateEmployee(Guid id, EmployeeDTO employeeDTO)
         {
 
             try
             {
+                if (employeeDTO == null)
+                    return BadRequest("Employee details are required.");
+
+                employeeDTO.Id = id;
+                employeeDTO.ValidateAll();
+                if (employeeDTO.HasErrors)
+                    return BadRequest(string.Join("; ", employeeDTO.ErrorMessages));
+
                 var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
 
                 var updatedEmployeeDTO = _employeeAppService.UpdateEmployee(employeeDTO, serviceHeader);

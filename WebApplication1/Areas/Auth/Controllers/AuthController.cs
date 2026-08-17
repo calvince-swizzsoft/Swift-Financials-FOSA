@@ -72,6 +72,15 @@ namespace WebApplication1.Areas.Auth
                 return Unauthorized();     
             }
 
+            if (!user.LastPasswordChangedDate.HasValue)
+            {
+                return Ok(new
+                {
+                    requiresPasswordChange = true,
+                    user.UserName
+                });
+            }
+
 
             var roles = await _userManager.GetRolesAsync(user.Id);
             var token = JwtTokenService.GenerateToken(user, roles);
@@ -83,11 +92,48 @@ namespace WebApplication1.Areas.Auth
                 roles
             });
         }
+
+        [HttpPost, Route("change-initial-password")]
+        public async Task<IHttpActionResult> ChangeInitialPassword([FromBody] ChangeInitialPasswordRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.UserName) ||
+                string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+                return BadRequest("Username, current password, and new password are required.");
+
+            if (request.NewPassword != request.ConfirmPassword)
+                return BadRequest("The new password and confirmation password do not match.");
+
+            var user = await _userManager.FindByNameAsync(request.UserName);
+            if (user == null || user.LastPasswordChangedDate.HasValue)
+                return BadRequest("This initial password-change request is no longer valid.");
+
+            var result = await _userManager.ChangePasswordAsync(user.Id, request.CurrentPassword, request.NewPassword);
+            if (!result.Succeeded)
+                return BadRequest(string.Join("; ", result.Errors));
+
+            user.LastPasswordChangedDate = DateTime.UtcNow;
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+                return BadRequest(string.Join("; ", updateResult.Errors));
+
+            var roles = await _userManager.GetRolesAsync(user.Id);
+            var token = JwtTokenService.GenerateToken(user, roles);
+
+            return Ok(new { token, user.UserName, roles, requiresPasswordChange = false });
+        }
     }
 
     public class LoginRequest
     {
         public string UserName { get; set; }
         public string Password { get; set; }
+    }
+
+    public class ChangeInitialPasswordRequest
+    {
+        public string UserName { get; set; }
+        public string CurrentPassword { get; set; }
+        public string NewPassword { get; set; }
+        public string ConfirmPassword { get; set; }
     }
 }

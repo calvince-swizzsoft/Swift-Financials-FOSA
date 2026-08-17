@@ -4,8 +4,10 @@ using Quartz;
 using System;
 using System.ComponentModel.Composition;
 using System.Configuration;
+using SwiftFinancials.AppServiceContainer;
 using SwiftFinancials.EmailAlertDispatcher.Configuration;
 using SwiftFinancials.Presentation.Infrastructure.Services;
+using Unity;
 
 namespace SwiftFinancials.EmailAlertDispatcher.Services
 {
@@ -16,13 +18,10 @@ namespace SwiftFinancials.EmailAlertDispatcher.Services
 
         private readonly ILogger _logger;
 
-        private readonly ISmtpService _smtpService;
-
         [ImportingConstructor]
-        public Dispatcher(ILogger logger, ISmtpService smtpService)
+        public Dispatcher(ILogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _smtpService = smtpService ?? throw new ArgumentNullException(nameof(smtpService));
         }
 
         #region IPlugin
@@ -45,7 +44,9 @@ namespace SwiftFinancials.EmailAlertDispatcher.Services
 
                 if (emailDispatcherConfigSection != null)
                 {
-                    _messageProcessor = new EmailMessageProcessor(_logger, _smtpService, emailDispatcherConfigSection);
+                    var smtpService = Container.Current.Resolve<ISmtpService>();
+
+                    _messageProcessor = new EmailMessageProcessor(_logger, smtpService, emailDispatcherConfigSection);
 
                     _messageProcessor.Open();
                 }

@@ -56,10 +56,20 @@ namespace SwiftFinancials.WindowsService
         {
             foreach (Lazy<IPlugin> item in _plugins)
             {
-                _logger.LogInfo("{0}->DoWork...", item.Value.Description);
+                try
+                {
+                    var plugin = item.Value;
 
-                // fire and forget!
-                ThreadPool.QueueUserWorkItem(o => item.Value.DoWork(scheduler, args));
+                    _logger.LogInfo("{0}->DoWork...", plugin.Description);
+
+                    // fire and forget!
+                    ThreadPool.QueueUserWorkItem(o => plugin.DoWork(scheduler, args));
+                }
+                catch (Exception ex)
+                {
+                    // A single plugin with an unsatisfied import must not prevent the remaining plugins from starting.
+                    _logger.LogError("Plugin activation failed during DoWork signaling...", ex);
+                }
             }
         }
 
@@ -67,10 +77,19 @@ namespace SwiftFinancials.WindowsService
         {
             foreach (Lazy<IPlugin> item in _plugins)
             {
-                _logger.LogInfo("{0}->Exit...", item.Value.Description);
+                try
+                {
+                    var plugin = item.Value;
 
-                // fire and forget!
-                ThreadPool.QueueUserWorkItem(o => item.Value.Exit());
+                    _logger.LogInfo("{0}->Exit...", plugin.Description);
+
+                    // fire and forget!
+                    ThreadPool.QueueUserWorkItem(o => plugin.Exit());
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("Plugin activation failed during Exit signaling...", ex);
+                }
             }
         }
     }

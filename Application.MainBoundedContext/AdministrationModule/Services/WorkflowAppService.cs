@@ -90,7 +90,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                     ? workflowDTO.ReferenceNumber
                     : _workflowRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(ReferenceNumber),0) + 1 AS Expr1 FROM {0}Workflows", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
 
-                var workflow = WorkflowFactory.CreateWorkflow(workflowDTO.RecordId, referenceNumber, workflowDTO.BranchId, workflowDTO.SystemPermissionType, workflowDTO.RequiredApprovals);
+                var workflow = WorkflowFactory.CreateWorkflow(workflowDTO.RecordId, referenceNumber, workflowDTO.BranchId, workflowDTO.SystemPermissionType, workflowDTO.RequiredApprovals, workflowDTO.Payload);
 
                 workflow.CreatedBy = serviceHeader.ApplicationUserName;
 
@@ -171,7 +171,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
                 if (persisted != null)
                 {
-                    var current = WorkflowFactory.CreateWorkflow(workflowDTO.RecordId, workflowDTO.ReferenceNumber, workflowDTO.BranchId, workflowDTO.SystemPermissionType, workflowDTO.RequiredApprovals);
+                    var current = WorkflowFactory.CreateWorkflow(workflowDTO.RecordId, workflowDTO.ReferenceNumber, workflowDTO.BranchId, workflowDTO.SystemPermissionType, workflowDTO.RequiredApprovals, workflowDTO.Payload);
 
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
 
@@ -209,7 +209,16 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
                     ISpecification<Workflow> spec = filter;
 
-                    return _workflowRepository.AllMatching<WorkflowDTO>(spec, serviceHeader).FirstOrDefault();
+                    // A record can revisit a business stage (for example a
+                    // deferred loan returns to appraisal), producing more
+                    // than one workflow for the same record/type. Always
+                    // resolve the newest instance rather than an arbitrary
+                    // historical row.
+                    var workflow = _workflowRepository.AllMatching(spec, serviceHeader)
+                        .OrderByDescending(x => x.SequentialId)
+                        .FirstOrDefault();
+
+                    return workflow?.ProjectedAs<WorkflowDTO>();
                 }
             }
             else return null;
@@ -236,7 +245,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             if (workflow != null)
             {
-                if (workflow.CurrentApprovals > 0 && workflow.Status == (int)WorkflowRecordStatus.Pending)
+                if (workflow.Status == (int)WorkflowRecordStatus.Pending && workflow.MatchedStatus != (int)WorkflowMatchedStatus.Matched)
                     return true;
                 else
                     return false;
@@ -255,7 +264,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
                 ISpecification<Workflow> spec = filter;
 
-                var workflow = _workflowRepository.AllMatching(spec, serviceHeader).FirstOrDefault();
+                var workflow = _workflowRepository.AllMatching(spec, serviceHeader)
+                    .OrderByDescending(x => x.SequentialId)
+                    .FirstOrDefault();
 
                 if (workflow != null)
                     workflow.MatchedStatus = (byte)WorkflowMatchedStatus.Matched;
@@ -418,11 +429,11 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
             if (workflowItemBindingModel.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, workflowItemBindingModel.ErrorMessages));
 
-            // TODO(maker-checker): TEMPORARILY DISABLED for testing (no separate maker/checker test accounts yet).
-            // MUST re-enable before real maker-checker enforcement is needed / before shipping - right now the
-            // same user can both create and approve any workflow item, which defeats the control entirely.
-            // Do not remove the underlying check, just uncomment the line below.
-            // if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemDTO.Id, serviceHeader.ApplicationUserName, serviceHeader)) throw new InvalidOperationException("Maker-checker failure: the initiator and approver of a sequential process must be distinct!");
+            // Enforce maker-checker across the approval chain. For the first
+            // action this compares against the workflow item's creator; for
+            // later actions it compares against the latest recorded approver.
+            if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemDTO.Id, serviceHeader.ApplicationUserName, serviceHeader))
+                throw new InvalidOperationException("Maker-checker failure: the initiator and approver of a sequential process must be distinct!");
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {

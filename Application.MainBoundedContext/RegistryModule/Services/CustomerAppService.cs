@@ -30,6 +30,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Application.MainBoundedContext.RegistryModule.Services
 {
@@ -232,6 +233,20 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
             var proceed = true; // Initial state, proceed with the operation
             var branchId = customerDTO.BranchId;
+            var creationBranch = branchId == Guid.Empty ? null : _branchAppService.FindBranch(branchId, serviceHeader);
+            if (creationBranch == null)
+                throw new InvalidOperationException("The customer branch could not be resolved.");
+
+            var creationCompany = _companyAppService.FindCompany(creationBranch.CompanyId, serviceHeader);
+            if (creationCompany == null)
+                throw new InvalidOperationException("The customer branch's company could not be resolved.");
+
+            if (creationCompany.EnforceCustomerMakerChecker)
+            {
+                var verificationRoles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CustomerVerification, serviceHeader);
+                if (verificationRoles == null || !verificationRoles.Any(x => x.ApprovalPriority > 0))
+                    throw new InvalidOperationException("Customer verification has no approver roles configured.");
+            }
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
@@ -319,7 +334,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
             if (proceed && customerDTO != null)
             {
-                var currrentBranch = _branchAppService.FindBranch(branchId, serviceHeader);
+                var currrentBranch = creationBranch;
                 if (currrentBranch != null)
                 {
                     #region Customer Verification Workflow
@@ -444,7 +459,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                     current.IsDefaulter = persisted.IsDefaulter;
 
-                    current.RecordStatus = (byte)customerDTO.RecordStatus;
+                    current.RecordStatus = persisted.RecordStatus;
                     current.ModifiedBy = serviceHeader.ApplicationUserName;
                     current.ModifiedDate = DateTime.Now;
 
@@ -533,6 +548,39 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                 return await dbContextScope.SaveChangesAsync(serviceHeader) > 0;
             }
+        }
+
+        public async Task<bool> SubmitCustomerEditAsync(CustomerDTO customerDTO, ServiceHeader serviceHeader)
+        {
+            var existingCustomer = await FindCustomerAsync(customerDTO.Id, serviceHeader);
+            if (existingCustomer == null) throw new InvalidOperationException("Customer not found.");
+            // Customer does not persist a branch relationship (only StationId), and legacy edit policy is
+            // evaluated in the authenticated operator's branch. Prefer a projected persisted branch when one
+            // exists, otherwise use the server-derived JWT branch claim; never trust the request body's BranchId.
+            var policyBranchId = existingCustomer.BranchId != Guid.Empty
+                ? existingCustomer.BranchId
+                : serviceHeader.ApplicationUserBranchId.GetValueOrDefault();
+            var branch = policyBranchId == Guid.Empty ? null : _branchAppService.FindBranch(policyBranchId, serviceHeader);
+            if (branch == null) throw new InvalidOperationException("The customer's policy branch could not be resolved from either the persisted record or the authenticated user's branch.");
+            var company = _companyAppService.FindCompany(branch.CompanyId, serviceHeader);
+            if (company == null || !company.EnforceCustomerMakerChecker)
+                return await UpdateCustomerAsync(customerDTO, serviceHeader);
+
+            var permissionType = (int)SystemPermissionType.CustomerEditVerification;
+            if (_workflowAppService.IsWorkflowInProgress(customerDTO.Id, permissionType, serviceHeader))
+                throw new InvalidOperationException("A customer edit is already awaiting approval.");
+            var roles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType(permissionType, serviceHeader);
+            if (roles == null || !roles.Any(x => x.ApprovalPriority > 0))
+                throw new InvalidOperationException("Customer edit verification has no approver roles configured.");
+
+            return _workflowAppService.AddNewWorkflow(new WorkflowDTO
+            {
+                RecordId = customerDTO.Id,
+                BranchId = branch.Id,
+                SystemPermissionType = permissionType,
+                RequiredApprovals = roles.Count(x => x.ApprovalPriority > 0),
+                Payload = JsonConvert.SerializeObject(customerDTO)
+            }, roles, serviceHeader);
         }
 
         public async Task<bool> UpdateNextOfKinCollectionAsync(CustomerDTO customerDTO, List<NextOfKinDTO> nextOfKinCollection, ServiceHeader serviceHeader)

@@ -14,6 +14,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
         Task<CustomerDTO> AddNewCustomerAsync(CustomerDTO customerDTO, List<DebitTypeDTO> additionalDebitTypes, List<InvestmentProductDTO> investmentProducts, List<SavingsProductDTO> savingsProducts, int moduleNavigationItemCode, ServiceHeader serviceHeader);
 
         Task<bool> UpdateCustomerAsync(CustomerDTO customerDTO, ServiceHeader serviceHeader);
+        Task<bool> SubmitCustomerEditAsync(CustomerDTO customerDTO, ServiceHeader serviceHeader);
 
         Task<bool> UpdateNextOfKinCollectionAsync(CustomerDTO customerDTO, List<NextOfKinDTO> nextOfKinCollection, ServiceHeader serviceHeader);
 

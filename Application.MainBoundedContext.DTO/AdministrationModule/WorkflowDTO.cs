@@ -1,6 +1,7 @@
 ﻿using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 
 namespace Application.MainBoundedContext.DTO.AdministrationModule
 {
@@ -62,6 +63,8 @@ namespace Application.MainBoundedContext.DTO.AdministrationModule
 
         [Display(Name = "Current Approvals")]
         public int CurrentApprovals { get; set; }
+        [JsonIgnore]
+        public string Payload { get; set; }
 
     }
 }

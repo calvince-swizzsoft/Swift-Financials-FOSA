@@ -6,15 +6,24 @@ Functional design: `WebApplication1/Areas/BackOffice/WORKFLOW.md` §10.
 
 Gives an existing, disbursed loan a new term and payment. **Keyed by the
 loan's `CustomerAccountId` — not a `LoanCaseId`** — unlike every other
-lifecycle action in the Back Office module. The reference screen's picker
-lookups (customer accounts by product code, loan product detail) are
-already covered by `CustomerAccountController`/`LoanProductController`
-elsewhere in this repo, so only the real operation is exposed here.
+lifecycle action in the Back Office module. The controller also owns the
+loan-only customer-account lookup used by its picker, because the generic
+customer-accounts API does not expose its domain service's product-code
+filter.
 
 ## Conventions
 
 Standard envelope (`{ success, message, data }`), standard status codes —
 see `docs/api/README.md`. All endpoints require a bearer JWT.
+
+## Loan-account picker
+
+`GET /accounts?text=&customerFilter=0&pageIndex=0&pageSize=20`
+
+Returns a standard paged `CustomerAccountDTO` envelope containing only
+accounts whose `customerAccountTypeProductCode` is `2` (`ProductCode.Loan`).
+Use this endpoint for the restructuring account picker; the generic
+`api/accounts/customer-accounts` list has no product-code query parameter.
 
 ## Restructure
 
@@ -36,6 +45,15 @@ see `docs/api/README.md`. All endpoints require a bearer JWT.
 inputs — the reference screen has no server-side amortization preview for
 these, the loan officer enters them directly. `reference` is required
 (free text, stored on the restructuring journal's description).
+
+The controller rejects a missing account with `404`, and rejects savings
+or investment accounts with `400`; callers cannot bypass the loan-only
+picker by submitting another customer-account id directly.
+
+Authorization follows the selected loan account's product section:
+FOSA accounts use `FrontOfficeLoanRestructuring` (45016), while BOSA
+accounts use `BackOfficeLoanRestructuring` (45017). If the applicable
+permission has role mappings, the caller must hold one of those roles.
 
 `ILoanCaseAppService.RestructureLoan` (real, verified server logic, not
 guessed from the DTO) only succeeds when:

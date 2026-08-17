@@ -278,12 +278,14 @@
     <Compile Include="Areas\FrontOffice\Controllers\InHouseController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\AutomatedClearingController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\FiscalCountController.cs" />
+    <Compile Include="Areas\Messaging\Controllers\EmailAlertController.cs" />
     <Compile Include="Areas\Messaging\Controllers\TextAlertController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashManagementController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\ChequesController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountsController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomerController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomerDocumentController.cs" />
+    <Compile Include="Areas\Registry\Controllers\FileRegisterController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomersController.cs" />
     <Compile Include="Areas\Registry\Controllers\DivisionController.cs" />
     <Compile Include="Areas\Registry\Controllers\EmployerController.cs" />

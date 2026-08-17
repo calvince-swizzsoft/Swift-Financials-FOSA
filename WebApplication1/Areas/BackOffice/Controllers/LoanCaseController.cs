@@ -1,7 +1,9 @@
 using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.BackOfficeModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.RegistryModule.Services;
@@ -182,6 +184,12 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         private readonly ICustomerDocumentAppService _customerDocumentAppService;
         private readonly ICustomerAccountAppService _customerAccountAppService;
         private readonly IIncomeAdjustmentAppService _incomeAdjustmentAppService;
+        private readonly IStandingOrderAppService _standingOrderAppService;
+        private readonly ICreditBatchAppService _creditBatchAppService;
+        private readonly ILoanDisbursementBatchAppService _loanDisbursementBatchAppService;
+        private readonly IFileRegisterAppService _fileRegisterAppService;
+        private readonly IWorkflowAppService _workflowAppService;
+        private readonly IAuthorizationAppService _authorizationAppService;
 
         public LoanCaseController(
             ILoanCaseAppService loanCaseAppService,
@@ -192,7 +200,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             ILoaningRemarkAppService loaningRemarkAppService,
             ICustomerDocumentAppService customerDocumentAppService,
             ICustomerAccountAppService customerAccountAppService,
-            IIncomeAdjustmentAppService incomeAdjustmentAppService)
+            IIncomeAdjustmentAppService incomeAdjustmentAppService,
+            IStandingOrderAppService standingOrderAppService,
+            ICreditBatchAppService creditBatchAppService,
+            ILoanDisbursementBatchAppService loanDisbursementBatchAppService,
+            IFileRegisterAppService fileRegisterAppService,
+            IWorkflowAppService workflowAppService,
+            IAuthorizationAppService authorizationAppService)
         {
             _loanCaseAppService = loanCaseAppService ?? throw new ArgumentNullException(nameof(loanCaseAppService));
             _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
@@ -203,6 +217,12 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             _customerDocumentAppService = customerDocumentAppService ?? throw new ArgumentNullException(nameof(customerDocumentAppService));
             _customerAccountAppService = customerAccountAppService ?? throw new ArgumentNullException(nameof(customerAccountAppService));
             _incomeAdjustmentAppService = incomeAdjustmentAppService ?? throw new ArgumentNullException(nameof(incomeAdjustmentAppService));
+            _standingOrderAppService = standingOrderAppService ?? throw new ArgumentNullException(nameof(standingOrderAppService));
+            _creditBatchAppService = creditBatchAppService ?? throw new ArgumentNullException(nameof(creditBatchAppService));
+            _loanDisbursementBatchAppService = loanDisbursementBatchAppService ?? throw new ArgumentNullException(nameof(loanDisbursementBatchAppService));
+            _fileRegisterAppService = fileRegisterAppService ?? throw new ArgumentNullException(nameof(fileRegisterAppService));
+            _workflowAppService = workflowAppService ?? throw new ArgumentNullException(nameof(workflowAppService));
+            _authorizationAppService = authorizationAppService ?? throw new ArgumentNullException(nameof(authorizationAppService));
         }
 
         // Mirrors the reference Index grid — status is a real, required
@@ -438,6 +458,14 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (loanProduct == null)
                     return ErrorResponse("Loan product not found");
 
+                var registrationPermission = GetLoanStagePermission(
+                    loanProduct.LoanRegistrationLoanProductSection,
+                    SystemPermissionType.FrontOfficeLoanRegistration,
+                    SystemPermissionType.BackOfficeLoanRegistration);
+                var registrationPermissionError = ValidateMappedPermission(registrationPermission, serviceHeader);
+                if (registrationPermissionError != null)
+                    return Content(HttpStatusCode.Forbidden, ErrorEnvelope(registrationPermissionError));
+
                 if (loanCaseDTO.SavingsProductId == null || loanCaseDTO.SavingsProductId == Guid.Empty)
                     return ErrorResponse("Savings product is required");
 
@@ -511,6 +539,10 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                     _loanCaseAppService.UpdateLoanGuarantors(created.Id, guarantors, serviceHeader);
                 }
+
+                var appraisalPermission = GetLoanStagePermission(created, SystemPermissionType.FrontOfficeLoanAppraisal, SystemPermissionType.BackOfficeLoanAppraisal);
+                if (!OriginateLoanStageWorkflow(created, appraisalPermission, serviceHeader))
+                    throw new InvalidOperationException("The loan case was registered, but its appraisal workflow could not be created");
 
                 var refreshed = _loanCaseAppService.FindLoanCase(created.Id, serviceHeader);
 
@@ -600,6 +632,16 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var appraisalFactors = _loanCaseAppService.FindLoanAppraisalFactorsByLoanCaseId(id, serviceHeader) ?? new List<LoanAppraisalFactorDTO>();
                 var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, serviceHeader) ?? new List<LoanGuarantorDTO>();
                 var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, serviceHeader) ?? new List<LoanCollateralDTO>();
+                var loanAccounts = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Loan).ToList();
+                var standingOrders = accounts
+                    .SelectMany(a => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(a.Id, serviceHeader) ?? new List<StandingOrderDTO>())
+                    .GroupBy(s => s.Id)
+                    .Select(g => g.First())
+                    .ToList();
+                var loanApplications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(loanCase.CustomerId, serviceHeader) ?? new List<LoanCaseDTO>();
+                var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, serviceHeader) ?? new List<AttachedLoanDTO>();
+                var fileRegister = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(loanCase.CustomerId, serviceHeader);
+                var fileReadyForAppraisal = fileRegister?.FileRegister != null && fileRegister.FileRegister.Status == (int)FileMovementStatus.Received;
 
                 return Ok(ApiResponse("", new
                 {
@@ -616,7 +658,14 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     paymentPerPeriod,
                     appraisalFactors,
                     guarantors,
-                    collaterals
+                    collaterals,
+                    customerAccounts = accounts,
+                    loanAccounts,
+                    standingOrders,
+                    loanApplications,
+                    attachedLoans,
+                    fileRegister,
+                    fileReadyForAppraisal
                 }));
             }
             catch (Exception ex)
@@ -667,6 +716,16 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (existing == null)
                     return NotFound();
 
+                var customerFile = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(existing.CustomerId, serviceHeader);
+                if (customerFile?.FileRegister == null || customerFile.FileRegister.Status != (int)FileMovementStatus.Received)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The customer's physical file must be received through File Tracking before appraisal"));
+
+                WorkflowItemDTO workflowItem;
+                var appraisalPermission = GetLoanStagePermission(existing, SystemPermissionType.FrontOfficeLoanAppraisal, SystemPermissionType.BackOfficeLoanAppraisal);
+                var workflowError = ValidateFinalLoanStageItem(id, request.WorkflowItemId, appraisalPermission, serviceHeader, out workflowItem);
+                if (workflowError != null)
+                    return Content(HttpStatusCode.Forbidden, ErrorEnvelope(workflowError));
+
                 if (request.IncomeAdjustments != null)
                 {
                     foreach (var factor in request.IncomeAdjustments)
@@ -691,8 +750,19 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 existing.LoanProductLatestIncome = request.LoanProductLatestIncome;
                 existing.AppraisedNetIncome = request.AppraisedNetIncome;
                 existing.AppraisedAbility = request.AppraisedAbility;
-                existing.SystemAppraisedAmount = request.SystemAppraisedAmount;
-                existing.SystemAppraisalRemarks = request.SystemAppraisalRemarks;
+                var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(existing.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                var investmentsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(a => a.BookBalance);
+                var maximumLoan = investmentsBalance * Convert.ToDecimal(existing.LoanRegistrationInvestmentsMultiplier);
+                var sameProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(existing.CustomerId, existing.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                var maximumEntitled = Math.Max(0m, maximumLoan - sameProductAccounts.Sum(a => a.BookBalance + a.CarryForwardsBalance));
+                existing.SystemAppraisedAmount = Math.Min(existing.AmountApplied, maximumEntitled);
+                existing.SystemAppraisalRemarks = existing.SystemAppraisedAmount >= existing.AmountApplied
+                    ? "The applied amount is within the member's investment-based entitlement."
+                    : "The applied amount exceeds the member's investment-based entitlement.";
+                if (request.Option == (int)LoanAppraisalOption.Appraise
+                    && request.AppraisedAmount != existing.SystemAppraisedAmount
+                    && string.IsNullOrWhiteSpace(request.AppraisedAmountRemarks))
+                    return ErrorResponse("Appraised amount remarks are required when overriding the system-appraised amount");
                 existing.AppraisedAmount = request.AppraisedAmount;
                 existing.AppraisedAmountRemarks = request.AppraisedAmountRemarks;
                 existing.AppraisalRemarks = request.AppraisalRemarks;
@@ -700,7 +770,32 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 existing.TotalPaybackAmount = request.TotalPaybackAmount;
                 existing.TotalLoansBalance = request.TotalLoansBalance;
 
-                var appraised = _loanCaseAppService.AppraiseLoanCase(existing, request.Option, request.ModuleNavigationItemCode, serviceHeader);
+                if (request.Option == (int)LoanAppraisalOption.Appraise && request.AttachedLoanAccountIds != null)
+                {
+                    var selectedIds = request.AttachedLoanAccountIds.Distinct().ToList();
+                    var selectedAccounts = accounts.Where(a => selectedIds.Contains(a.Id) && a.CustomerAccountTypeProductCode == (int)ProductCode.Loan).ToList();
+                    if (selectedAccounts.Count != selectedIds.Count)
+                        return ErrorResponse("Every attached account must be a loan account belonging to the loanee");
+
+                    var attachedLoans = selectedAccounts.Select(a => new AttachedLoanDTO
+                    {
+                        LoanCaseId = id,
+                        CustomerAccountId = a.Id,
+                        PrincipalBalance = a.BookBalance,
+                        CarryForwardsBalance = a.CarryForwardsBalance
+                    }).ToList();
+                    _loanCaseAppService.UpdateAttachedLoans(id, attachedLoans, serviceHeader);
+                }
+
+                // AppraiseLoanCase commits before its legacy alert broker call. If that
+                // optional integration failed on an earlier request, the durable case is
+                // already Appraised while this workflow item is still pending. Treat the
+                // identical retry as a recovery request and finish the workflow chain.
+                var isCommittedRetry = request.Option == (int)LoanAppraisalOption.Appraise
+                    && existing.Status == (int)LoanCaseStatus.Appraised
+                    && workflowItem != null;
+                var appraised = isCommittedRetry
+                    || _loanCaseAppService.AppraiseLoanCase(existing, request.Option, request.ModuleNavigationItemCode, serviceHeader);
 
                 if (!appraised)
                     return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in a Registered or Deferred state, or the appraisal option is invalid"));
@@ -709,6 +804,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     _loanCaseAppService.UpdateLoanAppraisalFactors(id, request.IncomeAdjustments, serviceHeader);
 
                 var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                if (!CompleteLoanStageWorkflow(workflowItem, request.AppraisalRemarks, request.UsedBiometrics, serviceHeader))
+                    throw new InvalidOperationException("The appraisal was saved, but its workflow item could not be completed");
+
+                if (request.Option == (int)LoanAppraisalOption.Appraise
+                    && !OriginateLoanStageWorkflow(refreshed, GetLoanStagePermission(refreshed, SystemPermissionType.FrontOfficeLoanApproval, SystemPermissionType.BackOfficeLoanApproval), serviceHeader))
+                    throw new InvalidOperationException("The appraisal was saved, but the approval workflow could not be created");
 
                 return Ok(ApiResponse("Loan case appraisal recorded successfully", refreshed));
             }
@@ -750,13 +852,26 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (existing == null)
                     return NotFound();
 
+                WorkflowItemDTO workflowItem;
+                var approvalPermission = GetLoanStagePermission(existing, SystemPermissionType.FrontOfficeLoanApproval, SystemPermissionType.BackOfficeLoanApproval);
+                if (request.Option == (int)LoanApprovalOption.Approve
+                    && request.ApprovedAmount != existing.AppraisedAmount
+                    && string.IsNullOrWhiteSpace(request.ApprovedAmountRemarks))
+                    return ErrorResponse("Approved amount remarks are required when changing the appraised amount");
+                var workflowError = ValidateFinalLoanStageItem(id, request.WorkflowItemId, approvalPermission, serviceHeader, out workflowItem);
+                if (workflowError != null)
+                    return Content(HttpStatusCode.Forbidden, ErrorEnvelope(workflowError));
+
                 existing.LoanApprovalOption = request.Option;
                 existing.ApprovedAmount = request.ApprovedAmount;
                 existing.ApprovedAmountRemarks = request.ApprovedAmountRemarks;
                 existing.ApprovedPrincipalPayment = request.ApprovedPrincipalPayment;
                 existing.ApprovedInterestPayment = request.ApprovedInterestPayment;
-                existing.MonthlyPaybackAmount = request.MonthlyPaybackAmount;
-                existing.TotalPaybackAmount = request.TotalPaybackAmount;
+                var repaymentSchedule = request.Option == (int)LoanApprovalOption.Approve
+                    ? BuildRepaymentSchedule(request.ApprovedAmount, existing.LoanInterestAnnualPercentageRate, existing.LoanRegistrationTermInMonths, existing.InterestCalculationModeDescription)
+                    : new List<RepaymentScheduleEntry>();
+                existing.MonthlyPaybackAmount = repaymentSchedule.Any() ? repaymentSchedule.First().Payment : 0m;
+                existing.TotalPaybackAmount = repaymentSchedule.Sum(item => item.Payment);
                 existing.ApprovalRemarks = request.ApprovalRemarks;
 
                 var approved = _loanCaseAppService.ApproveLoanCase(existing, request.Option, serviceHeader);
@@ -765,6 +880,18 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in an Appraised state, or the approval option is invalid"));
 
                 var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                if (!CompleteLoanStageWorkflow(workflowItem, request.ApprovalRemarks, request.UsedBiometrics, serviceHeader))
+                    throw new InvalidOperationException("The approval was saved, but its workflow item could not be completed");
+
+                if (request.Option == (int)LoanApprovalOption.Approve
+                    && refreshed?.Status == (int)LoanCaseStatus.Approved
+                    && !OriginateLoanStageWorkflow(refreshed, GetLoanStagePermission(refreshed, SystemPermissionType.FrontOfficeLoanAudit, SystemPermissionType.BackOfficeLoanAudit), serviceHeader))
+                    throw new InvalidOperationException("The approval was saved, but the verification workflow could not be created");
+
+                if (request.Option == (int)LoanApprovalOption.Defer
+                    && !OriginateLoanStageWorkflow(refreshed, GetLoanStagePermission(refreshed, SystemPermissionType.FrontOfficeLoanAppraisal, SystemPermissionType.BackOfficeLoanAppraisal), serviceHeader))
+                    throw new InvalidOperationException("The deferral was saved, but the new appraisal workflow could not be created");
 
                 // If the loan product has LoanRegistrationBypassAudit set,
                 // ApproveLoanCase auto-chains straight into AuditLoanCase —
@@ -807,6 +934,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             if (string.IsNullOrWhiteSpace(request.AuditRemarks))
                 return ErrorResponse("Audit remarks are required");
 
+            if (request.Option == (int)LoanAuditOption.Audit && string.IsNullOrWhiteSpace(request.Reference))
+                return ErrorResponse("Verification reference is required");
+
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
@@ -815,8 +945,15 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (existing == null)
                     return NotFound();
 
+                WorkflowItemDTO workflowItem;
+                var auditPermission = GetLoanStagePermission(existing, SystemPermissionType.FrontOfficeLoanAudit, SystemPermissionType.BackOfficeLoanAudit);
+                var workflowError = ValidateFinalLoanStageItem(id, request.WorkflowItemId, auditPermission, serviceHeader, out workflowItem);
+                if (workflowError != null)
+                    return Content(HttpStatusCode.Forbidden, ErrorEnvelope(workflowError));
+
                 existing.LoanAuditOption = request.Option;
                 existing.AuditRemarks = request.AuditRemarks;
+                existing.Reference = request.Reference;
 
                 var audited = _loanCaseAppService.AuditLoanCase(existing, request.Option, serviceHeader);
 
@@ -824,6 +961,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in an Approved state, or the audit option is invalid"));
 
                 var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                if (!CompleteLoanStageWorkflow(workflowItem, request.AuditRemarks, request.UsedBiometrics, serviceHeader))
+                    throw new InvalidOperationException("The verification was saved, but its workflow item could not be completed");
+
+                if (request.Option == (int)LoanAuditOption.Defer
+                    && !OriginateLoanStageWorkflow(refreshed, GetLoanStagePermission(refreshed, SystemPermissionType.FrontOfficeLoanAppraisal, SystemPermissionType.BackOfficeLoanAppraisal), serviceHeader))
+                    throw new InvalidOperationException("The deferral was saved, but the new appraisal workflow could not be created");
 
                 var message = request.Option == (int)LoanAuditOption.Audit && refreshed != null && refreshed.LoanRegistrationCreateStandingOrderOnLoanAudit
                     ? "Loan case verified — loan/savings accounts and repayment standing order have been set up"
@@ -864,12 +1008,21 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (existing == null)
                     return NotFound();
 
+                var cancellationPermission = GetLoanStagePermission(existing, SystemPermissionType.FrontOfficeLoanAudit, SystemPermissionType.BackOfficeLoanAudit);
+                var cancellationPermissionError = ValidateMappedPermission(cancellationPermission, serviceHeader);
+                if (cancellationPermissionError != null)
+                    return Content(HttpStatusCode.Forbidden, ErrorEnvelope(cancellationPermissionError));
+
                 var cancelled = _loanCaseAppService.CancelLoanCase(existing, request.Option, serviceHeader);
 
                 if (!cancelled)
                     return Content(HttpStatusCode.Conflict, ErrorEnvelope("Loan case is not in an Audited state, or the cancellation option is invalid"));
 
                 var refreshed = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+
+                if (request.Option == (int)LoanCancellationOption.Defer
+                    && !OriginateLoanStageWorkflow(refreshed, GetLoanStagePermission(refreshed, SystemPermissionType.FrontOfficeLoanAppraisal, SystemPermissionType.BackOfficeLoanAppraisal), serviceHeader))
+                    throw new InvalidOperationException("The cancellation deferral was saved, but the new appraisal workflow could not be created");
 
                 var message = request.Option == (int)LoanCancellationOption.Reject
                     ? "Loan case cancelled and its guarantors released"
@@ -881,6 +1034,33 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             {
                 return InternalServerError(ex);
             }
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/cancellation-worksheet")]
+        public IHttpActionResult GetCancellationWorksheet(Guid id)
+        {
+            try
+            {
+                var header = Utils.CreateServiceHeader();
+                var loanCase = _loanCaseAppService.FindLoanCase(id, header);
+                if (loanCase == null) return NotFound();
+                if (loanCase.Status != (int)LoanCaseStatus.Audited)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Only an Audited loan case awaiting disbursement can be cancelled"));
+
+                var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCase.CustomerId, header) ?? new List<CustomerAccountDTO>();
+                var loanAccounts = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Loan).ToList();
+                var standingOrders = accounts.SelectMany(account => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(account.Id, header) ?? new List<StandingOrderDTO>()).GroupBy(item => item.Id).Select(group => group.First()).ToList();
+                var payouts = _loanDisbursementBatchAppService.FindLoanDisbursementBatchEntriesByCustomerId((int)BatchStatus.Posted, loanCase.CustomerId, header) ?? new List<LoanDisbursementBatchEntryDTO>();
+                var applications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(loanCase.CustomerId, header) ?? new List<LoanCaseDTO>();
+                var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, header) ?? new List<LoanGuarantorDTO>();
+                var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, header) ?? new List<LoanCollateralDTO>();
+                var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, header) ?? new List<AttachedLoanDTO>();
+                var scheduleAmount = loanCase.ApprovedAmount > 0 ? loanCase.ApprovedAmount : loanCase.AmountApplied;
+                var repaymentSchedule = BuildRepaymentSchedule(scheduleAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
+                return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule, loanAccounts, standingOrders, payouts, applications }));
+            }
+            catch (Exception ex) { return InternalServerError(ex); }
         }
 
         // Returns an error message on failure, null on success. Mutates each
@@ -1010,6 +1190,243 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             loanCaseDTO.TakeHomeFixedAmount = loanProduct.TakeHomeFixedAmount;
         }
 
+        [HttpGet]
+        [Route("cancellation-queue")]
+        public IHttpActionResult CancellationQueue(int loanProductSection = (int)LoanProductSection.FOSA, DateTime? startDate = null, DateTime? endDate = null, string text = "", int loanCaseFilter = 0, int pageIndex = 0, int pageSize = 20)
+        {
+            try
+            {
+                if (!Enum.IsDefined(typeof(LoanProductSection), loanProductSection))
+                    return ErrorResponse("Invalid loan product section");
+                var from = (startDate ?? DateTime.Today.AddYears(-10)).Date;
+                var to = (endDate ?? DateTime.Today).Date.AddDays(1).AddTicks(-1);
+                if (from > to) return ErrorResponse("Start date cannot be after end date");
+                var header = Utils.CreateServiceHeader();
+                var page = _loanCaseAppService.FindLoanCasesBySectionAndStatus(loanProductSection, (int)LoanCaseStatus.Audited, from, to, text ?? "", loanCaseFilter, pageIndex, Math.Min(Math.Max(pageSize, 1), 100), true, header);
+                return Ok(ApiResponse("", page));
+            }
+            catch (Exception ex) { return InternalServerError(ex); }
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/approval-worksheet")]
+        public IHttpActionResult GetApprovalWorksheet(Guid id)
+        {
+            try
+            {
+                var header = Utils.CreateServiceHeader();
+                var loanCase = _loanCaseAppService.FindLoanCase(id, header);
+                if (loanCase == null) return NotFound();
+                if (loanCase.Status != (int)LoanCaseStatus.Appraised)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Only an Appraised loan case can be reviewed for approval"));
+
+                var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, header) ?? new List<LoanGuarantorDTO>();
+                var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, header) ?? new List<LoanCollateralDTO>();
+                var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, header) ?? new List<AttachedLoanDTO>();
+                var scheduleAmount = loanCase.AppraisedAmount > 0 ? loanCase.AppraisedAmount : loanCase.AmountApplied;
+                var repaymentSchedule = BuildRepaymentSchedule(scheduleAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
+                return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule }));
+            }
+            catch (Exception ex) { return InternalServerError(ex); }
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/verification-worksheet")]
+        public IHttpActionResult GetVerificationWorksheet(Guid id)
+        {
+            try
+            {
+                var header = Utils.CreateServiceHeader();
+                var loanCase = _loanCaseAppService.FindLoanCase(id, header);
+                if (loanCase == null) return NotFound();
+                if (loanCase.Status != (int)LoanCaseStatus.Approved)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Only an Approved loan case can be reviewed for verification"));
+
+                var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCase.CustomerId, header) ?? new List<CustomerAccountDTO>();
+                var loanAccounts = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Loan).ToList();
+                var standingOrders = accounts.SelectMany(account => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(account.Id, header) ?? new List<StandingOrderDTO>()).GroupBy(item => item.Id).Select(group => group.First()).ToList();
+                var payouts = _loanDisbursementBatchAppService.FindLoanDisbursementBatchEntriesByCustomerId((int)BatchStatus.Posted, loanCase.CustomerId, header) ?? new List<LoanDisbursementBatchEntryDTO>();
+                var applications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(loanCase.CustomerId, header) ?? new List<LoanCaseDTO>();
+                var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, header) ?? new List<LoanGuarantorDTO>();
+                var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, header) ?? new List<LoanCollateralDTO>();
+                var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, header) ?? new List<AttachedLoanDTO>();
+                var repaymentSchedule = BuildRepaymentSchedule(loanCase.ApprovedAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
+                return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule, loanAccounts, standingOrders, payouts, applications }));
+            }
+            catch (Exception ex) { return InternalServerError(ex); }
+        }
+
+        // Customer 360 read model used while registering a loan. It restores
+        // the active legacy Registration tabs without bringing MVC session
+        // state into the REST API.
+        [HttpGet]
+        [Route("customers/{customerId:guid}/registration-context")]
+        public IHttpActionResult RegistrationContext(Guid customerId, Guid? loanProductId = null)
+        {
+            try
+            {
+                var header = Utils.CreateServiceHeader();
+                var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(customerId, header) ?? new List<CustomerAccountDTO>();
+                var standingOrders = accounts.SelectMany(account => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(account.Id, header) ?? new List<StandingOrderDTO>()).GroupBy(item => item.Id).Select(group => group.First()).ToList();
+                var applications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(customerId, header) ?? new List<LoanCaseDTO>();
+                var payouts = _creditBatchAppService.FindCreditBatchEntriesByCustomerId((int)CreditBatchType.Payout, customerId, header) ?? new List<CreditBatchEntryDTO>();
+                var collaterals = _customerDocumentAppService.FindCustomerDocuments(customerId, 1, header) ?? new List<CustomerDocumentDTO>();
+                var investmentBalance = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(account => account.BookBalance);
+                var selectedProductLoanBalance = loanProductId.HasValue && loanProductId.Value != Guid.Empty
+                    ? (_customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(customerId, loanProductId.Value, header) ?? new List<CustomerAccountDTO>()).Sum(account => account.BookBalance + account.CarryForwardsBalance)
+                    : 0m;
+                return Ok(ApiResponse("", new { accounts, standingOrders, payouts, applications, collaterals, investmentBalance, selectedProductLoanBalance }));
+            }
+            catch (Exception ex) { return InternalServerError(ex); }
+        }
+
+        // Loan workflow items are stage assignments. Earlier roles in a
+        // configured approval chain can sign off through the generic
+        // workflow endpoint; the final unlocked item must accompany the
+        // detailed loan-stage request because that request carries the
+        // financial fields the generic workflow DTO cannot represent.
+        private bool OriginateLoanStageWorkflow(LoanCaseDTO loanCase, SystemPermissionType permissionType, ServiceHeader serviceHeader)
+        {
+            var roles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)permissionType, serviceHeader)
+                ?? new List<SystemPermissionTypeInRoleDTO>();
+            var approvalRoles = roles.Where(x => x.ApprovalPriority > 0 && x.RequiredApprovers > 0).ToList();
+
+            // An unmapped stage preserves the existing direct-processing
+            // behavior instead of creating a workflow with no actionable
+            // items and permanently stranding the loan.
+            if (!approvalRoles.Any()) return true;
+
+            var existing = _workflowAppService.FindWorkflow(loanCase.Id, (int)permissionType, serviceHeader);
+            if (existing != null && existing.MatchedStatus == (int)WorkflowMatchedStatus.NotMatched) return true;
+
+            return _workflowAppService.AddNewWorkflow(new WorkflowDTO
+            {
+                RecordId = loanCase.Id,
+                BranchId = loanCase.BranchId,
+                SystemPermissionType = (int)permissionType,
+                RequiredApprovals = approvalRoles.Sum(x => x.RequiredApprovers)
+            }, approvalRoles, serviceHeader);
+        }
+
+        private SystemPermissionType GetLoanStagePermission(LoanCaseDTO loanCase, SystemPermissionType fosaPermission, SystemPermissionType bosaPermission)
+        {
+            return GetLoanStagePermission(loanCase.LoanRegistrationLoanProductSection, fosaPermission, bosaPermission);
+        }
+
+        private SystemPermissionType GetLoanStagePermission(int loanProductSection, SystemPermissionType fosaPermission, SystemPermissionType bosaPermission)
+        {
+            return loanProductSection == (int)LoanProductSection.FOSA ? fosaPermission : bosaPermission;
+        }
+
+        private string ValidateMappedPermission(SystemPermissionType permissionType, ServiceHeader serviceHeader)
+        {
+            var mappedRoles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)permissionType, serviceHeader)
+                ?? new List<SystemPermissionTypeInRoleDTO>();
+            if (!mappedRoles.Any()) return null;
+
+            var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
+            return mappedRoles.Any(mapping => callerRoles.Any(role => string.Equals(role, mapping.RoleName, StringComparison.OrdinalIgnoreCase)))
+                ? null
+                : $"The current user does not hold a role mapped to {permissionType}";
+        }
+
+        private string ValidateFinalLoanStageItem(Guid loanCaseId, Guid workflowItemId, SystemPermissionType permissionType, ServiceHeader serviceHeader, out WorkflowItemDTO workflowItem)
+        {
+            workflowItem = null;
+            var workflow = _workflowAppService.FindWorkflow(loanCaseId, (int)permissionType, serviceHeader);
+
+            // No role mapping at origination means no workflow and the
+            // endpoint intentionally remains directly usable.
+            if (workflow == null) return null;
+            if (workflowItemId == Guid.Empty) return "workflowItemId is required for this assigned loan stage";
+
+            workflowItem = _workflowAppService.FindWorkflowItem(workflowItemId, serviceHeader);
+            if (workflowItem == null || workflowItem.WorkflowId != workflow.Id || workflowItem.WorkflowRecordId != loanCaseId)
+                return "The workflow item does not belong to this loan case";
+            if (workflowItem.WorkflowSystemPermissionType != (int)permissionType)
+                return "The workflow item is for a different loan stage";
+            if (workflowItem.Status != (int)WorkflowRecordStatus.Pending || workflowItem.IsLocked)
+                return "The workflow item is not currently actionable";
+
+            var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
+            var assignedRoleName = workflowItem.RoleName;
+            if (!callerRoles.Any(r => string.Equals(r, assignedRoleName, StringComparison.OrdinalIgnoreCase)))
+                return "The current user does not hold the role assigned to this loan stage";
+            if (!workflowItem.IsLastItemInOverallApprovalChain)
+                return "This workflow item is an earlier approval stage; approve it in Workflow Tasks before the final loan-stage action";
+
+            return null;
+        }
+
+        private bool CompleteLoanStageWorkflow(WorkflowItemDTO workflowItem, string remarks, bool usedBiometrics, ServiceHeader serviceHeader)
+        {
+            if (workflowItem == null) return true;
+
+            workflowItem.Status = (int)WorkflowApprovalOption.Approved;
+            workflowItem.Remarks = remarks ?? string.Empty;
+
+            if (!_workflowAppService.ApproveWorkflowItem(workflowItem, usedBiometrics, serviceHeader))
+                return false;
+
+            return _workflowAppService.MarkWorkflowMatched(
+                workflowItem.WorkflowRecordId,
+                workflowItem.WorkflowSystemPermissionType,
+                serviceHeader);
+        }
+
+        private List<RepaymentScheduleEntry> BuildRepaymentSchedule(decimal amount, double annualRate, int termInMonths, string calculationMode)
+        {
+            var result = new List<RepaymentScheduleEntry>();
+            if (amount <= 0 || termInMonths <= 0) return result;
+            var monthlyRate = Convert.ToDecimal(annualRate / 12d / 100d);
+            var remaining = amount;
+
+            for (var period = 1; period <= termInMonths; period++)
+            {
+                decimal payment;
+                decimal interest;
+                decimal principal;
+                switch (calculationMode ?? string.Empty)
+                {
+                    case "Reducing Balance":
+                    case "Amortization (Diminishing Balance)":
+                        var factor = Convert.ToDecimal(Math.Pow(1d + Convert.ToDouble(monthlyRate), termInMonths));
+                        payment = monthlyRate == 0 ? amount / termInMonths : amount * monthlyRate * factor / (factor - 1m);
+                        interest = remaining * monthlyRate;
+                        principal = payment - interest;
+                        break;
+                    case "Amortization (Straight Line)":
+                        payment = amount / termInMonths + amount * monthlyRate;
+                        interest = remaining * monthlyRate;
+                        principal = payment - interest;
+                        break;
+                    case "Straight Line":
+                    case "Fixed Interest":
+                    default:
+                        interest = amount * Convert.ToDecimal(annualRate / 100d) / termInMonths;
+                        principal = amount / termInMonths;
+                        payment = principal + interest;
+                        break;
+                }
+
+                if (period == termInMonths) principal = remaining;
+                payment = principal + interest;
+                var ending = Math.Max(0m, remaining - principal);
+                result.Add(new RepaymentScheduleEntry
+                {
+                    Period = period,
+                    DueDate = DateTime.Today.AddMonths(period),
+                    StartingBalance = Math.Round(remaining, 2),
+                    Payment = Math.Round(payment, 2),
+                    InterestPayment = Math.Round(interest, 2),
+                    PrincipalPayment = Math.Round(principal, 2),
+                    EndingBalance = Math.Round(ending, 2)
+                });
+                remaining = ending;
+            }
+            return result;
+        }
+
         private object ApiResponse(string message, object data)
         {
             return new { success = true, message, data };
@@ -1026,6 +1443,17 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         }
     }
 
+    public class RepaymentScheduleEntry
+    {
+        public int Period { get; set; }
+        public DateTime DueDate { get; set; }
+        public decimal StartingBalance { get; set; }
+        public decimal Payment { get; set; }
+        public decimal InterestPayment { get; set; }
+        public decimal PrincipalPayment { get; set; }
+        public decimal EndingBalance { get; set; }
+    }
+
     public class CreateLoanCaseRequest
     {
         public LoanCaseDTO LoanCase { get; set; }
@@ -1035,6 +1463,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
     public class AppraiseLoanCaseRequest
     {
+        public Guid WorkflowItemId { get; set; }
+        public bool UsedBiometrics { get; set; }
+
         // LoanAppraisalOption: 1 = Appraise, 2 = Reject.
         public int Option { get; set; }
 
@@ -1055,10 +1486,14 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         // Only applied when Option == Appraise (a rejection releases
         // guarantors and has no appraisal figures to keep).
         public List<LoanAppraisalFactorDTO> IncomeAdjustments { get; set; }
+        public List<Guid> AttachedLoanAccountIds { get; set; }
     }
 
     public class ApproveLoanCaseRequest
     {
+        public Guid WorkflowItemId { get; set; }
+        public bool UsedBiometrics { get; set; }
+
         // LoanApprovalOption: 1 = Approve, 2 = Reject, 4 = Defer.
         public int Option { get; set; }
 
@@ -1077,11 +1512,15 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
     public class AuditLoanCaseRequest
     {
+        public Guid WorkflowItemId { get; set; }
+        public bool UsedBiometrics { get; set; }
+
         // LoanAuditOption: 1 = Audit ("Verify" in the UI label), 2 = Reject, 4 = Defer.
         public int Option { get; set; }
 
         // Required for every option.
         public string AuditRemarks { get; set; }
+        public string Reference { get; set; }
     }
 
     public class CancelLoanCaseRequest

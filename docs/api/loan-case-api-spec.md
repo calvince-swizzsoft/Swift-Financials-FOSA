@@ -140,6 +140,9 @@ than the app service):
    `CaseNumber` server-generated) after its own duplicate-in-process check
    (§3). Guarantors and collateral are then attached via
    `UpdateLoanGuarantors`/`UpdateLoanCollaterals`.
+9. If roles are mapped to `SystemPermissionType.BackOfficeLoanAppraisal`,
+   registration creates a workflow and its role-priority items for the new
+   case. With no mapped roles, the pipeline retains direct processing.
 
 Returns the freshly-fetched `LoanCaseDTO` in `data` on success. `409` if
 `AddNewLoanCase`'s own duplicate-application guard fires (message from
@@ -217,6 +220,8 @@ above, standalone.
 
 ```json
 {
+  "workflowItemId": "...",
+  "usedBiometrics": false,
   "option": 1,
   "moduleNavigationItemCode": 1234,
   "appraisedNetIncome": 45000.00,
@@ -245,6 +250,13 @@ real `IncomeAdjustmentDTO` (its `description`/`type` are filled in
 server-side, don't bother sending them) and the same id can't appear twice
 in one request. Returns the freshly-fetched `LoanCaseDTO` on success.
 
+When an appraisal workflow exists, `workflowItemId` is required and must
+identify its unlocked, pending, final item assigned to one of the caller's
+roles. Earlier priority items are approved through the generic workflow
+API. Successful appraisal completes and matches this workflow and creates
+the `BackOfficeLoanApproval` workflow. Reject completes the current stage
+without creating a successor.
+
 **Real bug fixed in `LoanCaseAppService.AppraiseLoanCase`/`Async`
 themselves, not just the controller**: the guard clause used to force-set
 `persisted.Status` to `Registered` *before even null-checking* the fetched
@@ -262,6 +274,8 @@ see §10.
 
 ```json
 {
+  "workflowItemId": "...",
+  "usedBiometrics": false,
   "option": 1,
   "approvedAmount": 100000.00,
   "approvedAmountRemarks": "...",
@@ -286,6 +300,11 @@ above plus the persisted entity's `Id`/`Status`), and both were already
 meaningfully enforced once, at `Create`, against a fully-populated DTO. The
 reference MVC controller does both anyway; here they'd just be dead weight.
 
+When an approval workflow exists, the same final-item validation described
+in §8 applies. Approve completes/matches it and creates a
+`BackOfficeLoanAudit` workflow. Defer creates a fresh appraisal workflow;
+Reject creates no successor.
+
 **Auto-verification on approve**: if the loan product has
 `LoanRegistrationBypassAudit` set, a successful Approve auto-chains
 straight into `AuditLoanCase` in the same call — the returned `LoanCaseDTO`
@@ -304,6 +323,8 @@ the fetched entity. Fixed the same way.
 
 ```json
 {
+  "workflowItemId": "...",
+  "usedBiometrics": false,
   "option": 1,
   "auditRemarks": "..."
 }
@@ -313,6 +334,35 @@ the fetched entity. Fixed the same way.
 reference UI; → `Audited`), `2` = Reject (→ `Rejected`, releases
 guarantors), `4` = Defer (→ `Deferred`). Requires the case to currently be
 `Approved` — `409` otherwise. `auditRemarks` is required for every option.
+
+When an audit workflow exists, the same final-item validation described in
+§8 applies. Verify/Reject end the core workflow chain; Defer creates a new
+appraisal workflow.
+
+### Workflow behavior for loan stages
+
+The applicable permission family is selected from the persisted loan product
+section. BOSA loans use `BackOfficeLoanAppraisal` (45012),
+`BackOfficeLoanApproval` (45013), and `BackOfficeLoanAudit` (45011). FOSA
+loans use `FrontOfficeLoanAppraisal` (45008), `FrontOfficeLoanApproval`
+(45009), and `FrontOfficeLoanAudit` (45007).
+Mapped roles, `approvalPriority`, and `requiredApprovers` are read from
+`SystemPermissionTypeInRole`. Earlier priority items remain ordinary
+workflow sign-offs. The generic workflow endpoint refuses to approve the
+final loan-stage item because only the detailed endpoint has the business
+payload required to perform that transition. A generic rejection remains
+valid; the workflow processor applies the matching loan rejection and
+marks the workflow matched.
+
+Maker-checker separation is enforced across the chain. The first approver
+cannot be the workflow item's creator, and each later approval must be
+performed by a user other than the immediately preceding approver.
+
+For backward compatibility, a stage with no mapped roles creates no
+workflow and does not require `workflowItemId`. Once roles are configured,
+the workflow item is mandatory and its persisted case, permission type,
+role, pending status, lock state, and final-stage position are all checked
+server-side.
 
 This is the consequential transition. On `Audit`, `AuditLoanCase` (entirely
 server-side, driven by fields already on the case from registration and

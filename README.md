@@ -86,6 +86,17 @@ patterns worth watching for elsewhere in the codebase.
 
 - [`docs/api/`](docs/api/README.md) — client integration specs for each
   Web API area (customers, accounts, branches, text alerts, ...).
+- [`docs/EMAIL-DELIVERY.md`](docs/EMAIL-DELIVERY.md) — end-to-end email
+  delivery architecture: database persistence, MSMQ handoff, Windows Service
+  dispatcher, SMTP transport, recovery scanning, runtime prerequisites, and
+  operational/security cautions.
+- [`docs/USER-ONBOARDING-AND-FIRST-LOGIN.md`](docs/USER-ONBOARDING-AND-FIRST-LOGIN.md) —
+  user creation, centralized login-credentials email, first-login JWT gate,
+  mandatory current-password confirmation/change, configuration, and test
+  checklist.
+- [`docs/CUSTOMER-EDITING.md`](docs/CUSTOMER-EDITING.md) — customer edit
+  authorization, maker-checker staging and approval, workflow persistence,
+  migration requirements, frontend behavior, and end-to-end test checklist.
 - [`WebApplication1/Areas/FrontOffice/WORKFLOW.md`](WebApplication1/Areas/FrontOffice/WORKFLOW.md) —
   end-to-end functional workflow for the front office (teller transactions,
   maker-checker authorization, treasury cash movement, cheque lifecycle, end

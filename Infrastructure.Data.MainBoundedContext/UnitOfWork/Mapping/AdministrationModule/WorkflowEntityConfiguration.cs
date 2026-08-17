@@ -15,6 +15,7 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.Administrati
             Property(t => t.SequentialId).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsClustered = true, IsUnique = true }));
 
             Property(x => x.CreatedBy).HasMaxLength(256);
+            Property(x => x.Payload).IsOptional();
 
             ToTable(string.Format("{0}Workflows", DefaultSettings.Instance.TablePrefix));
         }

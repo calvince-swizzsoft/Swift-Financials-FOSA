@@ -85,6 +85,8 @@ namespace Application.MainBoundedContext.DTO.AdministrationModule
         [DataMember]
         [Display(Name = "Current Approvals")]
         public int CurrentApprovals { get; set; }
+        [DataMember]
+        public string Payload { get; set; }
 
     }
 }

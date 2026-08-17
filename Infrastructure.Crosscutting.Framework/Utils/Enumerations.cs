@@ -343,6 +343,10 @@ namespace Infrastructure.Crosscutting.Framework.Utils
 
         [Description("Loan Interest Adjustment")]
         LoanInterestAdjustment = 0xAFC0 + 103,
+        [Description("Customer Edit Verification")]
+        CustomerEditVerification = 0xAFC0 + 104,
+        [Description("User Password Reset")]
+        UserPasswordReset = 0xAFC0 + 105,
     }
 
     public enum SystemTransactionType

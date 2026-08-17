@@ -271,6 +271,34 @@ namespace WebApplication1.Areas.Workflows.Controllers
 
             try
             {
+                if (request?.WorkflowItem == null)
+                    return BadRequest("WorkflowItem is required");
+
+                var persisted = _workflowAppService.FindWorkflowItem(request.WorkflowItem.Id, serviceHeader);
+                if (persisted == null)
+                    return NotFound();
+
+                var isLoanStage = persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.BackOfficeLoanAppraisal
+                    || persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.BackOfficeLoanApproval
+                    || persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.BackOfficeLoanAudit
+                    || persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.FrontOfficeLoanAppraisal
+                    || persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.FrontOfficeLoanApproval
+                    || persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.FrontOfficeLoanAudit;
+
+                // Earlier priority stages remain ordinary sign-offs. The
+                // final approval must travel with the detailed loan form so
+                // the business transition and workflow completion cannot
+                // be separated.
+                if (isLoanStage
+                    && request.WorkflowItem.Status == (int)WorkflowApprovalOption.Approved
+                    && persisted.IsLastItemInOverallApprovalChain)
+                    return Content(System.Net.HttpStatusCode.Conflict, new
+                    {
+                        success = false,
+                        message = "The final loan-stage workflow item must be completed from its detailed loan screen.",
+                        data = (object)null
+                    });
+
                 var result = _workflowAppService.ApproveWorkflowItem(request.WorkflowItem, request.UsedBiometrics, serviceHeader);
 
                 return Ok(result);

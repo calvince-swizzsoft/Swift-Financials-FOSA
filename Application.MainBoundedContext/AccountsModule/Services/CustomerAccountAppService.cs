@@ -51,6 +51,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IBrokerService _brokerService;
         private readonly IWorkflowAppService _workflowAppService;
         private readonly IAuthorizationAppService _authorizationAppService;
+        private readonly IBranchAppService _branchAppService;
 
         public CustomerAccountAppService(
             IDbContextScopeFactory dbContextScopeFactory,
@@ -71,7 +72,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             ICommissionAppService commissionAppService,
             IBrokerService brokerService,
             IWorkflowAppService workflowAppService,
-            IAuthorizationAppService authorizationAppService)
+            IAuthorizationAppService authorizationAppService,
+            IBranchAppService branchAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -130,6 +132,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (authorizationAppService == null)
                 throw new ArgumentNullException(nameof(authorizationAppService));
 
+            if (branchAppService == null)
+                throw new ArgumentNullException(nameof(branchAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _customerAccountRepository = customerAccountRepository;
             _customerAccountHistoryRepository = customerAccountHistoryRepository;
@@ -149,32 +154,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _brokerService = brokerService;
             _workflowAppService = workflowAppService;
             _authorizationAppService = authorizationAppService;
+            _branchAppService = branchAppService;
         }
 
-        // Only savings accounts need verification - Loan/Investment accounts are always auto-approved at creation.
-        // Companies that haven't opted into maker-checker for account creation (EnforceCustomerAccountMakerChecker
-        // is off) get the same auto-approve behavior; this only gates companies that opted in.
-        // Takes an id rather than the freshly-constructed aggregate - Branch/Company are navigation properties
-        // that only populate once re-fetched through the repository (same as Activate()/Deactivate() rely on).
-        private void OriginateCustomerAccountVerificationWorkflowIfRequired(Guid customerAccountId, ServiceHeader serviceHeader)
+        private void OriginateCustomerAccountVerificationWorkflow(Guid customerAccountId, Guid branchId, List<SystemPermissionTypeInRoleDTO> rolesInSystemPermissionType, ServiceHeader serviceHeader)
         {
-            Guid branchId;
-
-            using (_dbContextScopeFactory.CreateReadOnly())
-            {
-                var persisted = _customerAccountRepository.Get(customerAccountId, serviceHeader);
-
-                if (persisted == null || persisted.Branch == null || persisted.Branch.Company == null || !persisted.Branch.Company.EnforceCustomerAccountMakerChecker)
-                    return;
-
-                branchId = persisted.BranchId;
-            }
-
-            var rolesInSystemPermissionType = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CustomerAccountVerification, serviceHeader);
-
-            if (rolesInSystemPermissionType == null || !rolesInSystemPermissionType.Any())
-                return;
-
             var workflowDTO = new WorkflowDTO
             {
                 RecordId = customerAccountId,
@@ -186,13 +170,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _workflowAppService.AddNewWorkflow(workflowDTO, rolesInSystemPermissionType, serviceHeader);
         }
 
-        // Decides the newly-created savings account's real RecordStatus - the initial insert always leaves it at
-        // whatever the caller's DTO carried (usually the unset default, RecordStatus.New). Called once per newly
-        // created savings account, after the insert, since Branch/Company only resolve on a re-fetched entity.
-        private void FinalizeSavingsAccountRecordStatus(Guid customerAccountId, ServiceHeader serviceHeader)
+        private void FinalizeCustomerAccountRecordStatus(Guid customerAccountId, Guid branchId, bool requiresVerification, List<SystemPermissionTypeInRoleDTO> roles, ServiceHeader serviceHeader)
         {
-            bool requiresVerification;
-
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var persisted = _customerAccountRepository.Get(customerAccountId, serviceHeader);
@@ -200,21 +179,30 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 if (persisted == null)
                     return;
 
-                requiresVerification = persisted.Branch != null && persisted.Branch.Company != null && persisted.Branch.Company.EnforceCustomerAccountMakerChecker;
-
                 persisted.RecordStatus = requiresVerification ? (byte)RecordStatus.New : (byte)RecordStatus.Approved;
 
                 dbContextScope.SaveChanges(serviceHeader);
             }
 
             if (requiresVerification)
-                OriginateCustomerAccountVerificationWorkflowIfRequired(customerAccountId, serviceHeader);
+                OriginateCustomerAccountVerificationWorkflow(customerAccountId, branchId, roles, serviceHeader);
         }
 
         public CustomerAccountDTO AddNewCustomerAccount(CustomerAccountDTO customerAccountDTO, ServiceHeader serviceHeader)
         {
             if (customerAccountDTO != null && customerAccountDTO.CustomerId != Guid.Empty && customerAccountDTO.BranchId != Guid.Empty)
             {
+                var branch = _branchAppService.FindBranch(customerAccountDTO.BranchId, serviceHeader);
+                if (branch == null)
+                    throw new InvalidOperationException("The customer account branch could not be resolved.");
+
+                var requiresVerification = branch.CompanyEnforceCustomerAccountMakerChecker;
+                var verificationRoles = requiresVerification
+                    ? _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)SystemPermissionType.CustomerAccountVerification, serviceHeader)
+                    : new List<SystemPermissionTypeInRoleDTO>();
+                if (requiresVerification && (verificationRoles == null || !verificationRoles.Any(x => x.ApprovalPriority > 0)))
+                    throw new InvalidOperationException("Customer account verification has no approver roles configured.");
+
                 var matchedCustomerAccounts = FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(customerAccountDTO.CustomerId, customerAccountDTO.CustomerAccountTypeTargetProductId, serviceHeader);
 
                 if (matchedCustomerAccounts != null && matchedCustomerAccounts.Any())
@@ -232,17 +220,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                         customerAccount.Status = (byte)customerAccountDTO.Status;
 
-                        switch ((ProductCode)customerAccountType.ProductCode)
-                        {
-                            case ProductCode.Loan:
-                            case ProductCode.Investment:
-                                customerAccount.RecordStatus = (int)RecordStatus.Approved;
-                                break;
-                            case ProductCode.Savings:
-                            default:
-                                customerAccount.RecordStatus = (byte)customerAccountDTO.RecordStatus;
-                                break;
-                        }
+                        customerAccount.RecordStatus = requiresVerification ? (byte)RecordStatus.New : (byte)RecordStatus.Approved;
 
                         customerAccount.CreatedBy = serviceHeader.ApplicationUserName;
 
@@ -251,19 +229,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         dbContextScope.SaveChanges(serviceHeader);
 
                         var createdCustomerAccountId = customerAccount.Id;
-                        var isSavingsAccount = (ProductCode)customerAccountType.ProductCode == ProductCode.Savings;
+                        FinalizeCustomerAccountRecordStatus(createdCustomerAccountId, branch.Id, requiresVerification, verificationRoles, serviceHeader);
 
-                        if (isSavingsAccount)
-                        {
-                            FinalizeSavingsAccountRecordStatus(createdCustomerAccountId, serviceHeader);
-
-                            // Re-fetch to reflect the finalized RecordStatus - deliberately not FindCustomerAccountDTO,
-                            // which also fetches balances via raw stored-proc calls that assume an established
-                            // transaction history and aren't needed here.
-                            return _customerAccountRepository.Get(createdCustomerAccountId, serviceHeader).ProjectedAs<CustomerAccountDTO>();
-                        }
-
-                        return customerAccount.ProjectedAs<CustomerAccountDTO>();
+                        return _customerAccountRepository.Get(createdCustomerAccountId, serviceHeader).ProjectedAs<CustomerAccountDTO>();
                     }
                 }
             }
@@ -346,48 +314,16 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (customerAccoountDTOs.Any())
                 {
-                    var createdSavingsAccountIds = new List<Guid>();
-
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    // Route every bulk-created product through the same creation method so savings,
+                    // investment and loan accounts all obey the company's account maker-checker flag.
+                    result = true;
+                    foreach (var item in customerAccoountDTOs)
                     {
-                        foreach (var item in customerAccoountDTOs)
-                        {
-                            var filter = CustomerAccountSpecifications.CustomerAccountWithCustomerIdAndCustomerAccountTypeTargetProductId(item.CustomerId, item.CustomerAccountTypeTargetProductId);
-
-                            ISpecification<CustomerAccount> spec = filter;
-
-                            if (_customerAccountRepository.AllMatchingCount(spec, serviceHeader) == 0)
-                            {
-                                var customerAccountType = new CustomerAccountType(item.CustomerAccountTypeProductCode, item.CustomerAccountTypeTargetProductId, item.CustomerAccountTypeTargetProductCode);
-
-                                var customerAccount = CustomerAccountFactory.CreateCustomerAccount(item.CustomerId, item.BranchId, customerAccountType, item.CustomerAccountTypeTargetProductChartOfAccountId);
-
-                                customerAccount.Status = (byte)item.Status;
-
-                                switch ((ProductCode)customerAccountType.ProductCode)
-                                {
-                                    case ProductCode.Loan:
-                                    case ProductCode.Investment:
-                                        customerAccount.RecordStatus = (int)RecordStatus.Approved;
-                                        break;
-                                    case ProductCode.Savings:
-                                    default:
-                                        customerAccount.RecordStatus = (byte)item.RecordStatus;
-                                        createdSavingsAccountIds.Add(customerAccount.Id);
-                                        break;
-                                }
-
-                                customerAccount.CreatedBy = serviceHeader.ApplicationUserName;
-
-                                _customerAccountRepository.Add(customerAccount, serviceHeader);
-                            }
-                        }
-
-                        result = dbContextScope.SaveChanges(serviceHeader) > 0;
+                        var existing = FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(item.CustomerId, item.CustomerAccountTypeTargetProductId, serviceHeader);
+                        if (existing != null && existing.Any()) continue;
+                        var created = AddNewCustomerAccount(item, serviceHeader);
+                        result = result && created != null && string.IsNullOrWhiteSpace(created.ErrorMessageResult);
                     }
-
-                    if (result && createdSavingsAccountIds.Any())
-                        createdSavingsAccountIds.ForEach(id => FinalizeSavingsAccountRecordStatus(id, serviceHeader));
                 }
             }
 
