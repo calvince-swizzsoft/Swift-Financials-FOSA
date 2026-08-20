@@ -275,6 +275,27 @@ namespace WebApplication1.Controllers
             }
         }
 
+        // For the account-alerts picker below — no REST exposure of
+        // SystemTransactionCode existed anywhere before this.
+        [HttpGet, Route("transaction-codes")]
+        public IHttpActionResult GetTransactionCodes()
+        {
+            try
+            {
+                var codes = Enum.GetValues(typeof(SystemTransactionCode))
+                    .Cast<SystemTransactionCode>()
+                    .Select(code => new { Value = (int)code, Description = EnumHelper.GetDescription(code) })
+                    .OrderBy(x => x.Description)
+                    .ToList();
+
+                return ApiResponse(true, "Transaction codes retrieved successfully", codes);
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
         [HttpGet, Route("{id:guid}/account-alerts")]
         public async Task<IHttpActionResult> GetAccountAlerts(Guid id)
         {
@@ -476,6 +497,61 @@ namespace WebApplication1.Controllers
 
                 var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
                 return ApiResponse(true, "Customer station updated successfully", updatedCustomer);
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
+        // ResetCustomerStationAsync takes a list (it's also used for bulk
+        // resets elsewhere), but the Station Linkage screen only ever
+        // removes one customer at a time — wrapped as a single-item list.
+        [HttpDelete, Route("{id:guid}/station")]
+        public async Task<IHttpActionResult> ResetStation(Guid id)
+        {
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var updated = await _customerAppService.ResetCustomerStationAsync(new List<CustomerDTO> { new CustomerDTO { Id = id } }, serviceHeader);
+                if (!updated)
+                    return ErrorResponse(HttpStatusCode.InternalServerError, "Failed to remove customer from station");
+
+                var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
+                return ApiResponse(true, "Customer removed from station successfully", updatedCustomer);
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
+        // UpdateCustomerBranch doesn't touch a Customer.BranchId field —
+        // there isn't one. It reassigns every account the customer already
+        // has to the given branch (via ICustomerAccountAppService), so it
+        // returns false both when the branch doesn't exist AND when the
+        // customer has no accounts yet; there's no way to tell which from
+        // here without a second service call, so the message below covers
+        // the more likely case. No reset/unlink counterpart exists in
+        // ICustomerAppService — Areas/Registry/Branch linkage.md only
+        // documents linking, not removing.
+        [HttpPut, Route("{id:guid}/branch")]
+        public async Task<IHttpActionResult> UpdateBranch(Guid id, [FromBody] CustomerDTO customer)
+        {
+            try
+            {
+                if (customer == null || id != customer.Id)
+                    return ErrorResponse(HttpStatusCode.BadRequest, "Invalid customer data");
+
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var updated = _customerAppService.UpdateCustomerBranch(customer, serviceHeader);
+                if (!updated)
+                    return ErrorResponse(HttpStatusCode.BadRequest, "Failed to link customer to branch — the customer must have at least one account before being linked to a branch.");
+
+                var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
+                return ApiResponse(true, "Customer linked to branch successfully", updatedCustomer);
             }
             catch (Exception ex)
             {

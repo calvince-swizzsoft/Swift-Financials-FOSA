@@ -175,6 +175,48 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                         }
 
                                         #endregion
+
+                                        #region Text Alert
+
+                                        // Deliberately omits the password (unlike the email above,
+                                        // which already included it before this change) — SMS is a
+                                        // less controlled channel than an authenticated inbox, so
+                                        // the text just points the user at the login page instead.
+                                        if (!string.IsNullOrWhiteSpace(userDTO.PhoneNumber) && Regex.IsMatch(userDTO.PhoneNumber.Trim(), @"^\+(?:[0-9]??){6,14}[0-9]$") && userDTO.PhoneNumber.Trim().Length >= 13)
+                                        {
+                                            var textAlertTemplatePath = Path.Combine(accountAlertDispatcherSettingsElement.TemplatesPath, string.Format("{0}_TextTemplate.cshtml", SystemTransactionCode.MembershipAccountRegistration));
+
+                                            if (File.Exists(textAlertTemplatePath))
+                                            {
+                                                var textTemplate = File.ReadAllText(textAlertTemplatePath);
+
+                                                dynamic textExpando = new ExpandoObject();
+
+                                                var textModel = textExpando as IDictionary<string, object>;
+
+                                                textModel.Add("FirstName", userDTO.FirstName);
+                                                textModel.Add("Username", userDTO.Email);
+                                                textModel.Add("CompanyDescription", branchDTO.Description);
+
+                                                var textResult = Engine.Razor.RunCompile(textTemplate, string.Format("{0}_TextTemplate", "AccountRegistration"), null, textModel);
+
+                                                var textAlertDTO = new TextAlertDTO
+                                                {
+                                                    BranchId = userDTO.BranchId.Value,
+                                                    TextMessageOrigin = (int)MessageOrigin.Within,
+                                                    TextMessageRecipient = userDTO.PhoneNumber,
+                                                    TextMessageBody = textResult,
+                                                    MessageCategory = (int)MessageCategory.SMSAlert,
+                                                    TextMessageDLRStatus = (int)DLRStatus.Pending,
+                                                    TextMessageSecurityCritical = true,
+                                                    TextMessagePriority = (int)QueuePriority.Highest,
+                                                };
+
+                                                Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                            }
+                                        }
+
+                                        #endregion
                                     }
 
                                     #endregion
@@ -2619,6 +2661,186 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                 }
                                             }
                                         }
+                                    }
+
+                                    #endregion
+
+                                    break;
+
+                                case AccountAlertTrigger.CustomerRegistration:
+
+                                    #region Do we need to send alerts?
+
+                                    var registeredCustomerDTO = Container.Current.Resolve<ICustomerAppService>().FindCustomer(queueDTO.RecordId, serviceHeader);
+
+                                    if (registeredCustomerDTO != null)
+                                    {
+                                        var customerRegistrationBranchDTO = Container.Current.Resolve<IBranchAppService>().FindBranch(registeredCustomerDTO.BranchId, serviceHeader);
+
+                                        #region Text Alert
+
+                                        if (!string.IsNullOrWhiteSpace(registeredCustomerDTO.AddressMobileLine) && Regex.IsMatch(registeredCustomerDTO.AddressMobileLine.Trim(), @"^\+(?:[0-9]??){6,14}[0-9]$") && registeredCustomerDTO.AddressMobileLine.Trim().Length >= 13)
+                                        {
+                                            var textAlertTemplatePath = Path.Combine(accountAlertDispatcherSettingsElement.TemplatesPath, string.Format("{0}_TextTemplate.cshtml", AccountAlertTrigger.CustomerRegistration));
+
+                                            if (File.Exists(textAlertTemplatePath))
+                                            {
+                                                var textTemplate = File.ReadAllText(textAlertTemplatePath);
+
+                                                dynamic textExpando = new ExpandoObject();
+
+                                                var textModel = textExpando as IDictionary<string, object>;
+
+                                                textModel.Add("FirstName", registeredCustomerDTO.IndividualFirstName);
+                                                textModel.Add("CompanyDescription", customerRegistrationBranchDTO.Description);
+
+                                                var textResult = Engine.Razor.RunCompile(textTemplate, string.Format("{0}_TextTemplate", AccountAlertTrigger.CustomerRegistration), null, textModel);
+
+                                                var textAlertDTO = new TextAlertDTO
+                                                {
+                                                    BranchId = registeredCustomerDTO.BranchId,
+                                                    TextMessageOrigin = (int)MessageOrigin.Within,
+                                                    TextMessageRecipient = registeredCustomerDTO.AddressMobileLine,
+                                                    TextMessageBody = textResult,
+                                                    MessageCategory = (int)MessageCategory.SMSAlert,
+                                                    TextMessageDLRStatus = (int)DLRStatus.Pending,
+                                                    TextMessageSecurityCritical = true,
+                                                    TextMessagePriority = (int)QueuePriority.Highest,
+                                                };
+
+                                                Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                            }
+                                        }
+
+                                        #endregion
+
+                                        #region Email Alert
+
+                                        if (!string.IsNullOrWhiteSpace(registeredCustomerDTO.AddressEmail) && Regex.IsMatch(registeredCustomerDTO.AddressEmail.Trim(), @"\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"))
+                                        {
+                                            var emailAlertTemplatePath = Path.Combine(accountAlertDispatcherSettingsElement.TemplatesPath, string.Format("{0}_EmailTemplate.cshtml", AccountAlertTrigger.CustomerRegistration));
+
+                                            if (File.Exists(emailAlertTemplatePath))
+                                            {
+                                                var emailTemplate = File.ReadAllText(emailAlertTemplatePath);
+
+                                                dynamic emailExpando = new ExpandoObject();
+
+                                                var emailModel = emailExpando as IDictionary<string, object>;
+
+                                                emailModel.Add("FirstName", registeredCustomerDTO.IndividualFirstName);
+                                                emailModel.Add("CompanyDescription", customerRegistrationBranchDTO.Description);
+
+                                                var emailResult = Engine.Razor.RunCompile(emailTemplate, string.Format("{0}_EmailTemplate", AccountAlertTrigger.CustomerRegistration), null, emailModel);
+
+                                                var emailAlertDTO = new EmailAlertDTO
+                                                {
+                                                    BranchId = registeredCustomerDTO.BranchId,
+                                                    MailMessageFrom = customerRegistrationBranchDTO.CompanyAddressEmail,
+                                                    MailMessageTo = registeredCustomerDTO.AddressEmail,
+                                                    MailMessageSubject = "Welcome to Swift Financial",
+                                                    MailMessageBody = emailResult,
+                                                    MailMessageIsBodyHtml = true,
+                                                    MailMessageDLRStatus = (int)DLRStatus.Pending,
+                                                    MailMessageOrigin = (int)MessageOrigin.Within,
+                                                    MailMessageSecurityCritical = true,
+                                                };
+
+                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
+                                            }
+                                        }
+
+                                        #endregion
+                                    }
+
+                                    #endregion
+
+                                    break;
+
+                                case AccountAlertTrigger.EmployeeRegistration:
+
+                                    #region Do we need to send alerts?
+
+                                    var registeredEmployeeDTO = Container.Current.Resolve<IEmployeeAppService>().FindEmployee(queueDTO.RecordId, serviceHeader);
+
+                                    if (registeredEmployeeDTO != null)
+                                    {
+                                        var employeeRegistrationBranchDTO = Container.Current.Resolve<IBranchAppService>().FindBranch(registeredEmployeeDTO.BranchId, serviceHeader);
+
+                                        #region Text Alert
+
+                                        if (!string.IsNullOrWhiteSpace(registeredEmployeeDTO.CustomerAddressMobileLine) && Regex.IsMatch(registeredEmployeeDTO.CustomerAddressMobileLine.Trim(), @"^\+(?:[0-9]??){6,14}[0-9]$") && registeredEmployeeDTO.CustomerAddressMobileLine.Trim().Length >= 13)
+                                        {
+                                            var textAlertTemplatePath = Path.Combine(accountAlertDispatcherSettingsElement.TemplatesPath, string.Format("{0}_TextTemplate.cshtml", AccountAlertTrigger.EmployeeRegistration));
+
+                                            if (File.Exists(textAlertTemplatePath))
+                                            {
+                                                var textTemplate = File.ReadAllText(textAlertTemplatePath);
+
+                                                dynamic textExpando = new ExpandoObject();
+
+                                                var textModel = textExpando as IDictionary<string, object>;
+
+                                                textModel.Add("FirstName", registeredEmployeeDTO.CustomerIndividualFirstName);
+                                                textModel.Add("CompanyDescription", employeeRegistrationBranchDTO.Description);
+
+                                                var textResult = Engine.Razor.RunCompile(textTemplate, string.Format("{0}_TextTemplate", AccountAlertTrigger.EmployeeRegistration), null, textModel);
+
+                                                var textAlertDTO = new TextAlertDTO
+                                                {
+                                                    BranchId = registeredEmployeeDTO.BranchId,
+                                                    TextMessageOrigin = (int)MessageOrigin.Within,
+                                                    TextMessageRecipient = registeredEmployeeDTO.CustomerAddressMobileLine,
+                                                    TextMessageBody = textResult,
+                                                    MessageCategory = (int)MessageCategory.SMSAlert,
+                                                    TextMessageDLRStatus = (int)DLRStatus.Pending,
+                                                    TextMessageSecurityCritical = true,
+                                                    TextMessagePriority = (int)QueuePriority.Highest,
+                                                };
+
+                                                Container.Current.Resolve<ITextAlertAppService>().AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                                            }
+                                        }
+
+                                        #endregion
+
+                                        #region Email Alert
+
+                                        if (!string.IsNullOrWhiteSpace(registeredEmployeeDTO.CustomerAddressEmail) && Regex.IsMatch(registeredEmployeeDTO.CustomerAddressEmail.Trim(), @"\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"))
+                                        {
+                                            var emailAlertTemplatePath = Path.Combine(accountAlertDispatcherSettingsElement.TemplatesPath, string.Format("{0}_EmailTemplate.cshtml", AccountAlertTrigger.EmployeeRegistration));
+
+                                            if (File.Exists(emailAlertTemplatePath))
+                                            {
+                                                var emailTemplate = File.ReadAllText(emailAlertTemplatePath);
+
+                                                dynamic emailExpando = new ExpandoObject();
+
+                                                var emailModel = emailExpando as IDictionary<string, object>;
+
+                                                emailModel.Add("FirstName", registeredEmployeeDTO.CustomerIndividualFirstName);
+                                                emailModel.Add("CompanyDescription", employeeRegistrationBranchDTO.Description);
+
+                                                var emailResult = Engine.Razor.RunCompile(emailTemplate, string.Format("{0}_EmailTemplate", AccountAlertTrigger.EmployeeRegistration), null, emailModel);
+
+                                                var emailAlertDTO = new EmailAlertDTO
+                                                {
+                                                    BranchId = registeredEmployeeDTO.BranchId,
+                                                    MailMessageFrom = employeeRegistrationBranchDTO.CompanyAddressEmail,
+                                                    MailMessageTo = registeredEmployeeDTO.CustomerAddressEmail,
+                                                    MailMessageSubject = "Welcome to Swift Financial",
+                                                    MailMessageBody = emailResult,
+                                                    MailMessageIsBodyHtml = true,
+                                                    MailMessageDLRStatus = (int)DLRStatus.Pending,
+                                                    MailMessageOrigin = (int)MessageOrigin.Within,
+                                                    MailMessageSecurityCritical = true,
+                                                };
+
+                                                Container.Current.Resolve<IEmailAlertAppService>().AddNewEmailAlert(emailAlertDTO, serviceHeader);
+                                            }
+                                        }
+
+                                        #endregion
                                     }
 
                                     #endregion

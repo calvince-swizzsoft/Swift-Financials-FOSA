@@ -50,6 +50,10 @@ Controller: `CreditBatchController.cs`, existing `ICreditBatchAppService`.
 | `/entries/{entryId}` | PUT | Update an entry (status is forward-only: `Pending → Posted/Rejected`) |
 | `/entries/remove` | POST | Batch-remove entries (`List<CreditBatchEntryDTO>`) |
 | `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — marks one entry `Posted`. For `CashPickup`/`SundryPayments` this **only** flips status, no GL journal — the journal for those two types is posted by `SundryPaymentsController` (`frontoffice-api-spec.md` §13.1), which calls this endpoint itself right after |
+| `/{id}/discrepancies?text=&filter=&pageIndex=&pageSize=` | GET | Discrepancy rows for one batch — `Payout`/`CheckOff` only, see §1.3. No server-side status filter (`filter` selects which raw column `text` searches, not status) — filter `Status === 1` client-side for actionable rows |
+| `/{id}/discrepancies/{discrepancyId}/match` | POST | `{ customerAccountId }` — allocate a row to a customer product account. For `CheckOff` this is real product allocation, branching on the row's `CheckOffEntryType` — see §1.3 |
+| `/{id}/discrepancies/{discrepancyId}/match-gl` | POST | `{ chartOfAccountId, moduleNavigationItemCode }` — allocate a row straight to a G/L account instead, posting synchronously |
+| `/{id}/discrepancies/{discrepancyId}/reject` | POST | No body. Rejects the row; nothing is posted |
 
 ### 1.1 Real bug fixed: the Audited precondition was commented out
 
@@ -90,6 +94,72 @@ guard on the async dispatch explicitly excludes them) — those entries stay
 `CreditBatchEntry` has no `Amount` column on the domain entity, so the
 AutoMapper projection always leaves it `0`. Use `principal + interest`
 instead.
+
+### 1.3 Discrepancy resolution — how CheckOff actually allocates to products
+
+Added later than the rest of this controller — earlier revisions of this
+doc (and `WebApplication1/Areas/Accounts/CLAUDE.md`) noted discrepancy
+browsing/matching as deliberately unexposed, since Cash Pickup didn't need
+it. It's exposed now, via the four routes in the table above, because it's
+the only path that turns an import's unmatched rows into real,
+product-allocated `CreditBatchEntry`s — `ICreditBatchAppService` itself
+was never missing this; only the REST surface was.
+
+**Where discrepancies come from**: `POST /{id}/import` (`CreditBatchImportController.cs`,
+existing) parses the uploaded CSV, auto-matches what it can straight into
+`CreditBatchEntry`, and records everything else as a `CreditBatchDiscrepancy`
+row — one raw `Column1`..`Column8` layout per `CreditBatchType`, transcribed
+from `ParseCreditBatchImport`:
+
+- **Payout**: `Column1`=Payroll No., `2`=Customer Name, `3`=Amount,
+  `4`=Savings Product Code, `5`=Reference.
+- **CheckOff**: `Column1`=Department, `2`=Payroll No., `3`=Contribution,
+  `4`=Product Balance, `5`=Beneficiary, `6`=Product Code, `7`=Entry Type
+  (`sInterest`/`sInvest`/`sLoan`/`sRisk`/`sShare`/`wCont`/`sLoanInterest`/
+  `wLoan` — the `CheckOffEntryType` enum's `Description`, matched
+  case-sensitively via `Enum.Parse` server-side), `8`=Reference.
+
+**Matching a row** (`POST .../discrepancies/{discrepancyId}/match`): the
+controller resolves the discrepancy by re-pulling the batch's discrepancy
+page and filtering by id (no single-discrepancy lookup exists on the app
+service), resolves the given `customerAccountId` to a `CustomerAccountDTO`,
+and forwards both into `CreditBatchAppService.MatchCreditBatchDiscrepancy`.
+For a `CheckOff` row, that method switches on `Column7`'s `CheckOffEntryType`
+and posts to the matching product:
+
+- `sLoan` / `sShare` / `wCont` / `sInvest` / `sRisk` / `wLoan` — resolves the
+  customer's account for the row's target product (matched by `Column2`
+  payroll number against the product implied by the picked account),
+  confirms the picked account is really that one match, then records a
+  `Pending` `CreditBatchEntry` against it.
+- `sLoanInterest` — the interesting one: recomputes the loan account's real
+  principal/interest book balances server-side (not from the file's
+  figures) and splits the contribution between interest and principal
+  per the loan product's `AggregateCheckOffRecoveryMode`
+  (`OutstandingBalance` — interest-first split against the current
+  balance — or `StandingOrder` — split against the account's own
+  `StandingOrder` interest figure instead).
+
+Every branch **throws `InvalidOperationException`** with a specific reason
+on a bad match — wrong account, wrong product, ambiguous (multiple account
+matches), or matching would exceed the batch's `TotalValue`. The controller
+catches this and returns it as a real `400`, not a generic `500` — surface
+`message` to the operator; it's the actual reason the pick was wrong, not a
+generic failure.
+
+**Posting timing**: a customer-account match only creates a `Pending`
+entry — it does **not** post a journal in the same call. Like every other
+Payout/CheckOff entry (§1.2), it posts later, asynchronously, when the
+batch is `Authorize`d. The G/L-only path (`match-gl`) is different: it
+posts synchronously, in the same call, same as `MatchCreditBatchDiscrepancy`'s
+other overload (credit the given chart of account, debit the batch's
+`CreditTypeChartOfAccountId`) — used for rows that aren't a specific
+member's deduction.
+
+**Rejecting a row** just flips its status — the app service's `Reject`
+branch never reads the account/chart-of-account argument, so the
+controller satisfies the overload's non-null check with a throwaway
+`CustomerAccountDTO` rather than adding a new endpoint shape.
 
 ---
 

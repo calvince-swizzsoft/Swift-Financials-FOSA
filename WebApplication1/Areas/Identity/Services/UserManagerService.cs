@@ -28,11 +28,13 @@ namespace WebApplication1.Areas.Identity.Services
         private readonly IAuditLogAppService _auditLogAppService;
         private readonly IEmployeeAppService _employeeAppService;
         private readonly IEmailAlertAppService _emailAlertAppService;
+        private readonly IBrokerService _brokerService;
         // public readonly ApplicationDbContext _applicationDbContext;
 
         public UserManagerService(IAuditLogAppService auditLogAppService,
             IEmployeeAppService employeeAppService,
-            IEmailAlertAppService emailAlertAppService
+            IEmailAlertAppService emailAlertAppService,
+            IBrokerService brokerService
 
             )
         {
@@ -40,10 +42,12 @@ namespace WebApplication1.Areas.Identity.Services
             Guard.ArgumentNotNull(auditLogAppService, nameof(auditLogAppService));
             Guard.ArgumentNotNull(employeeAppService, nameof(employeeAppService));
             Guard.ArgumentNotNull(emailAlertAppService, nameof(emailAlertAppService));
+            Guard.ArgumentNotNull(brokerService, nameof(brokerService));
 
             _auditLogAppService = auditLogAppService;
             _employeeAppService = employeeAppService;
             _emailAlertAppService = emailAlertAppService;
+            _brokerService = brokerService;
         }
 
 
@@ -100,6 +104,7 @@ namespace WebApplication1.Areas.Identity.Services
                 EmployeeId = userDTO.EmployeeId,
                 CustomerId = userDTO.CustomerId,
                 BranchId = userDTO.BranchId,
+                PhoneNumber = userDTO.PhoneNumber,
                 CreatedDate = DateTime.Now
             };
 
@@ -122,41 +127,23 @@ namespace WebApplication1.Areas.Identity.Services
                     if (string.IsNullOrWhiteSpace(loginUrl))
                         loginUrl = "http://localhost:5173/login";
 
-                    var displayName = string.Join(" ", new[] { user.FirstName, user.OtherNames }
-                        .Where(value => !string.IsNullOrWhiteSpace(value)));
-                    if (string.IsNullOrWhiteSpace(displayName))
-                        displayName = user.UserName;
+                    // Routed through the same AccountAlertTrigger.MembershipAccountRegistration
+                    // pipeline every other account-lifecycle notification in this app uses
+                    // (BrokerService -> MSMQ -> AccountAlertMessageProcessor -> Razor
+                    // templates in DistributedServices.MainBoundedContext/App_Data/
+                    // AccountAlertTemplates) instead of hand-building HTML inline here —
+                    // this used to be the one place in the app that bypassed that pipeline.
+                    // The dispatcher re-fetches the full user (including PhoneNumber, now
+                    // actually persisted above) via MembershipLookup.FindMembership and
+                    // sends both email and SMS from there; only the fields the queue
+                    // message itself carries (Id/Password/CallbackUrl) need setting here.
+                    // Enqueuing (not the HTTP request) is what must not block on a
+                    // stopped/unavailable broker after the Identity record has already
+                    // committed, same reasoning the old Task.Run(...) here was for.
+                    userDTO.Id = user.Id;
+                    userDTO.CallbackUrl = loginUrl;
 
-                    var emailBody = new StringBuilder()
-                        .AppendFormat("Dear {0},<br /><br />", HttpUtility.HtmlEncode(displayName))
-                        .Append("Welcome to Swift Financial. Your user account has been created.<br /><br />")
-                        .AppendFormat("Username: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(user.UserName))
-                        .AppendFormat("Email: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(user.Email))
-                        .AppendFormat("Temporary password: <strong>{0}</strong><br /><br />", HttpUtility.HtmlEncode(userDTO.Password))
-                        .Append("For your security, you must change this password the first time you sign in.<br /><br />")
-                        .AppendFormat("<a href=\"{0}\">Access Swift Financial</a>", HttpUtility.HtmlAttributeEncode(loginUrl))
-                        .ToString();
-
-                    var welcomeEmail = new EmailAlertDTO
-                    {
-                        BranchId = user.BranchId,
-                        MailMessageFrom = DefaultSettings.Instance.RootEmail,
-                        MailMessageTo = user.Email,
-                        MailMessageSubject = "Swift Financial - Login Details",
-                        MailMessageBody = emailBody,
-                        MailMessageIsBodyHtml = true,
-                        MailMessageOrigin = (int)MessageOrigin.Within,
-                        MailMessageSecurityCritical = true,
-                        MailMessagePriority = (int)QueuePriority.Highest
-                    };
-
-                    // The email app service persists the alert and then invokes
-                    // the MSMQ broker. A stopped/unavailable broker must not hold
-                    // the user-creation HTTP request open indefinitely after the
-                    // Identity record has already committed. Run notification
-                    // delivery out of band; failures remain visible on the email
-                    // alert/dispatcher side and do not roll back the user.
-                    Task.Run(() => _emailAlertAppService.AddNewEmailAlert(welcomeEmail, serviceHeader));
+                    Task.Run(() => _brokerService.ProcessMembershipAccountRegistrationAlerts(DMLCommand.None, serviceHeader, userDTO));
                 }
             }
 

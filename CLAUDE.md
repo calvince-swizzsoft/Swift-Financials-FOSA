@@ -213,8 +213,14 @@ drift out of sync with the actual code.
   + `entries/{entryId}/post`); `SundryPaymentsController`'s `CashPickup` case
   now calls `PostCreditBatchEntry` after a successful payment so a picked
   entry can't be paid twice. Discrepancy browsing/matching and CSV batch
-  import were deliberately not exposed — separate reconciliation/upload
-  concerns, not needed for Cash Pickup; see
+  import were originally left unexposed as separate reconciliation/upload
+  concerns not needed for Cash Pickup — **discrepancy browsing/matching is
+  now exposed** (`GET .../{id}/discrepancies`, `POST .../match`,
+  `.../match-gl`, `.../reject`) since it's what turns a CheckOff/Payout
+  import's unmatched rows into real, product-allocated entries; see
+  `docs/api/batch-procedures-api-spec.md` §1.3 for the CheckOffEntryType
+  branching this exposes. CSV import itself has its own controller,
+  `CreditBatchImportController.cs` — see
   `docs/api/frontoffice-api-spec.md` §13.3. **Real bug found and fixed,
   found much later** (on a follow-up audit pass triggered by the
   `LoanDisbursementBatch`/`MarkLoanCaseDisbursed` bug — see the

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Domain.MainBoundedContext.AccountsModule.Aggregates;
+using System;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.AlternateChannelAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.AlternateChannelLogAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.AlternateChannelReconciliationEntryAgg;
@@ -146,6 +147,22 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
             //CustomerAccount => CustomerAccountDTO
             CreateMap<CustomerAccount, CustomerAccountDTO>()
+                // Branch.Code is a smallint in the domain while the public DTO uses
+                // Int32. AutoMapper cannot build this projection implicitly.
+                .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => (int)src.Branch.Code))
+                .ForMember(dest => dest.CustomerAccountTypeProductCode, opt => opt.MapFrom(src => (int)src.CustomerAccountType.ProductCode))
+                .ForMember(dest => dest.CustomerAccountTypeTargetProductCode, opt => opt.MapFrom(src => (int)src.CustomerAccountType.TargetProductCode))
+                .ForMember(dest => dest.ScoredLoanDisbursementProductCode, opt => opt.MapFrom(src => (int)src.ScoredLoanDisbursementProductCode))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => (int)src.Status))
+                .ForMember(dest => dest.RecordStatus, opt => opt.MapFrom(src => (int)src.RecordStatus))
+                // These loan-only accounts are null for savings/investment target
+                // products. Projecting the flattened nullable relationship into a
+                // non-nullable Guid causes account-detail reads to fail.
+                .ForMember(dest => dest.CustomerAccountTypeTargetProductInterestReceivableChartOfAccountId, opt => opt.Ignore())
+                .ForMember(dest => dest.CustomerAccountTypeTargetProductInterestReceivedChartOfAccountId, opt => opt.Ignore())
+                .ForMember(dest => dest.CustomerAccountTypeTargetProductInterestChargedChartOfAccountId, opt => opt.Ignore())
+                .ForMember(dest => dest.CustomerStationZoneDivisionEmployerId, opt => opt.Ignore())
+                .ForMember(dest => dest.BranchCompanyId, opt => opt.MapFrom(src => src.Branch.CompanyId ?? Guid.Empty))
                 .ForMember(dest => dest.CustomerIndividualSalutationDescription, opt => opt.Ignore())
                 .ForMember(dest => dest.FullAccountNumber, opt => opt.Ignore())
                 .ForMember(dest => dest.CustomerFullName, opt => opt.Ignore())

@@ -34,6 +34,10 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(workflows);
             }
 
+            catch (InvalidOperationException ex)
+            {
+                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return InternalServerError(ex);
@@ -304,6 +308,10 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(result);
             }
 
+            catch (InvalidOperationException ex)
+            {
+                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return InternalServerError(ex);

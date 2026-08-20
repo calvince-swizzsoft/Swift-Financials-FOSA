@@ -12,24 +12,31 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             AddAllAttributeValidators();
         }
 
+        [DataMember]
         [Display(Name = "Id")]
         public Guid Id { get; set; }
 
+        [DataMember]
         [Display(Name = "Loan Product")]
         public Guid LoanProductId { get; set; }
 
+        [DataMember]
         [Display(Name = "Loan Product")]
         public string LoanProductDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "Name")]
         public string Description { get; set; }
 
+        [DataMember]
         [Display(Name = "Is Locked")]
         public bool IsLocked { get; set; }
 
+        [DataMember]
         [Display(Name = "Created By")]
         public string CreatedBy { get; set; }
 
+        [DataMember]
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }
 

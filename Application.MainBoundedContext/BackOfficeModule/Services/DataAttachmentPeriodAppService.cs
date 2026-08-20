@@ -146,6 +146,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         persisted.Status = (int)DataAttachmentPeriodStatus.Closed;
                         persisted.AuthorizedBy = serviceHeader.ApplicationUserName;
                         persisted.AuthorizedDate = DateTime.Now;
+                        persisted.AuthorizationRemarks = dataAttachmentPeriodDTO.AuthorizationRemarks;
 
                         return dbContextScope.SaveChanges(serviceHeader) >= 0;
                     }

@@ -173,6 +173,7 @@ namespace WebApplication1
             Current.RegisterType<IDivisionAppService, DivisionAppService>();
             Current.RegisterType<ICustomerAppService, CustomerAppService>();
             Current.RegisterType<ICustomerDocumentAppService, CustomerDocumentAppService>();
+            Current.RegisterType<INextOfKinAppService, NextOfKinAppService>();
             Current.RegisterType<IFileRegisterAppService, FileRegisterAppService>();
             Current.RegisterType<IDelegateAppService, DelegateAppService>();
             Current.RegisterType<IDirectorAppService, DirectorAppService>();

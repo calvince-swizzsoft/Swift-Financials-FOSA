@@ -1550,8 +1550,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 GLAccountId = line.ChartOfAccountId,
                                 CustomerAccountId = line.CustomerAccountId,
                                 ContraGLAccountId = line.ContraChartOfAccountId,
-                                Credit = (line.Amount > 0m) ? line.Amount : 0m,
-                                Debit = (line.Amount < 0m) ? line.Amount * -1 : 0m,
+                                // Journal.PostDoubleEntries persists debit legs as
+                                // positive amounts and credit legs as negative amounts.
+                                // Preserve that accounting meaning on customer statements.
+                                Debit = (line.Amount > 0m) ? line.Amount : 0m,
+                                Credit = (line.Amount < 0m) ? line.Amount * -1 : 0m,
                                 ApplicationUserName = line.JournalApplicationUserName,
                                 EnvironmentUserName = line.JournalEnvironmentUserName,
                                 EnvironmentMachineName = line.JournalEnvironmentMachineName,
@@ -1614,8 +1617,16 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                     break;
                                 case ProductCode.Loan:
+
+                                    // Loans are receivable assets: debits increase the
+                                    // outstanding balance and credits reduce it.
+                                    netBookValue = (line.Debit + (line.Credit * -1));
+
+                                    break;
                                 case ProductCode.Investment:
 
+                                    // Member investments, like savings, carry a credit
+                                    // balance from the customer's statement perspective.
                                     netBookValue = (line.Credit + (line.Debit * -1));
 
                                     break;
@@ -1685,8 +1696,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             GLAccountId = line.ChartOfAccountId,
                             CustomerAccountId = line.CustomerAccountId,
                             ContraGLAccountId = line.ContraChartOfAccountId,
-                            Credit = (line.Amount > 0m) ? line.Amount : 0m,
-                            Debit = (line.Amount < 0m) ? line.Amount * -1 : 0m,
+                            // Journal.PostDoubleEntries persists debit legs as
+                            // positive amounts and credit legs as negative amounts.
+                            Debit = (line.Amount > 0m) ? line.Amount : 0m,
+                            Credit = (line.Amount < 0m) ? line.Amount * -1 : 0m,
                             ApplicationUserName = line.JournalApplicationUserName,
                             EnvironmentUserName = line.JournalEnvironmentUserName,
                             EnvironmentMachineName = line.JournalEnvironmentMachineName,
@@ -1749,6 +1762,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                 break;
                             case ProductCode.Loan:
+
+                                netBookValue = (line.Debit + (line.Credit * -1));
+
+                                break;
                             case ProductCode.Investment:
 
                                 netBookValue = (line.Credit + (line.Debit * -1));

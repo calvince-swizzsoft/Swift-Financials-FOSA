@@ -347,6 +347,20 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         CustomerEditVerification = 0xAFC0 + 104,
         [Description("User Password Reset")]
         UserPasswordReset = 0xAFC0 + 105,
+        [Description("User-Defined Report Viewing")]
+        UserDefinedReportViewing = 0xAFC0 + 106,
+        [Description("User-Defined Report Administration")]
+        UserDefinedReportAdministration = 0xAFC0 + 107,
+        [Description("Instant Messaging Access")]
+        InstantMessagingAccess = 0xAFC0 + 108,
+        [Description("BOSA Check-Off Period Management")]
+        BackOfficeCheckOffPeriodManagement = 0xAFC0 + 109,
+        [Description("BOSA Check-Off Data Capture")]
+        BackOfficeCheckOffDataCapture = 0xAFC0 + 110,
+        [Description("BOSA Check-Off Period Closing")]
+        BackOfficeCheckOffPeriodClosing = 0xAFC0 + 111,
+        [Description("BOSA Check-Off Catalogue Viewing")]
+        BackOfficeCheckOffCatalogueViewing = 0xAFC0 + 112,
     }
 
     public enum SystemTransactionType
@@ -3480,6 +3494,15 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         LeaveApproval,
         [Description("Customer Details Editing")]
         CustomerDetailsEditing,
+        // Appended 2026-08-18, not inserted among the existing values above —
+        // this enum is unnumbered/sequential, so a value inserted in the
+        // middle would silently renumber every value after it and corrupt
+        // any AccountAlertTrigger already serialized to a queue message or
+        // stored as a raw int elsewhere.
+        [Description("Customer Registration")]
+        CustomerRegistration,
+        [Description("Employee Registration")]
+        EmployeeRegistration,
     }
     public enum RequisitionBatchEntryFilter
     {

@@ -368,6 +368,7 @@
     <Compile Include="RegistryModule\Services\ConditionalLendingAppService.cs" />
     <Compile Include="RegistryModule\Services\CustomerAppService.cs" />
     <Compile Include="RegistryModule\Services\CustomerDocumentAppService.cs" />
+    <Compile Include="RegistryModule\Services\NextOfKinAppService.cs" />
     <Compile Include="RegistryModule\Services\DelegateAppService.cs" />
     <Compile Include="RegistryModule\Services\DirectorAppService.cs" />
     <Compile Include="RegistryModule\Services\EducationRegisterAppService.cs" />
@@ -380,6 +381,7 @@
     <Compile Include="RegistryModule\Services\IConditionalLendingAppService.cs" />
     <Compile Include="RegistryModule\Services\ICustomerAppService.cs" />
     <Compile Include="RegistryModule\Services\ICustomerDocumentAppService.cs" />
+    <Compile Include="RegistryModule\Services\INextOfKinAppService.cs" />
     <Compile Include="RegistryModule\Services\IDelegateAppService.cs" />
     <Compile Include="RegistryModule\Services\IDirectorAppService.cs" />
     <Compile Include="RegistryModule\Services\IEducationRegisterAppService.cs" />

@@ -334,13 +334,13 @@ namespace Infrastructure.Crosscutting.Framework.Utils
 
                 //..Data Capture
                 new NavigationMenu { AreaCode = 0x00011170 + 2, IsArea = true, Description = "Data Capture", Icon = "", Code = 0x00011170 + 18 },
-                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Data Periods", Icon = "fa fa-cogs", ControllerName = "GuarantorManagement", ActionName = "Create", AreaName = "Loaning",
+                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Data Periods", Icon = "fa fa-calendar", ControllerName = "DataCapture", ActionName = "Index", AreaName = "Loaning",
                     Code = 0x00011170 + 19 },
-                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Data Processing", Icon = "fa fa-cogs", ControllerName = "GuarantorManagement", ActionName = "Create", AreaName = "Loaning",
+                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Data Processing", Icon = "fa fa-keyboard-o", ControllerName = "DataProcessing", ActionName = "Index", AreaName = "Loaning",
                     Code = 0x00011170 + 20 },
-                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Closing", Icon = "fa fa-cogs", ControllerName = "GuarantorManagement", ActionName = "Create", AreaName = "Loaning",
+                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Closing", Icon = "fa fa-lock", ControllerName = "Closing", ActionName = "Index", AreaName = "Loaning",
                     Code = 0x00011170 + 21 },
-                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Catalogue", Icon = "fa fa-cogs", ControllerName = "GuarantorManagement", ActionName = "Create", AreaName = "Loaning",
+                new NavigationMenu { AreaCode = 0x00011170 + 18, IsArea = false, Description = "Catalogue", Icon = "fa fa-list", ControllerName = "Catalogue", ActionName = "Index", AreaName = "Loaning",
                     Code = 0x00011170 + 22 },
                 #endregion
 

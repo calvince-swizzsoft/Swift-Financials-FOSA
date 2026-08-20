@@ -1,6 +1,7 @@
 ﻿using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
+using Application.MainBoundedContext.Services;
 using Application.Seedwork;
 using Domain.MainBoundedContext.HumanResourcesModule.Aggregates.EmployeeAgg;
 using Domain.MainBoundedContext.HumanResourcesModule.Aggregates.SalaryCardAgg;
@@ -19,11 +20,13 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<Employee> _employeeRepository;
         private readonly IRepository<SalaryCard> _salaryCardRepository;
+        private readonly IBrokerService _brokerService;
 
         public EmployeeAppService(
            IDbContextScopeFactory dbContextScopeFactory,
            IRepository<Employee> employeeRepository,
-           IRepository<SalaryCard> salaryCardRepository)
+           IRepository<SalaryCard> salaryCardRepository,
+           IBrokerService brokerService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -34,9 +37,13 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
             if (salaryCardRepository == null)
                 throw new ArgumentNullException(nameof(salaryCardRepository));
 
+            if (brokerService == null)
+                throw new ArgumentNullException(nameof(brokerService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _employeeRepository = employeeRepository;
             _salaryCardRepository = salaryCardRepository;
+            _brokerService = brokerService;
         }
 
         public EmployeeDTO AddNewEmployee(EmployeeDTO employeeDTO, ServiceHeader serviceHeader)
@@ -71,7 +78,16 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                         dbContextScope.SaveChanges(serviceHeader);
 
-                        return employee.ProjectedAs<EmployeeDTO>();
+                        var createdEmployeeDTO = employee.ProjectedAs<EmployeeDTO>();
+
+                        // Same enqueue-only responsibility BrokerService has
+                        // everywhere else — actual email/SMS content and
+                        // sending happens downstream in
+                        // AccountAlertMessageProcessor, keyed off
+                        // AccountAlertTrigger.EmployeeRegistration.
+                        _brokerService.ProcessEmployeeRegistrationAccountAlerts(DMLCommand.None, serviceHeader, createdEmployeeDTO);
+
+                        return createdEmployeeDTO;
                     }
                 }
             }

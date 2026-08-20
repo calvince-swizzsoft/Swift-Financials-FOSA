@@ -73,6 +73,10 @@ namespace Application.MainBoundedContext.Services
 
         bool ProcessLeaveApprovalAccountAlerts(DMLCommand command, ServiceHeader serviceHeader, params LeaveApplicationDTO[] data);
 
+        bool ProcessCustomerRegistrationAccountAlerts(DMLCommand command, ServiceHeader serviceHeader, params CustomerDTO[] data);
+
+        bool ProcessEmployeeRegistrationAccountAlerts(DMLCommand command, ServiceHeader serviceHeader, params EmployeeDTO[] data);
+
         bool ProcessJournalReversalBatchEntries(DMLCommand command, ServiceHeader serviceHeader, params JournalReversalBatchEntryDTO[] data);
 
         bool ProcessCustomerDetailsEditingAccountAlerts(DMLCommand command, ServiceHeader serviceHeader, params QueueDTO[] data);

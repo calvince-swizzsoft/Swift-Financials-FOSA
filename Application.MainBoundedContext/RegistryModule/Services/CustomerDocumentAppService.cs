@@ -256,11 +256,11 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             {
                 ISpecification<CustomerDocument> spec = CustomerDocumentSpecifications.DefaultSpec();
 
-                var customerDocuments = _customerDocumentRepository.AllMatching(spec, serviceHeader);
+                var customerDocuments = _customerDocumentRepository.AllMatching<CustomerDocumentDTO>(spec, serviceHeader);
 
                 if (customerDocuments != null && customerDocuments.Any())
                 {
-                    return customerDocuments.ProjectedAsCollection<CustomerDocumentDTO>();
+                    return customerDocuments;
                 }
                 else return null;
             }
@@ -282,11 +282,11 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             {
                 ISpecification<CustomerDocument> spec = CustomerDocumentSpecifications.CustomerDocumentWithCustomerIdAndType(customerId, type);
 
-                var customerDocuments = _customerDocumentRepository.AllMatching(spec, serviceHeader);
+                var customerDocuments = _customerDocumentRepository.AllMatching<CustomerDocumentDTO>(spec, serviceHeader);
 
                 if (customerDocuments != null && customerDocuments.Any())
                 {
-                    return customerDocuments.ProjectedAsCollection<CustomerDocumentDTO>();
+                    return customerDocuments;
                 }
                 else return null;
             }
@@ -312,17 +312,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                 var sortFields = new List<string> { "SequentialId" };
 
-                var customerDocumentPagedCollection = _customerDocumentRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
-
-                if (customerDocumentPagedCollection != null)
-                {
-                    var pageCollection = customerDocumentPagedCollection.PageCollection.ProjectedAsCollection<CustomerDocumentDTO>();
-
-                    var itemsCount = customerDocumentPagedCollection.ItemsCount;
-
-                    return new PageCollectionInfo<CustomerDocumentDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
-                }
-                else return null;
+                return _customerDocumentRepository.AllMatchingPaged<CustomerDocumentDTO>(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
             }
         }
 
@@ -350,17 +340,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                 var sortFields = new List<string> { "SequentialId" };
 
-                var customerDocumentPagedCollection = _customerDocumentRepository.AllMatchingPaged(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
-
-                if (customerDocumentPagedCollection != null)
-                {
-                    var pageCollection = customerDocumentPagedCollection.PageCollection.ProjectedAsCollection<CustomerDocumentDTO>();
-
-                    var itemsCount = customerDocumentPagedCollection.ItemsCount;
-
-                    return new PageCollectionInfo<CustomerDocumentDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
-                }
-                else return null;
+                return _customerDocumentRepository.AllMatchingPaged<CustomerDocumentDTO>(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
             }
         }
 
@@ -384,13 +364,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             {
                 using (_dbContextScopeFactory.CreateReadOnly())
                 {
-                    var customerDocument = _customerDocumentRepository.Get(customerDocumentId, serviceHeader);
-
-                    if (customerDocument != null)
-                    {
-                        return customerDocument.ProjectedAs<CustomerDocumentDTO>();
-                    }
-                    else return null;
+                    return _customerDocumentRepository.Get<CustomerDocumentDTO>(customerDocumentId, serviceHeader);
                 }
             }
             else return null;

@@ -382,10 +382,10 @@ found/fixed/not-ported building each one.
 | Loaning remark catalogue | `LoaningRemarkController` | `Areas/BackOffice/Controllers/LoaningRemarkController.cs` | **Live** — see §13 |
 | Income adjustment catalogue | `IncomeAdjustmentsController` | `Areas/BackOffice/Controllers/IncomeAdjustmentController.cs` | **Live** — see §13 |
 | Loan product appraisal budget | `LoanProductAppraisalController` | — | Not built (see §13) |
-| Data attachment period open/edit | `DataCaptureController` | — | Not built |
-| Data attachment entry capture | `DataProcessingController` | — | Not built |
-| Data attachment period close | `ClosingController` | — | Not built |
-| Data attachment entry browse | `CatalogueController` | — | Not built |
+| Data attachment period open/edit | `DataCaptureController` | `CheckOffDataCaptureController` (`periods`) | Built |
+| Data attachment entry capture | `DataProcessingController` | `CheckOffDataCaptureController` (`entries`) | Built |
+| Data attachment period close | `ClosingController` | `CheckOffDataCaptureController` (`close`) | Built |
+| Data attachment entry browse | `CatalogueController` | `CheckOffDataCaptureController` (`entries`, read-only UI) | Built |
 | Repayment schedule preview | `RepaymentScheduleController` | — | Not built (see §13) |
 | Loan reporting by status | `ReportsController` | — | Not built |
 | **Disbursement batch** | `AuthorizeLoanBatchController` | `Areas/Accounts/Controllers/LoanDisbursementBatchController.cs` | **Live** — see §11 |

@@ -328,7 +328,15 @@ namespace WebApplication1.Controllers
                             switch ((TellerCashBalanceStatus)cashTransferRequestDTO.TellerCashBalanceStatusValue)
                             {
                                 case TellerCashBalanceStatus.Balanced:
-                                    break;
+                                    // The teller-to-treasury journal above is the complete
+                                    // posting for a balanced till; no variance journal is
+                                    // required. Return that journal as the successful receipt.
+                                    return Json(new
+                                    {
+                                        success = true,
+                                        message = "Operation Success: End of Day Operation Completed Successfully",
+                                        data = cashManagementResult
+                                    });
                                 case TellerCashBalanceStatus.Shortage:
                                     model.TotalValue = cashTransferRequestDTO.BookBalance - cashTransferRequestDTO.ClosingBalance;
                                     model.CreditChartOfAccountId = SelectedTeller.ChartOfAccountId ?? Guid.Empty;

@@ -1004,6 +1004,44 @@ Back-office ledger view for a chart-of-accounts (G/L) account, plus an
 unscoped "all transactions in a date range" audit browse. Not
 customer-facing.
 
+### Financial statements — new
+
+Faithful REST exposure of the legacy `sp_FinancialSummary` and
+`sp_FinancialStatementBranch` procedures. Provides Trial Balance, Income and
+Expenditure, Balance Sheet, and branch financial-position endpoints under
+`api/accounts/financial-statements`. See
+[`financial-statements-api-spec.md`](./financial-statements-api-spec.md).
+
+### Account statuses — new
+
+Read-only Customer 360 inquiry covering account listings, selected-account
+history, customer particulars, referees/specimen availability, signatories,
+standing orders, alternate channels, uncleared cheques, fixed deposits, and
+loan-guarantor relationships. Cross-employee access is protected by
+`EmployeeCustomerAccountViewing`. See
+[`account-statuses-api-spec.md`](./account-statuses-api-spec.md).
+
+### User-defined reports — new
+
+Permission-controlled SSRS catalogue and viewer launcher with categorized
+RDL governance, configurable server URL, validated uploads, and separate
+administration rights. See
+[`user-defined-reports-api-spec.md`](./user-defined-reports-api-spec.md).
+
+### Instant messaging — new
+
+Authenticated persistent direct and group conversations, searchable users,
+unread counts, and incremental message retrieval. The implementation corrects
+the legacy global in-memory chat's impersonation and durability weaknesses. See
+[`instant-messaging-api-spec.md`](./instant-messaging-api-spec.md).
+
+### Checkoff data capture — new
+
+The payroll/checkoff data-attachment workflow now exposes period opening and
+editing, customer-account entry capture, controlled closing, and a read-only
+catalogue. See
+[`checkoff-data-capture-api-spec.md`](./checkoff-data-capture-api-spec.md).
+
 ### Standing orders — new
 
 Full CRUD/search over standing orders (recurring transfers between

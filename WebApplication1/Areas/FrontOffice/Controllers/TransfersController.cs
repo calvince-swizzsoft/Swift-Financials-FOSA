@@ -103,7 +103,7 @@ namespace WebApplication1.Controllers
             {
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                var cashTransferRequests = _cashTransferRequestAppService.FindCashTransferRequestsAsync(serviceHeader);
+                var cashTransferRequests = await _cashTransferRequestAppService.FindCashTransferRequestsAsync(serviceHeader);
                 return Ok(cashTransferRequests);
             }
 
@@ -163,7 +163,10 @@ namespace WebApplication1.Controllers
 
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                var successRequest = _cashTransferRequestAppService.AddNewCashTransferRequestAsync(cashTransferRequestDTO, serviceHeader);
+                // Complete persistence before creating the companion fiscal count.
+                // Previously the un-awaited Task was always non-null and both operations
+                // raced on the same request-scoped data context, causing requests to hang.
+                var successRequest = await _cashTransferRequestAppService.AddNewCashTransferRequestAsync(cashTransferRequestDTO, serviceHeader);
 
                 if (successRequest != null)
                 {

@@ -1,42 +1,44 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
-using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.RegistryModule.Services;
+using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Cors;
-using WebApplication.Services;
 using WebApplication1.Helpers;
-using WebApplication1.Services;
-
 
 namespace WebApplication1.Controllers
 {
-
-    //[EnableCors(origins: "*", headers: "*", methods: "*")]
-    //[AllowAnonymous]
+    // NOTE (2026-08-20): this controller (api/registry/customers, plural)
+    // used to depend on WebApplication1/Services/CustomerService.cs, a
+    // raw-ADO.NET class — every action here now goes through
+    // ICustomerAppService instead, the same app service the real
+    // create/edit path (api/registry/customer, singular, CustomerController.cs)
+    // already uses. Along the way, every action that only ever wrapped
+    // CustomerService with no live frontend caller was removed rather than
+    // reimplemented against the app service — GetByType, GetByName,
+    // GetByIdentificationNumber, GetByStation, the bundled
+    // customer+accounts+next-of-kin+SMS Create flow (real creation goes
+    // through CustomerController.cs / CustomerAppService.AddNewCustomerAsync,
+    // which already handles company-mandatory product auto-attachment),
+    // CheckDuplicateCustomer, GetByBankName/GetByBranchName/distinct-name
+    // lookups, Search, and Delete (ICustomerAppService has no
+    // delete/remove — customers are never hard-deleted in this domain).
+    // What's left — GetAll, Get(id), Update, and the identity-card search —
+    // are the only actions with a confirmed live frontend caller.
     [RoutePrefix("api/registry/customers")]
     public class CustomersController : ApiController
     {
-
-        private readonly CustomerService _service = new CustomerService();
-        private readonly NextOfKinService _nextOfKinService = new NextOfKinService();
-        private readonly ICustomerAccountAppService _customerAccountAppService;
-        private readonly IBranchAppService _branchAppService;
-        private readonly ICompanyAppService _companyAppService;
+        private readonly ICustomerAppService _customerAppService;
+        private readonly INextOfKinAppService _nextOfKinAppService;
 
         public CustomersController(
-            ICustomerAccountAppService customerAccountAppService,
-            IBranchAppService branchAppService,
-            ICompanyAppService companyAppService)
+            ICustomerAppService customerAppService,
+            INextOfKinAppService nextOfKinAppService)
         {
-            _customerAccountAppService = customerAccountAppService ?? throw new ArgumentNullException(nameof(customerAccountAppService));
-            _branchAppService = branchAppService ?? throw new ArgumentNullException(nameof(branchAppService));
-            _companyAppService = companyAppService ?? throw new ArgumentNullException(nameof(companyAppService));
+            _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
+            _nextOfKinAppService = nextOfKinAppService ?? throw new ArgumentNullException(nameof(nextOfKinAppService));
         }
 
         private IHttpActionResult ApiResponse(bool success, string message, object data = null)
@@ -46,18 +48,17 @@ namespace WebApplication1.Controllers
 
         [HttpGet]
         [Route("search/identity-card")]
-        public IHttpActionResult SearchByIdentityCard(
-string identityCardNumber,
-bool exactMatch = false)
+        public async Task<IHttpActionResult> SearchByIdentityCard(string identityCardNumber, bool exactMatch = false)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(identityCardNumber))
                     return ApiResponse(false, "Identity card number is required");
 
-                var customers = _service
-                    .SearchByIndividualIdentityCardNumber(identityCardNumber, exactMatch)
-                    .ToList();
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var customers = await _customerAppService.FindCustomersByIdentityCardNumberAsync(identityCardNumber, exactMatch, serviceHeader)
+                    ?? new List<CustomerDTO>();
 
                 return ApiResponse(
                     true,
@@ -73,15 +74,15 @@ bool exactMatch = false)
             }
         }
 
-
-
-
         [HttpGet, Route("")]
-        public IHttpActionResult GetAll()
+        public async Task<IHttpActionResult> GetAll()
         {
             try
             {
-                var customers = _service.GetAll();
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var customers = await _customerAppService.FindCustomersAsync(serviceHeader) ?? new List<CustomerDTO>();
+
                 return ApiResponse(true, "Customers retrieved successfully", customers);
             }
             catch (Exception ex)
@@ -96,14 +97,22 @@ bool exactMatch = false)
         {
             try
             {
-                var customer = _service.GetById(id);
+                var serviceHeader = Utils.CreateServiceHeader();
+
+                var customer = _customerAppService.FindCustomer(id, serviceHeader);
                 if (customer == null)
                     return Content(System.Net.HttpStatusCode.NotFound,
                                    new { success = false, message = "Customer not found" });
 
                 // Get next of kins for this customer
-                var nextOfKins = _nextOfKinService.GetByCustomerId(id);
-                var percentageSummary = _nextOfKinService.GetPercentageSummary(id);
+                var nextOfKins = _nextOfKinAppService.FindNextOfKins(id, serviceHeader) ?? new List<NextOfKinDTO>();
+                var nextOfKinTotal = nextOfKins.Sum(n => n.NominatedPercentage);
+                var percentageSummary = new
+                {
+                    TotalNextOfKins = nextOfKins.Count,
+                    TotalPercentage = nextOfKinTotal,
+                    RemainingPercentage = Math.Max(0, 100 - nextOfKinTotal),
+                };
 
                 return ApiResponse(true, "Customer retrieved successfully", new
                 {
@@ -119,457 +128,8 @@ bool exactMatch = false)
             }
         }
 
-        [HttpGet, Route("by-type/{type:int}")]
-        public IHttpActionResult GetByType(int type)
-        {
-            try
-            {
-                var customers = _service.GetByType(type);
-                return ApiResponse(true, "Customers retrieved successfully", customers);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("by-name/{name}")]
-        public IHttpActionResult GetByName(string name)
-        {
-            try
-            {
-                var customers = _service.GetByName(name);
-                return ApiResponse(true, "Customers retrieved successfully", customers);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("by-identification/{identificationNumber}")]
-        public IHttpActionResult GetByIdentificationNumber(string identificationNumber)
-        {
-            try
-            {
-                var customers = _service.GetByIdentificationNumber(identificationNumber);
-                return ApiResponse(true, "Customers retrieved successfully", customers);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("by-station/{stationId:guid}")]
-        public IHttpActionResult GetByStation(Guid stationId)
-        {
-            try
-            {
-                var customers = _service.GetByStationId(stationId);
-                return ApiResponse(true, "Customers retrieved successfully", customers);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpPost, Route("")]
-        public async Task<IHttpActionResult> Create([FromBody] CustomerWithNextOfKinsDTO request)
-        {
-            try
-            {
-                if (request?.Customer == null)
-                    return Content(System.Net.HttpStatusCode.BadRequest,
-                                   new { success = false, message = "Invalid customer data" });
-
-                var customer = request.Customer;
-
-                // Validate required fields
-                if (customer.BranchId == Guid.Empty)
-                    return Content(System.Net.HttpStatusCode.BadRequest,
-                                   new { success = false, message = "Branch ID is required" });
-
-                // Validate phone number
-                if (string.IsNullOrEmpty(customer.AddressMobileLine))
-                {
-                    return Content(System.Net.HttpStatusCode.BadRequest,
-                                   new { success = false, message = "Mobile number is required for SMS notification" });
-                }
-
-                // ENHANCED DUPLICATE VALIDATION
-                string duplicateCheckMessage = "";
-                CustomerDTO existingCustomer = null;
-
-                if (customer.Type == 1) // Individual
-                {
-                    if (string.IsNullOrEmpty(customer.IndividualIdentityCardNumber))
-                    {
-                        return Content(System.Net.HttpStatusCode.BadRequest,
-                                       new { success = false, message = "Identity card number is required for individual customers" });
-                    }
-
-                    existingCustomer = _service.GetByIdentityCardNumber(customer.IndividualIdentityCardNumber);
-                    if (existingCustomer != null)
-                    {
-                        duplicateCheckMessage = $"Individual customer with ID Card Number '{customer.IndividualIdentityCardNumber}' already exists";
-                    }
-                }
-                else if (customer.Type == 3) // Corporation
-                {
-                    if (string.IsNullOrEmpty(customer.NonIndividualRegistrationNumber))
-                    {
-                        return Content(System.Net.HttpStatusCode.BadRequest,
-                                       new { success = false, message = "Registration number is required for corporate customers" });
-                    }
-
-                    existingCustomer = _service.GetByRegistrationNumber(customer.NonIndividualRegistrationNumber);
-                    if (existingCustomer != null)
-                    {
-                        duplicateCheckMessage = $"Corporate customer with Registration Number '{customer.NonIndividualRegistrationNumber}' already exists";
-                    }
-                }
-                else if (customer.Type == 2 || customer.Type == 4) // Partnership or MicroCredit
-                {
-                    if (string.IsNullOrEmpty(customer.NonIndividualRegistrationNumber))
-                    {
-                        return Content(System.Net.HttpStatusCode.BadRequest,
-                                       new { success = false, message = "Registration number is required for this customer type" });
-                    }
-
-                    existingCustomer = _service.GetByRegistrationNumber(customer.NonIndividualRegistrationNumber);
-                    if (existingCustomer != null)
-                    {
-                        duplicateCheckMessage = $"Customer with Registration Number '{customer.NonIndividualRegistrationNumber}' already exists";
-                    }
-                }
-
-                if (existingCustomer != null)
-                {
-                    return Content(System.Net.HttpStatusCode.Conflict,
-                                   new
-                                   {
-                                       success = false,
-                                       message = duplicateCheckMessage,
-                                       existingCustomer = new
-                                       {
-                                           existingCustomer.Id,
-                                           Type = existingCustomer.Type,
-                                           Name = existingCustomer.Type == 1
-                                               ? $"{existingCustomer.IndividualFirstName} {existingCustomer.IndividualLastName}"
-                                               : existingCustomer.NonIndividualDescription,
-                                           IdentityNumber = existingCustomer.Type == 1
-                                               ? existingCustomer.IndividualIdentityCardNumber
-                                               : existingCustomer.NonIndividualRegistrationNumber,
-                                           existingCustomer.Reference2,
-                                           existingCustomer.CreatedDate,
-                                           BankName = existingCustomer.BankName,
-                                           BranchName = existingCustomer.BranchName
-                                       }
-                                   });
-                }
-
-                var createdCustomer = _service.Create(customer);
-
-                // Create accounts automatically for the customer
-                if (createdCustomer != null)
-                {
-                    try
-                    {
-                        var serviceHeader = Utils.CreateServiceHeader();
-
-                        var branch = _branchAppService.FindBranch(customer.BranchId, serviceHeader);
-
-                        var attachedProducts = branch != null
-                            ? _companyAppService.FindCachedAttachedProducts(branch.CompanyId, serviceHeader)
-                            : null;
-
-                        createdCustomer.BranchId = customer.BranchId;
-
-                        _customerAccountAppService.AddNewCustomerAccounts(
-                            createdCustomer,
-                            attachedProducts?.SavingsProductCollection,
-                            attachedProducts?.InvestmentProductCollection,
-                            attachedProducts?.LoanProductCollection,
-                            serviceHeader);
-
-                        // AddNewCustomerAccounts only returns bool - re-fetch to get the created accounts for the response.
-                        var createdAccounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(createdCustomer.Id, serviceHeader)
-                            ?? new List<Application.MainBoundedContext.DTO.AccountsModule.CustomerAccountDTO>();
-
-                        // Create next of kins if provided
-                        var createdNextOfKins = new System.Collections.Generic.List<NextOfKinDTO>();
-                        var nextOfKinErrors = new System.Collections.Generic.List<string>();
-
-                        if (request.NextOfKins != null && request.NextOfKins.Any())
-                        {
-                            double totalPercentage = 0;
-
-                            // Validate percentages first
-                            foreach (var nextOfKin in request.NextOfKins)
-                            {
-                                nextOfKin.CustomerId = createdCustomer.Id;
-                                totalPercentage += nextOfKin.NominatedPercentage;
-                            }
-
-                            if (totalPercentage > 100)
-                            {
-                                return Content(System.Net.HttpStatusCode.BadRequest,
-                                               new
-                                               {
-                                                   success = false,
-                                                   message = $"Total next of kin percentage ({totalPercentage:0.##}%) exceeds 100%",
-                                                   totalPercentage
-                                               });
-                            }
-
-                            // Create next of kins
-                            foreach (var nextOfKin in request.NextOfKins)
-                            {
-                                try
-                                {
-                                    var createdNextOfKin = _nextOfKinService.Create(nextOfKin);
-                                    createdNextOfKins.Add(createdNextOfKin);
-                                }
-                                catch (Exception nextOfKinEx)
-                                {
-                                    nextOfKinErrors.Add($"Error creating next of kin {nextOfKin.FirstName} {nextOfKin.LastName}: {nextOfKinEx.Message}");
-                                }
-                            }
-                        }
-
-                        var percentageSummary = _nextOfKinService.GetPercentageSummary(createdCustomer.Id);
-
-                        // Send welcome SMS to the customer
-                        bool smsSent = false;
-                        string smsResponse = "";
-
-                        try
-                        {
-                            string fullName = $"{createdCustomer.IndividualFirstName ?? ""} {createdCustomer.IndividualLastName ?? ""}".Trim();
-
-                            if (string.IsNullOrEmpty(fullName))
-                            {
-                                fullName = createdCustomer.FullName ?? "Valued Customer";
-                            }
-
-                            if (string.IsNullOrEmpty(fullName))
-                            {
-                                fullName = $"{customer.IndividualFirstName ?? ""} {customer.IndividualLastName ?? ""}".Trim();
-                            }
-
-                            System.Diagnostics.Debug.WriteLine($"SMS - Phone: {customer.AddressMobileLine}, Name: '{fullName}', MemberNo: '{createdCustomer.Reference2 ?? "N/A"}'");
-
-                            smsSent = await SmsHelper.SendWelcomeSmsAsync(
-                                customer.AddressMobileLine,
-                                fullName,
-                                createdCustomer.Reference2 ?? customer.Reference2 ?? "N/A"
-                            );
-
-                            if (smsSent)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"Successfully sent welcome SMS to {customer.AddressMobileLine}");
-                                smsResponse = "SMS sent successfully";
-                            }
-                            else
-                            {
-                                System.Diagnostics.Debug.WriteLine($"Failed to send welcome SMS to {customer.AddressMobileLine}");
-                                smsResponse = "SMS failed to send";
-                            }
-                        }
-                        catch (Exception smsEx)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"SMS exception for {customer.AddressMobileLine}: {smsEx.Message}");
-                            smsResponse = $"SMS error: {smsEx.Message}";
-                        }
-
-                        return Content(System.Net.HttpStatusCode.Created,
-                                       new
-                                       {
-                                           success = true,
-                                           message = "Customer created successfully with accounts and next of kins",
-                                           sms = new
-                                           {
-                                               sent = smsSent,
-                                               phone = customer.AddressMobileLine,
-                                               response = smsResponse
-                                           },
-                                           data = new
-                                           {
-                                               customer = createdCustomer,
-                                               accounts = createdAccounts,
-                                               accountCount = createdAccounts.Count(),
-                                               nextOfKins = createdNextOfKins,
-                                               nextOfKinCount = createdNextOfKins.Count,
-                                               nextOfKinErrors = nextOfKinErrors,
-                                               percentageSummary = percentageSummary
-                                           }
-                                       });
-                    }
-                    catch (Exception accountEx)
-                    {
-                        // Customer was created but accounts failed
-                        System.Diagnostics.Debug.WriteLine($"Customer created but accounts failed: {accountEx.Message}");
-
-                        return Content(System.Net.HttpStatusCode.Created,
-                                       new
-                                       {
-                                           success = true,
-                                           message = "Customer created successfully, but account creation failed",
-                                           data = createdCustomer,
-                                           warning = accountEx.Message
-                                       });
-                    }
-                }
-
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = "Failed to create customer" });
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("check-duplicate/{idType}/{idNumber}")]
-        public IHttpActionResult CheckDuplicateCustomer(string idType, string idNumber)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(idNumber))
-                    return Content(System.Net.HttpStatusCode.BadRequest,
-                                   new { success = false, message = "ID number is required" });
-
-                CustomerDTO existingCustomer = null;
-                string message = "";
-
-                if (idType.ToLower() == "individual")
-                {
-                    existingCustomer = _service.GetByIdentityCardNumber(idNumber);
-                    message = existingCustomer != null
-                        ? $"Individual customer with ID Card Number '{idNumber}' already exists"
-                        : $"No individual customer found with ID Card Number '{idNumber}'";
-                }
-                else if (idType.ToLower() == "corporate" || idType.ToLower() == "registration")
-                {
-                    existingCustomer = _service.GetByRegistrationNumber(idNumber);
-                    message = existingCustomer != null
-                        ? $"Corporate customer with Registration Number '{idNumber}' already exists"
-                        : $"No corporate customer found with Registration Number '{idNumber}'";
-                }
-                else
-                {
-                    // Check both
-                    existingCustomer = _service.GetByIdentityCardNumber(idNumber) ??
-                                       _service.GetByRegistrationNumber(idNumber);
-                    message = existingCustomer != null
-                        ? $"Customer with ID/Registration Number '{idNumber}' already exists"
-                        : $"No customer found with ID/Registration Number '{idNumber}'";
-                }
-
-                var exists = existingCustomer != null;
-
-                return ApiResponse(true, message, new
-                {
-                    exists,
-                    idType,
-                    idNumber,
-                    customer = exists ? new
-                    {
-                        existingCustomer.Id,
-                        Type = existingCustomer.Type,
-                        Name = existingCustomer.Type == 1
-                            ? $"{existingCustomer.IndividualFirstName} {existingCustomer.IndividualLastName}"
-                            : existingCustomer.NonIndividualDescription,
-                        IdentityNumber = existingCustomer.Type == 1
-                            ? existingCustomer.IndividualIdentityCardNumber
-                            : existingCustomer.NonIndividualRegistrationNumber,
-                        existingCustomer.Reference2,
-                        existingCustomer.CreatedDate,
-                        BankName = existingCustomer.BankName,
-                        BranchName = existingCustomer.BranchName
-                    } : null
-                });
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("by-bank/{bankName}")]
-        public IHttpActionResult GetByBankName(string bankName)
-        {
-            try
-            {
-                var customers = _service.GetByBankName(bankName);
-                return ApiResponse(true, "Customers retrieved successfully by bank name", customers);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("by-branch/{branchName}")]
-        public IHttpActionResult GetByBranchName(string branchName)
-        {
-            try
-            {
-                var customers = _service.GetByBranchName(branchName);
-                return ApiResponse(true, "Customers retrieved successfully by branch name", customers);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("banks/distinct")]
-        public IHttpActionResult GetDistinctBankNames()
-        {
-            try
-            {
-                var banks = _service.GetDistinctBankNames();
-                return ApiResponse(true, "Distinct bank names retrieved successfully", banks);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("branches/distinct/{bankName}")]
-        public IHttpActionResult GetDistinctBranchNames(string bankName)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(bankName))
-                    return Content(System.Net.HttpStatusCode.BadRequest,
-                                   new { success = false, message = "Bank name is required" });
-
-                var branches = _service.GetDistinctBranchNames(bankName);
-                return ApiResponse(true, "Distinct branch names retrieved successfully", branches);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
         [HttpPut, Route("{id:guid}")]
-        public IHttpActionResult Update(Guid id, [FromBody] CustomerDTO customer)
+        public async Task<IHttpActionResult> Update(Guid id, [FromBody] CustomerDTO customer)
         {
             try
             {
@@ -608,26 +168,36 @@ bool exactMatch = false)
                     return Content(System.Net.HttpStatusCode.BadRequest,
                                    new { success = false, message = "Mobile number is required" });
 
+                var serviceHeader = Utils.CreateServiceHeader();
+
                 // Check if customer exists
-                var existingCustomer = _service.GetById(id);
+                var existingCustomer = _customerAppService.FindCustomer(id, serviceHeader);
                 if (existingCustomer == null)
                     return Content(System.Net.HttpStatusCode.NotFound,
                                    new { success = false, message = "Customer not found" });
 
                 // Set ModifiedBy if not provided
                 if (string.IsNullOrEmpty(customer.ModifiedBy))
-                {
-                    // You might want to get this from the authenticated user
-                    customer.ModifiedBy = "System";
-                }
+                    customer.ModifiedBy = serviceHeader.ApplicationUserName;
 
-                // Update the customer
-                _service.Update(customer);
+                // Update the customer — validation (duplicate identity/registration
+                // numbers, required-field checks, etc.) lives inside
+                // UpdateCustomerAsync itself, same as the real edit path.
+                var updated = await _customerAppService.UpdateCustomerAsync(customer, serviceHeader);
+                if (!updated)
+                    return Content(System.Net.HttpStatusCode.InternalServerError,
+                                   new { success = false, message = "Failed to update customer" });
 
                 // Get updated customer with next of kin info
-                var updatedCustomer = _service.GetById(id);
-                var nextOfKins = _nextOfKinService.GetByCustomerId(id);
-                var percentageSummary = _nextOfKinService.GetPercentageSummary(id);
+                var updatedCustomer = _customerAppService.FindCustomer(id, serviceHeader);
+                var nextOfKins = _nextOfKinAppService.FindNextOfKins(id, serviceHeader) ?? new List<NextOfKinDTO>();
+                var nextOfKinTotal = nextOfKins.Sum(n => n.NominatedPercentage);
+                var percentageSummary = new
+                {
+                    TotalNextOfKins = nextOfKins.Count,
+                    TotalPercentage = nextOfKinTotal,
+                    RemainingPercentage = Math.Max(0, 100 - nextOfKinTotal),
+                };
 
                 return Content(System.Net.HttpStatusCode.OK,
                                new
@@ -658,87 +228,5 @@ bool exactMatch = false)
                                new { success = false, message = ex.Message });
             }
         }
-
-        [HttpDelete, Route("{id:guid}")]
-        public IHttpActionResult Delete(Guid id)
-        {
-            try
-            {
-                // Delete next of kins first
-                _nextOfKinService.DeleteByCustomerId(id);
-
-                // Then delete customer
-                _service.Delete(id);
-
-                return ApiResponse(true, "Customer and associated next of kins deleted successfully");
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("search")]
-        public IHttpActionResult Search([FromUri] string query)
-        {
-            try
-            {
-                var customers = _service.Search(query);
-                return ApiResponse(true, "Customers retrieved successfully", customers);
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpGet, Route("debug-branch-company/{branchId:guid}")]
-        public IHttpActionResult DebugBranchCompany(Guid branchId)
-        {
-            try
-            {
-                var branch = _branchAppService.FindBranch(branchId, Utils.CreateServiceHeader());
-
-                if (branch == null)
-                    return Content(System.Net.HttpStatusCode.NotFound,
-                                   new { success = false, message = "Branch not found" });
-
-                var companyAttachedProductService = new CompanyAttachedProductService();
-                var attachedProducts = companyAttachedProductService.GetByCompanyId(branch.CompanyId);
-
-                return ApiResponse(true, "Branch and company details retrieved", new
-                {
-                    branch = new
-                    {
-                        branch.Id,
-                        branch.Code,
-                        branch.Description,
-                        branch.CompanyId,
-                        branch.CompanyDescription
-                    },
-                    attachedProductsCount = attachedProducts.Count(),
-                    attachedProducts = attachedProducts.Select(ap => new
-                    {
-                        ap.Id,
-                        ap.CompanyId,
-                        ap.TargetProductId,
-                        ap.ProductCode
-                    })
-                });
-            }
-            catch (Exception ex)
-            {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
-            }
-        }
-    }
-
-    public class CustomerWithNextOfKinsDTO
-    {
-        public CustomerDTO Customer { get; set; }
-        public System.Collections.Generic.List<NextOfKinDTO> NextOfKins { get; set; }
     }
 }

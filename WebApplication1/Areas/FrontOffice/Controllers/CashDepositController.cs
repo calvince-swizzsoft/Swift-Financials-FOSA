@@ -417,8 +417,11 @@ namespace WebApplication1.Controllers
                         transactionModel.DebitCustomerAccountId = SelectedCustomerAccount.Id;
                         transactionModel.CreditCustomerAccountId = SelectedCustomerAccount.Id;
                         transactionModel.CreditCustomerAccount = SelectedCustomerAccount;
-                        transactionModel.CreditChartOfAccountId = targetSavingsProduct.ChartOfAccountId;
-                        //transactionModel.DebitChartOfAccountId = SelectedCustomerAccount.CustomerAccountTypeTargetProductChartOfAccountId;
+                        // A withdrawal debits the customer's product control account and
+                        // credits the teller cash account.  The payment-voucher path used
+                        // to assign the product to CreditChartOfAccountId and immediately
+                        // overwrite it with the teller below, leaving the debit G/L empty.
+                        transactionModel.DebitChartOfAccountId = targetSavingsProduct.ChartOfAccountId;
                     }
 
                     if (SelectedTeller != null && !SelectedTeller.IsLocked)
@@ -1027,7 +1030,9 @@ namespace WebApplication1.Controllers
                                         {
                                             CreditCustomerAccountId = SelectedCustomerAccount.Id,
                                             TotalValue = transactionModel.TotalValue,
-                                            Reference = transactionModel.Reference
+                                            Reference = transactionModel.Reference,
+                                            CashDepositRequestId = cashDepositRequestDTO.Id,
+                                            CashDepositCategory = (int)cashDepositCategory
                                         }
                                     };
 
@@ -1179,7 +1184,7 @@ namespace WebApplication1.Controllers
                                         aboveLimitsCashWithdrawalRequest.CustomerName = SelectedCustomer.FullName;
                                         aboveLimitsCashWithdrawalRequest.CustomerAccountId = SelectedCustomerAccount.Id;
                                         aboveLimitsCashWithdrawalRequest.Remarks = selectedTellerDTO.Id.ToString();
-                                        aboveLimitsCashWithdrawalRequest.TransactionType = (int)FrontOfficeTransactionType.CashWithdrawal;
+                                        aboveLimitsCashWithdrawalRequest.TransactionType = frontOfficeTransactionType;
                                         aboveLimitsCashWithdrawalRequest.Status = (int)CashWithdrawalRequestAuthStatus.Pending;
 
                                         aboveLimitsCashWithdrawalRequest.ValidateAll();
@@ -1232,7 +1237,8 @@ namespace WebApplication1.Controllers
                                                 PaymentVoucherId = transactionModel.PaymentVoucher.Id,
                                                 PaymentVoucherPayee = transactionModel.PaymentVoucher.Payee,
                                                 CashWithdrawalCategory = (int)cashWithdrawalCategory,
-                                                PaymentVoucherWriteDate = transactionModel.PaymentVoucher.WriteDate
+                                                PaymentVoucherWriteDate = transactionModel.PaymentVoucher.WriteDate,
+                                                CashWithdrawalRequestId = cashWithdrawalRequestDTO.Id
                                             }
                                         }; 
                                     }

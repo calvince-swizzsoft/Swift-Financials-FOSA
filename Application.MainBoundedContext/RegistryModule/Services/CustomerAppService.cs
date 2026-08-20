@@ -364,6 +364,37 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                     }
                     #endregion
 
+                    #region Send Email Notification
+                    // Mirrors the text notification immediately above — same
+                    // direct AddNewEmailAlert call (no queue/broker
+                    // indirection), added 2026-08-18 since this method had no
+                    // email counterpart to the existing SMS welcome message.
+                    // No CompanyApplicationMembershipEmailAlertsEnabled-style
+                    // flag exists on BranchDTO to gate this the way the text
+                    // block is gated, so this only checks for a valid address.
+                    if (!string.IsNullOrWhiteSpace(customerDTO.AddressEmail) && Regex.IsMatch(customerDTO.AddressEmail, @"\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"))
+                    {
+                        var emailBody = new StringBuilder();
+                        emailBody.AppendFormat("<p>Dear {0},</p><p>Welcome to {1}.</p>", customerDTO.FullName, currrentBranch.CompanyDescription);
+                        emailBody.Append(!string.IsNullOrWhiteSpace(customerDTO.Reference2)
+                            ? $"<p>Your membership number is {customerDTO.Reference2}.</p>"
+                            : $"<p>Your serial number is {customerDTO.PaddedSerialNumber}.</p>");
+
+                        var emailAlertDTO = new EmailAlertDTO
+                        {
+                            BranchId = currrentBranch.Id,
+                            MailMessageFrom = currrentBranch.CompanyAddressEmail,
+                            MailMessageTo = customerDTO.AddressEmail,
+                            MailMessageSubject = string.Format("Welcome to {0}", currrentBranch.CompanyDescription),
+                            MailMessageBody = emailBody.ToString(),
+                            MailMessageIsBodyHtml = true,
+                            MailMessageOrigin = (int)MessageOrigin.Within,
+                            MailMessagePriority = (int)QueuePriority.Highest,
+                        };
+                        _emailAlertAppService.AddNewEmailAlert(emailAlertDTO, serviceHeader);
+                    }
+                    #endregion
+
                     #region Auto-Create Mandatory + Additional Accounts
                     customerDTO.BranchId = currrentBranch.Id;
                     customerDTO.BranchDescription = currrentBranch.Description;

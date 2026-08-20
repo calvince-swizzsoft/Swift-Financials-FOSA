@@ -280,20 +280,35 @@
     <Compile Include="Areas\FrontOffice\Controllers\FiscalCountController.cs" />
     <Compile Include="Areas\Messaging\Controllers\EmailAlertController.cs" />
     <Compile Include="Areas\Messaging\Controllers\TextAlertController.cs" />
+    <Compile Include="Areas\Messaging\Controllers\InstantMessagingController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashManagementController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\ChequesController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountsController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomerController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomerDocumentController.cs" />
+    <Compile Include="Areas\Registry\Controllers\NextOfKinController.cs" />
+    <Compile Include="Areas\Registry\Controllers\ChargeExemptionsController.cs" />
     <Compile Include="Areas\Registry\Controllers\FileRegisterController.cs" />
     <Compile Include="Areas\Registry\Controllers\CustomersController.cs" />
     <Compile Include="Areas\Registry\Controllers\DivisionController.cs" />
+    <Compile Include="Areas\Registry\Controllers\DelegateController.cs" />
+    <Compile Include="Areas\Registry\Controllers\DirectorController.cs" />
+    <Compile Include="Areas\Registry\Controllers\ConditionalLendingController.cs" />
     <Compile Include="Areas\Registry\Controllers\EmployerController.cs" />
     <Compile Include="Areas\Registry\Controllers\StationController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\DepartmentsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\DesignationsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\EmployeeController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\EmployeeDocumentsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\EmployeeTypesController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\HolidaysController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\LeaveApplicationsController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\LeaveTypesController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\SalaryHeadsController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\SalaryGroupsController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\SalaryCardsController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\SalaryPeriodsController.cs" />
+    <Compile Include="Areas\HumanResource\Controllers\PaySlipsController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\EndOfDayController.cs" />
     <Compile Include="Areas\Registry\Controllers\ZoneController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
@@ -306,6 +321,9 @@
     <Compile Include="Areas\Accounts\Controllers\ElectronicStatementOrderExecutionController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountStatementController.cs" />
     <Compile Include="Areas\Accounts\Controllers\GeneralLedgerStatementController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\FinancialStatementsController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\AccountStatusesController.cs" />
+    <Compile Include="Areas\Reports\Controllers\UserDefinedReportsController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountManagementController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CustomerAccountSignatoryController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\TellerController.cs" />
@@ -313,6 +331,7 @@
     <Compile Include="Areas\Accounts\Controllers\TreasurysController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChartOfAccountController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\PostingPeriodController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Areas\Channels\Controllers\CanonicalAccountsController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeTypeController.cs" />
@@ -323,6 +342,7 @@
     <Compile Include="Areas\Accounts\Controllers\LevyController.cs" />
     <Compile Include="Areas\Accounts\Controllers\UnPayReasonController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CreditBatchController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\CreditBatchImportController.cs" />
     <Compile Include="Areas\Accounts\Controllers\DebitBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\WireTransferBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\JournalReversalBatchController.cs" />
@@ -332,6 +352,7 @@
     <Compile Include="Areas\Accounts\Controllers\GeneralLedgerController.cs" />
     <Compile Include="Areas\Accounts\Controllers\InterAccountTransferBatchController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoanCaseController.cs" />
+    <Compile Include="Areas\BackOffice\Controllers\CheckOffDataCaptureController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoanGuarantorController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoanGuarantorAttachmentController.cs" />
     <Compile Include="Areas\BackOffice\Controllers\LoanRestructuringController.cs" />
@@ -346,11 +367,7 @@
     <Compile Include="Helpers\SmsHelper.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\CompanyAttachedProductService.cs" />
-    <Compile Include="Services\CustomerService.cs" />
-    <Compile Include="Services\NextOfKinService.cs" />
     <Compile Include="Areas\Admin\Services\RoleManagerService.cs" />
-    <Compile Include="Services\SavingsProductService.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Areas\HelpPage\HelpPage.css" />

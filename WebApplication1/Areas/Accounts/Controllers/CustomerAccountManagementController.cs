@@ -7,6 +7,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Accounts.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/accounts/customer-accounts")]
     public class CustomerAccountManagementController : ApiController
     {
@@ -108,11 +109,44 @@ namespace WebApplication1.Areas.Accounts.Controllers
             }
         }
 
+        [HttpPost, Route("{customerAccountId:guid}/authorize")]
+        public IHttpActionResult Authorize(Guid customerAccountId, [FromBody] AuthorizeCustomerAccountRequest request)
+        {
+            try
+            {
+                if (request == null || (request.Option != 1 && request.Option != 2))
+                    return ErrorResponse(HttpStatusCode.BadRequest, "Option must be 1 (approve) or 2 (reject)");
+
+                var serviceHeader = Utils.CreateServiceHeader();
+                var account = _customerAccountAppService.FindCustomerAccountDTO(customerAccountId, serviceHeader);
+                if (account == null)
+                    return ErrorResponse(HttpStatusCode.NotFound, "Customer account not found");
+
+                account.Remarks = request.Remarks;
+                var authorized = _customerAccountAppService.AuthorizeCustomerAccount(account, request.Option, serviceHeader);
+                if (!authorized)
+                    return ErrorResponse(HttpStatusCode.Conflict, "Customer account could not be authorized");
+
+                return ApiResponse(true, request.Option == 1 ? "Customer account approved" : "Customer account rejected",
+                    _customerAccountAppService.FindCustomerAccountDTO(customerAccountId, serviceHeader));
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
         public class ManageCustomerAccountRequest
         {
             public string Remarks { get; set; }
 
             public int RemarkType { get; set; }
+        }
+
+        public class AuthorizeCustomerAccountRequest
+        {
+            public int Option { get; set; }
+            public string Remarks { get; set; }
         }
     }
 }

@@ -988,6 +988,66 @@ namespace Application.MainBoundedContext.Services
             return result;
         }
 
+        public bool ProcessCustomerRegistrationAccountAlerts(DMLCommand command, ServiceHeader serviceHeader, params CustomerDTO[] data)
+        {
+            var result = default(bool);
+
+            if (data != null)
+            {
+                switch (command)
+                {
+                    case DMLCommand.None:
+
+                        var queueDTOs = from item in data
+                                        select new QueueDTO
+                                        {
+                                            RecordId = item.Id,
+                                            AppDomainName = serviceHeader.ApplicationDomainName,
+                                            AccountAlertTrigger = (int)AccountAlertTrigger.CustomerRegistration
+                                        };
+
+                        _messageQueueService.Send(_serviceBrokerConfigSection.ServiceBrokerSettingsItems.AccountAlertDispatcherQueuePath, queueDTOs.ToList(), MessageCategory.AccountAlert, MessagePriority.High, _serviceBrokerConfigSection.ServiceBrokerSettingsItems.TimeToBeReceived);
+
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            return result;
+        }
+
+        public bool ProcessEmployeeRegistrationAccountAlerts(DMLCommand command, ServiceHeader serviceHeader, params EmployeeDTO[] data)
+        {
+            var result = default(bool);
+
+            if (data != null)
+            {
+                switch (command)
+                {
+                    case DMLCommand.None:
+
+                        var queueDTOs = from item in data
+                                        select new QueueDTO
+                                        {
+                                            RecordId = item.Id,
+                                            AppDomainName = serviceHeader.ApplicationDomainName,
+                                            AccountAlertTrigger = (int)AccountAlertTrigger.EmployeeRegistration
+                                        };
+
+                        _messageQueueService.Send(_serviceBrokerConfigSection.ServiceBrokerSettingsItems.AccountAlertDispatcherQueuePath, queueDTOs.ToList(), MessageCategory.AccountAlert, MessagePriority.High, _serviceBrokerConfigSection.ServiceBrokerSettingsItems.TimeToBeReceived);
+
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            return result;
+        }
+
         public bool ProcessJournalReversalBatchEntries(DMLCommand command, ServiceHeader serviceHeader, params JournalReversalBatchEntryDTO[] data)
         {
             var result = default(bool);

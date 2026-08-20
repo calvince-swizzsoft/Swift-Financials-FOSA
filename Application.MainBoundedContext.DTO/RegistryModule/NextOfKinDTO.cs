@@ -27,6 +27,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Customer Type")]
         public byte CustomerType { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer Type")]
         public string CustomerTypeDescription
         {
@@ -40,6 +41,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Customer Salutation")]
         public byte CustomerIndividualSalutation { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer Salutation")]
         public string CustomerIndividualSalutationDescription
         {
@@ -61,6 +63,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Group Name")]
         public string CustomerNonIndividualDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer Name")]
         public string CustomerFullName
         {
@@ -90,6 +93,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Salutation")]
         public byte Salutation { get; set; }
 
+        [DataMember]
         [Display(Name = "Salutation")]
         public string SalutationDescription
         {
@@ -103,6 +107,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Gender")]
         public byte Gender { get; set; }
 
+        [DataMember]
         [Display(Name = "Gender")]
         public string GenderDescription
         {
@@ -116,6 +121,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Relationship")]
         public byte Relationship { get; set; }
 
+        [DataMember]
         [Display(Name = "Relationship")]
         public string RelationshipDescription
         {
@@ -133,6 +139,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Other Names")]
         public string LastName { get; set; }
 
+        [DataMember]
         [Display(Name = "Name")]
         public string FullName
         {
@@ -146,6 +153,7 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         [Display(Name = "Identity Card Type")]
         public byte IdentityCardType { get; set; }
 
+        [DataMember]
         [Display(Name = "Identity Card Type")]
         public string IdentityCardTypeDescription
         {

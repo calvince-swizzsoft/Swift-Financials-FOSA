@@ -2,6 +2,7 @@
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Application.MainBoundedContext.DTO.RegistryModule
 {
@@ -14,15 +15,19 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
         }
 
 
+        [DataMember]
         [Display(Name = "Id")]
         public Guid Id { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer")]
         public Guid CustomerId { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer Type")]
         public byte CustomerType { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer Type")]
         public string CustomerTypeDescription
         {
@@ -32,9 +37,11 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Salutation")]
         public byte CustomerIndividualSalutation { get; set; }
 
+        [DataMember]
         [Display(Name = "Salutation")]
         public string CustomerIndividualSalutationDescription
         {
@@ -44,9 +51,11 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Identity Card Type")]
         public byte CustomerIndividualIdentityCardType { get; set; }
 
+        [DataMember]
         [Display(Name = "Identity Card Type")]
         public string CustomerIndividualIdentityCardTypeDescription
         {
@@ -56,15 +65,19 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Identity Card Number")]
         public string CustomerIndividualIdentityCardNumber { get; set; }
 
+        [DataMember]
         [Display(Name = "Identity Card Serial #")]
         public string CustomerIndividualIdentityCardSerialNumber { get; set; }
 
+        [DataMember]
         [Display(Name = "Nationality")]
         public byte CustomerIndividualNationality { get; set; }
 
+        [DataMember]
         [Display(Name = "Nationality")]
         public string CustomerIndividualNationalityDescription
         {
@@ -74,9 +87,11 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Serial Number")]
         public int CustomerSerialNumber { get; set; }
 
+        [DataMember]
         [Display(Name = "Serial Number")]
         public string PaddedCustomerSerialNumber
         {
@@ -86,27 +101,35 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Payroll Numbers")]
         public string CustomerIndividualPayrollNumbers { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer First Name")]
         public string CustomerIndividualFirstName { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer Other Names")]
         public string CustomerIndividualLastName { get; set; }
 
+        [DataMember]
         [Display(Name = "Group Name")]
         public string CustomerNonIndividualDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "Registration Number")]
         public string CustomerNonIndividualRegistrationNumber { get; set; }
 
+        [DataMember]
         [Display(Name = "Personal Identification Number")]
         public string CustomerPersonalIdentificationNumber { get; set; }
 
+        [DataMember]
         [Display(Name = "Date Established")]
         public DateTime? CustomerNonIndividualDateEstablished { get; set; }
 
+        [DataMember]
         [Display(Name = "Customer")]
         public string CustomerFullName
         {
@@ -132,9 +155,11 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Gender")]
         public byte CustomerIndividualGender { get; set; }
 
+        [DataMember]
         [Display(Name = "Gender")]
         public string CustomerIndividualGenderDescription
         {
@@ -144,9 +169,11 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Marital Status")]
         public byte CustomerIndividualMaritalStatus { get; set; }
 
+        [DataMember]
         [Display(Name = "Marital Status")]
         public string CustomerIndividualMaritalStatusDescription
         {
@@ -156,45 +183,59 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Address Line 1")]
         public string CustomerAddressAddressLine1 { get; set; }
 
+        [DataMember]
         [Display(Name = "Address Line 2")]
         public string CustomerAddressAddressLine2 { get; set; }
 
+        [DataMember]
         [Display(Name = "Street")]
         public string CustomerAddressStreet { get; set; }
 
+        [DataMember]
         [Display(Name = "Postal Code")]
         public string CustomerAddressPostalCode { get; set; }
 
+        [DataMember]
         [Display(Name = "City")]
         public string CustomerAddressCity { get; set; }
 
+        [DataMember]
         [Display(Name = "E-mail")]
         public string CustomerAddressEmail { get; set; }
 
+        [DataMember]
         [Display(Name = "Land Line")]
         public string CustomerAddressLandLine { get; set; }
 
+        [DataMember]
         [Display(Name = "Mobile Line")]
         public string CustomerAddressMobileLine { get; set; }
 
+        [DataMember]
         [Display(Name = "Station")]
         public string CustomerStationDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "Zone")]
         public string CustomerStationZoneDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "Division")]
         public string CustomerStationZoneDivisionDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "Employer")]
         public string CustomerStationZoneDivisionEmployerDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "Type")]
         public int Type { get; set; }
 
+        [DataMember]
         [Display(Name = "Type")]
         public string TypeDescription
         {
@@ -204,15 +245,19 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Collateral Value")]
         public decimal CollateralValue { get; set; }
 
+        [DataMember]
         [Display(Name = "Collateral Advance Rate")]
         public double CollateralAdvanceRate { get; set; }
 
+        [DataMember]
         [Display(Name = "Collateral Status")]
         public byte CollateralStatus { get; set; }
 
+        [DataMember]
         [Display(Name = "Collateral Status")]
         public string CollateralStatusDescription
         {
@@ -222,25 +267,32 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Document")]
         public string FileName { get; set; }
 
+        [DataMember]
         [Display(Name = "Title")]
         public string FileTitle { get; set; }
 
+        [DataMember]
         [Display(Name = "Description")]
         [Required]
         public string FileDescription { get; set; }
 
+        [DataMember]
         [Display(Name = "MIME Type")]
         public string FileMIMEType { get; set; }
 
+        [DataMember]
         [Display(Name = "Buffer")]
         public byte[] FileBuffer { get; set; }
 
+        [DataMember]
         [Display(Name = "Record Status")]
         public byte RecordStatus { get; set; }
 
+        [DataMember]
         [Display(Name = "Record Status")]
         public string RecordStatusDescription
         {
@@ -250,17 +302,23 @@ namespace Application.MainBoundedContext.DTO.RegistryModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Modified By")]
         public string ModifiedBy { get; set; }
 
+        [DataMember]
         [Display(Name = "Modified Date")]
         public DateTime? ModifiedDate { get; set; }
 
+        [DataMember]
         [Display(Name = "Created By")]
         public string CreatedBy { get; set; }
 
+        [DataMember]
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }
+
+        [DataMember]
         public string DocumentPath { get; set; }
     }
 }
