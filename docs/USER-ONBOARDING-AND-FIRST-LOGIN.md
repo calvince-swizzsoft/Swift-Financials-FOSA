@@ -5,6 +5,16 @@ flow: identity creation, delivery of initial credentials through the central
 email-alert pipeline, and the mandatory password change performed before a
 new user receives an application JWT.
 
+> **Bootstrapping the very first account.** Every administrator-created user
+> below requires an existing administrator to create them — a brand-new
+> deployment has none. `SwiftFinancials.Utility.exe` breaks that cycle by
+> seeding one bootstrap `admin` account (in a full-access `Administrator`
+> role) the first time it runs against an empty database, printing its
+> one-time password to the console. It goes through this exact first-login
+> flow like any other user. See
+> [`DEPLOYMENT.md`](DEPLOYMENT.md#the-database-starts-with-zero-users--this-is-expected-and-self-healing)
+> for details.
+
 ## Legacy behavior retained
 
 The implementation is adapted from the reference application's

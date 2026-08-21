@@ -103,9 +103,9 @@ together, they aren't shared. If SQL Server runs on the same machine as the
 app, `Data Source=(local)` resolves correctly once these files live on the
 target server; if it's elsewhere, put the real server name/IP instead.
 
-**Create and seed the databases.** Run once — creates all three databases if
-they don't exist, applies migrations, seeds the navigation menu and
-enumeration reference data.
+**Create and seed the databases.** Safe to run more than once — creates all
+three databases if they don't exist, applies migrations, seeds the navigation
+menu and enumeration reference data, and (see below) seeds a bootstrap login.
 
 ```powershell
 SwiftFinancials.Utility.exe Production
@@ -115,6 +115,51 @@ SwiftFinancials.Utility.exe Production
 > that's a real assertion checking every enum in the codebase has a
 > `[Description]` — rebuild from Phase 01 against current `main` if you hit
 > this (fixed as of this writing).
+
+### The database starts with zero users — this is expected, and self-healing
+
+A brand-new `AuthStore` has no rows in `AspNetUsers`. Every path that could
+create one (the Users admin screen, `POST /api/administration/users`) itself
+requires an authenticated JWT, so a freshly deployed instance has no way to
+log in at all unless something seeds the first account outside that cycle.
+
+`SwiftFinancials.Utility.exe` does this automatically as its last step,
+`SeedDefaultAdministrator`, so **every deployment is login-ready the moment
+this tool finishes** — nothing extra to remember:
+
+- Ensures an `Administrator` role exists, and syncs it to hold a grant for
+  **every** navigation item currently in `NavigationMenu.cs` — on first run
+  and on every later re-run, so modules added after go-live are automatically
+  visible to it too without a manual re-grant.
+- Only while `AspNetUsers` still has zero rows (i.e. only the very first time
+  this runs against a given database), creates one `admin` account in that
+  role with a random 16-character password, and prints it to the console
+  **once**:
+  ```
+  ==================================================================
+   First-run administrator account created:
+     Username: admin
+     Password: <random, printed once>
+   You will be required to change this password on first login.
+   This is printed once and is not recoverable - record it now.
+  ==================================================================
+  ```
+  Capture that password from the console before closing the window — it
+  isn't stored anywhere in plaintext, and re-running the tool won't reprint
+  it once a user exists.
+- Signing in with it returns `requiresPasswordChange: true` (no JWT) — the
+  same first-login flow every other user goes through, documented in
+  [`USER-ONBOARDING-AND-FIRST-LOGIN.md`](USER-ONBOARDING-AND-FIRST-LOGIN.md).
+  Change the password, then use this account to create real named
+  administrator/employee accounts through the normal Users screen — it's a
+  bootstrap identity, not meant for daily use afterward.
+
+If you already deployed before this step existed and are stuck with no way
+to log in, just re-run `SwiftFinancials.Utility.exe Production` with a build
+that includes it — `AddNavigationItemsAsync` and `SeedEnumerations` are
+already safe to re-run (they find-or-create rather than insert blindly), and
+`SeedDefaultAdministrator` will detect the empty `AspNetUsers` table and seed
+the account then.
 
 ## 04 — Backend site in IIS
 
@@ -146,6 +191,17 @@ Open IIS Manager (`inetmgr`) on the server.
    site's features view in IIS Manager. If it's missing, the module from
    Phase 00 didn't install; without it, refreshing on any route other than
    the home page returns a bare IIS 404 instead of the app.
+3. **Open this port in the firewall too.** This is a client-side SPA — a
+   visitor's browser loads the page from this port, then calls the backend
+   API on *its* port directly (no server-side proxy in between). Both ports
+   need their own inbound firewall rule; opening only one is a common miss
+   (the frontend loads fine on the open port, then every API call silently
+   hangs or fails from a different machine, since it needs the *other* port
+   open too):
+   ```powershell
+   New-NetFirewallRule -DisplayName "FOSA Frontend" -Direction Inbound -Protocol TCP -LocalPort PORT -Action Allow
+   New-NetFirewallRule -DisplayName "FOSA Backend API" -Direction Inbound -Protocol TCP -LocalPort PORT -Action Allow
+   ```
 
 ## 06 — Connect the two, then verify
 
@@ -176,10 +232,17 @@ page loads but nothing populates.
 <details>
 <summary>Frontend loads, but every API call fails / console shows a CORS error</summary>
 
+The literal browser message is usually: *"has been blocked by CORS policy:
+Response to preflight request doesn't pass access control check: No
+'Access-Control-Allow-Origin' header is present on the requested resource."*
 Almost always `AllowedCorsOrigins` in the backend's `Web.config` doesn't
 exactly match the frontend's actual origin — including the port, and http vs
-https. Update it and recycle the backend's app pool (IIS Manager →
-Application Pools → right-click → Recycle) so the change takes effect.
+https. A freshly staged `Web.config` still carries the local-dev default
+(`http://localhost:5173`) until Phase 06 is done, so this is expected the
+first time you load a real deployment, not a sign anything is broken. Set it
+to the frontend's real origin, exactly (no trailing slash), then recycle the
+backend's app pool (IIS Manager → Application Pools → right-click → Recycle)
+so the change takes effect.
 </details>
 
 <details>
