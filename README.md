@@ -84,6 +84,11 @@ patterns worth watching for elsewhere in the codebase.
 
 ## Documentation
 
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — deploying this backend and the
+  [Swizzfinancial-FOSA](https://github.com/calvince-swizzsoft/reactfosa)
+  frontend together to a Windows Server over RDP: IIS setup, database
+  seeding, CORS wiring, troubleshooting, and an optional self-hosted
+  GitHub Actions runner for CI/CD.
 - [`docs/api/`](docs/api/README.md) — client integration specs for each
   Web API area (customers, accounts, branches, text alerts, ...).
 - [`docs/EMAIL-DELIVERY.md`](docs/EMAIL-DELIVERY.md) — end-to-end email
