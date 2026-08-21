@@ -630,16 +630,21 @@ new NavigationMenu { AreaCode = 0x00007530 + 1, IsArea = false, Description = "C
 
 // Operations
 // Assets
-new NavigationMenu { AreaCode = 0x00007530 + 2, IsArea = true, Description = "Assets", Icon = "fa fa-landmark", Code = 0x00007530 + 8 },
-new NavigationMenu { AreaCode = 0x00007530 + 8, IsArea = false, Description = "Catalogue", Icon = "fa fa-book", ControllerName = "Controller", ActionName = "Index", AreaName = "Control",
-    Code =  0x00007530 + 9 },
-new NavigationMenu { AreaCode = 0x00007530 + 8, IsArea = false, Description = "Depreciation", Icon = "fa fa-percentage", ControllerName = "Controller", ActionName = "Index", AreaName = "Control",
-    Code =  0x00007530 + 10 },
+// NOTE: this Operations branch used to restart its offsets at +8, colliding
+// with Setup's own +8..+11 (Tenders/Evaluation/Bidings/Contracts) above —
+// same Code value assigned to two different NavigationMenu entries. Continuing
+// from +12 (the highest offset actually in use in this module, previously
+// Inventory/Catalogue) instead of restarting the count.
+new NavigationMenu { AreaCode = 0x00007530 + 2, IsArea = true, Description = "Assets", Icon = "fa fa-landmark", Code = 0x00007530 + 12 },
+new NavigationMenu { AreaCode = 0x00007530 + 12, IsArea = false, Description = "Catalogue", Icon = "fa fa-book", ControllerName = "Controller", ActionName = "Index", AreaName = "Control",
+    Code =  0x00007530 + 13 },
+new NavigationMenu { AreaCode = 0x00007530 + 12, IsArea = false, Description = "Depreciation", Icon = "fa fa-percentage", ControllerName = "Controller", ActionName = "Index", AreaName = "Control",
+    Code =  0x00007530 + 14 },
 
 // Inventory
-new NavigationMenu { AreaCode = 0x00007530 + 2, IsArea = true, Description = "Inventory", Icon = "fa fa-warehouse", Code = 0x00007530 + 11 },
-new NavigationMenu { AreaCode = 0x00007530 + 11, IsArea = false, Description = "Catalogue", Icon = "fa fa-book-open", ControllerName = "Controller", ActionName = "Index", AreaName = "Control",
-    Code =  0x00007530 + 12 },
+new NavigationMenu { AreaCode = 0x00007530 + 2, IsArea = true, Description = "Inventory", Icon = "fa fa-warehouse", Code = 0x00007530 + 15 },
+new NavigationMenu { AreaCode = 0x00007530 + 15, IsArea = false, Description = "Catalogue", Icon = "fa fa-book-open", ControllerName = "Controller", ActionName = "Index", AreaName = "Control",
+    Code =  0x00007530 + 16 },
 #endregion
 
 
