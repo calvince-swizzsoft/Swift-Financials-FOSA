@@ -359,3 +359,156 @@ GitHub repos, and a runner registers to one repo unless you have org admin).
 > Actions → General → Fork pull request workflows** and require approval for
 > workflows from forks — otherwise an untrusted PR can run arbitrary code on
 > this machine.
+
+## 09 — Background jobs & alerts (Windows Service)
+
+Email, SMS, account-lifecycle alerts (welcome emails, password resets, loan
+notices, ...), and every scheduled financial job (interest capitalization,
+standing orders, batch postings, arrears recovery, ...) run **outside**
+`fosa-api` entirely — the web app only persists a record and either drops a
+message on an MSMQ queue or leaves it for a Quartz job to find. A separate
+process, `SwiftFinancials.WindowsService`, does the actual work. If it isn't
+installed and correctly configured, the API and frontend work fine but
+nothing ever gets sent or posted — silently, with no error surfaced to the
+user, since the writing side already succeeded.
+
+### Install MSMQ
+
+Not covered in Phase 00 because only this phase needs it. Message Queuing
+must be installed on the server before the service can send or receive
+anything:
+
+```powershell
+Install-WindowsFeature -Name MSMQ, MSMQ-Server -IncludeManagementTools
+```
+
+The private queues themselves (`swiftfin.email`, `swiftfin.accountalert`,
+etc.) don't need manual creation — both the sending and receiving code call
+`MessageQueue.Create` automatically the first time a queue path is used, as
+long as the feature above is installed.
+
+### Build the whole solution, not just this one project
+
+This is the step most likely to go wrong. `SwiftFinancials.WindowsService`
+doesn't reference its ~19 plugin projects (`SwiftFinancials.EmailAlertDispatcher`,
+`SwiftFinancials.AccountAlertDispatcher`, `SwiftFinancials.TextAlertDispatcher.Celcom`,
+every `*BatchPosting`/`*Invoker`/`*Recovery` job, ...) as project references at
+all — it discovers them at runtime via MEF, scanning its own output folder for
+`SwiftFinancials.*.dll`. Each plugin project instead has a `PostBuildEvent`
+that `xcopy`s its own compiled DLL into `SwiftFinancials.WindowsService\bin\Release\`
+after *it* builds. Building `SwiftFinancials.WindowsService.csproj` on its own
+(the way Phase 01 builds `WebApplication1.csproj` or the Utility) leaves that
+folder with zero or almost none of the plugin DLLs in it — the service starts,
+logs `Available Plugins -> 0` (or some small number), and nothing runs, with
+no exception and no obvious error.
+
+Build the full solution instead, so every plugin project's `PostBuildEvent`
+fires:
+
+```powershell
+& "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" `
+  "SwiftFinancialz.slnx" `
+  /t:Build /restore /p:Configuration=Release /m
+```
+
+`/restore` is needed here (unlike the single-project builds elsewhere in this
+doc) because the solution also contains at least one modern SDK-style project
+with its own NuGet lock file, alongside the classic `packages.config` projects
+that make up the rest of the solution.
+
+Verify before copying anything: `SwiftFinancials.WindowsService\bin\Release\`
+should contain on the order of 19-20 `SwiftFinancials.*.dll` files (one per
+plugin) alongside `SwiftFinancials.WindowsService.exe` itself.
+
+### Deploy
+
+Copy the **entire** `SwiftFinancials.WindowsService\bin\Release\` folder
+(not just the project's own handful of files — everything the plugin
+PostBuildEvents copied in belongs too) to a permanent location on the server,
+e.g. `C:\swiftfin\windows-service\`. Unlike the Utility tool, this one runs
+continuously — it isn't a run-once-and-delete temp copy.
+
+### Fix the config before starting it
+
+`SwiftFinancials.WindowsService\App.config` needs the same per-environment
+treatment as `fosa-api\Web.config`, plus two things specific to this service.
+It's gitignored (it carries plaintext SMTP and DB credentials), so a fix made
+locally travels to the server only through the *built* `.exe.config` output —
+there's nothing to `git pull` on the server side for this file.
+
+1. **Connection strings** — same three databases (`AuthStore`, `BLOBStore`,
+   `SwiftFin_Dev`) as `Web.config`, kept in sync manually; they're a separate
+   `<connectionStrings>` block in a separate file.
+2. **The `ApplicationDomainName` mismatch.** `WebApplication1`'s
+   `Helpers.Utils.CreateServiceHeader()` hardcodes
+   `ApplicationDomainName = "SwiftApis"` on every request. Several plugins
+   (confirmed: `EmailAlertDispatcher`, `TextAlertDispatcher.Celcom`,
+   `AccountAlertDispatcher`) only process a queued message when their config
+   section's `uniqueId` attribute **exactly matches** the `AppDomainName` the
+   message was enqueued with. If `App.config` still has `uniqueId="SwiftFin_Dev"`
+   on those sections — the value that shipped in this repo's checked-in
+   history of the file before this note — every message the live web app
+   enqueues silently matches nothing: no exception, no log entry, the alert
+   just sits in the database as `Pending`/`Unknown` forever while the Quartz
+   recovery scan keeps re-enqueueing it into the same dead end. Set
+   `uniqueId="SwiftApis"` on every plugin settings section (`emailDispatcherConfiguration`,
+   `textDispatcherConfiguration`, `accountAlertDispatcherConfiguration`, the
+   batch-posting/job sections, etc.) to match. **Leave the one exception
+   alone**: the outer `<serviceBrokerConfiguration><serviceBrokerSettings>`
+   element's own `uniqueId="SwiftFin_Dev"` is matched by a hardcoded literal
+   in `ConfigurationHelper.GetServiceBrokerConfigurationSettings` regardless
+   of environment — renaming that one specific entry breaks file-upload/export
+   directory and encryption-key lookup instead of fixing anything.
+3. **Dev-machine absolute paths.** `emailDispatcherConfiguration`'s
+   `attachmentStagingFolder` and `accountAlertDispatcherConfiguration`'s /
+   `auditTrailDispatcherConfiguration`'s `templatesPath` point at a developer's
+   local clone (`C:\Users\<dev>\source\repos\SwiftFinancialz\...`) by default.
+   Point them at real folders on the server instead, and copy the actual
+   content there — the ~144 `.cshtml` files in
+   `DistributedServices.MainBoundedContext\App_Data\AccountAlertTemplates\`
+   aren't part of `fosa-api`'s deployed files (Phase 02 doesn't include them),
+   so account-lifecycle emails/SMS have nothing to render from until those
+   are copied to wherever `templatesPath` now points.
+
+### Install and start it
+
+Classic `ServiceBase`/`ProjectInstaller` project — install with `InstallUtil`,
+not `sc create`:
+
+```powershell
+& "$env:windir\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe" "C:\swiftfin\windows-service\SwiftFinancials.WindowsService.exe"
+sc start SwiftFinancials.WindowsService
+```
+
+It's registered to run as **LocalSystem** with delayed automatic start (both
+baked into the installer, nothing to choose during install), so it starts on
+boot without needing a dedicated service account.
+
+### Verify
+
+There's no UI — the Serilog rolling file at `C:\swiftfin_logs\swiftfin-winsvc-log-{date}.log`
+(path also configured in `App.config`) is the only window into whether it's
+working. Right after start, look for:
+
+```
+Available Plugins -> 19
+```
+
+(or however many plugins actually built — a number near 0 means Phase 01's
+full-solution build step above was skipped). Then, per plugin, `->DoWork...`
+lines as each one's Quartz schedule fires. A `SqlException` here almost
+always means the connection strings weren't updated for this file
+specifically (see above — they don't share `Web.config`'s).
+
+<details>
+<summary>Windows Service starts, but nothing ever gets emailed/texted/posted</summary>
+
+Check, in order: (1) MSMQ installed? (2) full-solution build, so the plugin
+DLL for the feature you're testing actually exists in `bin\Release\`? (3) the
+`ApplicationDomainName`/`uniqueId` match described above — this is the one
+that produces no error at all, so it's easy to rule out everything else
+first and land here last. (4) the record's status in its own admin
+screen/table — still `Pending`/`Unknown` confirms the message never got
+consumed; `Delivered`/similar with no real-world effect points elsewhere
+(SMTP credentials, the third-party SMS gateway, etc.) instead.
+</details>
