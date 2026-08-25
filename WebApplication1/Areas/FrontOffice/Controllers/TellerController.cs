@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -52,10 +52,9 @@ namespace WebApplication1.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -88,10 +87,9 @@ namespace WebApplication1.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -132,11 +130,9 @@ namespace WebApplication1.Controllers
                 }
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
-
+                throw;
             }
         }
 
@@ -158,11 +154,9 @@ namespace WebApplication1.Controllers
                 return Ok(new { success = true, message = "", data = teller });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
-
+                throw;
             }
         }
 
@@ -201,9 +195,9 @@ namespace WebApplication1.Controllers
             }
 
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

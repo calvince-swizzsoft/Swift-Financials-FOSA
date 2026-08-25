@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
@@ -187,10 +187,9 @@ namespace WebApplication1.Controllers
                 return Ok(new { success = true, message = "", data = new PageCollectionInfo<object> { PageCollection = mergedPage, ItemsCount = merged.Count } });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -544,19 +543,9 @@ namespace WebApplication1.Controllers
 
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                var response = new
-                {
-
-                    success = false,
-                    message = ex.Message,
-                    data = (object)null
-
-                };
-
-                return Json(response);
+                throw;
             }
 
         }
@@ -706,10 +695,9 @@ namespace WebApplication1.Controllers
                
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -767,10 +755,9 @@ namespace WebApplication1.Controllers
                 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -1526,16 +1513,9 @@ namespace WebApplication1.Controllers
 
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return new OperationResult
-                {
-
-                    Success = false,
-                    Dialog = false,
-                    Message = $"An error occurred: {ex.Message}"
-                };
-
+                throw;
             }
 
             return new OperationResult

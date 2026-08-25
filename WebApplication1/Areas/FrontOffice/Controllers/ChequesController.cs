@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
 using Application.MainBoundedContext.FrontOfficeModule.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -43,9 +43,9 @@ namespace WebApplication1.Controllers
                 return Ok(new { success = true, message = "", data = cheques });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -121,9 +121,9 @@ namespace WebApplication1.Controllers
                     errorMessage = "Failed to bank the cheques. Ensure valid data and try again.";
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Json(new { success = false, message = $"Error occurred: {ex.Message}" });
+                throw;
             }
 
             return Json(new { success = isSuccess, message = isSuccess ? "Cheques processed successfully." : errorMessage });
@@ -248,9 +248,9 @@ namespace WebApplication1.Controllers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Json(new { success = false, message = $"Error occurred: {ex.Message}" });
+                throw;
             }
 
             return Json(new { success = isSuccess, message = isSuccess ? "Cheques processed successfully." : errorMessage });
@@ -275,9 +275,9 @@ namespace WebApplication1.Controllers
                 return Ok(new { success = true, message = "", data = cheques });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
 
         }
