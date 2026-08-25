@@ -41,9 +41,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = deposits });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -62,9 +62,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = deposit });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -80,9 +80,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = deposits });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -99,9 +99,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = deposits });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -118,9 +118,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = deposits });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -136,9 +136,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = payables });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -157,9 +157,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Fixed deposit payables updated successfully", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -187,9 +187,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Fixed deposit created successfully", data = created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -218,9 +218,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Operation success", data = updated });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -251,9 +251,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "The selected fixed deposit(s) were successfully terminated.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -291,9 +291,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "The selected fixed deposit(s) were successfully liquidated.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

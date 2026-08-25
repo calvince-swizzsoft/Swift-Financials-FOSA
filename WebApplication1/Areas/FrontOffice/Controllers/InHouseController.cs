@@ -51,9 +51,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = cheques });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -72,9 +72,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = cheque });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -91,9 +91,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = cheques });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -127,9 +127,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Cheque(s) submitted successfully.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -160,9 +160,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Cheque printed successfully.", data = updated });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

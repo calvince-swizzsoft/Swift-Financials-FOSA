@@ -50,9 +50,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = fiscalCounts });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -71,9 +71,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = fiscalCount });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -110,9 +110,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Fiscal count created successfully", data = created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

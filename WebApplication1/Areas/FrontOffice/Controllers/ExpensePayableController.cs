@@ -58,9 +58,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = payables });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -79,9 +79,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = payable });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -97,9 +97,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = entries });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -130,9 +130,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Expense payable created successfully", data = created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -157,9 +157,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Entry added", data = created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -182,9 +182,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Entries removed", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -234,9 +234,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Operation success", data = updated });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }
