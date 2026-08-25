@@ -110,7 +110,7 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var created = await _conditionalLendingAppService.AddNewConditionalLendingAsync(conditionalLending, serviceHeader);
 
                 if (created == null)
-                    return InternalServerError(new InvalidOperationException("Failed to create the conditional lending."));
+                    throw new ApplicationException("Failed to create the conditional lending.");
 
                 if (!string.IsNullOrWhiteSpace(created.ErrorMessageResult))
                     return Content(HttpStatusCode.Conflict, new { success = false, message = created.ErrorMessageResult });

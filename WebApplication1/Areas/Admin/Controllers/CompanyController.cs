@@ -127,7 +127,7 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 var updated = _companyAppService.UpdateCompany(companyDto, serviceHeader);
                 if (!updated)
-                    return InternalServerError(new InvalidOperationException("Failed to update company"));
+                    throw new InvalidOperationException("Failed to update company");
 
                 var company = _companyAppService.FindCompany(id, serviceHeader);
                 return Ok(company);
@@ -163,7 +163,7 @@ namespace WebApplication1.Areas.Admin.Controllers
             {
                 var updated = _companyAppService.UpdateDebitTypes(id, debitTypes ?? new List<DebitTypeDTO>(), serviceHeader);
                 if (!updated)
-                    return InternalServerError(new InvalidOperationException("Failed to update debit types"));
+                    throw new InvalidOperationException("Failed to update debit types");
 
                 var refreshed = _companyAppService.FindDebitTypes(id, serviceHeader);
                 return Ok(refreshed);
@@ -199,7 +199,7 @@ namespace WebApplication1.Areas.Admin.Controllers
             {
                 var updated = _companyAppService.UpdateAttachedProducts(id, attachedProducts ?? new ProductCollectionInfo(), serviceHeader);
                 if (!updated)
-                    return InternalServerError(new InvalidOperationException("Failed to update attached products"));
+                    throw new InvalidOperationException("Failed to update attached products");
 
                 var refreshed = _companyAppService.FindAttachedProducts(id, serviceHeader);
                 return Ok(refreshed);

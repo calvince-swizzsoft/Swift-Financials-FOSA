@@ -134,7 +134,7 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
                 if (settings == null || string.IsNullOrWhiteSpace(settings.FileUploadDirectory))
-                    return InternalServerError(new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration)."));
+                    throw new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration).");
 
                 var path = Path.Combine(settings.FileUploadDirectory, document.FileName);
                 if (!File.Exists(path))
@@ -177,7 +177,7 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
                 if (settings == null || string.IsNullOrWhiteSpace(settings.FileUploadDirectory))
-                    return InternalServerError(new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration)."));
+                    throw new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration).");
 
                 Directory.CreateDirectory(settings.FileUploadDirectory);
 
@@ -233,7 +233,7 @@ namespace WebApplication1.Areas.Registry.Controllers
                 if (created == null)
                 {
                     File.Delete(storedPath);
-                    return InternalServerError(new InvalidOperationException("Failed to save the customer document."));
+                    throw new InvalidOperationException("Failed to save the customer document.");
                 }
 
                 created.FileBuffer = null;
@@ -275,7 +275,7 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
                 if (settings == null || string.IsNullOrWhiteSpace(settings.FileUploadDirectory))
-                    return InternalServerError(new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration)."));
+                    throw new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration).");
 
                 var updated = _customerDocumentAppService.UpdateCustomerDocument(customerDocumentDTO, settings.FileUploadDirectory, serviceHeader);
 

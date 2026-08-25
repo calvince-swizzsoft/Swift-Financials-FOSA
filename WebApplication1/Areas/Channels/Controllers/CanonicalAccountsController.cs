@@ -118,9 +118,9 @@ namespace WebApplication1.Areas.Channels.Controllers
                     asOf = DateTimeOffset.Now
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return CanonicalError(HttpStatusCode.InternalServerError, "SERVICE_UNAVAILABLE", ex.Message);
+                return CanonicalError(HttpStatusCode.InternalServerError, "SERVICE_UNAVAILABLE", "The service is temporarily unavailable.");
             }
         }
 
@@ -156,9 +156,9 @@ namespace WebApplication1.Areas.Channels.Controllers
                     transactions
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return CanonicalError(HttpStatusCode.InternalServerError, "SERVICE_UNAVAILABLE", ex.Message);
+                return CanonicalError(HttpStatusCode.InternalServerError, "SERVICE_UNAVAILABLE", "The service is temporarily unavailable.");
             }
         }
     }

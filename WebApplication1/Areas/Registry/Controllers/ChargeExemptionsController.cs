@@ -111,7 +111,7 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var created = await _commissionExemptionAppService.AddNewCommissionExemptionAsync(commissionExemption, serviceHeader);
 
                 if (created == null)
-                    return InternalServerError(new InvalidOperationException("Failed to create the charge exemption."));
+                    throw new ApplicationException("Failed to create the charge exemption.");
 
                 return Ok(new { success = true, message = "", data = created });
             }
