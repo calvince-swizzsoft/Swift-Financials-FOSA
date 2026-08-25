@@ -8,6 +8,7 @@ using System.Web.Http;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/administration/companies")]
     public class CompanyController : ApiController
     {
@@ -31,9 +32,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return Ok(companies);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -47,9 +48,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var companies = _companyAppService.FindCompanies(serviceHeader);
                 return Ok(companies);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -63,9 +64,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var count = await _companyAppService.GetCompaniesCountAsync(serviceHeader);
                 return Ok(count);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -82,9 +83,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return Ok(company);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -108,9 +109,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return Ok(company);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -131,9 +132,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var company = _companyAppService.FindCompany(id, serviceHeader);
                 return Ok(company);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -147,9 +148,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var debitTypes = _companyAppService.FindDebitTypes(id, serviceHeader);
                 return Ok(debitTypes);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -167,9 +168,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var refreshed = _companyAppService.FindDebitTypes(id, serviceHeader);
                 return Ok(refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -183,9 +184,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var attachedProducts = _companyAppService.FindAttachedProducts(id, serviceHeader);
                 return Ok(attachedProducts);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -203,9 +204,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var refreshed = _companyAppService.FindAttachedProducts(id, serviceHeader);
                 return Ok(refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

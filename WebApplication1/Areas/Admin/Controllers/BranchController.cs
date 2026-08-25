@@ -8,6 +8,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/administration/branches")]
     public class BranchController : ApiController
     {
@@ -41,9 +42,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Branches retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -58,9 +59,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Branches retrieved successfully", branches);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -77,9 +78,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Branch retrieved successfully", branch);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -96,9 +97,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Branch retrieved successfully", branch);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -113,9 +114,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Branches retrieved successfully", branches ?? Enumerable.Empty<BranchDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -144,9 +145,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                     data = createdBranch
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -175,9 +176,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var updatedBranch = _branchAppService.FindBranch(id, serviceHeader);
                 return ApiResponse(true, "Branch updated successfully", updatedBranch);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -201,9 +202,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var updatedBranch = _branchAppService.FindBranch(id, serviceHeader);
                 return ApiResponse(true, $"Branch {(updatedBranch.IsLocked ? "locked" : "unlocked")} successfully", updatedBranch);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

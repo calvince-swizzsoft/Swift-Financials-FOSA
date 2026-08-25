@@ -9,6 +9,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/administration/banks")]
     public class BankController : ApiController
     {
@@ -42,9 +43,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Banks retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -59,9 +60,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Banks retrieved successfully", banks ?? Enumerable.Empty<BankDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -78,9 +79,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Bank retrieved successfully", bank);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -99,9 +100,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Bank branches retrieved successfully", branches ?? Enumerable.Empty<BankBranchDTO>().ToList());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -135,9 +136,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                     data = new { bank = createdBank, branches }
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -171,9 +172,9 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return ApiResponse(true, "Bank updated successfully", new { bank = updatedBank, branches });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

@@ -35,6 +35,8 @@ namespace WebApplication1.ErrorHandling.Tests
             await ValidCorrelationIdIsPreserved();
             await InvalidCorrelationIdIsReplaced();
             await FrameworkUnauthorizedResponseIsNormalized();
+            await FrameworkNotFoundResponseIsNormalized();
+            await ExternalVersionedErrorIsNotRewritten();
         }
 
         private static async Task StandardEnvelopeUsesDocumentedShape()
@@ -122,6 +124,37 @@ namespace WebApplication1.ErrorHandling.Tests
                 "normalized unauthorized code");
             Equal((string)json["correlationId"], Header(response),
                 "normalized unauthorized correlation ID");
+        }
+
+        private static async Task FrameworkNotFoundResponseIsNormalized()
+        {
+            var response = await SendThroughNormalizer(NewRequest(), HttpStatusCode.NotFound);
+            var json = JObject.Parse(await response.Content.ReadAsStringAsync());
+            Equal(ErrorCodes.ResourceNotFound, (string)json["error"]["code"],
+                "normalized not-found code");
+        }
+
+        private static async Task ExternalVersionedErrorIsNotRewritten()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/v1/accounts/balance");
+            request.SetConfiguration(new HttpConfiguration());
+            var response = await SendThroughNormalizer(request, HttpStatusCode.BadRequest);
+            Equal(HttpStatusCode.BadRequest, response.StatusCode, "external contract status");
+            Equal(null, response.Content, "external contract content");
+        }
+
+        private static async Task<HttpResponseMessage> SendThroughNormalizer(
+            HttpRequestMessage request, HttpStatusCode statusCode)
+        {
+            var handler = new CorrelationIdHandler
+            {
+                InnerHandler = new ApiErrorNormalizationHandler
+                {
+                    InnerHandler = new StatusResponseHandler(statusCode)
+                }
+            };
+            using (var invoker = new HttpMessageInvoker(handler))
+                return await invoker.SendAsync(request, CancellationToken.None);
         }
 
         private static HttpRequestMessage NewRequest()

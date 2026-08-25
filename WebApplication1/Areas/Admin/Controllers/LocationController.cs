@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using System;
@@ -12,6 +12,7 @@ using System.Web.Http;
 namespace WebApplication1.Areas.Admin.Controllers
 {
 
+    [Authorize]
     [RoutePrefix("api/administration/locations")]
     public class LocationController : ApiController
     {
@@ -41,10 +42,10 @@ namespace WebApplication1.Areas.Admin.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
 
             }
         }
@@ -63,10 +64,10 @@ namespace WebApplication1.Areas.Admin.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
 
             }
         }
@@ -86,10 +87,10 @@ namespace WebApplication1.Areas.Admin.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
 
             }
         }

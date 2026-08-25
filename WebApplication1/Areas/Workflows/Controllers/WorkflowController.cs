@@ -3,11 +3,14 @@ using Application.MainBoundedContext.DTO.AdministrationModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
+using WebApplication1.ApiErrors;
 
 namespace WebApplication1.Areas.Workflows.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/administration/workflows")]
     public class WorkflowController : ApiController
     {
@@ -34,13 +37,14 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(workflows);
             }
 
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = ex.Message });
+                return Error(HttpStatusCode.Conflict, ErrorCodes.WorkflowInvalidState,
+                    "The workflow request conflicts with its current state.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -56,9 +60,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(workflow);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -74,9 +78,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(workflow);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -92,9 +96,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(inProgress);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -110,9 +114,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(workflows);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -128,9 +132,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(result);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -146,9 +150,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(result);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -169,22 +173,24 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 var workflow = _workflowAppService.FindWorkflow(workflowId, serviceHeader);
 
                 if (workflow == null)
-                    return NotFound();
+                    return Error(HttpStatusCode.NotFound, ErrorCodes.ResourceNotFound,
+                        "The workflow was not found.");
 
                 if (workflow.MatchedStatus == (int)WorkflowMatchedStatus.Matched)
                     return Ok(new { success = true, message = "Workflow was already matched - no action taken.", data = workflow });
 
                 if (workflow.Status != (int)WorkflowApprovalOption.Approved && workflow.Status != (int)WorkflowApprovalOption.Rejected)
-                    return Content(System.Net.HttpStatusCode.BadRequest, new { success = false, message = "Workflow has not reached a final Approved/Rejected status yet - nothing to match." });
+                    return Error(HttpStatusCode.Conflict, ErrorCodes.WorkflowNotFinal,
+                        "The workflow must reach an Approved or Rejected status before it can be matched.");
 
                 var result = await _workflowProcessorAppService.ProcessWorkflowQueueAsync(workflow.RecordId, workflow.SystemPermissionType, workflow.Status, serviceHeader);
 
                 return Ok(new { success = result, message = result ? "Workflow manually matched and processed." : "Manual match ran but reported no changes - check the underlying record/permission type wiring.", data = workflow });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -204,9 +210,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(items);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -222,9 +228,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(item);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -241,9 +247,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(items);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -262,9 +268,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(items);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -276,11 +282,13 @@ namespace WebApplication1.Areas.Workflows.Controllers
             try
             {
                 if (request?.WorkflowItem == null)
-                    return BadRequest("WorkflowItem is required");
+                    return Error(HttpStatusCode.BadRequest, ErrorCodes.ValidationFailed,
+                        "Workflow item data is required.");
 
                 var persisted = _workflowAppService.FindWorkflowItem(request.WorkflowItem.Id, serviceHeader);
                 if (persisted == null)
-                    return NotFound();
+                    return Error(HttpStatusCode.NotFound, ErrorCodes.ResourceNotFound,
+                        "The workflow item was not found.");
 
                 var isLoanStage = persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.BackOfficeLoanAppraisal
                     || persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.BackOfficeLoanApproval
@@ -296,25 +304,23 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 if (isLoanStage
                     && request.WorkflowItem.Status == (int)WorkflowApprovalOption.Approved
                     && persisted.IsLastItemInOverallApprovalChain)
-                    return Content(System.Net.HttpStatusCode.Conflict, new
-                    {
-                        success = false,
-                        message = "The final loan-stage workflow item must be completed from its detailed loan screen.",
-                        data = (object)null
-                    });
+                    return Error(HttpStatusCode.Conflict,
+                        ErrorCodes.WorkflowItemRequiresDetailedScreen,
+                        "The final loan-stage workflow item must be completed from its detailed loan screen.");
 
                 var result = _workflowAppService.ApproveWorkflowItem(request.WorkflowItem, request.UsedBiometrics, serviceHeader);
 
                 return Ok(result);
             }
 
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = ex.Message });
+                return Error(HttpStatusCode.Conflict, ErrorCodes.WorkflowInvalidState,
+                    "The workflow item cannot be changed from its current state.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -334,9 +340,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(entries);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -356,9 +362,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(setting);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -374,9 +380,9 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(result);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -394,6 +400,11 @@ namespace WebApplication1.Areas.Workflows.Controllers
             public WorkflowItemDTO WorkflowItem { get; set; }
 
             public bool UsedBiometrics { get; set; }
+        }
+
+        private IHttpActionResult Error(HttpStatusCode statusCode, string code, string message)
+        {
+            return ResponseMessage(ApiErrorResponses.Create(Request, statusCode, code, message));
         }
     }
 }
