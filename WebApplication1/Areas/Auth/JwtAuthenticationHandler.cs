@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using WebApplication1.Areas.Admin.Services;
+using WebApplication1.ApiErrors;
 
 namespace WebApplication1.Areas.Auth
 {
@@ -27,7 +28,11 @@ namespace WebApplication1.Areas.Auth
                 }
                 catch
                 {
-                    return request.CreateResponse(HttpStatusCode.Unauthorized, "Invalid or expired token");
+                    return ApiErrorResponses.Create(
+                        request,
+                        HttpStatusCode.Unauthorized,
+                        ErrorCodes.AuthenticationRequired,
+                        "Authentication is required or the supplied token has expired.");
                 }
             }
 

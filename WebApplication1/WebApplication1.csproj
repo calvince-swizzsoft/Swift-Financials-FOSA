@@ -224,6 +224,13 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\UnityConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Infrastructure\Errors\ApiErrorResponse.cs" />
+    <Compile Include="Infrastructure\Errors\ApiErrorNormalizationHandler.cs" />
+    <Compile Include="Infrastructure\Errors\ApiException.cs" />
+    <Compile Include="Infrastructure\Errors\ApiExceptionHandler.cs" />
+    <Compile Include="Infrastructure\Errors\ApiExceptionLogger.cs" />
+    <Compile Include="Infrastructure\Errors\CorrelationIdHandler.cs" />
+    <Compile Include="Infrastructure\Errors\ErrorCodes.cs" />
     <Compile Include="Areas\Admin\Controllers\AuditLogsController.cs" />
     <Compile Include="Areas\Admin\Controllers\LocationController.cs" />
     <Compile Include="Areas\Admin\Controllers\ModulesController.cs" />
