@@ -116,7 +116,7 @@ namespace WebApplication1.Controllers
                 var created = _salaryGroupAppService.AddNewSalaryGroup(salaryGroupDTO, serviceHeader);
 
                 if (created == null)
-                    return InternalServerError(new InvalidOperationException("Failed to save the salary group."));
+                    throw new InvalidOperationException("Failed to save the salary group.");
 
                 return Ok(created);
             }
@@ -169,7 +169,7 @@ namespace WebApplication1.Controllers
                 var updated = _salaryGroupAppService.UpdateSalaryGroupEntries(id, entries ?? new List<SalaryGroupEntryDTO>(), serviceHeader);
 
                 if (!updated)
-                    return InternalServerError(new InvalidOperationException("Failed to save the salary group entries."));
+                    throw new InvalidOperationException("Failed to save the salary group entries.");
 
                 var refreshed = _salaryGroupAppService.FindSalaryGroupEntriesBySalaryGroupId(id, serviceHeader);
 

@@ -194,7 +194,7 @@ namespace WebApplication1.Controllers
                 var reset = _salaryCardAppService.ResetSalaryCardEntries(salaryCard, serviceHeader);
 
                 if (!reset)
-                    return InternalServerError(new InvalidOperationException("Failed to reset the salary card entries."));
+                    return Content(HttpStatusCode.Conflict, new { Message = "The salary card entries could not be reset in their current state." });
 
                 var refreshed = _salaryCardAppService.FindSalaryCardEntriesBySalaryCardId(id, serviceHeader);
 

@@ -153,7 +153,7 @@ namespace WebApplication1.Controllers
                 var created = _leaveApplicationAppService.AddNewLeaveApplication(leaveApplicationDTO, serviceHeader);
 
                 if (created == null)
-                    return InternalServerError(new InvalidOperationException("Failed to save the leave application."));
+                    throw new InvalidOperationException("Failed to save the leave application.");
 
                 return Ok(created);
             }

@@ -124,7 +124,7 @@ namespace WebApplication1.Controllers
 
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
                 if (settings == null || string.IsNullOrWhiteSpace(settings.FileUploadDirectory))
-                    return InternalServerError(new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration)."));
+                    throw new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration).");
 
                 Directory.CreateDirectory(settings.FileUploadDirectory);
 
@@ -172,7 +172,7 @@ namespace WebApplication1.Controllers
                 if (created == null)
                 {
                     File.Delete(storedPath);
-                    return InternalServerError(new InvalidOperationException("Failed to save the employee document."));
+                    throw new InvalidOperationException("Failed to save the employee document.");
                 }
 
                 created.FileBuffer = null;
@@ -214,7 +214,7 @@ namespace WebApplication1.Controllers
 
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
                 if (settings == null || string.IsNullOrWhiteSpace(settings.FileUploadDirectory))
-                    return InternalServerError(new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration)."));
+                    throw new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration).");
 
                 var updated = _employeeDocumentAppService.UpdateEmployeeDocument(employeeDocumentDTO, settings.FileUploadDirectory, serviceHeader);
 
