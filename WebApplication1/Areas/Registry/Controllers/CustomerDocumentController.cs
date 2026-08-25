@@ -61,9 +61,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = documents ?? new List<CustomerDocumentDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -82,9 +82,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = document });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -110,9 +110,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = documents ?? new PageCollectionInfo<CustomerDocumentDTO> { PageCollection = new List<CustomerDocumentDTO>(), ItemsCount = 0 } });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -151,9 +151,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ResponseMessage(response);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -240,9 +240,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -284,9 +284,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = customerDocumentDTO });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

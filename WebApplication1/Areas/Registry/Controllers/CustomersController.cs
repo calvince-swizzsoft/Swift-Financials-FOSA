@@ -27,6 +27,7 @@ namespace WebApplication1.Controllers
     // delete/remove — customers are never hard-deleted in this domain).
     // What's left — GetAll, Get(id), Update, and the identity-card search —
     // are the only actions with a confirmed live frontend caller.
+    [Authorize]
     [RoutePrefix("api/registry/customers")]
     public class CustomersController : ApiController
     {
@@ -68,9 +69,9 @@ namespace WebApplication1.Controllers
                     customers
                 );
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ApiResponse(false, ex.Message);
+                throw;
             }
         }
 
@@ -85,10 +86,9 @@ namespace WebApplication1.Controllers
 
                 return ApiResponse(true, "Customers retrieved successfully", customers);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                throw;
             }
         }
 
@@ -121,10 +121,9 @@ namespace WebApplication1.Controllers
                     percentageSummary = percentageSummary
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                throw;
             }
         }
 
@@ -212,20 +211,19 @@ namespace WebApplication1.Controllers
                                    }
                                });
             }
-            catch (InvalidOperationException ex) // Duplicate validation error
+            catch (InvalidOperationException) // Duplicate validation error
             {
                 return Content(System.Net.HttpStatusCode.Conflict,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
-            catch (KeyNotFoundException ex) // Customer not found
+            catch (KeyNotFoundException) // Customer not found
             {
                 return Content(System.Net.HttpStatusCode.NotFound,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                throw;
             }
         }
     }

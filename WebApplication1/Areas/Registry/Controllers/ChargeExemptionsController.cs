@@ -52,9 +52,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = items });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -70,9 +70,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -91,9 +91,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = item });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -115,13 +115,13 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = created });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -145,13 +145,13 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = await _commissionExemptionAppService.FindCommissionExemptionAsync(id, serviceHeader) });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -167,9 +167,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = entries });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -198,9 +198,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Ok(new { success = true, message = "", data = current });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }
