@@ -40,9 +40,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(new { success = true, message = "", data = loaningRemarks ?? new List<LoaningRemarkDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -60,9 +60,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -81,9 +81,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(new { success = true, message = "", data = loaningRemark });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -112,9 +112,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loaning remark created successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -144,9 +144,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Operation success", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

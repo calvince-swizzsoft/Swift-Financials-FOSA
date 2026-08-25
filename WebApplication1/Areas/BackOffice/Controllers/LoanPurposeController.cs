@@ -41,9 +41,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(new { success = true, message = "", data = loanPurposes ?? new List<LoanPurposeDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -61,9 +61,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -82,9 +82,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(new { success = true, message = "", data = loanPurpose });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -113,9 +113,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan purpose created successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -145,9 +145,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Operation success", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
