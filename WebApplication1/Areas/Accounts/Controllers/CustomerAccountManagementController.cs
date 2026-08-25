@@ -45,14 +45,14 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? successMessage : $"Failed to {successMessage.ToLowerInvariant()}");
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
                 // A business-rule guard (e.g. activating an account with no prior freeze history) — not a server fault.
-                return ErrorResponse(HttpStatusCode.Conflict, ex.Message);
+                return ErrorResponse(HttpStatusCode.Conflict, "The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -103,9 +103,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Customer account history retrieved successfully", history);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -130,9 +130,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return ApiResponse(true, request.Option == 1 ? "Customer account approved" : "Customer account rejected",
                     _customerAccountAppService.FindCustomerAccountDTO(customerAccountId, serviceHeader));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 

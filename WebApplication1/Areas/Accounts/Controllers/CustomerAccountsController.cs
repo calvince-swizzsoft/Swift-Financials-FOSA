@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.RegistryModule.Services;
@@ -57,10 +57,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Customer accounts retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
 
@@ -73,10 +73,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var accounts = _customerAccountService.FindCustomerAccounts(serviceHeader);
                 return ApiResponse(true, "Customer accounts retrieved successfully", accounts);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
 
@@ -96,10 +96,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Customer account retrieved successfully", account);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
 
@@ -154,10 +154,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Content(System.Net.HttpStatusCode.Created,
                                new { success = true, message = "Customer account created successfully", data = created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
 
@@ -213,10 +213,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Content(System.Net.HttpStatusCode.Created,
                                new { success = true, message = "Customer account(s) created successfully", data = accounts });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
 
@@ -230,10 +230,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Customer accounts retrieved successfully", accounts);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
 
@@ -246,10 +246,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var page = _customerAccountService.FindCustomerAccountsByCustomerId(customerId, pageIndex, pageSize, serviceHeader);
                 return ApiResponse(true, "Customer accounts retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
 
@@ -267,10 +267,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Customer account retrieved successfully", account);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Content(System.Net.HttpStatusCode.InternalServerError,
-                               new { success = false, message = ex.Message });
+                               new { success = false, message = "The request could not be completed." });
             }
         }
     }

@@ -14,6 +14,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
     // IElectronicStatementOrderAppService.FixSkippedElectronicStatementOrders — grouped
     // here by concept (both are "run this batch process now" actions) rather than by
     // which app service happens to implement them, matching the Standing Order precedent.
+    [Authorize]
     [RoutePrefix("api/accounts/electronicstatementorders/execution")]
     public class ElectronicStatementOrderExecutionController : ApiController
     {
@@ -59,9 +60,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? "E-statement orders executed successfully" : "No e-statement orders were executed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -81,9 +82,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? "Skipped e-statement orders fixed successfully" : "No skipped e-statement orders were fixed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 

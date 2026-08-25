@@ -6,6 +6,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Accounts.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/accounts/statements/gl-account")]
     public class GeneralLedgerStatementController : ApiController
     {
@@ -54,9 +55,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "G/L statement retrieved successfully", statement);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -89,9 +90,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "G/L statement retrieved successfully", statement);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -120,9 +121,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "G/L transactions retrieved successfully", transactions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

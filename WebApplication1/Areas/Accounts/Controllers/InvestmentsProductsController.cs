@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -13,6 +13,7 @@ using WebApplication1.Helpers;
 
 namespace SwiftFinancials.Web.Areas.Accounts.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/accounts/investmentsproducts")]
     public class InvestmentsProductController : ApiController
     {

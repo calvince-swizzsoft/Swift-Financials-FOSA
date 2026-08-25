@@ -38,9 +38,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = costCenters });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -62,9 +62,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = costCenter });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -100,9 +100,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "Operation Success", data = createdCostCenterDTO });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -137,9 +137,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "Operation Success", data = refreshedCostCenterDTO });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }
