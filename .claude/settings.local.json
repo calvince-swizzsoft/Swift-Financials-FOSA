@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"ChequeType\")",
+      "Read(//c/Users/ckoda/Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/SwiftFinancials.Web/Areas/**)",
+      "Read(//c/Users/ckoda/Desktop/source/SwiftFinancialsNew/SwiftFinancialsSolution/SwiftFinancials.Web/**)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(grep -n \"\\\\[DataMember\\\\]\\\\s*$\" -A1 \"/c/Users/ckoda/source/repos/SwiftFinancialz/Application.MainBoundedContext.DTO/AccountsModule/BankToMobileRequestDTO.cs\")",
+      "Bash(grep *)"
+    ]
+  }
+}

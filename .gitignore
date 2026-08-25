@@ -7,6 +7,9 @@
 [Bb]in/
 [Oo]bj/
 
+# Generated deployment packages and verification extracts
+/deployment-artifacts/
+
 # NuGet
 packages/
 *.nupkg
