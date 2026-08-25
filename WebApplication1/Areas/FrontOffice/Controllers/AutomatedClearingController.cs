@@ -50,9 +50,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = journals });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -71,9 +71,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = journal });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -91,9 +91,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "", data = cheques });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -114,7 +114,7 @@ namespace WebApplication1.Controllers
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
 
                 if (settings == null || string.IsNullOrWhiteSpace(settings.FileUploadDirectory))
-                    return InternalServerError(new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration)."));
+                    throw new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration).");
 
                 Directory.CreateDirectory(settings.FileUploadDirectory);
 
@@ -142,9 +142,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Electronic journal uploaded and parsed successfully.", data = result });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -167,7 +167,7 @@ namespace WebApplication1.Controllers
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
 
                 if (settings == null)
-                    return InternalServerError(new InvalidOperationException("serviceBrokerConfiguration settings are not configured."));
+                    throw new InvalidOperationException("serviceBrokerConfiguration settings are not configured.");
 
                 var result = _electronicJournalAppService.CloseElectronicJournal(journal, settings.EncryptionPublicKeyPath, settings.EncryptionPrivateKeyPath, settings.EncryptionPassPhrase, settings.FileExportDirectory, serviceHeader);
 
@@ -176,9 +176,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Electronic journal closed successfully.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -202,9 +202,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Truncated cheque cleared.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -228,9 +228,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Payment voucher matched.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

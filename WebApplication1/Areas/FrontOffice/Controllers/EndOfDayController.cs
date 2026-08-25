@@ -393,9 +393,9 @@ namespace WebApplication1.Controllers
                 }
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Json(new { success = false, message = "Operation error: " + ex.Message, data = (object)null });
+                throw;
             }
         }
 
