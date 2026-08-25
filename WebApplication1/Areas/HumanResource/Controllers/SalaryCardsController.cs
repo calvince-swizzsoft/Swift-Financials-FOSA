@@ -49,9 +49,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryCards);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -70,9 +70,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryCard);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -93,9 +93,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryCard);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -111,9 +111,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(entries ?? new List<SalaryCardEntryDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -141,9 +141,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(created);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -170,9 +170,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryCardDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -200,9 +200,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(refreshed ?? new List<SalaryCardEntryDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -230,9 +230,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryCardEntryDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

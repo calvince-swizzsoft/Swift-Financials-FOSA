@@ -56,9 +56,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryHeads);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -77,9 +77,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryHead);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -104,9 +104,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(created);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -133,9 +133,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryHeadDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

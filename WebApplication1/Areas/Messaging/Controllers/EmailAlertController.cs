@@ -55,9 +55,9 @@ namespace WebApplication1.Areas.Messaging.Controllers
 
                 return Ok(ApiResponse("Email alerts retrieved successfully", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -74,9 +74,9 @@ namespace WebApplication1.Areas.Messaging.Controllers
 
                 return Ok(ApiResponse("Email alert retrieved successfully", emailAlert));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -114,9 +114,9 @@ namespace WebApplication1.Areas.Messaging.Controllers
 
                 return Content(HttpStatusCode.Created, ApiResponse("Email alert queued successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

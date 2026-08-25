@@ -79,9 +79,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryPeriods);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -100,9 +100,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryPeriod);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -130,9 +130,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(created);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -156,13 +156,13 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryPeriodDTO);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Content(HttpStatusCode.Conflict, new { Message = ex.Message });
+                return Content(HttpStatusCode.Conflict, new { Message = "The request could not be completed." });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -215,9 +215,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { Processed = true, EmployeeCount = employees.Count });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -243,9 +243,9 @@ namespace WebApplication1.Controllers
 
                 return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

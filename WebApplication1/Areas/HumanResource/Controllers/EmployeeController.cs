@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO.HumanResourcesModule;
+using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using iTextSharp.xmp.impl;
@@ -17,6 +17,7 @@ namespace WebApplication1.Controllers
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     [AllowAnonymous]
 
+    [Authorize]
     [RoutePrefix("api/humanresource/employees")]
     public class EmployeeController : ApiController
     {
@@ -45,10 +46,10 @@ namespace WebApplication1.Controllers
                 return Ok(employees);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -66,9 +67,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(employee);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -98,9 +99,9 @@ namespace WebApplication1.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -129,9 +130,9 @@ namespace WebApplication1.Controllers
                 return Ok(updatedEmployeeDTO);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

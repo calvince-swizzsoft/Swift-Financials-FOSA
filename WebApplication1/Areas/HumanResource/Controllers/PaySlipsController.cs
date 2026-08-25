@@ -54,9 +54,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(paySlips);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -76,9 +76,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { Total = total, Posted = posted, Pending = total - posted });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -97,9 +97,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(paySlip);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -115,9 +115,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(entries ?? new List<PaySlipEntryDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -145,9 +145,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

@@ -73,9 +73,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(documents);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -103,9 +103,9 @@ namespace WebApplication1.Controllers
 
                 return ResponseMessage(response);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -179,9 +179,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(created);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -223,9 +223,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(employeeDocumentDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

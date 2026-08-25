@@ -45,9 +45,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(leaveTypes);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -72,13 +72,13 @@ namespace WebApplication1.Controllers
 
                 return Ok(created);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -104,13 +104,13 @@ namespace WebApplication1.Controllers
 
                 return Ok(leaveTypeDTO);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

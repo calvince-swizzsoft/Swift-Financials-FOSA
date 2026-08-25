@@ -57,9 +57,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryGroups);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -78,9 +78,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryGroup);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -96,9 +96,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(entries ?? new List<SalaryGroupEntryDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -120,9 +120,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(created);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -146,9 +146,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryGroupDTO);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -175,9 +175,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(refreshed ?? new List<SalaryGroupEntryDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }
