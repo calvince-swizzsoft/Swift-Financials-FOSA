@@ -350,6 +350,14 @@
     <Compile Include="InventoryModule\Services\ISalesOrderAppService.cs" />
     <Compile Include="InventoryModule\Services\PurchaseOrderAppService.cs" />
     <Compile Include="InventoryModule\Services\SalesOrderAppService.cs" />
+    <Compile Include="InventoryModule\Services\ISupplierAppService.cs" />
+    <Compile Include="InventoryModule\Services\SupplierAppService.cs" />
+    <Compile Include="InventoryModule\Services\IAssetTypeAppService.cs" />
+    <Compile Include="InventoryModule\Services\AssetTypeAppService.cs" />
+    <Compile Include="InventoryModule\Services\IPackageTypeAppService.cs" />
+    <Compile Include="InventoryModule\Services\PackageTypeAppService.cs" />
+    <Compile Include="InventoryModule\Services\IUnitOfMeasurementAppService.cs" />
+    <Compile Include="InventoryModule\Services\UnitOfMeasurementAppService.cs" />
     <Compile Include="MessagingModule\Services\CustomerMessageHistoryAppService.cs" />
     <Compile Include="MessagingModule\Services\EmailAlertAppService.cs" />
     <Compile Include="MessagingModule\Services\ICustomerMessageHistoryAppService.cs" />

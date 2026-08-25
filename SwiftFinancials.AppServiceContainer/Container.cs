@@ -4,6 +4,7 @@ using Application.MainBoundedContext.BackOfficeModule.Services;
 using Application.MainBoundedContext.DTO.TypeAdapterFactory;
 using Application.MainBoundedContext.FrontOfficeModule.Services;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Application.MainBoundedContext.InventoryModule.Services;
 using Application.MainBoundedContext.MessagingModule.Services;
 using Application.MainBoundedContext.MicroCreditModule.Services;
 using Application.MainBoundedContext.RegistryModule.Services;
@@ -158,6 +159,10 @@ namespace SwiftFinancials.AppServiceContainer
             Current.RegisterType<ICustomerAppService, CustomerAppService>();
             Current.RegisterType<ICustomerDocumentAppService, CustomerDocumentAppService>();
             Current.RegisterType<INextOfKinAppService, NextOfKinAppService>();
+            Current.RegisterType<ISupplierAppService, SupplierAppService>();
+            Current.RegisterType<IAssetTypeAppService, AssetTypeAppService>();
+            Current.RegisterType<IPackageTypeAppService, PackageTypeAppService>();
+            Current.RegisterType<IUnitOfMeasurementAppService, UnitOfMeasurementAppService>();
             Current.RegisterType<IFileRegisterAppService, FileRegisterAppService>();
             Current.RegisterType<IDelegateAppService, DelegateAppService>();
             Current.RegisterType<IDirectorAppService, DirectorAppService>();

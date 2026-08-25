@@ -319,6 +319,10 @@
     <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\TrainingPeriodEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\TrainingPeriodEntryEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\HumanResourcesModule\TransactionThresholdEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\InventoryModule\SupplierEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\InventoryModule\AssetTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\InventoryModule\PackageTypeEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\InventoryModule\UnitOfMeasurementEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\MessagingModule\CustomerMessageHistoryEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\MessagingModule\EmailAlertEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\MessagingModule\MessageGroupEntityConfiguration.cs" />

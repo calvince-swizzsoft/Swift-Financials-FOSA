@@ -3,6 +3,10 @@ using Domain.MainBoundedContext.InventoryModule.Aggregates.ReceiptAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.CategoryAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.PurchaseOrderAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.InventoryAgg;
+using Domain.MainBoundedContext.InventoryModule.Aggregates.SupplierAgg;
+using Domain.MainBoundedContext.InventoryModule.Aggregates.AssetTypeAgg;
+using Domain.MainBoundedContext.InventoryModule.Aggregates.PackageTypeAgg;
+using Domain.MainBoundedContext.InventoryModule.Aggregates.UnitOfMeasurementAgg;
 using Application.MainBoundedContext.DTO;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.SalesOrderEntryAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.PurchaseOrderEntryAgg;
@@ -51,6 +55,36 @@ namespace Application.MainBoundedContext.DTO.InventoryModule
             //PurchaseOrderEntry => PurchaseOrderEntryDTO
             CreateMap<PurchaseOrderEntry, PurchaseOrderEntryDTO>();
 
+            //Supplier => SupplierDTO
+            // ChartOfAccountAccountName is set explicitly by SupplierAppService (via
+            // IChartOfAccountAppService.FindChartOfAccount), not flattened from the
+            // ChartOfAccount navigation property here.
+            CreateMap<Supplier, SupplierDTO>()
+                .ForMember(dest => dest.ChartOfAccountAccountName, opt => opt.Ignore());
+
+            //SupplierDTO => SupplierBindingModel
+            CreateMap<SupplierDTO, SupplierBindingModel>();
+
+            //AssetType => AssetTypeDTO
+            CreateMap<AssetType, AssetTypeDTO>();
+
+            //AssetTypeDTO => AssetTypeBindingModel
+            CreateMap<AssetTypeDTO, AssetTypeBindingModel>();
+
+            //PackageType => PackageTypeDTO
+            CreateMap<PackageType, PackageTypeDTO>();
+
+            //PackageTypeDTO => PackageTypeBindingModel
+            CreateMap<PackageTypeDTO, PackageTypeBindingModel>();
+
+            //UnitOfMeasurement => UnitOfMeasurementDTO
+            // BaseUnitName is set explicitly by UnitOfMeasurementAppService (self-lookup
+            // against its own repository), not flattened from the BaseUnit navigation here.
+            CreateMap<UnitOfMeasurement, UnitOfMeasurementDTO>()
+                .ForMember(dest => dest.BaseUnitName, opt => opt.Ignore());
+
+            //UnitOfMeasurementDTO => UnitOfMeasurementBindingModel
+            CreateMap<UnitOfMeasurementDTO, UnitOfMeasurementBindingModel>();
 
         }
     }

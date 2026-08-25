@@ -334,6 +334,10 @@
     <Compile Include="Areas\Accounts\Controllers\PostingPeriodController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Areas\Channels\Controllers\CanonicalAccountsController.cs" />
+    <Compile Include="Areas\Control\Controllers\SupplierController.cs" />
+    <Compile Include="Areas\Control\Controllers\AssetTypesController.cs" />
+    <Compile Include="Areas\Control\Controllers\PackageTypeController.cs" />
+    <Compile Include="Areas\Control\Controllers\UnitOfMeasurementController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeTypeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeBookController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CommissionController.cs" />
