@@ -71,9 +71,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", batches ?? new List<OverDeductionBatchDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -91,9 +91,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -112,9 +112,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", batch));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -141,9 +141,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Refund batch created successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -173,9 +173,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse(balanced ? "Operation success" : "Saved, but entries do not yet sum to the batch's total value", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -210,9 +210,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -236,9 +236,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entry added successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -260,9 +260,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entries removed successfully", null));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -289,9 +289,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Operation success", updated));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

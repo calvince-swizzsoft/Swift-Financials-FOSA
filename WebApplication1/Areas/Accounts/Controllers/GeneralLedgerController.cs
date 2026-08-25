@@ -73,9 +73,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", ledgers ?? new List<GeneralLedgerDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -99,9 +99,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -120,9 +120,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", ledger));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -149,9 +149,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("General ledger created successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -181,9 +181,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse(balanced ? "Operation success" : "Saved, but entries do not yet sum to the ledger's total value", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -223,9 +223,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 {
                     result = _generalLedgerAppService.AuthorizeGeneralLedger(existing, request?.Option ?? 0, request?.ModuleNavigationItemCode ?? 0, serviceHeader);
                 }
-                catch (InvalidOperationException ex)
+                catch (InvalidOperationException)
                 {
-                    return Content(HttpStatusCode.Conflict, ErrorEnvelope(ex.Message));
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The general ledger cannot be authorized until its entries balance to the batch total."));
                 }
 
                 if (!result)
@@ -235,9 +235,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Operation success", updated));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -253,9 +253,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -279,9 +279,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entry added successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -306,9 +306,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entries replaced successfully", refreshed ?? new List<GeneralLedgerEntryDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -330,9 +330,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entries removed successfully", null));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -359,9 +359,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Operation success", updated));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

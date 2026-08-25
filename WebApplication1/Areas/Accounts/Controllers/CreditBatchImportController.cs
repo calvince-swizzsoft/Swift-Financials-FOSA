@@ -46,7 +46,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 var settings = ConfigurationHelper.GetServiceBrokerConfigurationSettings(serviceHeader);
                 if (settings == null || string.IsNullOrWhiteSpace(settings.FileUploadDirectory))
-                    return InternalServerError(new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration)."));
+                    throw new InvalidOperationException("File upload directory is not configured (serviceBrokerConfiguration).");
 
                 Directory.CreateDirectory(settings.FileUploadDirectory);
                 var provider = new MultipartFormDataStreamProvider(settings.FileUploadDirectory);
@@ -93,9 +93,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Credit batch imported and reconciled.", data });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
