@@ -485,7 +485,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 return glAccountsList;
             }
-            else return null;
+            else return new List<GeneralLedgerAccount>();
         }
 
         public GeneralLedgerAccount FindGeneralLedgerAccount(Guid chartOfAccountId, ServiceHeader serviceHeader)
