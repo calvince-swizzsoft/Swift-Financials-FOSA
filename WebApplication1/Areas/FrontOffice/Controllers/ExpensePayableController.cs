@@ -46,7 +46,7 @@ namespace WebApplication1.Controllers
 
         [HttpGet]
         [Route("")]
-        public IHttpActionResult Index(int? status, string text = "", DateTime? startDate = null, DateTime? endDate = null, int pageIndex = 0, int pageSize = 20)
+        public IHttpActionResult Index(int? status = null, string text = "", DateTime? startDate = null, DateTime? endDate = null, int pageIndex = 0, int pageSize = 20)
         {
             try
             {
