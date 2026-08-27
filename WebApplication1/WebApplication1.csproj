@@ -303,6 +303,7 @@
     <Compile Include="Areas\Registry\Controllers\ConditionalLendingController.cs" />
     <Compile Include="Areas\Registry\Controllers\EmployerController.cs" />
     <Compile Include="Areas\Registry\Controllers\StationController.cs" />
+    <Compile Include="Areas\Registry\Controllers\WithdrawalNotificationController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\DepartmentsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\DesignationsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\EmployeeController.cs" />

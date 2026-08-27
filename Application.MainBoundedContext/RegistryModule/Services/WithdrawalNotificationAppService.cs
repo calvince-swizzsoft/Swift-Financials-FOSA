@@ -296,7 +296,6 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var persisted = _withdrawalNotificationRepository.Get(withdrawalNotificationDTO.Id, serviceHeader);
-                    persisted.Status = (int)WithdrawalNotificationStatus.Audited;
                     if (persisted != null && (persisted.Status == (int)WithdrawalNotificationStatus.Audited))
                     {
                         switch ((MembershipWithdrawalSettlementOption)membershipWithdrawalSettlementOption)
