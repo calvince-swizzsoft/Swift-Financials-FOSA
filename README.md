@@ -60,11 +60,11 @@ project targets `.NET Framework 4.7.2`.
 1. Open `SwiftFinancialz.slnx` in Visual Studio (2022/17.x or newer — a
    `18\Community` MSBuild toolset is what CI/local verification builds
    against) and let NuGet restore packages for all projects.
-2. Provision a local SQL Server instance and create the databases referenced
-   in `WebApplication1/Web.config`'s `<connectionStrings>`
-   (`SwiftFinancialsDB_AuthStore`, `SwiftFinancialsDB_BLOBStore`, ...) — adjust
-   the connection strings there to match your local server/credentials
-   before running.
+2. Provision a local SQL Server instance, enable FILESTREAM for Transact-SQL
+   and file I/O access in SQL Server Configuration Manager, then restart the
+   SQL Server service. Adjust the connection strings in `WebApplication1/Web.config`
+   and `SwiftFinancials.Utility/App.config`, then run
+   `SwiftFinancials.Utility.exe [CurrentAppDomainName]` to create all three databases.
 3. Set `WebApplication1` as the startup project and run (F5 / IIS Express) —
    that's the active Web API surface described above.
 4. For one-off command-line verification builds of a single project (faster

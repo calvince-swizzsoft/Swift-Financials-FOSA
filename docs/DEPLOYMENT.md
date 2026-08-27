@@ -38,6 +38,12 @@ If the server doesn't already have SQL Server, install SQL Server Express
 (free, fine for this) or point Phase 03 at an existing instance elsewhere on
 your network.
 
+The blob database uses SQL Server FILESTREAM. In SQL Server Configuration
+Manager, open the target instance's **Properties → FILESTREAM**, enable both
+Transact-SQL access and file I/O streaming access, then restart the SQL Server
+service. This is a one-time instance setting; the Utility verifies it and
+automatically creates the FILESTREAM database objects in Phase 03.
+
 ## 01 — Build both apps locally
 
 Do this on your own machine, where the source lives.
@@ -98,7 +104,7 @@ that screen without checking it.
 
 Update the connection strings in `fosa-api\Web.config`
 (`AuthStore`, `BLOBStore`, `SwiftFin_Dev`) and `SwiftFinancials.Utility`'s own
-`App.config` (`AuthStore`, `SwiftFin_Dev`) to match — both need editing
+`App.config` (`AuthStore`, `BLOBStore`, `SwiftFin_Dev`) to match — both need editing
 together, they aren't shared. If SQL Server runs on the same machine as the
 app, `Data Source=(local)` resolves correctly once these files live on the
 target server; if it's elsewhere, put the real server name/IP instead.

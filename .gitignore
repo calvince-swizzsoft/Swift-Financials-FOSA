@@ -19,6 +19,13 @@ packages/
 *.userosscache
 *.sln.docstates
 
+# Visual Studio database project cache
+*.dbmdl
+*.jfm
+
+# Visual Studio migration reports
+UpgradeLog*.htm
+
 # Test results
 TestResults/
 

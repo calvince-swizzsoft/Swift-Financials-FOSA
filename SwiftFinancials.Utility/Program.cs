@@ -11,6 +11,7 @@ using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
@@ -79,6 +80,13 @@ namespace SwiftFinancials.Utility
                         result = true;
                         Console.WriteLine("ConfigureApplicationDatabase>{0}", result);
                         Console.WriteLine("ConfigureStoredProcedures>{0}", result);
+
+                        var blobStoreConnection = ConfigurationManager.ConnectionStrings["BLOBStore"];
+                        if (blobStoreConnection == null)
+                            throw new ConfigurationErrorsException("A BLOBStore connection string is required.");
+
+                        BlobStoreInitializer.EnsureCreated(blobStoreConnection.ConnectionString);
+                        Console.WriteLine("ConfigureBlobStore>{0}", true);
 
                         result = await Container.Current.Resolve<INavigationItemAppService>().AddNavigationItemsAsync(navigationItems, serviceHeader);
                         Console.WriteLine("AddNavigationItemsAsync>{0}", result);
