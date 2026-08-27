@@ -81,9 +81,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(applications);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -102,9 +102,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(application);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -123,9 +123,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { EmployeeId = employeeId, LeaveTypeId = leaveTypeId, Balance = balance });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -153,17 +153,17 @@ namespace WebApplication1.Controllers
                 var created = _leaveApplicationAppService.AddNewLeaveApplication(leaveApplicationDTO, serviceHeader);
 
                 if (created == null)
-                    return InternalServerError(new InvalidOperationException("Failed to save the leave application."));
+                    throw new InvalidOperationException("Failed to save the leave application.");
 
                 return Ok(created);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -204,13 +204,13 @@ namespace WebApplication1.Controllers
 
                 return Ok(leaveApplicationDTO);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -249,13 +249,13 @@ namespace WebApplication1.Controllers
 
                 return Ok(persisted);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -288,13 +288,13 @@ namespace WebApplication1.Controllers
 
                 return Ok(persisted);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("The request could not be completed.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

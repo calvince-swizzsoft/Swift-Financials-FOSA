@@ -1,4 +1,4 @@
-﻿
+
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
@@ -13,6 +13,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/humanresource/designations")]
     public class DesignationsController : ApiController
     {
@@ -39,10 +40,10 @@ namespace WebApplication1.Controllers
                 return Ok(designations);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -73,9 +74,9 @@ namespace WebApplication1.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -94,9 +95,9 @@ namespace WebApplication1.Controllers
                 return Ok(updatedDesignationDTO);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

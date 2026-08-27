@@ -103,13 +103,18 @@ reproducing it; fix obvious bugs rather than porting them forward.
 
 ## Response envelope convention
 
-Every API controller endpoint returns:
+Successful API controller endpoints return:
 ```json
 { "success": true, "message": "...", "data": { } }
 ```
-via the `ApiResponse`/`ErrorResponse` private helpers repeated per controller
-(no shared base class currently — that's consistent with the rest of the
-codebase, not an oversight to "fix").
+Existing private `ApiResponse` helpers may remain while their controller is
+unmigrated. Errors are standardized through
+`WebApplication1/Infrastructure/Errors`: use `ApiErrorResponses` for expected
+controller failures and classified `ApiException`s for failures crossing
+layers. The global Web API exception handler sanitizes unexpected exceptions,
+and `CorrelationIdHandler` adds `X-Correlation-ID`. Do not add new
+`InternalServerError(ex)` responses or return raw exception messages. See
+`docs/API_ERROR_HANDLING_STRATEGY.md` for the contract and migration order.
 
 ## Client-facing docs
 

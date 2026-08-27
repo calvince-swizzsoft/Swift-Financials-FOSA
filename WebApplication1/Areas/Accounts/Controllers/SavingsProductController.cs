@@ -1,4 +1,4 @@
-﻿
+
 using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using iTextSharp.text;
@@ -17,6 +17,7 @@ namespace WebApplication1.Controllers
 {
     //[EnableCors(origins: "*", headers: "*", methods: "*")]
     //[AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/accounts/savingsproducts")]
     public class SavingsProductController : ApiController
     {

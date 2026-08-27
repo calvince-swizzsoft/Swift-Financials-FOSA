@@ -40,9 +40,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -61,9 +61,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", guarantor));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -83,9 +83,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", guarantors ?? new List<LoanGuarantorDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -113,9 +113,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan guarantor created successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

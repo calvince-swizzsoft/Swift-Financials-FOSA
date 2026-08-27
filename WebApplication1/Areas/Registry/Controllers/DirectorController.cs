@@ -49,9 +49,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Directors retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -64,9 +64,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var directors = _directorAppService.FindDirectors(serviceHeader);
                 return ApiResponse(true, "Directors retrieved successfully", directors);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -83,9 +83,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Director retrieved successfully", item);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -117,9 +117,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                     data = created
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -146,9 +146,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var refreshed = _directorAppService.FindDirector(id, serviceHeader);
                 return ApiResponse(true, "Director updated successfully", refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

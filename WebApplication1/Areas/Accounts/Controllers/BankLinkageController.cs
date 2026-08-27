@@ -1,8 +1,10 @@
 using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -15,10 +17,17 @@ namespace WebApplication1.Areas.Accounts.Controllers
     public class BankLinkageController : ApiController
     {
         private readonly IBankLinkageAppService _bankLinkageAppService;
+        private readonly IBankAppService _bankAppService;
+        private readonly IChartOfAccountAppService _chartOfAccountAppService;
 
-        public BankLinkageController(IBankLinkageAppService bankLinkageAppService)
+        public BankLinkageController(
+            IBankLinkageAppService bankLinkageAppService,
+            IBankAppService bankAppService,
+            IChartOfAccountAppService chartOfAccountAppService)
         {
             _bankLinkageAppService = bankLinkageAppService;
+            _bankAppService = bankAppService;
+            _chartOfAccountAppService = chartOfAccountAppService;
         }
 
         [HttpGet]
@@ -40,9 +49,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -56,11 +65,47 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 var bankLinkages = _bankLinkageAppService.FindBankLinkages(serviceHeader);
 
-                return Ok(new { success = true, message = "", data = bankLinkages ?? new List<BankLinkageDTO>() });
+                if (bankLinkages == null)
+                {
+                    bankLinkages = new List<BankLinkageDTO>();
+                }
+
+                var generalLedgerAccounts = _chartOfAccountAppService
+                    .FindGeneralLedgerAccounts(serviceHeader, true);
+
+                if (generalLedgerAccounts == null)
+                {
+                    generalLedgerAccounts = new List<Application.MainBoundedContext.DTO.GeneralLedgerAccount>();
+                }
+
+                var balances = generalLedgerAccounts
+                    .Where(account => account != null && account.Id != Guid.Empty)
+                    .GroupBy(account => account.Id)
+                    .ToDictionary(group => group.Key, group => group.First().Balance);
+
+                foreach (var bankLinkage in bankLinkages)
+                {
+                    var bank = _bankAppService.FindBank(bankLinkage.BankId, serviceHeader);
+                    if (bank != null && bank.Id != Guid.Empty)
+                    {
+                        bankLinkage.SwiftCode = bank.SwiftCode;
+                        bankLinkage.Address = bank.Address;
+                        bankLinkage.City = bank.City;
+                        bankLinkage.IbanNo = bank.IbanNo;
+                        bankLinkage.No = bank.No;
+                    }
+
+                    decimal balance;
+                    bankLinkage.BankLinkageBalance = balances.TryGetValue(bankLinkage.ChartOfAccountId, out balance)
+                        ? balance
+                        : 0m;
+                }
+
+                return Ok(new { success = true, message = "", data = bankLinkages });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -81,9 +126,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = bankLinkage });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -104,9 +149,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = bankLinkage });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -139,9 +184,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = createdBankLinkage });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -182,9 +227,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

@@ -54,9 +54,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(paySlips);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -76,9 +76,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { Total = total, Posted = posted, Pending = total - posted });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -97,9 +97,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(paySlip);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -115,9 +115,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(entries ?? new List<PaySlipEntryDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -139,15 +139,15 @@ namespace WebApplication1.Controllers
                 var posted = _salaryPeriodAppService.PostPaySlip(id, PayslipsModuleNavigationItemCode, serviceHeader);
 
                 if (!posted)
-                    return InternalServerError(new InvalidOperationException("Failed to post the payslip — check that its employee has a Basic Pay Earning entry and a resolvable payroll savings account."));
+                    return Content(HttpStatusCode.Conflict, new { Message = "The payslip cannot be posted until the employee has a Basic Pay earning and a resolvable payroll savings account." });
 
                 var refreshed = _paySlipAppService.FindPaySlip(id, serviceHeader);
 
                 return Ok(refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

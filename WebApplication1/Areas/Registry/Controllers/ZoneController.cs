@@ -9,6 +9,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Registry.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/registry/zone")]
     public class ZoneController : ApiController
     {
@@ -45,9 +46,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Zones retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -60,9 +61,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var zones = await _zoneAppService.FindZonesAsync(serviceHeader);
                 return ApiResponse(true, "Zones retrieved successfully", zones);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -79,9 +80,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Zone retrieved successfully", zone);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -94,9 +95,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var stations = await _zoneAppService.FindStationsByZoneIdAsync(id, serviceHeader);
                 return ApiResponse(true, "Stations retrieved successfully", stations);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -109,9 +110,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var stations = await _zoneAppService.FindStationsAsync(serviceHeader);
                 return ApiResponse(true, "Stations retrieved successfully", stations);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -128,9 +129,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Station retrieved successfully", station);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -143,9 +144,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var stations = await _zoneAppService.FindStationsByEmployerIdAsync(employerId, serviceHeader);
                 return ApiResponse(true, "Stations retrieved successfully", stations);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -158,9 +159,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var stations = await _zoneAppService.FindStationsByDivisionIdAsync(divisionId, serviceHeader);
                 return ApiResponse(true, "Stations retrieved successfully", stations);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -191,9 +192,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                     data = createdZone
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -221,9 +222,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var updatedZone = await _zoneAppService.FindZoneAsync(id, serviceHeader);
                 return ApiResponse(true, "Zone updated successfully", updatedZone);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -245,9 +246,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var refreshed = await _zoneAppService.FindStationsByZoneIdAsync(id, serviceHeader);
                 return ApiResponse(true, "Stations updated successfully", refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -268,9 +269,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Zone removed successfully");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -291,9 +292,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Station removed successfully");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

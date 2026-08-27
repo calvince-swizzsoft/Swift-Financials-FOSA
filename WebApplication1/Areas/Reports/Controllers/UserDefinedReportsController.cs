@@ -67,7 +67,7 @@ namespace WebApplication1.Areas.Reports.Controllers
                 return Ok(new { success = true, message = "Reports retrieved successfully.", data = new { pageIndex, pageSize, itemsCount = count, pageCollection = rows, canManage, viewerConfigured = IsViewerConfigured() } });
             }
             catch (SqlException ex) when (ex.Number == 208) { return Content(HttpStatusCode.ServiceUnavailable, new { success = false, message = "User-Defined Reports database schema is not installed." }); }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet, Route("categories")]
@@ -86,7 +86,7 @@ namespace WebApplication1.Areas.Reports.Controllers
                 }
                 return Ok(new { success = true, message = "Categories retrieved successfully.", data = rows });
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet, Route("{id:int}/view")]
@@ -118,7 +118,7 @@ namespace WebApplication1.Areas.Reports.Controllers
                 { command.Parameters.AddWithValue("@Name", name); command.Parameters.AddWithValue("@User", header.ApplicationUserName); await connection.OpenAsync(); var id = Convert.ToInt32(await command.ExecuteScalarAsync()); return Content(HttpStatusCode.Created, new { success = true, message = "Category created successfully.", data = new { id, name } }); }
             }
             catch (SqlException ex) when (ex.Number == 2601 || ex.Number == 2627) { return Content(HttpStatusCode.Conflict, new { success = false, message = "A category with that name already exists." }); }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpPost, Route("")]
@@ -145,7 +145,7 @@ namespace WebApplication1.Areas.Reports.Controllers
                 { command.Parameters.AddWithValue("@CategoryId", categoryId); command.Parameters.AddWithValue("@Name", name); command.Parameters.AddWithValue("@Description", (object)description ?? DBNull.Value); command.Parameters.AddWithValue("@ReportPath", reportPath); command.Parameters.AddWithValue("@FileName", fileName); command.Parameters.Add("@Content", SqlDbType.VarBinary, -1).Value = bytes; command.Parameters.AddWithValue("@User", header.ApplicationUserName); await connection.OpenAsync(); var id = Convert.ToInt32(await command.ExecuteScalarAsync()); return Content(HttpStatusCode.Created, new { success = true, message = "Report catalogue entry created. Publish the RDL to SSRS at the configured report path before viewing it.", data = new { id } }); }
             }
             catch (SqlException ex) when (ex.Number == 2601 || ex.Number == 2627) { return Content(HttpStatusCode.Conflict, new { success = false, message = "A report with that name or SSRS path already exists." }); }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpPut, Route("{id:int}")]

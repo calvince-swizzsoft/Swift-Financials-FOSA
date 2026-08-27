@@ -74,9 +74,11 @@ namespace SwiftFinancials.Utility
                         using (var applicationContext = Container.Current.Resolve<IDbContextFactory>().CreateDbContext<BoundedContextUnitOfWork>(serviceHeader))
                         {
                             applicationContext.Database.Initialize(force: true);
+                            StoredProcedureInitializer.EnsureCreated(applicationContext.Database.Connection.ConnectionString);
                         }
                         result = true;
                         Console.WriteLine("ConfigureApplicationDatabase>{0}", result);
+                        Console.WriteLine("ConfigureStoredProcedures>{0}", result);
 
                         result = await Container.Current.Resolve<INavigationItemAppService>().AddNavigationItemsAsync(navigationItems, serviceHeader);
                         Console.WriteLine("AddNavigationItemsAsync>{0}", result);

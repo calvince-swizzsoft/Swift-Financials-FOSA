@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
@@ -387,10 +387,9 @@ namespace WebApplication1.Controllers
                     return Json(new { success = true, message = "Operation Success: Transaction processed successfully!" });
 
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-
-                    return Json(new { success = false, message = "Operation Failed: " + ex.Message });
+                    throw;
                 }
             }
             else

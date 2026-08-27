@@ -10,6 +10,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Registry.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/registry/employer")]
     public class EmployerController : ApiController
     {
@@ -48,9 +49,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Employers retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -63,9 +64,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var employers = await _employerAppService.FindEmployersAsync(serviceHeader);
                 return ApiResponse(true, "Employers retrieved successfully", employers);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -82,9 +83,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Employer retrieved successfully", employer);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -97,9 +98,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var divisions = await _employerAppService.FindDivisionsByEmployerIdAsync(id, serviceHeader);
                 return ApiResponse(true, "Divisions retrieved successfully", divisions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -116,9 +117,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Division retrieved successfully", division);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -131,9 +132,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var zones = await _employerAppService.FindZonesAsync(id, serviceHeader);
                 return ApiResponse(true, "Zones retrieved successfully", zones);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -170,9 +171,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                     data = new { employer = createdEmployer, divisions = createdDivisions }
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -200,9 +201,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var updatedEmployer = await _employerAppService.FindEmployerAsync(id, serviceHeader);
                 return ApiResponse(true, "Employer updated successfully", updatedEmployer);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -224,9 +225,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var refreshed = await _employerAppService.FindDivisionsByEmployerIdAsync(id, serviceHeader);
                 return ApiResponse(true, "Divisions updated successfully", refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -247,9 +248,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Employer removed successfully");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

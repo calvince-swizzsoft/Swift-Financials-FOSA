@@ -40,7 +40,7 @@ namespace WebApplication1.Areas.Registry.Controllers
                     : _fileRegisterAppService.FindFileRegisters(text ?? "", customerFilter, pageIndex, pageSize, header);
                 return Ok(Envelope("", page));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet]
@@ -52,7 +52,7 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var item = _fileRegisterAppService.FindFileRegister(id, Utils.CreateServiceHeader());
                 return item == null ? (IHttpActionResult)NotFound() : Ok(Envelope("", item));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet]
@@ -64,7 +64,7 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var item = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(customerId, Utils.CreateServiceHeader());
                 return item == null || item.FileRegister == null ? (IHttpActionResult)NotFound() : Ok(Envelope("", item));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet]
@@ -78,7 +78,7 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var page = _fileRegisterAppService.FindFileMovementHistoryByFileRegisterId(id, pageIndex, pageSize, Utils.CreateServiceHeader());
                 return Ok(Envelope("", page));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpPost]
@@ -106,7 +106,7 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Content(HttpStatusCode.Conflict, Envelope("Files could not be dispatched", null, false));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpPost]
@@ -132,7 +132,7 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return Content(HttpStatusCode.Conflict, Envelope($"Files could not be {action}", null, false));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         private object Envelope(string message, object data, bool success = true) => new { success, message, data };

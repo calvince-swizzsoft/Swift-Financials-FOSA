@@ -51,9 +51,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -72,9 +72,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", loanRequest));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -90,9 +90,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", loanRequests ?? new List<LoanRequestDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -123,13 +123,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan request created successfully", created));
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return ErrorResponse(ex.Message);
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("A pending loan request already exists for this customer and loan product."));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -164,9 +164,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan request registered successfully", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -194,9 +194,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan request cancelled successfully", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -215,9 +215,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan request removed successfully", null));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

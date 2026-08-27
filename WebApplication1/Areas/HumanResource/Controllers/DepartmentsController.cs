@@ -1,4 +1,4 @@
-﻿
+
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
@@ -17,6 +17,7 @@ namespace WebApplication1.Controllers
 {
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     [AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/humanresource/departments")]
     public class DepartmentsController : ApiController
     {
@@ -47,10 +48,10 @@ namespace WebApplication1.Controllers
                 return Ok(departments);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -80,9 +81,9 @@ namespace WebApplication1.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -102,9 +103,9 @@ namespace WebApplication1.Controllers
                 return Ok(updatedDepartmentDTO);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

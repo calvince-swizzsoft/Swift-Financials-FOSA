@@ -240,9 +240,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -272,9 +272,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     collaterals = collaterals ?? new List<LoanCollateralDTO>()
                 }));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -290,9 +290,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", guarantors ?? new List<LoanGuarantorDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -308,9 +308,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", collaterals ?? new List<LoanCollateralDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -353,9 +353,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan case collaterals updated successfully", collaterals ?? new List<LoanCollateralDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -374,9 +374,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", loanCases ?? new List<LoanCaseDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -422,9 +422,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     availableToGuarantee = (totalShares * Convert.ToDecimal(appraisalFactor)) - committedShares
                 }));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -548,9 +548,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan case registered successfully", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -580,9 +580,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Operation success", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -668,9 +668,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     fileReadyForAppraisal
                 }));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -686,9 +686,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("", factors ?? new List<LoanAppraisalFactorDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -814,9 +814,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan case appraisal recorded successfully", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -903,9 +903,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse(message, refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -975,9 +975,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse(message, refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -1030,9 +1030,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse(message, refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -1060,7 +1060,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var repaymentSchedule = BuildRepaymentSchedule(scheduleAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
                 return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule, loanAccounts, standingOrders, payouts, applications }));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         // Returns an error message on failure, null on success. Mutates each
@@ -1205,7 +1205,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var page = _loanCaseAppService.FindLoanCasesBySectionAndStatus(loanProductSection, (int)LoanCaseStatus.Audited, from, to, text ?? "", loanCaseFilter, pageIndex, Math.Min(Math.Max(pageSize, 1), 100), true, header);
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet]
@@ -1227,7 +1227,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var repaymentSchedule = BuildRepaymentSchedule(scheduleAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
                 return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule }));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet]
@@ -1253,7 +1253,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var repaymentSchedule = BuildRepaymentSchedule(loanCase.ApprovedAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
                 return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule, loanAccounts, standingOrders, payouts, applications }));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         // Customer 360 read model used while registering a loan. It restores
@@ -1277,7 +1277,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     : 0m;
                 return Ok(ApiResponse("", new { accounts, standingOrders, payouts, applications, collaterals, investmentBalance, selectedProductLoanBalance }));
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         // Loan workflow items are stage assignments. Earlier roles in a

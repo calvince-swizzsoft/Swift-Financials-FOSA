@@ -47,7 +47,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     : await _customerAppService.FindCustomersAsync(text.Trim(), customerFilter, pageIndex, pageSize, header);
                 return Ok(new { success = true, message = "Customers retrieved successfully.", data = page });
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         [HttpGet, Route("customers/{customerId:guid}")]
@@ -82,7 +82,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return Ok(new { success = true, message = "Customer account status retrieved successfully.", data = new { customer, accounts, referees, signatories, standingOrders, alternateChannels, unclearedCheques, fixedDeposits, electronicFundsTransfers, loansGuaranteed, loanGuarantors, isEmployeeAccount = access.IsEmployee, isOwnEmployeeAccount = access.IsOwnEmployee } });
                 }
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         private AccessDecision CanViewCustomer(Guid customerId, Infrastructure.Crosscutting.Framework.Utils.ServiceHeader header)

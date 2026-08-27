@@ -55,9 +55,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = postingPeriods ?? new System.Collections.Generic.List<PostingPeriodDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -75,9 +75,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -96,9 +96,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = postingPeriod });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -124,9 +124,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -157,9 +157,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _postingPeriodAppService.FindPostingPeriod(id, serviceHeader);
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -186,9 +186,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _postingPeriodAppService.FindPostingPeriod(id, serviceHeader);
                 return Ok(new { success = true, message = "Posting period closed successfully", data = refreshed });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

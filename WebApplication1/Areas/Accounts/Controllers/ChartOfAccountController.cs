@@ -39,9 +39,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = chartOfAccounts });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -63,9 +63,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = chartOfAccount });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -85,9 +85,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = generalLedgerAccounts });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -137,9 +137,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "Operation Success", data = createdChartOfAccountDTO });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -178,9 +178,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     // translate that to 409 rather than letting it fall through to 500.
                     updated = _chartOfAccountAppService.UpdateChartOfAccount(chartOfAccountDTO, serviceHeader);
                 }
-                catch (InvalidOperationException ex)
+                catch (InvalidOperationException)
                 {
-                    return Content(HttpStatusCode.Conflict, new { success = false, message = ex.Message, data = (object)null });
+                    return Content(HttpStatusCode.Conflict, new { success = false, message = "The request could not be completed.", data = (object)null });
                 }
 
                 if (!updated)
@@ -193,9 +193,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "Operation Success", data = refreshedChartOfAccountDTO });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -212,9 +212,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = mappings });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -251,9 +251,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "Operation Success", data = (object)null });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

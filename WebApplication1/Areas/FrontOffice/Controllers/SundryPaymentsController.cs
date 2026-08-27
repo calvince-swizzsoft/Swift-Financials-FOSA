@@ -140,9 +140,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(new { success = true, message = "Operation success", data = journal });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

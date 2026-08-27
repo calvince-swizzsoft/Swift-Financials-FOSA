@@ -216,6 +216,13 @@
     <Compile Include="Identity\ApplicationUser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StoredProcedureInitializer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\stored procedures.txt">
+      <Link>Database\StoredProcedures.sql</Link>
+      <LogicalName>SwiftFinancials.Utility.Database.StoredProcedures.sql</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

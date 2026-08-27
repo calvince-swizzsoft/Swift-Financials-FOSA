@@ -83,7 +83,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
             {
                 return Content(HttpStatusCode.NotImplemented, new { success = false, message = "dbo.sp_FinancialStatementBranch is not installed in this database. Apply the faithful legacy reporting procedures first." });
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         private async Task<IHttpActionResult> GetSummary(DateTime? endDate, int type, string statementName)
@@ -130,7 +130,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
             {
                 return Content(HttpStatusCode.NotImplemented, new { success = false, message = "dbo.sp_FinancialSummary is not installed in this database. Apply the faithful legacy reporting procedure first." });
             }
-            catch (Exception ex) { return InternalServerError(ex); }
+            catch (Exception) { throw; }
         }
 
         private static string ReadString(SqlDataReader reader, string name) { var value = reader[name]; return value == DBNull.Value ? null : Convert.ToString(value); }

@@ -70,9 +70,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(ApiResponse("", requests));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -91,9 +91,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(ApiResponse("", request));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -109,9 +109,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(ApiResponse("", requests));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -144,9 +144,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(ApiResponse("Account closure request created successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -198,9 +198,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(ApiResponse("Operation success", updated));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

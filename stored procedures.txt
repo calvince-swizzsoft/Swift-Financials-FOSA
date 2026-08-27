@@ -446,7 +446,7 @@ SET ANSI_NULLS OFF
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
-CREATE FUNCTION [dbo].[Pmt](@termInMonths [int], @paymentFrequencyPerYear [int], @APR [float], @PV [float], @FV [float], @Due [int])
+CREATE FUNCTION [dbo].[Pmt](@interestCalculationMode [int], @termInMonths [int], @paymentFrequencyPerYear [int], @APR [float], @PV [float], @FV [float], @Due [int])
 RETURNS [float] WITH EXECUTE AS CALLER
 AS 
 EXTERNAL NAME [Infrastructure.Data.SQLCLR].[UserDefinedFunctions].[Pmt]
@@ -5298,21 +5298,22 @@ GO
 	as
 	(select 'Previous Balance','Cash in Hand','00000','00000',CASE  WHEN    sum(amount)<0 then SUM(Amount)*-1  else 0 end as Debit,CASE  WHEN    sum(amount)>0 then SUM(Amount)  else 0 end as Credit,'CASH IN HAND' from swiftfin_JournalEntries where ChartOfAccountId in (select ChartOfAccountId from swiftfin_Treasuries) and CreatedDate<@StartDate
 	union 
-	SELECT        TOP (100) PERCENT dbo.swiftfin_ModuleNavigationItems.ItemDescription, dbo.swiftfin_ChartOfAccounts.AccountName, dbo.swiftfin_ModuleNavigationItems.ItemCode, 
-							 dbo.swiftfin_ModuleNavigationItems.ParentItemCode,
+	SELECT        TOP (100) PERCENT NavigationItem.Description AS ItemDescription, dbo.swiftfin_ChartOfAccounts.AccountName, NavigationItem.Code AS ItemCode,
+							 ParentNavigationItem.Code AS ParentItemCode,
 						 CASE  WHEN SUM(dbo.swiftfin_JournalEntries.Amount)>0 then SUM(dbo.swiftfin_JournalEntries.Amount)  else 0 end as Debit,
 							 CASE  WHEN SUM(dbo.swiftfin_JournalEntries.Amount)<0 then SUM(dbo.swiftfin_JournalEntries.Amount)*-1  else 0 end as Credit,
 							  LEFT(dbo.swiftfin_Journals.PrimaryDescription, 17) 
 							 AS PrimaryDescription
-	FROM            dbo.swiftfin_ModuleNavigationItems INNER JOIN
-							 dbo.swiftfin_Journals ON dbo.swiftfin_ModuleNavigationItems.ItemCode = dbo.swiftfin_Journals.ModuleNavigationItemCode INNER JOIN
+	FROM            dbo.swiftfin_ModuleNavigationItems AS NavigationItem LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ParentNavigationItem ON NavigationItem.ParentId = ParentNavigationItem.Id INNER JOIN
+							 dbo.swiftfin_Journals ON NavigationItem.Code = dbo.swiftfin_Journals.ModuleNavigationItemCode INNER JOIN
 							 dbo.swiftfin_JournalEntries ON dbo.swiftfin_Journals.Id = dbo.swiftfin_JournalEntries.JournalId INNER JOIN
 							 dbo.swiftfin_ChartOfAccounts ON dbo.swiftfin_JournalEntries.ChartOfAccountId = dbo.swiftfin_ChartOfAccounts.Id INNER JOIN
 							 dbo.swiftfin_Tellers ON dbo.swiftfin_JournalEntries.ContraChartOfAccountId = dbo.swiftfin_Tellers.ChartOfAccountId
-	WHERE        (dbo.swiftfin_ModuleNavigationItems.ItemCode IN ('61657', '61754', '61757', '61758', '61759', '61760', '61755', '61756', '61655')) AND 
+	WHERE        (NavigationItem.Code IN ('61657', '61754', '61757', '61758', '61759', '61760', '61755', '61756', '61655')) AND
 							 (dbo.swiftfin_JournalEntries.CreatedDate BETWEEN @StartDate AND @EndDate) 
-	GROUP BY dbo.swiftfin_ChartOfAccounts.AccountName, dbo.swiftfin_ModuleNavigationItems.ItemCode, dbo.swiftfin_ModuleNavigationItems.ParentItemCode, 
-							 dbo.swiftfin_ModuleNavigationItems.ItemDescription, LEFT(dbo.swiftfin_Journals.PrimaryDescription, 17)
+	GROUP BY dbo.swiftfin_ChartOfAccounts.AccountName, NavigationItem.Code, ParentNavigationItem.Code,
+							 NavigationItem.Description, LEFT(dbo.swiftfin_Journals.PrimaryDescription, 17)
 	)
 
 	select ROW_NUMBER() OVER(ORDER BY ItemCode) AS Row,* into #temp1 from  CashJournal where accountname not in ('Uncleared Cheques Control') and PrimaryDescription not like '%cheque%'
@@ -11388,7 +11389,7 @@ BEGIN
 				@pLocalIndividual_PayrollNumber varchar(100) = @pIndividual_PayrollNumber
 	SELECT *
 	FROM swiftfin_CustomerAccounts 
-	WHERE  CustomerId IN (SELECT Id FROM swiftfin_Customers WHERE CONTAINS(Individual_PayrollNumbers,@pLocalIndividual_PayrollNumber))
+	WHERE  CustomerId IN (SELECT Id FROM swiftfin_Customers WHERE CHARINDEX(@pLocalIndividual_PayrollNumber, Individual_PayrollNumbers) > 0)
 	AND CustomerAccountType_TargetProductId =@pLocalCustomerAccountType_TargetProductId
 
 	
@@ -11415,7 +11416,7 @@ BEGIN
 	
 	SELECT *
 	FROM swiftfin_CustomerAccounts 
-	WHERE  CustomerId IN (SELECT Id FROM swiftfin_Customers WHERE CONTAINS(Reference3, @pReference3))
+	WHERE  CustomerId IN (SELECT Id FROM swiftfin_Customers WHERE CHARINDEX(@pReference3, Reference3) > 0)
 	AND CustomerAccountType_TargetProductId =@pCustomerAccountType_TargetProductId
 
 	
@@ -11447,7 +11448,7 @@ BEGIN
 	SET NOCOUNT ON;
 	
 	SELECT *
-	FROM swiftfin_Customers WHERE CONTAINS(Individual_PayrollNumbers,@pIndividual_PayrollNumber)
+	FROM swiftfin_Customers WHERE CHARINDEX(@pIndividual_PayrollNumber, Individual_PayrollNumbers) > 0
 
 
 	
@@ -21015,19 +21016,20 @@ set @EndDate=	(select DATEADD(day, DATEDIFF(day, 0, @EndDate), '23:59:59'));
 
 With CashJournal(ItemDescription,AccountName,ItemCode,ParentItemCode,Debit,Credit)
 as(
-SELECT        TOP (100) PERCENT dbo.swiftfin_ModuleNavigationItems.ItemDescription, dbo.swiftfin_ChartOfAccounts.AccountName, dbo.swiftfin_ModuleNavigationItems.ItemCode, 
-                         dbo.swiftfin_ModuleNavigationItems.ParentItemCode,
+SELECT        TOP (100) PERCENT NavigationItem.Description AS ItemDescription, dbo.swiftfin_ChartOfAccounts.AccountName, NavigationItem.Code AS ItemCode,
+                         ParentNavigationItem.Code AS ParentItemCode,
 						 CASE  WHEN SUM(dbo.swiftfin_JournalEntries.Amount)>0 then SUM(dbo.swiftfin_JournalEntries.Amount)  else 0 end as Debit,
 						 CASE  WHEN SUM(dbo.swiftfin_JournalEntries.Amount)<0 then SUM(dbo.swiftfin_JournalEntries.Amount)*-1  else 0 end as Credit
                         
-FROM            dbo.swiftfin_ModuleNavigationItems INNER JOIN
-                         dbo.swiftfin_Journals ON dbo.swiftfin_ModuleNavigationItems.ItemCode = dbo.swiftfin_Journals.ModuleNavigationItemCode INNER JOIN
+FROM            dbo.swiftfin_ModuleNavigationItems AS NavigationItem LEFT OUTER JOIN
+                         dbo.swiftfin_ModuleNavigationItems AS ParentNavigationItem ON NavigationItem.ParentId = ParentNavigationItem.Id INNER JOIN
+                         dbo.swiftfin_Journals ON NavigationItem.Code = dbo.swiftfin_Journals.ModuleNavigationItemCode INNER JOIN
                          dbo.swiftfin_JournalEntries ON dbo.swiftfin_Journals.Id = dbo.swiftfin_JournalEntries.JournalId INNER JOIN
                          dbo.swiftfin_ChartOfAccounts ON dbo.swiftfin_JournalEntries.ChartOfAccountId = dbo.swiftfin_ChartOfAccounts.Id 
-WHERE        (dbo.swiftfin_ModuleNavigationItems.ItemCode NOT IN ('61657', '61754', '61757', '61758', '61759', '61760', '61755', '61756', '61655')) AND 
+WHERE        (NavigationItem.Code NOT IN ('61657', '61754', '61757', '61758', '61759', '61760', '61755', '61756', '61655')) AND
                          (dbo.swiftfin_JournalEntries.CreatedDate BETWEEN @StartDate AND @EndDate) 
-GROUP BY dbo.swiftfin_ChartOfAccounts.AccountName, dbo.swiftfin_ModuleNavigationItems.ItemCode, dbo.swiftfin_ModuleNavigationItems.ParentItemCode, 
-                         dbo.swiftfin_ModuleNavigationItems.ItemDescription
+GROUP BY dbo.swiftfin_ChartOfAccounts.AccountName, NavigationItem.Code, ParentNavigationItem.Code,
+                         NavigationItem.Description
 )
 
 select ROW_NUMBER() OVER(ORDER BY ItemCode) AS Row,* into #temp1 from  CashJournal where debit+credit>0 
@@ -23836,13 +23838,14 @@ CREATE PROCEDURE [dbo].[sp_RoleApplication]
 AS
 BEGIN
 	SET NOCOUNT ON;
-	SELECT        dbo.aspnet_Roles.RoleName, dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, 
-							 dbo.swiftfin_ModuleNavigationItems.ItemDescription
+	SELECT        dbo.aspnet_Roles.RoleName, ModuleNavigationItem.Description AS ModuleDescription, ParentNavigationItem.Description AS ParentItemDescription,
+							 NavigationItem.Description AS ItemDescription
 	FROM            dbo.aspnet_Roles INNER JOIN
-							 dbo.swiftfin_ModuleNavigationItemsInRoles INNER JOIN
-							 dbo.swiftfin_ModuleNavigationItems ON dbo.swiftfin_ModuleNavigationItemsInRoles.ModuleNavigationItemId = dbo.swiftfin_ModuleNavigationItems.Id ON 
-							 dbo.aspnet_Roles.RoleName = dbo.swiftfin_ModuleNavigationItemsInRoles.RoleName
-	ORDER BY dbo.aspnet_Roles.RoleName,dbo.swiftfin_ModuleNavigationItems.ModuleDescription,dbo.swiftfin_ModuleNavigationItems.ParentItemDescription,dbo.swiftfin_ModuleNavigationItems.ItemDescription
+							 dbo.swiftfin_ModuleNavigationItemsInRoles ON dbo.aspnet_Roles.RoleName = dbo.swiftfin_ModuleNavigationItemsInRoles.RoleName INNER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS NavigationItem ON dbo.swiftfin_ModuleNavigationItemsInRoles.ModuleNavigationItemId = NavigationItem.Id LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ParentNavigationItem ON NavigationItem.ParentId = ParentNavigationItem.Id LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ModuleNavigationItem ON ParentNavigationItem.ParentId = ModuleNavigationItem.Id
+	ORDER BY dbo.aspnet_Roles.RoleName, ModuleNavigationItem.Description, ParentNavigationItem.Description, NavigationItem.Description
 END
 
 
@@ -25479,7 +25482,7 @@ BEGIN
 
     -- Insert statements for procedure here
 	set @EndDate=	(select DATEADD(day, DATEDIFF(day, 0, @EndDate), '23:59:59'));
-	SELECT        dbo.swiftfin_ModuleNavigationItems.ItemDescription,dbo.swiftfin_ModuleNavigationItems.id as ModuleNavigationItemID ,dbo.swiftfin_ModuleNavigationItems.ItemCode,dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, 
+	SELECT        NavigationItem.Description AS ItemDescription, NavigationItem.Id AS ModuleNavigationItemID, NavigationItem.Code AS ItemCode, ModuleNavigationItem.Description AS ModuleDescription, ParentNavigationItem.Description AS ParentItemDescription,
 							CASE 
 							WHEN SUM(dbo.swiftfin_JournalEntries.Amount)<0 THEN  SUM(dbo.swiftfin_JournalEntries.Amount)*-1 
 							ELSE 0 END AS DEBIT,CASE 
@@ -25488,7 +25491,9 @@ BEGIN
 	FROM            dbo.swiftfin_JournalEntries INNER JOIN
 							 dbo.swiftfin_Journals ON dbo.swiftfin_JournalEntries.JournalId = dbo.swiftfin_Journals.Id INNER JOIN
 							 dbo.swiftfin_ChartOfAccounts ON dbo.swiftfin_JournalEntries.ChartOfAccountId = dbo.swiftfin_ChartOfAccounts.Id INNER JOIN
-							 dbo.swiftfin_ModuleNavigationItems ON dbo.swiftfin_Journals.ModuleNavigationItemCode = dbo.swiftfin_ModuleNavigationItems.ItemCode
+							 dbo.swiftfin_ModuleNavigationItems AS NavigationItem ON dbo.swiftfin_Journals.ModuleNavigationItemCode = NavigationItem.Code LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ParentNavigationItem ON NavigationItem.ParentId = ParentNavigationItem.Id LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ModuleNavigationItem ON ParentNavigationItem.ParentId = ModuleNavigationItem.Id
 	WHERE  dbo.swiftfin_Journals.BranchId=@BranchID and swiftfin_JournalEntries.CreatedDate BETWEEN @StartDate AND @EndDate
 /*
 	AND swiftfin_JournalEntries.ChartOfAccountId not in
@@ -25497,8 +25502,8 @@ BEGIN
 							 dbo.swiftfin_ChartOfAccounts ON dbo.swiftfin_SystemGeneralLedgerAccountMappings.ChartOfAccountId = dbo.swiftfin_ChartOfAccounts.Id
 	WHERE        (dbo.swiftfin_SystemGeneralLedgerAccountMappings.SystemGeneralLedgerAccountCode  IN ('48826')))
 	*/
-	GROUP BY dbo.swiftfin_ModuleNavigationItems.ItemDescription, dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, 
-							 dbo.swiftfin_ChartOfAccounts.AccountName,dbo.swiftfin_ChartOfAccounts.Id,dbo.swiftfin_ModuleNavigationItems.id,dbo.swiftfin_ModuleNavigationItems.ItemCode,dbo.swiftfin_ChartOfAccounts.AccountCode having SUM(dbo.swiftfin_JournalEntries.Amount)!=0
+	GROUP BY NavigationItem.Description, ModuleNavigationItem.Description, ParentNavigationItem.Description,
+							 dbo.swiftfin_ChartOfAccounts.AccountName,dbo.swiftfin_ChartOfAccounts.Id,NavigationItem.Id,NavigationItem.Code,dbo.swiftfin_ChartOfAccounts.AccountCode having SUM(dbo.swiftfin_JournalEntries.Amount)!=0
 	ORDER BY ParentItemDescription,ModuleDescription,ItemDescription
 
 END
@@ -25531,8 +25536,8 @@ BEGIN
 
     -- Insert statements for procedure here
 	set @EndDate=	(select DATEADD(day, DATEDIFF(day, 0, @EndDate), '23:59:59'));
-	SELECT        TOP (100) PERCENT dbo.swiftfin_ModuleNavigationItems.ItemDescription, dbo.swiftfin_ModuleNavigationItems.ItemCode, 
-                         dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, CASE WHEN SUM(dbo.swiftfin_JournalEntries.Amount) 
+	SELECT        TOP (100) PERCENT NavigationItem.Description AS ItemDescription, NavigationItem.Code AS ItemCode,
+                         ModuleNavigationItem.Description AS ModuleDescription, ParentNavigationItem.Description AS ParentItemDescription, CASE WHEN SUM(dbo.swiftfin_JournalEntries.Amount)
                          < 0 THEN SUM(dbo.swiftfin_JournalEntries.Amount) * - 1 ELSE 0 END AS DEBIT, CASE WHEN SUM(dbo.swiftfin_JournalEntries.Amount) 
                          > 0 THEN SUM(dbo.swiftfin_JournalEntries.Amount) ELSE 0 END AS CREDIT, dbo.swiftfin_ChartOfAccounts.AccountName, dbo.swiftfin_ChartOfAccounts.AccountCode, 
                          dbo.swiftfin_Journals.PrimaryDescription, dbo.swiftfin_Journals.SecondaryDescription, dbo.swiftfin_Journals.Reference, dbo.vw_CustomerAccounts.FullName, 
@@ -25540,14 +25545,16 @@ BEGIN
 FROM            dbo.swiftfin_JournalEntries INNER JOIN
                          dbo.swiftfin_Journals ON dbo.swiftfin_JournalEntries.JournalId = dbo.swiftfin_Journals.Id INNER JOIN
                          dbo.swiftfin_ChartOfAccounts ON dbo.swiftfin_JournalEntries.ChartOfAccountId = dbo.swiftfin_ChartOfAccounts.Id INNER JOIN
-                         dbo.swiftfin_ModuleNavigationItems ON dbo.swiftfin_Journals.ModuleNavigationItemCode = dbo.swiftfin_ModuleNavigationItems.ItemCode LEFT OUTER JOIN
+                         dbo.swiftfin_ModuleNavigationItems AS NavigationItem ON dbo.swiftfin_Journals.ModuleNavigationItemCode = NavigationItem.Code LEFT OUTER JOIN
+                         dbo.swiftfin_ModuleNavigationItems AS ParentNavigationItem ON NavigationItem.ParentId = ParentNavigationItem.Id LEFT OUTER JOIN
+                         dbo.swiftfin_ModuleNavigationItems AS ModuleNavigationItem ON ParentNavigationItem.ParentId = ModuleNavigationItem.Id LEFT OUTER JOIN
                          dbo.vw_CustomerAccounts ON dbo.swiftfin_JournalEntries.CustomerAccountId = dbo.vw_CustomerAccounts.Id
-WHERE        (dbo.swiftfin_Journals.BranchId = @BranchID and dbo.swiftfin_ModuleNavigationItems.id=@ModuleNavigationItemsID and dbo.swiftfin_ChartOfAccounts.ID=@ChartOfAccountID ) AND (dbo.swiftfin_JournalEntries.CreatedDate BETWEEN @StartDate AND @EndDate)
-GROUP BY dbo.swiftfin_ModuleNavigationItems.ItemDescription, dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, 
-                         dbo.swiftfin_ChartOfAccounts.AccountName, dbo.swiftfin_ModuleNavigationItems.ItemCode, dbo.swiftfin_ChartOfAccounts.AccountCode, dbo.swiftfin_Journals.PrimaryDescription, 
+WHERE        (dbo.swiftfin_Journals.BranchId = @BranchID and NavigationItem.Id=@ModuleNavigationItemsID and dbo.swiftfin_ChartOfAccounts.ID=@ChartOfAccountID ) AND (dbo.swiftfin_JournalEntries.CreatedDate BETWEEN @StartDate AND @EndDate)
+GROUP BY NavigationItem.Description, ModuleNavigationItem.Description, ParentNavigationItem.Description,
+                         dbo.swiftfin_ChartOfAccounts.AccountName, NavigationItem.Code, dbo.swiftfin_ChartOfAccounts.AccountCode, dbo.swiftfin_Journals.PrimaryDescription,
                          dbo.swiftfin_Journals.SecondaryDescription, dbo.swiftfin_Journals.Reference, dbo.vw_CustomerAccounts.FullName, dbo.vw_CustomerAccounts.Reference1
 HAVING        (SUM(dbo.swiftfin_JournalEntries.Amount) <> 0)
-ORDER BY dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ItemDescription
+ORDER BY ParentNavigationItem.Description, ModuleNavigationItem.Description, NavigationItem.Description
 END
 
 
@@ -25590,7 +25597,7 @@ BEGIN
 	With GLTransactionSummaries_CTE (Serial,ItemDescription,ItemCode,ModuleDescription,ParentItemDescription,Debit,Credit,Amount,AccountName,AccountCode)
 	as
 	(
-	SELECT      ROW_NUMBER() OVER(ORDER BY ItemDescription),  dbo.swiftfin_ModuleNavigationItems.ItemDescription,dbo.swiftfin_ModuleNavigationItems.ItemCode, dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, 
+	SELECT      ROW_NUMBER() OVER(ORDER BY NavigationItem.Description), NavigationItem.Description AS ItemDescription, NavigationItem.Code AS ItemCode, ModuleNavigationItem.Description AS ModuleDescription, ParentNavigationItem.Description AS ParentItemDescription,
 							CASE 
 							WHEN SUM(dbo.swiftfin_JournalEntries.Amount)<0 THEN  SUM(dbo.swiftfin_JournalEntries.Amount)*-1 
 							ELSE 0 END AS DEBIT,CASE 
@@ -25599,7 +25606,9 @@ BEGIN
 	FROM            dbo.swiftfin_JournalEntries INNER JOIN
 							 dbo.swiftfin_Journals ON dbo.swiftfin_JournalEntries.JournalId = dbo.swiftfin_Journals.Id INNER JOIN
 							 dbo.swiftfin_ChartOfAccounts ON dbo.swiftfin_JournalEntries.ChartOfAccountId = dbo.swiftfin_ChartOfAccounts.Id INNER JOIN
-							 dbo.swiftfin_ModuleNavigationItems ON dbo.swiftfin_Journals.ModuleNavigationItemCode = dbo.swiftfin_ModuleNavigationItems.ItemCode
+							 dbo.swiftfin_ModuleNavigationItems AS NavigationItem ON dbo.swiftfin_Journals.ModuleNavigationItemCode = NavigationItem.Code LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ParentNavigationItem ON NavigationItem.ParentId = ParentNavigationItem.Id LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ModuleNavigationItem ON ParentNavigationItem.ParentId = ModuleNavigationItem.Id
 	WHERE dbo.swiftfin_JournalEntries.ChartOfAccountId=@ChartOfAccountID and swiftfin_JournalEntries.CreatedDate BETWEEN @StartDate AND @EndDate 
 /*
 	AND swiftfin_JournalEntries.ChartOfAccountId not in
@@ -25608,8 +25617,8 @@ BEGIN
 							 dbo.swiftfin_ChartOfAccounts ON dbo.swiftfin_SystemGeneralLedgerAccountMappings.ChartOfAccountId = dbo.swiftfin_ChartOfAccounts.Id
 	WHERE        (dbo.swiftfin_SystemGeneralLedgerAccountMappings.SystemGeneralLedgerAccountCode  IN ('48826')))
 	*/
-	GROUP BY dbo.swiftfin_ModuleNavigationItems.ItemDescription, dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, 
-							 dbo.swiftfin_ChartOfAccounts.AccountName,dbo.swiftfin_ModuleNavigationItems.ItemCode,dbo.swiftfin_ChartOfAccounts.AccountCode having SUM(dbo.swiftfin_JournalEntries.Amount)!=0
+	GROUP BY NavigationItem.Description, ModuleNavigationItem.Description, ParentNavigationItem.Description,
+							 dbo.swiftfin_ChartOfAccounts.AccountName,NavigationItem.Code,dbo.swiftfin_ChartOfAccounts.AccountCode having SUM(dbo.swiftfin_JournalEntries.Amount)!=0
 
 	)
 		---SELECT Serial,AccountCode, AccountName, Debit,Credit,Amount,CreatedDate,PrimaryDescription,ContrAccountCode,ContraAccountName INTO #TempGLTrans FROM GLTransactionSummaries_CTE
@@ -27558,16 +27567,18 @@ BEGIN
 							VanguardFinancialsDB_AuthStore.dbo.aspnet_Roles.RoleName, VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.IsApproved, VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.IsLockedOut, VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.CreateDate, 
 							 VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.LastLoginDate, VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.LastPasswordChangedDate, VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.LastLockoutDate, 
 							VanguardFinancialsDB_AuthStore. dbo.aspnet_Membership.FailedPasswordAttemptCount, VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.Comment, VanguardFinancialsDB_AuthStore.dbo.aspnet_Users.UserName, 
-							 dbo.swiftfin_ModuleNavigationItems.ModuleDescription, dbo.swiftfin_ModuleNavigationItems.ParentItemDescription, 
-							 dbo.swiftfin_ModuleNavigationItems.ItemDescription
+							 ModuleNavigationItem.Description AS ModuleDescription, ParentNavigationItem.Description AS ParentItemDescription,
+							 NavigationItem.Description AS ItemDescription
 	FROM            dbo.swiftfin_ModuleNavigationItemsInRoles INNER JOIN
-							 dbo.swiftfin_ModuleNavigationItems ON dbo.swiftfin_ModuleNavigationItemsInRoles.ModuleNavigationItemId = dbo.swiftfin_ModuleNavigationItems.Id INNER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS NavigationItem ON dbo.swiftfin_ModuleNavigationItemsInRoles.ModuleNavigationItemId = NavigationItem.Id INNER JOIN
 							 dbo.vw_EmployeeRegisterwithUserID INNER JOIN
 							 VanguardFinancialsDB_AuthStore.dbo.aspnet_UsersInRoles ON dbo.vw_EmployeeRegisterwithUserID.UserId = VanguardFinancialsDB_AuthStore.dbo.aspnet_UsersInRoles.UserId INNER JOIN
 							 VanguardFinancialsDB_AuthStore.dbo.aspnet_Roles ON VanguardFinancialsDB_AuthStore.dbo.aspnet_UsersInRoles.RoleId = VanguardFinancialsDB_AuthStore.dbo.aspnet_Roles.RoleId INNER JOIN
 							 VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership ON dbo.vw_EmployeeRegisterwithUserID.UserId = VanguardFinancialsDB_AuthStore.dbo.aspnet_Membership.UserId INNER JOIN
 							VanguardFinancialsDB_AuthStore. dbo.aspnet_Users ON VanguardFinancialsDB_AuthStore.dbo.aspnet_UsersInRoles.UserId = VanguardFinancialsDB_AuthStore.dbo.aspnet_Users.UserId ON 
-							 dbo.swiftfin_ModuleNavigationItemsInRoles.RoleName = VanguardFinancialsDB_AuthStore.dbo.aspnet_Roles.RoleName
+							 dbo.swiftfin_ModuleNavigationItemsInRoles.RoleName = VanguardFinancialsDB_AuthStore.dbo.aspnet_Roles.RoleName LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ParentNavigationItem ON NavigationItem.ParentId = ParentNavigationItem.Id LEFT OUTER JOIN
+							 dbo.swiftfin_ModuleNavigationItems AS ModuleNavigationItem ON ParentNavigationItem.ParentId = ModuleNavigationItem.Id
 	WHERE VanguardFinancialsDB_AuthStore.dbo.aspnet_Users.UserName=@UserName
 	END
 

@@ -39,10 +39,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = treasuries });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -64,9 +64,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 return Ok(new { success = true, message = "", data = treasury });
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -111,9 +111,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -152,9 +152,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 }
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

@@ -4,7 +4,9 @@ using System.Configuration;
 using System.Linq;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using System.Web.Http.ExceptionHandling;
 using WebApplication1.Areas.Auth;
+using WebApplication1.ApiErrors;
 
 namespace WebApplication1
 {
@@ -28,7 +30,12 @@ namespace WebApplication1
             config.EnableCors(cors);
 
             // Web API configuration and services
+            config.IncludeErrorDetailPolicy = IncludeErrorDetailPolicy.Never;
+            config.Services.Replace(typeof(IExceptionHandler), new ApiExceptionHandler());
+            config.Services.Add(typeof(IExceptionLogger), new ApiExceptionLogger());
+            config.MessageHandlers.Add(new CorrelationIdHandler());
             config.MessageHandlers.Add(new JwtAuthenticationHandler());
+            config.MessageHandlers.Add(new ApiErrorNormalizationHandler());
 
             // Web API routes
             config.MapHttpAttributeRoutes();

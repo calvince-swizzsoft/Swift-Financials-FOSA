@@ -7,6 +7,7 @@ using System.Web.Http;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/administration/auditlogs")]
     public class AuditLogsController : ApiController
     {

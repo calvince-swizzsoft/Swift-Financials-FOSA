@@ -7,6 +7,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Accounts.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/accounts/standingorders")]
     public class StandingOrderController : ApiController
     {
@@ -48,9 +49,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Standing orders retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -67,9 +68,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Standing order retrieved successfully", standingOrder);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -86,9 +87,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Standing order history retrieved successfully", history);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -105,9 +106,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Standing orders retrieved successfully", standingOrders);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -124,9 +125,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Standing orders retrieved successfully", standingOrders);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -141,9 +142,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Standing orders retrieved successfully", standingOrders);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -163,9 +164,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Due standing orders retrieved successfully", standingOrders);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -186,9 +187,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Skipped standing orders retrieved successfully", standingOrders);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -222,9 +223,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     data = createdStandingOrder
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -257,9 +258,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var updatedStandingOrder = _standingOrderAppService.FindStandingOrder(id, serviceHeader);
                 return ApiResponse(true, "Standing order updated successfully", updatedStandingOrder);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -277,9 +278,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? "Standing orders auto-created successfully" : "No standing orders were auto-created");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 

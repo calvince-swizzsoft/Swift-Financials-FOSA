@@ -1,8 +1,7 @@
 <Solution>
-  <Project Path="Application.Seedwork/Application.Seedwork.csproj" Id="97d7d298-0ea9-4aff-bef8-7b50b9339f80" />
-  <Project Path="SwiftFinancials.Presentation.Infrastructure/SwiftFinancials.Presentation.Infrastructure.csproj" Id="dcfca848-40ee-4f4e-a2d6-aa449c908cc5" />
   <Project Path="Application.MainBoundedContext.DTO/Application.MainBoundedContext.DTO.csproj" Id="bc316b5e-4fb5-416d-a256-388e72fb14cc" />
   <Project Path="Application.MainBoundedContext/Application.MainBoundedContext.csproj" Id="2ef2ace9-b5db-4b61-a6ed-66f976783689" />
+  <Project Path="Application.Seedwork/Application.Seedwork.csproj" Id="97d7d298-0ea9-4aff-bef8-7b50b9339f80" />
   <Project Path="DistributedServices.MainBoundedContext/DistributedServices.MainBoundedContext.csproj" Id="054da3e1-daad-4df5-95b7-0fc9096bec39" />
   <Project Path="DistributedServices.Seedwork/DistributedServices.Seedwork.csproj" Id="06d5c3a8-452b-4bac-ac7a-e36b343ab7db" />
   <Project Path="Domain.MainBoundedContext/Domain.MainBoundedContext.csproj" Id="79fb572d-3bd9-4fed-99a3-56b42e22430b" />
@@ -11,9 +10,13 @@
   <Project Path="EntityFramework.Interfaces/EntityFramework.Interfaces.csproj" Id="159a5ab3-4bc6-4379-a5b5-168d0cb783cd" />
   <Project Path="Infrastructure.Crosscutting.Framework/Infrastructure.Crosscutting.Framework.csproj" Id="e839a387-3a87-49a7-9039-d114d02f05b1" />
   <Project Path="Infrastructure.Data.MainBoundedContext/Infrastructure.Data.MainBoundedContext.csproj" Id="3167a4c1-44e6-499a-8fc7-682d875429f5" />
+  <Project Path="Infrastructure.Data.SQLCLR/Infrastructure.Data.SQLCLR.sqlproj" Id="9b3d8f65-c423-4e66-a96b-856bcf48665c">
+    <Build />
+    <Deploy />
+  </Project>
   <Project Path="SwiftApis/SwiftApis.csproj" />
-  <Project Path="SwiftFinancials.AppServiceContainer/SwiftFinancials.AppServiceContainer.csproj" Id="a1b2c3d4-e5f6-47a8-9b0c-d1e2f3a4b5c6" />
   <Project Path="SwiftFinancials.AccountAlertDispatcher/SwiftFinancials.AccountAlertDispatcher.csproj" Id="3ef92022-05ad-4123-95e1-1afbff7d149d" />
+  <Project Path="SwiftFinancials.AppServiceContainer/SwiftFinancials.AppServiceContainer.csproj" Id="a1b2c3d4-e5f6-47a8-9b0c-d1e2f3a4b5c6" />
   <Project Path="SwiftFinancials.ArrearsRecovery/SwiftFinancials.ArrearsRecovery.csproj" Id="efa1015e-b838-464d-acb3-7d590127ce1d" />
   <Project Path="SwiftFinancials.AuditLogDispatcher/SwiftFinancials.AuditLogDispatcher.csproj" Id="58f264dc-28b4-4882-ac95-95cdf04c959c" />
   <Project Path="SwiftFinancials.AuditTrailDispatcher/SwiftFinancials.AuditTrailDispatcher.csproj" Id="c0475a8c-9b80-487b-ba28-bfdb51ff20ee" />
@@ -31,6 +34,7 @@
   <Project Path="SwiftFinancials.MobileToBankHostInterface/SwiftFinancials.MobileToBankHostInterface.csproj" Id="69d17cac-c357-44df-bb00-dc8b917055cb" />
   <Project Path="SwiftFinancials.MobileWalletHostInterface/SwiftFinancials.MobileWalletHostInterface.csproj" Id="a3ae0c19-04c4-449d-982d-77c7b2e1054e" />
   <Project Path="SwiftFinancials.Presentation.Contracts/SwiftFinancials.Presentation.Contracts.csproj" Id="02619dc1-0a34-404d-9e52-82a9890377ab" />
+  <Project Path="SwiftFinancials.Presentation.Infrastructure/SwiftFinancials.Presentation.Infrastructure.csproj" Id="dcfca848-40ee-4f4e-a2d6-aa449c908cc5" />
   <Project Path="SwiftFinancials.Presentation.Shared/SwiftFinancials.Presentation.Shared.csproj" Id="b1ea34bf-3885-466f-aace-568ad3f24938" />
   <Project Path="SwiftFinancials.RecurringBatchPosting/SwiftFinancials.RecurringBatchPosting.csproj" Id="940a1f56-da0f-444a-b3b9-b15c22626286" />
   <Project Path="SwiftFinancials.SalaryPeriodPosting/SwiftFinancials.SalaryPeriodPosting.csproj" Id="07c5919f-fa4b-49ad-933f-7a47f8c9ba11" />
@@ -40,5 +44,6 @@
   <Project Path="SwiftFinancials.Utility/SwiftFinancials.Utility.csproj" Id="617aad11-f940-4b14-878b-6d776b6fe0b4" />
   <Project Path="SwiftFinancials.WindowsService/SwiftFinancials.WindowsService.csproj" Id="2fb8ea4c-6d83-44fb-b1d7-39086ad3071b" />
   <Project Path="SwiftFinancials.WorkflowProcessorDispatcher/SwiftFinancials.WorkflowProcessorDispatcher.csproj" Id="7f796805-9a1b-4294-bea2-0c017408e8fa" />
+  <Project Path="WebApplication1.ErrorHandling.Tests/WebApplication1.ErrorHandling.Tests.csproj" Id="65035b73-4b8e-4eba-9d45-6fe6a9967154" />
   <Project Path="WebApplication1/WebApplication1.csproj" Id="57d79552-8eae-457a-a51a-e9090b5816e5" />
 </Solution>

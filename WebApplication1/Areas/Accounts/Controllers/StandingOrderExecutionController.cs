@@ -6,6 +6,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Accounts.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/accounts/standingorders/execution")]
     public class StandingOrderExecutionController : ApiController
     {
@@ -52,9 +53,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? "Standing orders executed successfully" : "No standing orders were executed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -76,9 +77,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? "Skipped standing orders fixed successfully" : "No skipped standing orders were fixed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -97,9 +98,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? "Sweeping standing orders executed successfully" : "No sweeping standing orders were executed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -118,9 +119,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(result, result ? "Payout standing orders executed successfully" : "No payout standing orders were executed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 

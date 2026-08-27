@@ -12,6 +12,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Accounts.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/accounts/statements/customer-account")]
     public class CustomerAccountStatementController : ApiController
     {
@@ -67,9 +68,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Mini statement retrieved successfully", statement);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -110,9 +111,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Statement retrieved successfully", statement);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -164,9 +165,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return response;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, "The request could not be completed.");
             }
         }
     }

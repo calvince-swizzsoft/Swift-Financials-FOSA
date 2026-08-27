@@ -1,31 +1,28 @@
-﻿using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO.AdministrationModule;
-using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Net;
 using System.Web.Http;
-using System.Web.UI.WebControls;
+using WebApplication1.ApiErrors;
 using WebApplication1.Services;
 
 namespace WebApplication1.Areas.Roles
 {
-
+    [Authorize]
     [RoutePrefix("api/administration/roles")]
     public class RolesController : ApiController
     {
-
-
         private readonly RoleManagerService _roleManagerService;
-        private readonly IEnumerationAppService _enumerationAppService;
         private readonly IAuthorizationAppService _authorizationAppService;
 
-        public RolesController(RoleManagerService roleMananagerService, IEnumerationAppService enumerationAppService, IAuthorizationAppService authorizationAppService)
+        public RolesController(RoleManagerService roleMananagerService,
+            Application.MainBoundedContext.Services.IEnumerationAppService enumerationAppService,
+            IAuthorizationAppService authorizationAppService)
         {
             _roleManagerService = roleMananagerService;
-            _enumerationAppService = enumerationAppService;
             _authorizationAppService = authorizationAppService;
         }
 
@@ -33,228 +30,161 @@ namespace WebApplication1.Areas.Roles
         [Route("")]
         public IHttpActionResult Index()
         {
-            try
-            {
-
-                var roles = _roleManagerService.GetAllRoles();
-
-                return Ok(roles);
-            }
-
-            catch (Exception ex)
-            {
-
-                return InternalServerError(ex);
-            }
+            return Ok(_roleManagerService.GetAllRoles());
         }
 
         [HttpPost]
         [Route("")]
         public IHttpActionResult Create([FromBody] CreateRoleRequest request)
-
         {
-            try
-            {
+            if (request == null || string.IsNullOrWhiteSpace(request.Name))
+                return Error(HttpStatusCode.BadRequest, ErrorCodes.ValidationFailed,
+                    "A role name is required.");
 
-                var result = _roleManagerService.CreateRole(request.Name);
+            if (!_roleManagerService.CreateRole(request.Name.Trim()))
+                return Error(HttpStatusCode.Conflict, ErrorCodes.RoleCreateFailed,
+                    "The role could not be created. A role with that name may already exist.");
 
-                return Ok(result);
-            }
-
-            catch (Exception ex)
-            {
-                return InternalServerError(ex);
-            }
+            return Ok(true);
         }
 
         [HttpPost]
         [Route("add")]
         public IHttpActionResult AddUserToRoles(AddUserToRolesRequest request)
-
         {
-            try
-            {
+            if (!IsValidRoleRequest(request))
+                return InvalidRoleRequest();
 
-                var result = _roleManagerService.AddUserToRoles(request.UserName, request.Roles);
+            if (!_roleManagerService.AddUserToRoles(request.UserName, request.Roles))
+                return Error(HttpStatusCode.Conflict, ErrorCodes.RoleAssignmentFailed,
+                    "The roles could not be assigned. Verify that the user and roles still exist.");
 
-                return Ok(result);
-            }
-
-            catch (Exception ex)
-            {
-
-                return InternalServerError(ex); 
-            }
+            return Ok(true);
         }
 
         [HttpPost]
         [Route("remove")]
         public IHttpActionResult RemoveUserFromRoles(AddUserToRolesRequest request)
         {
+            if (!IsValidRoleRequest(request))
+                return InvalidRoleRequest();
 
-            try
-            {
-                var result = _roleManagerService.RemoveUserFromRoles(request.UserName, request.Roles);
+            if (!_roleManagerService.RemoveUserFromRoles(request.UserName, request.Roles))
+                return Error(HttpStatusCode.Conflict, ErrorCodes.RoleAssignmentFailed,
+                    "The roles could not be removed. Verify that the user and roles still exist.");
 
-                return Ok(result);
-            }
-
-
-            catch(Exception ex)
-            {
-                return InternalServerError(ex);
-            }
+            return Ok(true);
         }
 
         [HttpGet]
         [Route("")]
         public IHttpActionResult GetAllUsersInRole(string role)
         {
+            if (string.IsNullOrWhiteSpace(role))
+                return Error(HttpStatusCode.BadRequest, ErrorCodes.ValidationFailed,
+                    "A role name is required.");
 
-            try
-            {
-          
-                var result = _roleManagerService.GetUsersInRole(role);
-
-                return Ok(result); 
-            }
-
-            catch(Exception ex)
-            {
-                return InternalServerError(ex); 
-            }
+            return Ok(_roleManagerService.GetUsersInRole(role));
         }
-
-
-
-
 
         [HttpGet]
         [Route("permissiontypes")]
         public IHttpActionResult GetSystemPermissionTypes()
-
         {
-            try
-            {
-                return Ok(Enum.GetNames(typeof(SystemPermissionType)));
-            }
-
-            catch (Exception ex)
-            {
-
-                return InternalServerError(ex);
-            }
+            return Ok(Enum.GetNames(typeof(SystemPermissionType)));
         }
-
 
         [HttpGet]
         [Route("GetRolesForPermissionType")]
         public IHttpActionResult GetPermissionTypeInRoles(string permissionType)
         {
-            try
-            {
+            SystemPermissionType selectedType;
+            if (!Enum.TryParse(permissionType, true, out selectedType))
+                return InvalidPermissionType();
 
-                SystemPermissionType selectedType;
-
-                Enum.TryParse(permissionType, out selectedType);
-
-                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
-
-                var rolesForPermissionType = _authorizationAppService.GetRolesListForSystemPermissionType((int)selectedType, serviceHeader);
-
-                return Ok(rolesForPermissionType);
-
-            }
-
-            catch (Exception ex)
-            {
-                return InternalServerError(ex);
-            }
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            return Ok(_authorizationAppService.GetRolesListForSystemPermissionType(
+                (int)selectedType, serviceHeader));
         }
-
 
         [HttpPost]
         [Route("RemoveRolesFromPermissionType")]
         public IHttpActionResult RemovePermissionTypeFromRoles(PermissionRoleRequest requestBody)
         {
-            try
-            {
+            SystemPermissionType selectedType;
+            if (!TryValidatePermissionRequest(requestBody, out selectedType))
+                return InvalidPermissionType();
 
-                SystemPermissionType selectedType;
-
-                Enum.TryParse(requestBody.SystemPermissionType, out selectedType);
-
-                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
-
-                List<string> list = new List<string>();
-
-                foreach (var p in requestBody.permissionTypeinRoles)
-                {
-                    list.Add(p.RoleName);
-                }
-
-                string[] roleNames = list.ToArray();
-
-                var success = _authorizationAppService.RemoveSystemPermissionTypeFromRoles((int)selectedType, list.ToArray(), serviceHeader);
-
-                return Ok(success);
-
-            }
-
-            catch (Exception ex)
-            {
-                return InternalServerError(ex); 
-            }
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            var roleNames = requestBody.PermissionTypeInRoles.Select(item => item.RoleName).ToArray();
+            return Ok(_authorizationAppService.RemoveSystemPermissionTypeFromRoles(
+                (int)selectedType, roleNames, serviceHeader));
         }
-
-
 
         [HttpPost]
         [Route("addPermissionTypeToRoles")]
         public IHttpActionResult AddPermissionTypeToRoles(PermissionRoleRequest requestBody)
         {
-            try
-            {
-                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            SystemPermissionType selectedType;
+            if (!TryValidatePermissionRequest(requestBody, out selectedType))
+                return InvalidPermissionType();
 
-                SystemPermissionType selectedType;
-                Enum.TryParse(requestBody.SystemPermissionType, out selectedType);
-
-                var result = _authorizationAppService.AddSystemPermissionTypeToRoles((int)selectedType, requestBody.permissionTypeinRoles, serviceHeader);
-
-                return Ok(result);
-            }
-
-            catch (Exception ex)
-            {
-
-                return InternalServerError(ex);
-            }
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            return Ok(_authorizationAppService.AddSystemPermissionTypeToRoles(
+                (int)selectedType, requestBody.PermissionTypeInRoles, serviceHeader));
         }
 
+        private static bool IsValidRoleRequest(AddUserToRolesRequest request)
+        {
+            return request != null && !string.IsNullOrWhiteSpace(request.UserName) &&
+                request.Roles != null && request.Roles.Any(role => !string.IsNullOrWhiteSpace(role));
+        }
 
+        private static bool TryValidatePermissionRequest(PermissionRoleRequest request,
+            out SystemPermissionType selectedType)
+        {
+            selectedType = default(SystemPermissionType);
+            return request != null &&
+                Enum.TryParse(request.SystemPermissionType, true, out selectedType) &&
+                request.PermissionTypeInRoles != null &&
+                request.PermissionTypeInRoles.All(item => item != null && !string.IsNullOrWhiteSpace(item.RoleName));
+        }
+
+        private IHttpActionResult InvalidRoleRequest()
+        {
+            return Error(HttpStatusCode.BadRequest, ErrorCodes.ValidationFailed,
+                "Username and at least one role are required.");
+        }
+
+        private IHttpActionResult InvalidPermissionType()
+        {
+            return Error(HttpStatusCode.BadRequest, ErrorCodes.InvalidPermissionType,
+                "A valid system permission type and role list are required.");
+        }
+
+        private IHttpActionResult Error(HttpStatusCode statusCode, string code, string message)
+        {
+            return ResponseMessage(ApiErrorResponses.Create(Request, statusCode, code, message));
+        }
 
         public class CreateRoleRequest
         {
             public string Name { get; set; }
         }
 
-
         public class AddUserToRolesRequest
         {
             public string UserName { get; set; }
-
             public string[] Roles { get; set; }
         }
 
-
-        public class PermissionRoleRequest {
-
+        public class PermissionRoleRequest
+        {
             public string SystemPermissionType { get; set; }
-            public List<SystemPermissionTypeInRoleDTO> permissionTypeinRoles { get; set; }
+
+            // Preserve the existing JSON property used by the frontend.
+            [Newtonsoft.Json.JsonProperty("permissionTypeinRoles")]
+            public List<SystemPermissionTypeInRoleDTO> PermissionTypeInRoles { get; set; }
         }
-
-
-
     }
 }

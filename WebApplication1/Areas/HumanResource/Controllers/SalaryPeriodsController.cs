@@ -79,9 +79,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryPeriods);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -100,9 +100,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryPeriod);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -123,16 +123,16 @@ namespace WebApplication1.Controllers
                 var created = _salaryPeriodAppService.AddNewSalaryPeriod(salaryPeriodDTO, serviceHeader);
 
                 if (created == null)
-                    return InternalServerError(new InvalidOperationException("Failed to save the salary period."));
+                    throw new InvalidOperationException("Failed to save the salary period.");
 
                 if (!string.IsNullOrWhiteSpace(created.ErrorMessageResult))
                     return Content(HttpStatusCode.Conflict, new { Message = created.ErrorMessageResult });
 
                 return Ok(created);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -156,13 +156,13 @@ namespace WebApplication1.Controllers
 
                 return Ok(salaryPeriodDTO);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Content(HttpStatusCode.Conflict, new { Message = ex.Message });
+                return Content(HttpStatusCode.Conflict, new { Message = "The request could not be completed." });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -211,13 +211,13 @@ namespace WebApplication1.Controllers
                 var processed = _salaryPeriodAppService.ProcessSalaryPeriod(salaryPeriod, employees, serviceHeader);
 
                 if (!processed)
-                    return InternalServerError(new InvalidOperationException("Failed to process the salary period — check that the matched employees have a Basic Pay Earning entry on their salary card."));
+                    return Content(HttpStatusCode.Conflict, new { Message = "The salary period cannot be processed until every matched employee has a Basic Pay earning on their salary card." });
 
                 return Ok(new { Processed = true, EmployeeCount = employees.Count });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -239,13 +239,13 @@ namespace WebApplication1.Controllers
                 var closed = _salaryPeriodAppService.CloseSalaryPeriod(salaryPeriod, serviceHeader);
 
                 if (!closed)
-                    return InternalServerError(new InvalidOperationException("Failed to close the salary period."));
+                    return Content(HttpStatusCode.Conflict, new { Message = "The salary period could not be closed in its current state." });
 
                 return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

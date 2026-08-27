@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO.HumanResourcesModule;
+using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -15,6 +15,7 @@ namespace WebApplication1.Controllers
 
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     [AllowAnonymous]
+    [Authorize]
     [RoutePrefix("api/humanresource/employeetypes")]
     public class EmployeeTypesController : ApiController
     {
@@ -56,10 +57,10 @@ namespace WebApplication1.Controllers
                 return Ok(employeeTypes);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -103,9 +104,9 @@ namespace WebApplication1.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -138,9 +139,9 @@ namespace WebApplication1.Controllers
                 return Ok(updatedEmployeeTypeDTO);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

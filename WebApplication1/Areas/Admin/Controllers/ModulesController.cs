@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using Microsoft.Ajax.Utilities;
 using Org.BouncyCastle.Crypto.Engines;
@@ -11,6 +11,7 @@ using WebApplication1.Areas.Identity;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/administration/modules")]
     public class ModulesController : ApiController
     {
@@ -57,10 +58,10 @@ namespace WebApplication1.Areas.Admin.Controllers
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
-                return InternalServerError(ex);
+                throw;
             }
 
         }
@@ -91,9 +92,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 return Json(result);
             }
 
-            catch(Exception ex)
+            catch(Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
 
         }
@@ -120,9 +121,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 return Json(result);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -244,9 +245,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 return Json(result);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
 
         }
@@ -296,9 +297,9 @@ namespace WebApplication1.Areas.Admin.Controllers
                 return Json(result);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
 
         }

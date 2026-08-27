@@ -60,9 +60,9 @@ namespace WebApplication1.Areas.Messaging.Controllers
 
                 return ApiResponse(true, "Text alerts retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -79,9 +79,9 @@ namespace WebApplication1.Areas.Messaging.Controllers
 
                 return ApiResponse(true, "Text alert retrieved successfully", textAlert);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -120,9 +120,9 @@ namespace WebApplication1.Areas.Messaging.Controllers
                     data = createdTextAlert
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

@@ -107,10 +107,9 @@ namespace WebApplication1.Controllers
                 return Ok(cashTransferRequests);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -286,10 +285,9 @@ namespace WebApplication1.Controllers
                 }
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log the error
-                return Json(new { success = false, message = "An error occurred while transferring cheques: " + ex.Message });
+                throw;
             }
         }
 
@@ -372,9 +370,9 @@ namespace WebApplication1.Controllers
                 return Ok(cashTransferRequests);
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -407,10 +405,9 @@ namespace WebApplication1.Controllers
                     return Json(new { success = false, message = "Failed to mark cash transfer request as Utilized" });
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                return Json(new { success = false, message = ex });
+                throw;
             }
         }
     }

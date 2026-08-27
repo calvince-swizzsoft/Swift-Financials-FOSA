@@ -38,9 +38,9 @@ namespace WebApplication1.Areas.Control.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -56,9 +56,9 @@ namespace WebApplication1.Areas.Control.Controllers
 
                 return Ok(new { success = true, message = "", data = suppliers ?? new System.Collections.Generic.List<SupplierDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -79,9 +79,9 @@ namespace WebApplication1.Areas.Control.Controllers
 
                 return Ok(new { success = true, message = "", data = supplier });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -107,13 +107,13 @@ namespace WebApplication1.Areas.Control.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = created });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "The request could not be completed.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -147,13 +147,13 @@ namespace WebApplication1.Areas.Control.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "The request could not be completed.", data = (object)null });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

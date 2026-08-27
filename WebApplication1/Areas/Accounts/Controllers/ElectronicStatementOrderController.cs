@@ -21,6 +21,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
     // separate app service (IRecurringBatchAppService), not on
     // IElectronicStatementOrderAppService. Batch triggers (execute/fix-skipped)
     // are grouped in ElectronicStatementOrderExecutionController.
+    [Authorize]
     [RoutePrefix("api/accounts/electronicstatementorders")]
     public class ElectronicStatementOrderController : ApiController
     {
@@ -58,9 +59,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "E-statement orders retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -77,9 +78,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "E-statement order retrieved successfully", electronicStatementOrder);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -96,9 +97,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "E-statement order history retrieved successfully", history);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -113,9 +114,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "E-statement orders retrieved successfully", electronicStatementOrders ?? new List<ElectronicStatementOrderDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -130,9 +131,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "E-statement orders retrieved successfully", electronicStatementOrders ?? new List<ElectronicStatementOrderDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -151,9 +152,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Due e-statement orders retrieved successfully", electronicStatementOrders ?? new List<ElectronicStatementOrderDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -174,9 +175,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return ApiResponse(true, "Skipped e-statement orders retrieved successfully", electronicStatementOrders ?? new List<ElectronicStatementOrderDTO>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -201,13 +202,13 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 {
                     createdElectronicStatementOrder = _electronicStatementOrderAppService.AddNewElectronicStatementOrder(electronicStatementOrderDTO, serviceHeader);
                 }
-                catch (InvalidOperationException ex)
+                catch (InvalidOperationException)
                 {
                     // AddNewElectronicStatementOrder throws rather than setting an
                     // ErrorMessageResult (the DTO has no such field, unlike Commission/
                     // UnPayReason) when the account already has an order — surfaced
                     // here as a real 409, not a generic 500.
-                    return ErrorResponse(HttpStatusCode.Conflict, ex.Message);
+                    return ErrorResponse(HttpStatusCode.Conflict, "The request could not be completed.");
                 }
 
                 if (createdElectronicStatementOrder == null)
@@ -220,9 +221,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     data = createdElectronicStatementOrder
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -254,11 +255,11 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 {
                     updated = _electronicStatementOrderAppService.UpdateElectronicStatementOrder(electronicStatementOrderDTO, serviceHeader);
                 }
-                catch (InvalidOperationException ex)
+                catch (InvalidOperationException)
                 {
                     // e.g. "The start date must not be less than today!" — a real
                     // rule enforced inside the app service, not covered by ValidateAll().
-                    return ErrorResponse(HttpStatusCode.BadRequest, ex.Message);
+                    return ErrorResponse(HttpStatusCode.BadRequest, "The request could not be completed.");
                 }
 
                 if (!updated)
@@ -267,9 +268,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var updatedElectronicStatementOrder = _electronicStatementOrderAppService.FindElectronicStatementOrder(id, serviceHeader);
                 return ApiResponse(true, "E-statement order updated successfully", updatedElectronicStatementOrder);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

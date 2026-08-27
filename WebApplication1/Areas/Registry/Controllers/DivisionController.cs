@@ -8,6 +8,7 @@ using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Registry.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/registry/division")]
     public class DivisionController : ApiController
     {
@@ -46,9 +47,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Divisions retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -61,9 +62,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var divisions = await _divisionAppService.FindDivisionsAsync(serviceHeader);
                 return ApiResponse(true, "Divisions retrieved successfully", divisions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -80,9 +81,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Division retrieved successfully", division);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -95,9 +96,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var zones = await _divisionAppService.FindZonesByDivisionIdAsync(id, serviceHeader);
                 return ApiResponse(true, "Zones retrieved successfully", zones);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -110,9 +111,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var divisions = await _divisionAppService.FindDivisionsByEmployerIdAsync(employerId, serviceHeader);
                 return ApiResponse(true, "Divisions retrieved successfully", divisions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -138,9 +139,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                     data = createdDivision
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -168,9 +169,9 @@ namespace WebApplication1.Areas.Registry.Controllers
                 var updatedDivision = await _divisionAppService.FindDivisionAsync(id, serviceHeader);
                 return ApiResponse(true, "Division updated successfully", updatedDivision);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -191,9 +192,9 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 return ApiResponse(true, "Division removed successfully");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }

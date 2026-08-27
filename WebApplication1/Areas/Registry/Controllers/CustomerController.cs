@@ -3,6 +3,8 @@ using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.RegistryModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System.Linq;
 using System;
@@ -10,20 +12,31 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
+using System.Configuration;
+using System.Web.Hosting;
 using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
 {
+    [Authorize]
     [RoutePrefix("api/registry/customer")]
     public class CustomerController : ApiController
     {
         private readonly ICustomerAppService _customerAppService;
         private readonly IAuthorizationAppService _authorizationAppService;
+        private readonly IDebitTypeAppService _debitTypeAppService;
+        private readonly IMediaAppService _mediaAppService;
 
-        public CustomerController(ICustomerAppService customerAppService, IAuthorizationAppService authorizationAppService)
+        public CustomerController(
+            ICustomerAppService customerAppService,
+            IAuthorizationAppService authorizationAppService,
+            IDebitTypeAppService debitTypeAppService,
+            IMediaAppService mediaAppService)
         {
             _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
             _authorizationAppService = authorizationAppService ?? throw new ArgumentNullException(nameof(authorizationAppService));
+            _debitTypeAppService = debitTypeAppService ?? throw new ArgumentNullException(nameof(debitTypeAppService));
+            _mediaAppService = mediaAppService ?? throw new ArgumentNullException(nameof(mediaAppService));
         }
 
         private bool CanEditCustomer(ServiceHeader serviceHeader)
@@ -60,9 +73,9 @@ namespace WebApplication1.Controllers
 
                 return ApiResponse(true, "Customers retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -85,9 +98,9 @@ namespace WebApplication1.Controllers
                     nextOfKins
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -100,9 +113,9 @@ namespace WebApplication1.Controllers
                 var count = await _customerAppService.GetCustomersCountAsync(serviceHeader);
                 return ApiResponse(true, "Customer count retrieved successfully", count);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -128,9 +141,9 @@ namespace WebApplication1.Controllers
                 var page = await _customerAppService.FindCustomersByTypeAsync(type, text, customerFilter, pageIndex, pageSize, serviceHeader);
                 return ApiResponse(true, "Customers retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -148,9 +161,9 @@ namespace WebApplication1.Controllers
                 var page = await _customerAppService.FindCustomersByRecordStatusAsync(recordStatus, text, customerFilter, pageIndex, pageSize, serviceHeader);
                 return ApiResponse(true, "Customers retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -168,9 +181,9 @@ namespace WebApplication1.Controllers
                 var page = await _customerAppService.FindCustomersAsync(stationId, text, customerFilter, pageIndex, pageSize, serviceHeader);
                 return ApiResponse(true, "Customers retrieved successfully", page);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -192,9 +205,9 @@ namespace WebApplication1.Controllers
                     customers.Count > 0 ? "Customers found" : "No customer found with the given identity card number",
                     customers);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -211,9 +224,9 @@ namespace WebApplication1.Controllers
                     customers.Count > 0 ? "Customers found" : "No customer found with the given ID number",
                     customers);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -230,9 +243,9 @@ namespace WebApplication1.Controllers
                     customers.Count > 0 ? "Customers found" : "No customer found with the given serial number",
                     customers);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -254,9 +267,9 @@ namespace WebApplication1.Controllers
                     customers.Count > 0 ? "Customers found" : "No customer found for the given payroll numbers",
                     customers);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -269,9 +282,9 @@ namespace WebApplication1.Controllers
                 var nextOfKins = await _customerAppService.FindNextOfKinCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Next of kin retrieved successfully", nextOfKins);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -290,10 +303,17 @@ namespace WebApplication1.Controllers
 
                 return ApiResponse(true, "Transaction codes retrieved successfully", codes);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
+        }
+
+        [HttpGet, Route("registration/debit-types")]
+        public IHttpActionResult GetRegistrationDebitTypes()
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            return ApiResponse(true, "Debit types retrieved successfully", _debitTypeAppService.FindDebitTypes(serviceHeader));
         }
 
         [HttpGet, Route("{id:guid}/account-alerts")]
@@ -305,9 +325,9 @@ namespace WebApplication1.Controllers
                 var alerts = await _customerAppService.FindAccountAlertCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Account alerts retrieved successfully", alerts);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -320,9 +340,9 @@ namespace WebApplication1.Controllers
                 var members = await _customerAppService.FindPartnershipMemberCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Partnership members retrieved successfully", members);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -335,9 +355,9 @@ namespace WebApplication1.Controllers
                 var members = await _customerAppService.FindCorporationMemberCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Corporation members retrieved successfully", members);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -350,9 +370,9 @@ namespace WebApplication1.Controllers
                 var referees = await _customerAppService.FindRefereeCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Referees retrieved successfully", referees);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -365,9 +385,9 @@ namespace WebApplication1.Controllers
                 var creditTypes = _customerAppService.FindCreditTypes(id, serviceHeader);
                 return ApiResponse(true, "Credit types retrieved successfully", creditTypes);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -389,6 +409,20 @@ namespace WebApplication1.Controllers
                     request.ModuleNavigationItemCode,
                     serviceHeader);
 
+                if (createdCustomer == null || createdCustomer.Id == Guid.Empty || !string.IsNullOrWhiteSpace(createdCustomer.ErrorMessageResult))
+                    return ErrorResponse(HttpStatusCode.BadRequest, createdCustomer?.ErrorMessageResult ?? "Customer creation failed");
+
+                if (request.PartnershipMembers != null && request.PartnershipMembers.Any())
+                    await _customerAppService.UpdatePartnershipMemberCollectionAsync(createdCustomer.Id, request.PartnershipMembers, serviceHeader);
+
+                if (request.CorporationMembers != null && request.CorporationMembers.Any())
+                    await _customerAppService.UpdateCorporationMemberCollectionAsync(createdCustomer.Id, request.CorporationMembers, serviceHeader);
+
+                if (request.Referees != null && request.Referees.Any())
+                    await _customerAppService.UpdateRefereeCollectionAsync(createdCustomer.Id, request.Referees, serviceHeader);
+
+                SaveRegistrationImages(request.Customer, createdCustomer, serviceHeader);
+
                 return Content(HttpStatusCode.Created, new
                 {
                     success = true,
@@ -396,10 +430,42 @@ namespace WebApplication1.Controllers
                     data = createdCustomer
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
+        }
+
+        private void SaveRegistrationImages(CustomerDTO source, CustomerDTO created, ServiceHeader serviceHeader)
+        {
+            var blobConnection = ConfigurationManager.ConnectionStrings["BLOBStore"]?.ConnectionString;
+            var stagingDirectory = HostingEnvironment.MapPath("~/App_Data");
+            if (string.IsNullOrWhiteSpace(blobConnection) || string.IsNullOrWhiteSpace(stagingDirectory))
+                return;
+
+            SaveImage(created.PassportImageId, source.PassportBuffer, "Customer passport photo", stagingDirectory, blobConnection, serviceHeader);
+            SaveImage(created.SignatureImageId, source.SignatureBuffer, "Customer signature", stagingDirectory, blobConnection, serviceHeader);
+            SaveImage(created.IdentityCardFrontSideImageId, source.IdentityCardFrontSideBuffer, "Identity card front", stagingDirectory, blobConnection, serviceHeader);
+            SaveImage(created.IdentityCardBackSideImageId, source.IdentityCardBackSideBuffer, "Identity card back", stagingDirectory, blobConnection, serviceHeader);
+        }
+
+        private void SaveImage(Guid? imageId, byte[] content, string remarks, string stagingDirectory,
+            string blobConnection, ServiceHeader serviceHeader)
+        {
+            if (!imageId.HasValue || imageId.Value == Guid.Empty || content == null || content.Length == 0)
+                return;
+
+            var saved = _mediaAppService.PostImage(new MediaDTO
+            {
+                SKU = imageId.Value,
+                Content = content,
+                ContentType = "image/jpeg",
+                FileType = "CustomerRegistration",
+                FileRemarks = remarks
+            }, stagingDirectory, blobConnection, serviceHeader);
+
+            if (!saved)
+                throw new InvalidOperationException(string.Format("The {0} could not be saved.", remarks.ToLowerInvariant()));
         }
 
         [HttpPut, Route("{id:guid}")]
@@ -431,9 +497,9 @@ namespace WebApplication1.Controllers
                 var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
                 return ApiResponse(true, "Customer edit submitted successfully", updatedCustomer);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -455,9 +521,9 @@ namespace WebApplication1.Controllers
                 var refreshed = await _customerAppService.FindNextOfKinCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Next of kin updated successfully", refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -475,9 +541,9 @@ namespace WebApplication1.Controllers
                 var refreshed = await _customerAppService.FindAccountAlertCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Account alerts updated successfully", refreshed);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -498,9 +564,9 @@ namespace WebApplication1.Controllers
                 var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
                 return ApiResponse(true, "Customer station updated successfully", updatedCustomer);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -521,9 +587,9 @@ namespace WebApplication1.Controllers
                 var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
                 return ApiResponse(true, "Customer removed from station successfully", updatedCustomer);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
 
@@ -553,9 +619,9 @@ namespace WebApplication1.Controllers
                 var updatedCustomer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
                 return ApiResponse(true, "Customer linked to branch successfully", updatedCustomer);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return ErrorResponse(HttpStatusCode.InternalServerError, ex.Message);
+                throw;
             }
         }
     }
@@ -569,6 +635,9 @@ namespace WebApplication1.Controllers
         public List<DebitTypeDTO> AdditionalDebitTypes { get; set; }
         public List<InvestmentProductDTO> AdditionalInvestmentProducts { get; set; }
         public List<SavingsProductDTO> AdditionalSavingsProducts { get; set; }
+        public List<PartnershipMemberDTO> PartnershipMembers { get; set; }
+        public List<CorporationMemberDTO> CorporationMembers { get; set; }
+        public List<RefereeDTO> Referees { get; set; }
         public int ModuleNavigationItemCode { get; set; }
     }
 }

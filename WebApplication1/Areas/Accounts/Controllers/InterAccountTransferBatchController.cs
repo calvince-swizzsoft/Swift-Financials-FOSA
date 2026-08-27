@@ -87,9 +87,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", batches ?? new List<InterAccountTransferBatchDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -112,9 +112,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -133,9 +133,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", batch));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -165,9 +165,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Inter account transfer batch created successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -195,9 +195,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Operation success", refreshed));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -232,9 +232,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -258,9 +258,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entry added successfully", created));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -284,9 +284,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entries replaced successfully", refreshed ?? new List<InterAccountTransferBatchEntryDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -308,9 +308,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entries removed successfully", null));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -328,9 +328,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", charges ?? new List<DynamicChargeDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -352,9 +352,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Dynamic charges replaced successfully", refreshed ?? new List<DynamicChargeDTO>()));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -381,9 +381,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Operation success", updated));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 

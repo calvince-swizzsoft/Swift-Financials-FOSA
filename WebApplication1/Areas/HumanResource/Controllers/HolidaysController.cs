@@ -19,6 +19,7 @@ namespace WebApplication1.Controllers
     // DELETE and paged/text search since IHolidayAppService actually
     // supports both here, unlike Department/Designation/EmployeeType.
     [EnableCors(origins: "*", headers: "*", methods: "*")]
+    [Authorize]
     [RoutePrefix("api/humanresource/holidays")]
     public class HolidaysController : ApiController
     {
@@ -51,9 +52,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(postingPeriods);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -74,9 +75,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(holidays);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -120,9 +121,9 @@ namespace WebApplication1.Controllers
                     return BadRequest(holidayDTO.ErrorMessages.ToString());
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -166,9 +167,9 @@ namespace WebApplication1.Controllers
                     return BadRequest(holidayDTO.ErrorMessages.ToString());
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -189,9 +190,9 @@ namespace WebApplication1.Controllers
 
                 return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

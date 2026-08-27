@@ -56,9 +56,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = fixedDepositTypes ?? new List<FixedDepositTypeDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -76,9 +76,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -94,9 +94,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = fixedDepositTypes ?? new List<FixedDepositTypeDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -115,9 +115,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = fixedDepositType });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -171,9 +171,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Fixed deposit type created successfully", data = refreshed ?? created });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -203,9 +203,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Fixed deposit type updated successfully", data = updated });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -221,9 +221,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = levies ?? new List<LevyDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -244,9 +244,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<LevyDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -262,9 +262,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = attachedProducts });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -285,9 +285,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -303,9 +303,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = scales ?? new List<FixedDepositTypeGraduatedScaleDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -326,9 +326,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<FixedDepositTypeGraduatedScaleDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -345,9 +345,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = tariffs ?? new List<TariffWrapper>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }

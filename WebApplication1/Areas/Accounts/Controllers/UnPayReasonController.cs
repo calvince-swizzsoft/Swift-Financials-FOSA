@@ -53,9 +53,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = unPayReasons ?? new List<UnPayReasonDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -73,9 +73,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = page });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -96,9 +96,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = unPayReason });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -148,9 +148,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -189,9 +189,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -207,9 +207,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "", data = commissions ?? new List<CommissionDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
 
@@ -236,9 +236,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<CommissionDTO>() });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return InternalServerError(ex);
+                throw;
             }
         }
     }
