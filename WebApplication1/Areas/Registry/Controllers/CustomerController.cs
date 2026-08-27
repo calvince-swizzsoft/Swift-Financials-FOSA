@@ -3,6 +3,8 @@ using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.MainBoundedContext.RegistryModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System.Linq;
 using System;
@@ -10,6 +12,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
+using System.Configuration;
+using System.Web.Hosting;
 using WebApplication1.Helpers;
 
 namespace WebApplication1.Controllers
@@ -20,11 +24,19 @@ namespace WebApplication1.Controllers
     {
         private readonly ICustomerAppService _customerAppService;
         private readonly IAuthorizationAppService _authorizationAppService;
+        private readonly IDebitTypeAppService _debitTypeAppService;
+        private readonly IMediaAppService _mediaAppService;
 
-        public CustomerController(ICustomerAppService customerAppService, IAuthorizationAppService authorizationAppService)
+        public CustomerController(
+            ICustomerAppService customerAppService,
+            IAuthorizationAppService authorizationAppService,
+            IDebitTypeAppService debitTypeAppService,
+            IMediaAppService mediaAppService)
         {
             _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
             _authorizationAppService = authorizationAppService ?? throw new ArgumentNullException(nameof(authorizationAppService));
+            _debitTypeAppService = debitTypeAppService ?? throw new ArgumentNullException(nameof(debitTypeAppService));
+            _mediaAppService = mediaAppService ?? throw new ArgumentNullException(nameof(mediaAppService));
         }
 
         private bool CanEditCustomer(ServiceHeader serviceHeader)
@@ -297,6 +309,13 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet, Route("registration/debit-types")]
+        public IHttpActionResult GetRegistrationDebitTypes()
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            return ApiResponse(true, "Debit types retrieved successfully", _debitTypeAppService.FindDebitTypes(serviceHeader));
+        }
+
         [HttpGet, Route("{id:guid}/account-alerts")]
         public async Task<IHttpActionResult> GetAccountAlerts(Guid id)
         {
@@ -390,6 +409,20 @@ namespace WebApplication1.Controllers
                     request.ModuleNavigationItemCode,
                     serviceHeader);
 
+                if (createdCustomer == null || createdCustomer.Id == Guid.Empty || !string.IsNullOrWhiteSpace(createdCustomer.ErrorMessageResult))
+                    return ErrorResponse(HttpStatusCode.BadRequest, createdCustomer?.ErrorMessageResult ?? "Customer creation failed");
+
+                if (request.PartnershipMembers != null && request.PartnershipMembers.Any())
+                    await _customerAppService.UpdatePartnershipMemberCollectionAsync(createdCustomer.Id, request.PartnershipMembers, serviceHeader);
+
+                if (request.CorporationMembers != null && request.CorporationMembers.Any())
+                    await _customerAppService.UpdateCorporationMemberCollectionAsync(createdCustomer.Id, request.CorporationMembers, serviceHeader);
+
+                if (request.Referees != null && request.Referees.Any())
+                    await _customerAppService.UpdateRefereeCollectionAsync(createdCustomer.Id, request.Referees, serviceHeader);
+
+                SaveRegistrationImages(request.Customer, createdCustomer, serviceHeader);
+
                 return Content(HttpStatusCode.Created, new
                 {
                     success = true,
@@ -401,6 +434,38 @@ namespace WebApplication1.Controllers
             {
                 throw;
             }
+        }
+
+        private void SaveRegistrationImages(CustomerDTO source, CustomerDTO created, ServiceHeader serviceHeader)
+        {
+            var blobConnection = ConfigurationManager.ConnectionStrings["BLOBStore"]?.ConnectionString;
+            var stagingDirectory = HostingEnvironment.MapPath("~/App_Data");
+            if (string.IsNullOrWhiteSpace(blobConnection) || string.IsNullOrWhiteSpace(stagingDirectory))
+                return;
+
+            SaveImage(created.PassportImageId, source.PassportBuffer, "Customer passport photo", stagingDirectory, blobConnection, serviceHeader);
+            SaveImage(created.SignatureImageId, source.SignatureBuffer, "Customer signature", stagingDirectory, blobConnection, serviceHeader);
+            SaveImage(created.IdentityCardFrontSideImageId, source.IdentityCardFrontSideBuffer, "Identity card front", stagingDirectory, blobConnection, serviceHeader);
+            SaveImage(created.IdentityCardBackSideImageId, source.IdentityCardBackSideBuffer, "Identity card back", stagingDirectory, blobConnection, serviceHeader);
+        }
+
+        private void SaveImage(Guid? imageId, byte[] content, string remarks, string stagingDirectory,
+            string blobConnection, ServiceHeader serviceHeader)
+        {
+            if (!imageId.HasValue || imageId.Value == Guid.Empty || content == null || content.Length == 0)
+                return;
+
+            var saved = _mediaAppService.PostImage(new MediaDTO
+            {
+                SKU = imageId.Value,
+                Content = content,
+                ContentType = "image/jpeg",
+                FileType = "CustomerRegistration",
+                FileRemarks = remarks
+            }, stagingDirectory, blobConnection, serviceHeader);
+
+            if (!saved)
+                throw new InvalidOperationException(string.Format("The {0} could not be saved.", remarks.ToLowerInvariant()));
         }
 
         [HttpPut, Route("{id:guid}")]
@@ -570,6 +635,9 @@ namespace WebApplication1.Controllers
         public List<DebitTypeDTO> AdditionalDebitTypes { get; set; }
         public List<InvestmentProductDTO> AdditionalInvestmentProducts { get; set; }
         public List<SavingsProductDTO> AdditionalSavingsProducts { get; set; }
+        public List<PartnershipMemberDTO> PartnershipMembers { get; set; }
+        public List<CorporationMemberDTO> CorporationMembers { get; set; }
+        public List<RefereeDTO> Referees { get; set; }
         public int ModuleNavigationItemCode { get; set; }
     }
 }

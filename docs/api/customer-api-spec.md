@@ -191,6 +191,9 @@ interface CreateCustomerRequest {
   additionalDebitTypes?: DebitTypeDTO[];
   additionalInvestmentProducts?: InvestmentProductDTO[];
   additionalSavingsProducts?: SavingsProductDTO[];
+  partnershipMembers?: PartnershipMemberDTO[];
+  corporationMembers?: CorporationMemberDTO[];
+  referees?: RefereeDTO[];
   moduleNavigationItemCode?: number;
 }
 ```
@@ -211,6 +214,18 @@ items the user explicitly wants attached *on top of* the mandatory set (e.g.
 checkboxes the user opted into beyond what's pre-selected); omit them
 entirely for the common case.
 
+The registration request can persist the type-specific related collections in
+the same workflow. Partnership registrations use `partnershipMembers` (direct
+person details plus `signatory`); corporation registrations use
+`corporationMembers` (an existing `customerId`, remarks, and `signatory`);
+`referees` use an existing customer as `witnessId`.
+
+`customer.passportBuffer`, `signatureBuffer`,
+`identityCardFrontSideBuffer`, and `identityCardBackSideBuffer` accept base64
+image bytes. When present, the API writes them to `BLOBStore` under the image
+IDs assigned to the new customer. The current registration UI limits each
+image to 5 MB.
+
 `moduleNavigationItemCode` gates which module-nav permission check the
 service applies; source the correct value from
 `GET /api/administration/modules` rather than hardcoding it — no fixed
@@ -220,6 +235,12 @@ Success → `201`:
 ```json
 { "success": true, "message": "Customer created successfully", "data": CustomerDTO }
 ```
+
+### 5.12a Registration debit types — `GET /registration/debit-types`
+
+Returns `ApiEnvelope<DebitTypeDTO[]>`. Use this for the optional debit-type
+selection tab. Company-mandatory types are still attached server-side and do
+not need to be selected by the user.
 
 ### 5.13 Update — `PUT /{id}`
 
@@ -245,11 +266,9 @@ the whole object is required and `id`/`customer.id` must match.
 
 **Create customer**
 1. `POST /api/auth/login` → store token.
-2. Collect branch, customer-type-specific fields, mobile number (see §7 for
-   which fields the `Type` value requires — the API itself does not validate
-   type-specific required fields; the old plural controller did this
-   validation and this one does not, so the frontend must).
-3. `POST /` with `{ customer }` — mandatory debit types/products attach
+2. Collect branch, customer-type-specific fields, mobile number, images, and
+   the applicable partnership/corporation member details.
+3. `POST /` with the complete registration request — mandatory debit types/products attach
    automatically; only add `additionalDebitTypes` /
    `additionalInvestmentProducts` / `additionalSavingsProducts` if the user
    picked extras beyond the mandatory set (see §5.12).
@@ -367,7 +386,7 @@ before wiring up a field not listed here.
 | `individualIdentityCardType` | byte | §7 |
 | `individualIdentityCardNumber` | string | required when `type` is Individual |
 | `individualGender` / `individualMaritalStatus` / `individualSalutation` | byte | §7 |
-| `individualBirthDate` | date? | |
+| `individualBirthDate` | date? | required by the registration UI for Individuals |
 | `nonIndividualDescription` | string | required when `type` is not Individual (entity name) |
 | `nonIndividualRegistrationNumber` | string | required when `type` is not Individual |
 | `addressMobileLine` | string | used for SMS in the legacy plural controller; not currently sent by this controller |
@@ -375,23 +394,19 @@ before wiring up a field not listed here.
 | `stationId` | guid? | |
 | `reference1` / `reference2` / `reference3` | string | account number / membership number / personal file number |
 | `recordStatus` | byte | §7 — server sets this; don't let the client set it directly on create |
+| `passportBuffer` / `signatureBuffer` | byte[]? | optional base64 image content persisted to BLOBStore on create |
+| `identityCardFrontSideBuffer` / `identityCardBackSideBuffer` | byte[]? | optional base64 image content persisted to BLOBStore on create |
 | `nextOfKins` | `NextOfKinDTO[]` | populated on read; use the dedicated next-of-kin endpoints to write |
 
 Field-level required-ness above is **not enforced by this controller** — it's
 carried over from what the legacy plural controller validated, and is listed
 here only as guidance for client-side form validation.
 
-## 9. Open items to confirm with backend before building against this
+## 9. Operational notes
 
-1. No role/permission restriction is currently applied to `CustomerController`
-   itself (§2) — confirm whether that's intentional before shipping.
-2. `Create` doesn't do duplicate-identity/registration-number checking (the
-   plural controller does) — confirm whether that check needs to be added
-   here, or whether the frontend should call it against the plural
-   controller's `check-duplicate` route as a pre-flight before this `POST /`.
-3. `Create` doesn't auto-provision accounts or send a welcome SMS (the plural
-   controller does both) — confirm if that's in scope for this flow.
-4. `mandatoryDebitTypes` / `mandatoryInvestmentProducts` /
-   `mandatorySavingsProducts` / `mandatoryProducts` resolution (§5.12) needs
-   an owner — either the frontend sources them, or backend needs to add the
-   resolution logic.
+1. `CustomerController` requires authentication but has no controller-wide
+   role restriction; customer editing has its own permission check.
+2. The domain service rejects duplicate individual identity-card numbers and
+   duplicate partnership/corporation registration numbers.
+3. Account provisioning, mandatory product/debit-type attachment, and welcome
+   notifications are performed server-side after the base customer is saved.

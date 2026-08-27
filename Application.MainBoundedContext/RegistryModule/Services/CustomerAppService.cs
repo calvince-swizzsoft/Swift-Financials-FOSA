@@ -260,6 +260,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                 customer.SerialNumber = _customerRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(SerialNumber),0) + 1 AS Expr1 FROM {0}Customers", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
                 customer.Reference2 =( _customerRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(Reference2),0) + 1 AS Expr1 FROM {0}Customers", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault()).ToString() ;
+                customer.PassportImageId = IdentityGenerator.NewSequentialGuid();
                 customer.SignatureImageId = IdentityGenerator.NewSequentialGuid();
                 customer.IdentityCardBackSideImageId = IdentityGenerator.NewSequentialGuid();
                 customer.IdentityCardFrontSideImageId = IdentityGenerator.NewSequentialGuid();
@@ -743,7 +744,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                 if (persisted != null)
                 {
-                    var existing = await FindRefereeCollectionAsync(persisted.Id, serviceHeader);
+                    var existing = await FindPartnershipMemberCollectionAsync(persisted.Id, serviceHeader);
 
                     if (existing != null && existing.Any())
                     {
