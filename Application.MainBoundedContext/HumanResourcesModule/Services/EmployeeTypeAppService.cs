@@ -1,5 +1,6 @@
 ﻿using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.Seedwork;
 using Domain.MainBoundedContext.HumanResourcesModule.Aggregates.EmployeeTypeAgg;
 using Domain.Seedwork;
@@ -16,10 +17,12 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
     {
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<EmployeeType> _employeeTypeRepository;
+        private readonly IChartOfAccountAppService _chartOfAccountAppService;
 
         public EmployeeTypeAppService(
            IDbContextScopeFactory dbContextScopeFactory,
-           IRepository<EmployeeType> employeeTypeRepository)
+           IRepository<EmployeeType> employeeTypeRepository,
+           IChartOfAccountAppService chartOfAccountAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -27,16 +30,66 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
             if (employeeTypeRepository == null)
                 throw new ArgumentNullException(nameof(employeeTypeRepository));
 
+            if (chartOfAccountAppService == null)
+                throw new ArgumentNullException(nameof(chartOfAccountAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _employeeTypeRepository = employeeTypeRepository;
+            _chartOfAccountAppService = chartOfAccountAppService;
+        }
+
+        public string ValidateEmployeeType(EmployeeTypeDTO employeeTypeDTO, Guid? existingEmployeeTypeId, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                return ValidateEmployeeTypeCore(employeeTypeDTO, existingEmployeeTypeId, serviceHeader);
+            }
+        }
+
+        private string ValidateEmployeeTypeCore(EmployeeTypeDTO employeeTypeDTO, Guid? existingEmployeeTypeId, ServiceHeader serviceHeader)
+        {
+            if (employeeTypeDTO == null)
+                return "Employee type details are required.";
+            if (employeeTypeDTO.ChartOfAccountId == Guid.Empty)
+                return "A payroll control account is required.";
+            if (string.IsNullOrWhiteSpace(employeeTypeDTO.Description))
+                return "An employee type description is required.";
+            if (!Enum.IsDefined(typeof(EmployeeCategory), employeeTypeDTO.Category))
+                return "The selected employee category is invalid.";
+
+            var chartOfAccount = _chartOfAccountAppService.FindChartOfAccount(employeeTypeDTO.ChartOfAccountId, serviceHeader);
+            if (chartOfAccount == null)
+                return "The selected payroll control account could not be found.";
+            if (chartOfAccount.AccountCategory != (int)ChartOfAccountCategory.DetailAccount)
+                return "The payroll control account must be a detail account that accepts postings.";
+            if (chartOfAccount.IsLocked)
+                return "The selected payroll control account is locked.";
+
+            var sameCategory = _employeeTypeRepository.AllMatching(
+                EmployeeTypeSpecifications.EmployeeTypeWithCategory(employeeTypeDTO.Category), serviceHeader);
+            if (sameCategory != null && sameCategory.Any(x => !existingEmployeeTypeId.HasValue || x.Id != existingEmployeeTypeId.Value))
+                return string.Format(
+                    "An employee type already exists for the {0} category. Each category can only be configured once.",
+                    EnumHelper.GetDescription((EmployeeCategory)employeeTypeDTO.Category));
+
+            return null;
         }
 
         public EmployeeTypeDTO AddNewEmployeeType(EmployeeTypeDTO employeeTypeDTO, ServiceHeader serviceHeader)
         {
+            if (employeeTypeDTO == null) return null;
+
             if (employeeTypeDTO != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
+                    var validationError = ValidateEmployeeTypeCore(employeeTypeDTO, null, serviceHeader);
+                    if (!string.IsNullOrWhiteSpace(validationError))
+                    {
+                        employeeTypeDTO.ErrorMessageResult = validationError;
+                        return employeeTypeDTO;
+                    }
+
                     var proceed = true;
 
                     var filter = EmployeeTypeSpecifications.EmployeeTypeWithCategory(employeeTypeDTO.Category);
@@ -47,6 +100,9 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                     if (salaryHeads != null && salaryHeads.Any())
                     {
+                        employeeTypeDTO.ErrorMessageResult = string.Format(
+                            "An employee type already exists for the {0} category. Each category can only be configured once.",
+                            EnumHelper.GetDescription((EmployeeCategory)employeeTypeDTO.Category));
                         proceed = false;
                     }
                     
@@ -64,7 +120,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                         return employeeType.ProjectedAs<EmployeeTypeDTO>();
                     }
-                    else return null;
+                    else return employeeTypeDTO;
                 }
             }
             else return null;
@@ -77,6 +133,9 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
+                if (!string.IsNullOrWhiteSpace(ValidateEmployeeTypeCore(employeeTypeDTO, employeeTypeDTO.Id, serviceHeader)))
+                    return false;
+
                 var persisted = _employeeTypeRepository.Get(employeeTypeDTO.Id, serviceHeader);
 
                 if (persisted != null)

@@ -1,6 +1,8 @@
 ﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Application.Seedwork;
@@ -22,13 +24,17 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         private readonly IHolidayAppService _holidayAppService;
         private readonly ISavingsProductAppService _savingsProductAppService;
         private readonly IChequeBookAppService _chequeBookAppService;
+        private readonly IAuthorizationAppService _authorizationAppService;
+        private readonly IWorkflowAppService _workflowAppService;
 
         public CashDepositRequestAppService(
            IDbContextScopeFactory dbContextScopeFactory,
            IRepository<CashDepositRequest> cashDepositRequestRepository,
            IHolidayAppService holidayAppService,
            ISavingsProductAppService savingsProductAppService,
-           IChequeBookAppService chequeBookAppService)
+           IChequeBookAppService chequeBookAppService,
+           IAuthorizationAppService authorizationAppService,
+           IWorkflowAppService workflowAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -45,17 +51,65 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             if (chequeBookAppService == null)
                 throw new ArgumentNullException(nameof(chequeBookAppService));
 
+            if (authorizationAppService == null)
+                throw new ArgumentNullException(nameof(authorizationAppService));
+
+            if (workflowAppService == null)
+                throw new ArgumentNullException(nameof(workflowAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _cashDepositRequestRepository = cashDepositRequestRepository;
             _holidayAppService = holidayAppService;
             _savingsProductAppService = savingsProductAppService;
             _chequeBookAppService = chequeBookAppService;
+            _authorizationAppService = authorizationAppService;
+            _workflowAppService = workflowAppService;
+        }
+
+        public CashDepositRequestDTO AddNewCashDepositRequestWithWorkflow(CashDepositRequestDTO cashDepositRequestDTO, ServiceHeader serviceHeader)
+        {
+            var roles = _authorizationAppService.GetRolesListForSystemPermissionType(
+                (int)SystemPermissionType.CashDepositRequestAuthorization, serviceHeader);
+
+            if (roles == null || !roles.Any() || roles.Sum(x => x.RequiredApprovers) < 1)
+                throw new InvalidOperationException("Cash deposit request cannot be submitted because no approval role is configured for Cash Deposit Request Authorization.");
+
+            var created = AddNewCashDepositRequest(cashDepositRequestDTO, serviceHeader);
+            if (created == null)
+                return null;
+
+            var workflow = new WorkflowDTO
+            {
+                RecordId = created.Id,
+                BranchId = created.BranchId,
+                Status = (int)WorkflowRecordStatus.Pending,
+                SystemPermissionType = (int)SystemPermissionType.CashDepositRequestAuthorization,
+                RequiredApprovals = roles.Sum(x => x.RequiredApprovers)
+            };
+
+            if (!_workflowAppService.AddNewWorkflow(workflow, roles, serviceHeader))
+                throw new InvalidOperationException("The cash deposit request was stored, but its approval workflow could not be created. Contact an administrator before retrying.");
+
+            return created;
         }
 
         public CashDepositRequestDTO AddNewCashDepositRequest(CashDepositRequestDTO cashDepositRequestDTO, ServiceHeader serviceHeader)
         {
             if (cashDepositRequestDTO != null && cashDepositRequestDTO.BranchId != Guid.Empty)
             {
+                cashDepositRequestDTO.ValidateAll();
+                if (cashDepositRequestDTO.HasErrors)
+                    throw new InvalidOperationException(string.Join("; ", cashDepositRequestDTO.ErrorMessages));
+
+                if (cashDepositRequestDTO.CustomerAccountId == Guid.Empty)
+                    throw new InvalidOperationException("A customer savings account is required.");
+
+                if (cashDepositRequestDTO.Amount <= 0m)
+                    throw new InvalidOperationException("The cash deposit request amount must be greater than zero.");
+
+                if (!Enum.IsDefined(typeof(FrontOfficeTransactionType), cashDepositRequestDTO.TransactionType))
+                    throw new InvalidOperationException("The transaction type is invalid.");
+
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var cashDepositRequest = CashDepositRequestFactory.CreateCashDepositRequest(cashDepositRequestDTO.BranchId, cashDepositRequestDTO.CustomerAccountId, cashDepositRequestDTO.Amount, cashDepositRequestDTO.Remarks, cashDepositRequestDTO.TransactionType);

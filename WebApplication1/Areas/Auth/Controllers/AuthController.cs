@@ -3,6 +3,7 @@ using Application.MainBoundedContext.DTO.AdministrationModule;
 using Microsoft.AspNet.Identity;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -20,9 +21,9 @@ namespace WebApplication1.Areas.Auth
     public class AuthController : ApiController
     {
 
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationUserManager _userManager;
 
-        public AuthController(UserManager<ApplicationUser> userManager)
+        public AuthController(ApplicationUserManager userManager)
         {
             _userManager = userManager;
         }
@@ -69,7 +70,10 @@ namespace WebApplication1.Areas.Auth
                     }.Where(x => x.Value.Length > 0).ToDictionary(x => x.Key, x => x.Value));
             }
 
-            var user = await _userManager.FindByNameAsync(userDto.UserName);
+            // Usernames are normalized at account creation. Ignore accidental surrounding
+            // whitespace in the username while preserving the password exactly as entered.
+            var normalizedUserName = userDto.UserName.Trim();
+            var user = await _userManager.FindByNameAsync(normalizedUserName);
 
             if ( user == null)
             {
@@ -84,6 +88,28 @@ namespace WebApplication1.Areas.Auth
             {
                 return InvalidCredentials();
             }
+
+            // Rollout compatibility: accounts created before confirmation was introduced never
+            // received a token. After their password has been verified above, confirm them once.
+            // Accounts created on/after the cutoff must always complete the emailed-token flow.
+            DateTime confirmationCutoffUtc;
+            var hasConfirmationCutoff = DateTime.TryParse(
+                ConfigurationManager.AppSettings["Identity:EmailConfirmationEnforcedFromUtc"],
+                out confirmationCutoffUtc);
+            var predatesConfirmationRollout = !user.EmailConfirmed && hasConfirmationCutoff &&
+                user.CreatedDate.ToUniversalTime() < confirmationCutoffUtc.ToUniversalTime();
+            if (predatesConfirmationRollout)
+            {
+                user.EmailConfirmed = true;
+                var legacyUpdate = await _userManager.UpdateAsync(user);
+                if (!legacyUpdate.Succeeded)
+                    throw new ApiException(HttpStatusCode.ServiceUnavailable, ErrorCodes.InternalError,
+                        "The legacy user account could not be activated. Contact support with the correlation ID.");
+            }
+
+            if (!user.EmailConfirmed)
+                return Error(HttpStatusCode.Forbidden, ErrorCodes.EmailNotConfirmed,
+                    "Your email address has not been confirmed. Open the confirmation link sent when your user account was created.");
 
             if (!user.LastPasswordChangedDate.HasValue)
             {
@@ -127,22 +153,85 @@ namespace WebApplication1.Areas.Auth
                 return Error(HttpStatusCode.Conflict, ErrorCodes.InitialPasswordChangeNotAllowed,
                     "This initial password-change request is no longer valid.");
 
-            var result = await _userManager.ChangePasswordAsync(user.Id, request.CurrentPassword, request.NewPassword);
-            if (!result.Succeeded)
+            if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
                 return Error(HttpStatusCode.BadRequest, ErrorCodes.PasswordChangeFailed,
-                    "The password could not be changed. Verify the current password and password requirements.");
+                    "The current temporary password is incorrect.",
+                    new Dictionary<string, string[]>
+                    {
+                        { "currentPassword", new[] { "Enter the temporary password issued when the user account was created." } }
+                    });
 
-            user.LastPasswordChangedDate = DateTime.UtcNow;
-            var updateResult = await _userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
+            var passwordValidation = await _userManager.PasswordValidator.ValidateAsync(request.NewPassword);
+            if (!passwordValidation.Succeeded)
+            {
+                var passwordErrors = passwordValidation.Errors
+                    .Where(error => !string.IsNullOrWhiteSpace(error))
+                    .Distinct()
+                    .ToArray();
+                return Error(HttpStatusCode.BadRequest, ErrorCodes.PasswordChangeFailed,
+                    passwordErrors.Length > 0
+                        ? string.Join(" ", passwordErrors)
+                        : "The new password does not meet the password requirements.",
+                    new Dictionary<string, string[]>
+                    {
+                        { "newPassword", passwordErrors.Length > 0 ? passwordErrors : new[] { "Choose a different password that meets every requirement." } }
+                    });
+            }
+
+            // Password changes must not revalidate unrelated legacy profile data. In
+            // particular, ChangePasswordAsync calls UpdateAsync internally and can reject
+            // an otherwise valid password because an old account shares this email address.
+            // Store all password workflow fields together so the change is atomic.
+            try
+            {
+                using (var context = new ApplicationDbContext("AuthStore"))
+                {
+                    var persistedUser = context.Users.SingleOrDefault(item => item.Id == user.Id);
+                    if (persistedUser == null)
+                        throw new InvalidOperationException("The user no longer exists in AuthStore.");
+                    persistedUser.PasswordHash = _userManager.PasswordHasher.HashPassword(request.NewPassword);
+                    persistedUser.SecurityStamp = Guid.NewGuid().ToString();
+                    persistedUser.LastPasswordChangedDate = DateTime.UtcNow;
+                    context.SaveChanges();
+                }
+            }
+            catch (Exception exception)
+            {
                 throw new ApiException(HttpStatusCode.ServiceUnavailable,
                     ErrorCodes.PasswordChangeOutcomeUnknown,
-                    "The password change could not be confirmed. Do not retry automatically; contact support with the correlation ID.");
+                    "The password change could not be recorded. Do not retry automatically; contact support with the correlation ID.",
+                    innerException: exception);
+            }
 
             var roles = await _userManager.GetRolesAsync(user.Id);
             var token = JwtTokenService.GenerateToken(user, roles);
 
             return Ok(new { token, user.UserName, roles, requiresPasswordChange = false });
+        }
+
+        [AllowAnonymous, HttpPost, Route("confirm-email")]
+        public IHttpActionResult ConfirmEmail([FromBody] ConfirmEmailRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.UserId) || string.IsNullOrWhiteSpace(request.Code))
+                return Error(HttpStatusCode.BadRequest, ErrorCodes.InvalidEmailConfirmation,
+                    "The email confirmation link is incomplete.");
+
+            using (var context = new ApplicationDbContext("AuthStore"))
+            {
+                var user = context.Users.SingleOrDefault(item => item.Id == request.UserId);
+                if (user == null)
+                    return Error(HttpStatusCode.BadRequest, ErrorCodes.InvalidEmailConfirmation,
+                        "The email confirmation link is invalid or has expired.");
+
+                if (user.EmailConfirmed)
+                    return Ok(new { message = "This email address is already confirmed." });
+
+                if (!EmailConfirmationTokens.ValidateAndConsume(context, user, request.Code))
+                    return Error(HttpStatusCode.BadRequest, ErrorCodes.InvalidEmailConfirmation,
+                        "The email confirmation link is invalid or has expired. Ask an administrator to issue a new confirmation message.");
+            }
+
+            return Ok(new { message = "Your email address has been confirmed. You can now sign in." });
         }
 
         private IHttpActionResult InvalidCredentials()
@@ -170,5 +259,11 @@ namespace WebApplication1.Areas.Auth
         public string CurrentPassword { get; set; }
         public string NewPassword { get; set; }
         public string ConfirmPassword { get; set; }
+    }
+
+    public class ConfirmEmailRequest
+    {
+        public string UserId { get; set; }
+        public string Code { get; set; }
     }
 }

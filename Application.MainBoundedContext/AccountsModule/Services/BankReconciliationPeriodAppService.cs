@@ -85,7 +85,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             {
                 var persisted = _bankReconciliationPeriodRepository.Get(bankReconciliationPeriodDTO.Id, serviceHeader);
 
-                if (persisted != null)
+                if (persisted != null && persisted.Status == (int)BankReconciliationPeriodStatus.Open)
                 {
                     var duration = new Duration(bankReconciliationPeriodDTO.DurationStartDate, bankReconciliationPeriodDTO.DurationEndDate);
 
@@ -123,6 +123,27 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             case BankReconciliationPeriodAuthOption.Post:
 
                                 var bankReconciliationEntries = FindBankReconciliationEntriesByBankReconciliationPeriodId(persisted.Id, serviceHeader);
+
+                                // Reconciliation is a business invariant, not
+                                // merely a UI check: adjusted bank and G/L
+                                // balances must agree before journals post.
+                                var adjustedBankBalance = persisted.BankAccountBalance;
+                                var adjustedGeneralLedgerBalance = persisted.GeneralLedgerAccountBalance;
+                                if (bankReconciliationEntries != null)
+                                {
+                                    foreach (var entry in bankReconciliationEntries)
+                                    {
+                                        switch ((BankReconciliationAdjustmentType)entry.AdjustmentType)
+                                        {
+                                            case BankReconciliationAdjustmentType.BankAccountDebit: adjustedBankBalance += entry.Value; break;
+                                            case BankReconciliationAdjustmentType.BankAccountCredit: adjustedBankBalance -= entry.Value; break;
+                                            case BankReconciliationAdjustmentType.GeneralLedgerAccountDebit: adjustedGeneralLedgerBalance += entry.Value; break;
+                                            case BankReconciliationAdjustmentType.GeneralLedgerAccountCredit: adjustedGeneralLedgerBalance -= entry.Value; break;
+                                        }
+                                    }
+                                }
+                                if (Math.Abs(adjustedBankBalance - adjustedGeneralLedgerBalance) >= 0.005m)
+                                    return false;
 
                                 if (bankReconciliationEntries != null && bankReconciliationEntries.Any())
                                 {
@@ -203,6 +224,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
+                    var period = _bankReconciliationPeriodRepository.Get(bankReconciliationEntryDTO.BankReconciliationPeriodId, serviceHeader);
+                    if (period == null || period.Status != (int)BankReconciliationPeriodStatus.Open)
+                        return null;
+
                     var bankReconciliationEntry = BankReconciliationEntryFactory.CreateBankReconciliationEntry(bankReconciliationEntryDTO.BankReconciliationPeriodId, bankReconciliationEntryDTO.ChartOfAccountId, bankReconciliationEntryDTO.AdjustmentType, bankReconciliationEntryDTO.Value, bankReconciliationEntryDTO.ChequeNumber, bankReconciliationEntryDTO.ChequeDrawee, bankReconciliationEntryDTO.ChequeDate, bankReconciliationEntryDTO.Remarks);
 
                     bankReconciliationEntry.CreatedBy = serviceHeader.ApplicationUserName;
@@ -232,6 +257,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                         if (persisted != null)
                         {
+                            var period = _bankReconciliationPeriodRepository.Get(persisted.BankReconciliationPeriodId, serviceHeader);
+                            if (period == null || period.Status != (int)BankReconciliationPeriodStatus.Open)
+                                return false;
                             _bankReconciliationEntryRepository.Remove(persisted, serviceHeader);
                         }
                     }

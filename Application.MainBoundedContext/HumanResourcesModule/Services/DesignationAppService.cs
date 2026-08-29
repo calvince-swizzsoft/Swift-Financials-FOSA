@@ -54,9 +54,18 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                     _designationRepository.Add(designation, serviceHeader);
 
+                    ApplyTransactionThresholdCollection(
+                        designation.Id,
+                        designationDTO.TransactionThresholds == null
+                            ? new List<TransactionThresholdDTO>()
+                            : new List<TransactionThresholdDTO>(designationDTO.TransactionThresholds),
+                        serviceHeader);
+
                     dbContextScope.SaveChanges(serviceHeader);
 
-                    return designation.ProjectedAs<DesignationDTO>();
+                    var created = designation.ProjectedAs<DesignationDTO>();
+                    created.TransactionThresholds = designationDTO.TransactionThresholds;
+                    return created;
                 }
             }
             else return null;
@@ -83,6 +92,13 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                     else current.UnLock();
 
                     _designationRepository.Merge(persisted, current, serviceHeader);
+
+                    ApplyTransactionThresholdCollection(
+                        persisted.Id,
+                        designationDTO.TransactionThresholds == null
+                            ? new List<TransactionThresholdDTO>()
+                            : new List<TransactionThresholdDTO>(designationDTO.TransactionThresholds),
+                        serviceHeader);
 
                     return dbContextScope.SaveChanges(serviceHeader) >= 0;
                 }
@@ -241,52 +257,47 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         {
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
-                var existingTransactionThresholdCollection = FindTransactionThresholdCollection(designationId, serviceHeader);
-
-                if (existingTransactionThresholdCollection != null && existingTransactionThresholdCollection.Any())
-                {
-                    var oldSet = from c in existingTransactionThresholdCollection ?? new List<TransactionThresholdDTO> { } select c;
-
-                    var newSet = from c in transactionThresholdCollection ?? new List<TransactionThresholdDTO> { } select c;
-
-                    var commonSet = oldSet.Intersect(newSet, new TransactionThresholdDTOEqualityComparer());
-
-                    var insertSet = newSet.Except(commonSet, new TransactionThresholdDTOEqualityComparer());
-
-                    var deleteSet = oldSet.Except(commonSet, new TransactionThresholdDTOEqualityComparer());
-
-                    foreach (var item in insertSet)
-                    {
-                        var transactionThreshold = TransactionThresholdFactory.CreateTransactionThreshold(designationId, item.Type, item.Threshold);
-
-                        transactionThreshold.CreatedBy = serviceHeader.ApplicationUserName;
-
-                        _transactionThresholdRepository.Add(transactionThreshold, serviceHeader);
-                    }
-
-                    foreach (var item in deleteSet)
-                    {
-                        var transactionThreshold = _transactionThresholdRepository.Get(item.Id, serviceHeader);
-
-                        if (transactionThreshold != null)
-                        {
-                            _transactionThresholdRepository.Remove(transactionThreshold, serviceHeader);
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var item in transactionThresholdCollection)
-                    {
-                        var transactionThreshold = TransactionThresholdFactory.CreateTransactionThreshold(designationId, item.Type, item.Threshold);
-
-                        transactionThreshold.CreatedBy = serviceHeader.ApplicationUserName;
-
-                        _transactionThresholdRepository.Add(transactionThreshold, serviceHeader);
-                    }
-                }
+                ApplyTransactionThresholdCollection(designationId, transactionThresholdCollection, serviceHeader);
 
                 return dbContextScope.SaveChanges(serviceHeader) >= 0;
+            }
+        }
+
+        private void ApplyTransactionThresholdCollection(Guid designationId, List<TransactionThresholdDTO> transactionThresholdCollection, ServiceHeader serviceHeader)
+        {
+            if (designationId == Guid.Empty)
+                throw new ArgumentException("A designation is required.", nameof(designationId));
+
+            transactionThresholdCollection = transactionThresholdCollection ?? new List<TransactionThresholdDTO>();
+            if (transactionThresholdCollection.Any(x => x == null || x.Threshold < 0m || !Enum.IsDefined(typeof(SystemTransactionCode), x.Type) || x.Type == (int)SystemTransactionCode.Unclassified))
+                throw new ArgumentException("Every transaction threshold must have a valid transaction type and a non-negative amount.", nameof(transactionThresholdCollection));
+
+            if (transactionThresholdCollection.GroupBy(x => x.Type).Any(group => group.Count() > 1))
+                throw new ArgumentException("A designation can only have one threshold for each transaction type.", nameof(transactionThresholdCollection));
+
+            var existing = _transactionThresholdRepository.AllMatching(
+                TransactionThresholdSpecifications.TransactionThresholdWithDesignationId(designationId),
+                serviceHeader) ?? new List<TransactionThreshold>();
+
+            foreach (var persisted in existing)
+            {
+                var submitted = transactionThresholdCollection.FirstOrDefault(x => x.Type == persisted.Type);
+                if (submitted == null)
+                {
+                    _transactionThresholdRepository.Remove(persisted, serviceHeader);
+                    continue;
+                }
+
+                var current = TransactionThresholdFactory.CreateTransactionThreshold(designationId, submitted.Type, submitted.Threshold);
+                current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+                _transactionThresholdRepository.Merge(persisted, current, serviceHeader);
+            }
+
+            foreach (var submitted in transactionThresholdCollection.Where(x => existing.All(persisted => persisted.Type != x.Type)))
+            {
+                var transactionThreshold = TransactionThresholdFactory.CreateTransactionThreshold(designationId, submitted.Type, submitted.Threshold);
+                transactionThreshold.CreatedBy = serviceHeader.ApplicationUserName;
+                _transactionThresholdRepository.Add(transactionThreshold, serviceHeader);
             }
         }
 

@@ -269,6 +269,7 @@
     <Compile Include="Areas\Identity\ApplicationRoleManager.cs" />
     <Compile Include="Areas\Identity\ApplicationUser.cs" />
     <Compile Include="Areas\Identity\ApplicationUserManager.cs" />
+    <Compile Include="Areas\Identity\EmailConfirmationTokenProvider.cs" />
     <Compile Include="Areas\Admin\Controllers\UserController.cs" />
     <Compile Include="Areas\Identity\Services\UserManagerService.cs" />
     <Compile Include="Areas\Admin\Controllers\RolesController.cs" />
@@ -277,6 +278,7 @@
     <Compile Include="Areas\Admin\Controllers\CompanyController.cs" />
     <Compile Include="Areas\Workflows\Controllers\WorkflowController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\CashDepositController.cs" />
+    <Compile Include="Areas\FrontOffice\Controllers\CashWithdrawalRequestController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\AccountClosureController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\FixedDepositController.cs" />
     <Compile Include="Areas\FrontOffice\Controllers\ExpensePayableController.cs" />
@@ -312,6 +314,7 @@
     <Compile Include="Areas\HumanResource\Controllers\HolidaysController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\LeaveApplicationsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\LeaveTypesController.cs" />
+    <Compile Include="Areas\MicroCredit\Controllers\MicroCreditControllers.cs" />
     <Compile Include="Areas\HumanResource\Controllers\SalaryHeadsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\SalaryGroupsController.cs" />
     <Compile Include="Areas\HumanResource\Controllers\SalaryCardsController.cs" />
@@ -340,6 +343,8 @@
     <Compile Include="Areas\Accounts\Controllers\ChartOfAccountController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CostCenterController.cs" />
     <Compile Include="Areas\Accounts\Controllers\PostingPeriodController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\BankReconciliationController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\BudgetController.cs" />
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Areas\Channels\Controllers\CanonicalAccountsController.cs" />
     <Compile Include="Areas\Control\Controllers\SupplierController.cs" />

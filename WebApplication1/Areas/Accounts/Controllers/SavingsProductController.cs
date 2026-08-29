@@ -6,6 +6,8 @@ using iTextSharp.xmp.impl;
 using Microsoft.Ajax.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Cors;
@@ -137,31 +139,21 @@ namespace WebApplication1.Controllers
         [Route("")]
         public async Task<IHttpActionResult> Create(SavingsProductDTO savingsProductDTO)
         {
-
-            savingsProductDTO.ValidateAll();
-
-
             var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
-
-            if (!savingsProductDTO.HasErrors)
-            {
-                var results = _savingsProductAppService.AddNewSavingsProduct(savingsProductDTO, serviceHeader);
-
-                return Json(new
+            var validationErrors = _savingsProductAppService.ValidateSavingsProduct(savingsProductDTO, serviceHeader);
+            if (validationErrors.Any())
+                return Content(HttpStatusCode.BadRequest, new
                 {
-                    Success = true,
-                    Message = "Savings Product created successfully"
+                    success = false,
+                    message = string.Join(" ", validationErrors.SelectMany(item => item.Value)),
+                    validationErrors
                 });
-            }
-            else
-            {
-                var errorMessages = savingsProductDTO.ErrorMessages;
-                return Json(new
-                {
-                    Success = false,
-                    Message = "Failed to create Savings Product"
-                });
-            }
+
+            var result = _savingsProductAppService.AddNewSavingsProduct(savingsProductDTO, serviceHeader);
+            if (result == null)
+                return Content(HttpStatusCode.InternalServerError, new { success = false, message = "Failed to create Savings Product." });
+
+            return Content(HttpStatusCode.Created, new { success = true, message = "Savings Product created successfully", data = result });
         }
 
 
@@ -169,30 +161,22 @@ namespace WebApplication1.Controllers
         [Route("")]
         public async Task<IHttpActionResult> Edit(SavingsProductDTO savingsProductBindingModel)
         {
-            if (ModelState.IsValid)
-            {
-
-                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
-                _savingsProductAppService.UpdateSavingsProduct(savingsProductBindingModel, serviceHeader);
-
-
-                return Json(new
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            var validationErrors = _savingsProductAppService.ValidateSavingsProduct(savingsProductBindingModel, serviceHeader);
+            if (savingsProductBindingModel == null || savingsProductBindingModel.Id == Guid.Empty)
+                validationErrors["Id"] = new[] { "Savings product Id is required." };
+            if (validationErrors.Any())
+                return Content(HttpStatusCode.BadRequest, new
                 {
-
-                    success = true,
-                    message = "Edited Savings Product successfully"
-                });
-            }
-            else
-            {
-
-                return Json(new
-                {
-
                     success = false,
-                    message = "Failed to Edit Savings Product"
+                    message = string.Join(" ", validationErrors.SelectMany(item => item.Value)),
+                    validationErrors
                 });
-            }
+
+            if (!_savingsProductAppService.UpdateSavingsProduct(savingsProductBindingModel, serviceHeader))
+                return Content(HttpStatusCode.NotFound, new { success = false, message = "Savings Product was not found or could not be updated." });
+
+            return Ok(new { success = true, message = "Edited Savings Product successfully" });
         }
 
         [HttpGet]

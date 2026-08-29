@@ -21,6 +21,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IRepository<SavingsProduct> _savingsProductRepository;
         private readonly IRepository<SavingsProductCommission> _savingsProductCommissionRepository;
         private readonly IRepository<SavingsProductExemption> _savingsProductExemptionRepository;
+        private readonly IChartOfAccountAppService _chartOfAccountAppService;
         private readonly IAppCache _appCache;
 
         public SavingsProductAppService(
@@ -28,6 +29,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
            IRepository<SavingsProduct> savingsProductRepository,
            IRepository<SavingsProductCommission> savingsProductCommissionRepository,
            IRepository<SavingsProductExemption> savingsProductExemptionRepository,
+           IChartOfAccountAppService chartOfAccountAppService,
            IAppCache appCache)
         {
             if (dbContextScopeFactory == null)
@@ -42,6 +44,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (savingsProductExemptionRepository == null)
                 throw new ArgumentNullException(nameof(savingsProductExemptionRepository));
 
+            if (chartOfAccountAppService == null)
+                throw new ArgumentNullException(nameof(chartOfAccountAppService));
+
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
@@ -49,12 +54,69 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _savingsProductRepository = savingsProductRepository;
             _savingsProductCommissionRepository = savingsProductCommissionRepository;
             _savingsProductExemptionRepository = savingsProductExemptionRepository;
+            _chartOfAccountAppService = chartOfAccountAppService;
             _appCache = appCache;
+        }
+
+        public IDictionary<string, string[]> ValidateSavingsProduct(SavingsProductDTO savingsProductDTO, ServiceHeader serviceHeader)
+        {
+            var errors = new Dictionary<string, List<string>>();
+            Action<string, string> add = (field, message) =>
+            {
+                List<string> messages;
+                if (!errors.TryGetValue(field, out messages))
+                {
+                    messages = new List<string>();
+                    errors[field] = messages;
+                }
+                messages.Add(message);
+            };
+
+            if (savingsProductDTO == null)
+            {
+                add("SavingsProduct", "Savings product details are required.");
+                return errors.ToDictionary(item => item.Key, item => item.Value.ToArray());
+            }
+
+            if (string.IsNullOrWhiteSpace(savingsProductDTO.Description))
+                add("Description", "Description is required.");
+            if (savingsProductDTO.ChartOfAccountId == Guid.Empty)
+                add("ChartOfAccountId", "Chart of Account is required.");
+            else if (_chartOfAccountAppService.FindChartOfAccount(savingsProductDTO.ChartOfAccountId, serviceHeader) == null)
+                add("ChartOfAccountId", "The selected Chart of Account does not exist.");
+
+            if (savingsProductDTO.MaximumAllowedWithdrawal <= 0m)
+                add("MaximumAllowedWithdrawal", "Maximum allowed withdrawal must be greater than zero.");
+            if (savingsProductDTO.MaximumAllowedDeposit <= 0m)
+                add("MaximumAllowedDeposit", "Maximum allowed deposit must be greater than zero.");
+            if (savingsProductDTO.MinimumBalance < 0m)
+                add("MinimumBalance", "Minimum balance cannot be negative.");
+            if (savingsProductDTO.OperatingBalance < 0m)
+                add("OperatingBalance", "Operating balance cannot be negative.");
+            else if (savingsProductDTO.OperatingBalance < savingsProductDTO.MinimumBalance)
+                add("OperatingBalance", "Operating balance cannot be lower than the minimum balance.");
+            if (savingsProductDTO.WithdrawalNoticeAmount < 0m)
+                add("WithdrawalNoticeAmount", "Withdrawal notice amount cannot be negative.");
+            else if (savingsProductDTO.WithdrawalNoticeAmount > savingsProductDTO.MaximumAllowedWithdrawal)
+                add("WithdrawalNoticeAmount", "Withdrawal notice amount cannot exceed the maximum allowed withdrawal.");
+            if (savingsProductDTO.WithdrawalNoticePeriod < 0 || savingsProductDTO.WithdrawalNoticePeriod > short.MaxValue)
+                add("WithdrawalNoticePeriod", "Withdrawal notice period must be between 0 and 32,767 days.");
+            else if (savingsProductDTO.WithdrawalNoticeAmount > 0m && savingsProductDTO.WithdrawalNoticePeriod == 0)
+                add("WithdrawalNoticePeriod", "Withdrawal notice period must be greater than zero when a notice amount is configured.");
+            if (savingsProductDTO.WithdrawalInterval < 0 || savingsProductDTO.WithdrawalInterval > short.MaxValue)
+                add("WithdrawalInterval", "Withdrawal interval must be between 0 and 32,767 days.");
+            if (double.IsNaN(savingsProductDTO.AnnualPercentageYield) || double.IsInfinity(savingsProductDTO.AnnualPercentageYield) ||
+                savingsProductDTO.AnnualPercentageYield < 0d || savingsProductDTO.AnnualPercentageYield > 100d)
+                add("AnnualPercentageYield", "Annual percentage yield must be between 0% and 100%.");
+            if (savingsProductDTO.Priority < 0 || savingsProductDTO.Priority > 3)
+                add("Priority", "Recovery priority must be between 0 and 3.");
+
+            return errors.ToDictionary(item => item.Key, item => item.Value.Distinct().ToArray());
         }
 
         public SavingsProductDTO AddNewSavingsProduct(SavingsProductDTO savingsProductDTO, ServiceHeader serviceHeader)
         {
-            if (savingsProductDTO != null && savingsProductDTO.ChartOfAccountId != Guid.Empty)
+            if (!ValidateSavingsProduct(savingsProductDTO, serviceHeader).Any())
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
@@ -70,6 +132,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         savingsProduct.SetAsMandatory();
                     else savingsProduct.ResetAsMandatory();
 
+                    if (savingsProductDTO.IsDefault)
+                    {
+                        savingsProduct.SetAsDefault();
+                        foreach (var other in _savingsProductRepository.GetAll(serviceHeader))
+                            other.ResetAsDefault();
+                    }
+
                     _savingsProductRepository.Add(savingsProduct, serviceHeader);
 
                     dbContextScope.SaveChanges(serviceHeader);
@@ -82,7 +151,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateSavingsProduct(SavingsProductDTO savingsProductDTO, ServiceHeader serviceHeader)
         {
-            if (savingsProductDTO == null || savingsProductDTO.Id == Guid.Empty || savingsProductDTO.ChartOfAccountId == Guid.Empty)
+            if (savingsProductDTO == null || savingsProductDTO.Id == Guid.Empty || ValidateSavingsProduct(savingsProductDTO, serviceHeader).Any())
                 return false;
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -104,11 +173,15 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         current.SetAsMandatory();
                     else current.ResetAsMandatory();
 
-                    _savingsProductRepository.Merge(persisted, current, serviceHeader);
+                    if (savingsProductDTO.IsDefault)
+                    {
+                        current.SetAsDefault();
+                        foreach (var other in _savingsProductRepository.GetAll(serviceHeader))
+                            if (other.Id != current.Id) other.ResetAsDefault();
+                    }
+                    else current.ResetAsDefault();
 
-                    // Set as default?
-                    if (savingsProductDTO.IsDefault && !persisted.IsDefault)
-                        SetSavingsProductAsDefault(persisted.Id, serviceHeader);
+                    _savingsProductRepository.Merge(persisted, current, serviceHeader);
 
                     return dbContextScope.SaveChanges(serviceHeader) >= 0;
                 }
@@ -136,7 +209,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
-                ISpecification<SavingsProduct> spec = SavingsProductSpecifications.DefaultSpec();
+                ISpecification<SavingsProduct> spec = SavingsProductSpecifications.MandatorySavingsProducts(isMandatory);
 
                 var savingsProducts = _savingsProductRepository.AllMatching(spec, serviceHeader);
 

@@ -28,6 +28,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         
         void FetchTellerBalances(List<TellerDTO> tellers, ServiceHeader serviceHeader);
 
+        string ValidateCashMovement(Guid tellerId, decimal amount, bool increasesBalance, ServiceHeader serviceHeader);
+
         List<TariffWrapper> ComputeCashTariffs(CustomerAccountDTO customerAccountDTO, decimal totalValue, int frontOfficeTransactionType, ServiceHeader serviceHeader);
     }
 }

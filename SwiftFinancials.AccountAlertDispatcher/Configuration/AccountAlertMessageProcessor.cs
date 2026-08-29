@@ -2455,6 +2455,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 model.Add("AuthorizationRemarks", leaveApplicationDTO.AuthorizationRemarks);
                                                                 model.Add("DurationStartDate", leaveApplicationDTO.DurationStartDate.ToString("dd/MM/yy"));
                                                                 model.Add("DurationEndDate", leaveApplicationDTO.DurationEndDate.ToString("dd/MM/yy"));
+                                                                model.Add("CompanyDescription", customerSavingsAccountDTO.BranchCompanyDescription ?? string.Empty);
 
                                                                 var template = System.IO.File.ReadAllText(textAlertTemplatePath);
 
@@ -2511,6 +2512,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 model.Add("AuthorizationRemarks", leaveApplicationDTO.AuthorizationRemarks);
                                                                 model.Add("DurationStartDate", leaveApplicationDTO.DurationStartDate.ToString("dd/MM/yy"));
                                                                 model.Add("DurationEndDate", leaveApplicationDTO.DurationEndDate.ToString("dd/MM/yy"));
+                                                                model.Add("CompanyDescription", customerSavingsAccountDTO.BranchCompanyDescription ?? string.Empty);
 
                                                                 var template = System.IO.File.ReadAllText(emailAlertTemplatePath);
 
@@ -2519,7 +2521,7 @@ namespace SwiftFinancials.AccountAlertDispatcher.Configuration
                                                                 var emailAlertDTO = new EmailAlertDTO
                                                                 {
                                                                     MailMessageFrom = customerSavingsAccountDTO.BranchAddressEmail,
-                                                                    MailMessageTo = customerSavingsAccountDTO.CustomerAddressEmail,
+                                                                    MailMessageTo = leaveApprovalAccountAlertDTO.CustomerAddressEmail,
                                                                     MailMessageSubject = string.Format("{0} Alert", EnumHelper.GetDescription(SystemTransactionCode.LeaveApproval)),
                                                                     MailMessageBody = result,
                                                                     MailMessageIsBodyHtml = true,

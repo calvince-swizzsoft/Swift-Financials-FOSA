@@ -222,6 +222,9 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
         public async Task<CustomerDTO> AddNewCustomerAsync(CustomerDTO customerDTO, List<DebitTypeDTO> additionalDebitTypes, List<InvestmentProductDTO> investmentProducts, List<SavingsProductDTO> savingsProducts, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
+            if (customerDTO == null || !Enum.IsDefined(typeof(CustomerType), (int)customerDTO.Type))
+                throw new InvalidOperationException("Select a valid customer type: Individual, Partnership, Corporation, or Microcredit.");
+
             var customerBindingModel = customerDTO.ProjectedAs<CustomerBindingModel>();
 
             if (customerDTO.StationId == null || customerDTO.StationId == Guid.Empty)
@@ -296,6 +299,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                     case CustomerType.Partnership:
                     case CustomerType.Corporation:
+                    case CustomerType.MicroCredit:
                         if (!string.IsNullOrWhiteSpace(customer.NonIndividual.RegistrationNumber))
                         {
                             var filter2 = CustomerSpecifications.CustomerNonIndividualRegistrationNumber(customer.NonIndividual.RegistrationNumber);
@@ -453,6 +457,9 @@ namespace Application.MainBoundedContext.RegistryModule.Services
         }
         public async Task<bool> UpdateCustomerAsync(CustomerDTO customerDTO, ServiceHeader serviceHeader)
         {
+            if (customerDTO == null || !Enum.IsDefined(typeof(CustomerType), (int)customerDTO.Type))
+                throw new InvalidOperationException("Select a valid customer type: Individual, Partnership, Corporation, or Microcredit.");
+
             var customerBindingModel = customerDTO.ProjectedAs<CustomerBindingModel>();
 
             if (customerDTO.StationId == null || customerDTO.StationId == Guid.Empty)
@@ -526,6 +533,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                                 break;
                             case CustomerType.Partnership:
                             case CustomerType.Corporation:
+                            case CustomerType.MicroCredit:
 
                                 if (!string.IsNullOrWhiteSpace(current.NonIndividual.RegistrationNumber))
                                 {

@@ -245,5 +245,80 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 });
             }
         }
+
+        public string ValidateCashMovement(Guid activeTreasuryId, Guid? destinationTreasuryId, decimal amount, int transactionType, ServiceHeader serviceHeader)
+        {
+            if (activeTreasuryId == Guid.Empty)
+                return "The active treasury could not be identified.";
+
+            if (amount <= 0m)
+                return "The transaction amount must be greater than zero.";
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var activeTreasury = _treasuryRepository.Get(activeTreasuryId, serviceHeader);
+                if (activeTreasury == null)
+                    return "The active treasury could not be found.";
+
+                var activeBalance = _sqlCommandAppService.FindGlAccountBalance(
+                    activeTreasury.ChartOfAccountId,
+                    DateTime.Now,
+                    (int)TransactionDateFilter.CreatedDate,
+                    serviceHeader);
+
+                switch ((TreasuryTransactionType)transactionType)
+                {
+                    case TreasuryTransactionType.BankToTreasury:
+                    case TreasuryTransactionType.TellerToTreasury:
+                        if (activeBalance + amount > activeTreasury.Range.UpperLimit)
+                            return string.Format(
+                                "The transaction would increase treasury '{0}' above its upper limit of {1:N2}.",
+                                activeTreasury.Description,
+                                activeTreasury.Range.UpperLimit);
+                        break;
+
+                    case TreasuryTransactionType.TreasuryToBank:
+                    case TreasuryTransactionType.TreasuryToTeller:
+                        if (activeBalance - amount < activeTreasury.Range.LowerLimit)
+                            return string.Format(
+                                "The transaction would reduce treasury '{0}' below its lower limit of {1:N2}.",
+                                activeTreasury.Description,
+                                activeTreasury.Range.LowerLimit);
+                        break;
+
+                    case TreasuryTransactionType.TreasuryToTreasury:
+                        if (activeBalance - amount < activeTreasury.Range.LowerLimit)
+                            return string.Format(
+                                "The transaction would reduce treasury '{0}' below its lower limit of {1:N2}.",
+                                activeTreasury.Description,
+                                activeTreasury.Range.LowerLimit);
+
+                        if (!destinationTreasuryId.HasValue || destinationTreasuryId.Value == Guid.Empty)
+                            return "The receiving treasury could not be identified.";
+
+                        var destinationTreasury = _treasuryRepository.Get(destinationTreasuryId.Value, serviceHeader);
+                        if (destinationTreasury == null)
+                            return "The receiving treasury could not be found.";
+
+                        var destinationBalance = _sqlCommandAppService.FindGlAccountBalance(
+                            destinationTreasury.ChartOfAccountId,
+                            DateTime.Now,
+                            (int)TransactionDateFilter.CreatedDate,
+                            serviceHeader);
+
+                        if (destinationBalance + amount > destinationTreasury.Range.UpperLimit)
+                            return string.Format(
+                                "The transaction would increase treasury '{0}' above its upper limit of {1:N2}.",
+                                destinationTreasury.Description,
+                                destinationTreasury.Range.UpperLimit);
+                        break;
+
+                    default:
+                        return "The treasury transaction type is not supported.";
+                }
+
+                return null;
+            }
+        }
     }
 }

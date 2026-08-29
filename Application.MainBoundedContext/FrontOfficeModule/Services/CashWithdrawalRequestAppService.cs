@@ -1,6 +1,8 @@
 ﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Application.Seedwork;
@@ -22,13 +24,17 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         private readonly IHolidayAppService _holidayAppService;
         private readonly ISavingsProductAppService _savingsProductAppService;
         private readonly IChequeBookAppService _chequeBookAppService;
+        private readonly IAuthorizationAppService _authorizationAppService;
+        private readonly IWorkflowAppService _workflowAppService;
 
         public CashWithdrawalRequestAppService(
            IDbContextScopeFactory dbContextScopeFactory,
            IRepository<CashWithdrawalRequest> cashWithdrawalRequestRepository,
            IHolidayAppService holidayAppService,
            ISavingsProductAppService savingsProductAppService,
-           IChequeBookAppService chequeBookAppService)
+           IChequeBookAppService chequeBookAppService,
+           IAuthorizationAppService authorizationAppService,
+           IWorkflowAppService workflowAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -45,17 +51,69 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             if (chequeBookAppService == null)
                 throw new ArgumentNullException(nameof(chequeBookAppService));
 
+            if (authorizationAppService == null)
+                throw new ArgumentNullException(nameof(authorizationAppService));
+
+            if (workflowAppService == null)
+                throw new ArgumentNullException(nameof(workflowAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _cashWithdrawalRequestRepository = cashWithdrawalRequestRepository;
             _holidayAppService = holidayAppService;
             _savingsProductAppService = savingsProductAppService;
             _chequeBookAppService = chequeBookAppService;
+            _authorizationAppService = authorizationAppService;
+            _workflowAppService = workflowAppService;
+        }
+
+        public CashWithdrawalRequestDTO AddNewCashWithdrawalRequestWithWorkflow(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader)
+        {
+            var roles = _authorizationAppService.GetRolesListForSystemPermissionType(
+                (int)SystemPermissionType.CashWithdrawalRequestAuthorization, serviceHeader);
+
+            if (roles == null || !roles.Any() || roles.Sum(x => x.RequiredApprovers) < 1)
+                throw new InvalidOperationException("Cash withdrawal request cannot be submitted because no approval role is configured for Cash Withdrawal Request Authorization.");
+
+            var created = AddNewCashWithdrawalRequest(cashWithdrawalRequestDTO, serviceHeader);
+            if (created == null)
+                return null;
+
+            var workflow = new WorkflowDTO
+            {
+                RecordId = created.Id,
+                BranchId = created.BranchId,
+                Status = (int)WorkflowRecordStatus.Pending,
+                SystemPermissionType = (int)SystemPermissionType.CashWithdrawalRequestAuthorization,
+                RequiredApprovals = roles.Sum(x => x.RequiredApprovers)
+            };
+
+            if (!_workflowAppService.AddNewWorkflow(workflow, roles, serviceHeader))
+                throw new InvalidOperationException("The withdrawal request was stored, but its approval workflow could not be created. Contact an administrator before retrying.");
+
+            return created;
         }
 
         public CashWithdrawalRequestDTO AddNewCashWithdrawalRequest(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader)
         {
             if (cashWithdrawalRequestDTO != null && cashWithdrawalRequestDTO.BranchId != Guid.Empty)
             {
+                cashWithdrawalRequestDTO.ValidateAll();
+                if (cashWithdrawalRequestDTO.HasErrors)
+                    throw new InvalidOperationException(string.Join("; ", cashWithdrawalRequestDTO.ErrorMessages));
+
+                if (!cashWithdrawalRequestDTO.CustomerAccountId.HasValue || cashWithdrawalRequestDTO.CustomerAccountId == Guid.Empty)
+                    throw new InvalidOperationException("A customer savings account is required.");
+
+                if (!Enum.IsDefined(typeof(CashWithdrawalRequestType), cashWithdrawalRequestDTO.Type))
+                    throw new InvalidOperationException("The withdrawal notice type is invalid.");
+
+                if (!Enum.IsDefined(typeof(CashWithdrawalCategory), cashWithdrawalRequestDTO.Category))
+                    throw new InvalidOperationException("The cash withdrawal category is invalid.");
+
+                if (cashWithdrawalRequestDTO.TransactionType != (int)FrontOfficeTransactionType.CashWithdrawal &&
+                    cashWithdrawalRequestDTO.TransactionType != (int)FrontOfficeTransactionType.CashWithdrawalPaymentVoucher)
+                    throw new InvalidOperationException("The transaction type is not a cash withdrawal.");
+
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var cashWithdrawalRequest = CashWithdrawalRequestFactory.CreateCashWithdrawalRequest(cashWithdrawalRequestDTO.BranchId, cashWithdrawalRequestDTO.CustomerAccountId, cashWithdrawalRequestDTO.ChartOfAccountId, cashWithdrawalRequestDTO.Type, cashWithdrawalRequestDTO.Category, cashWithdrawalRequestDTO.Amount, cashWithdrawalRequestDTO.Remarks, cashWithdrawalRequestDTO.PaymentVoucherId, cashWithdrawalRequestDTO.PaymentVoucherPayee,cashWithdrawalRequestDTO.TransactionType);
@@ -67,6 +125,8 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                             break;
                         case CashWithdrawalRequestType.FutureNotice:
                             var savingsProduct = _savingsProductAppService.FindSavingsProduct(cashWithdrawalRequestDTO.CustomerAccountCustomerAccountTypeTargetProductId, cashWithdrawalRequestDTO.CustomerAccountBranchId, serviceHeader);
+                            if (savingsProduct == null)
+                                throw new InvalidOperationException("The savings product for this account could not be resolved.");
                             cashWithdrawalRequest.MaturityDate = _holidayAppService.FindBusinessDay(savingsProduct.WithdrawalNoticePeriod, true, serviceHeader) ?? DateTime.Today;
                             break;
                         default:
@@ -98,6 +158,12 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                     if (persisted != null)
                     {
+                        if (persisted.Status != (int)CashWithdrawalRequestAuthStatus.Pending)
+                            return false;
+
+                        if (string.IsNullOrWhiteSpace(cashWithdrawalRequestDTO.AuthorizationRemarks))
+                            return false;
+
                         var proceed = false;
 
                         switch ((CashWithdrawalRequestType)persisted.Type)
@@ -151,6 +217,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                     if (persisted != null)
                     {
+                        if (persisted.Status != (int)CashWithdrawalRequestAuthStatus.Authorized)
+                            return false;
+
                         persisted.Status = (int)CashWithdrawalRequestAuthStatus.Paid;
 
                         persisted.PaidBy = serviceHeader.ApplicationUserName;

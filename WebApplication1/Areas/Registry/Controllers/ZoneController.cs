@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
+using WebApplication1.ApiErrors;
 using WebApplication1.Helpers;
 
 namespace WebApplication1.Areas.Registry.Controllers
@@ -28,6 +29,15 @@ namespace WebApplication1.Areas.Registry.Controllers
         private IHttpActionResult ErrorResponse(HttpStatusCode statusCode, string message)
         {
             return Content(statusCode, new { success = false, message });
+        }
+
+        private IHttpActionResult ValidationError(string message)
+        {
+            return ResponseMessage(ApiErrorResponses.Create(
+                Request,
+                HttpStatusCode.BadRequest,
+                ErrorCodes.ValidationFailed,
+                message));
         }
 
         [HttpGet, Route("")]
@@ -192,6 +202,10 @@ namespace WebApplication1.Areas.Registry.Controllers
                     data = createdZone
                 });
             }
+            catch (InvalidOperationException exception)
+            {
+                return ValidationError(exception.Message);
+            }
             catch (Exception)
             {
                 throw;
@@ -245,6 +259,10 @@ namespace WebApplication1.Areas.Registry.Controllers
 
                 var refreshed = await _zoneAppService.FindStationsByZoneIdAsync(id, serviceHeader);
                 return ApiResponse(true, "Stations updated successfully", refreshed);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return ValidationError(exception.Message);
             }
             catch (Exception)
             {

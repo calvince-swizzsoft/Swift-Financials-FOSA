@@ -65,6 +65,15 @@ namespace WebApplication1.Controllers
                 if (teller == null || teller.IsLocked)
                     return BadRequest("Current user has no linked, unlocked teller record.");
 
+                var tellerLimitError = _tellerAppService.ValidateCashMovement(
+                    teller.Id,
+                    request.TotalValue,
+                    true,
+                    serviceHeader);
+
+                if (!string.IsNullOrWhiteSpace(tellerLimitError))
+                    return BadRequest(tellerLimitError);
+
                 var branch = _branchAppService.FindBranch(teller.EmployeeBranchId, serviceHeader);
                 var postingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
 

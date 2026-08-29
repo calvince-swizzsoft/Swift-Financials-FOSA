@@ -55,7 +55,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public TellerDTO AddNewTeller(TellerDTO tellerDTO, ServiceHeader serviceHeader)
         {
-            if (tellerDTO != null && tellerDTO.ChartOfAccountId != Guid.Empty && tellerDTO.ShortageChartOfAccountId != Guid.Empty)
+            ValidateTellerRange(tellerDTO);
+
+            if (tellerDTO != null && tellerDTO.ChartOfAccountId.HasValue && tellerDTO.ChartOfAccountId.Value != Guid.Empty &&
+                tellerDTO.ShortageChartOfAccountId.HasValue && tellerDTO.ShortageChartOfAccountId.Value != Guid.Empty)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
@@ -93,7 +96,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (!proceed)
                     {
-                        return null;
+                        throw new InvalidOperationException("The selected employee already has a teller configured.");
                     }
                     else
                     {
@@ -115,12 +118,16 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     }
                 }
             }
-            else return null;
+            else throw new InvalidOperationException("Teller cash and shortage G/L accounts are required.");
         }
 
         public bool UpdateTeller(TellerDTO tellerDTO, ServiceHeader serviceHeader)
         {
-            if (tellerDTO == null || tellerDTO.Id == Guid.Empty || tellerDTO.EmployeeId == Guid.Empty || tellerDTO.ChartOfAccountId == Guid.Empty || tellerDTO.ShortageChartOfAccountId == Guid.Empty)
+            ValidateTellerRange(tellerDTO);
+
+            // Type and employee assignment are immutable on update and are read from the
+            // persisted teller below. Non-employee terminals legitimately have no EmployeeId.
+            if (tellerDTO == null || tellerDTO.Id == Guid.Empty || tellerDTO.ChartOfAccountId == Guid.Empty || tellerDTO.ShortageChartOfAccountId == Guid.Empty)
                 return false;
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -327,6 +334,62 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             break;
                     }
                 });
+            }
+        }
+
+        private static void ValidateTellerRange(TellerDTO tellerDTO)
+        {
+            if (tellerDTO == null)
+                throw new InvalidOperationException("Teller details are required.");
+
+            if (tellerDTO.RangeLowerLimit < 0m || tellerDTO.RangeUpperLimit < 0m)
+                throw new InvalidOperationException("Teller range limits cannot be negative.");
+
+            if (tellerDTO.RangeUpperLimit <= tellerDTO.RangeLowerLimit)
+                throw new InvalidOperationException("The teller upper limit must be greater than the lower limit.");
+        }
+
+        public string ValidateCashMovement(Guid tellerId, decimal amount, bool increasesBalance, ServiceHeader serviceHeader)
+        {
+            if (tellerId == Guid.Empty)
+                return "The teller could not be identified.";
+
+            if (amount <= 0m)
+                return "The transaction amount must be greater than zero.";
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var teller = _tellerRepository.Get(tellerId, serviceHeader);
+                if (teller == null)
+                    return "The teller could not be found.";
+
+                if (teller.IsLocked)
+                    return string.Format("Teller '{0}' is locked and cannot perform cash transactions.", teller.Description);
+
+                if (!teller.ChartOfAccountId.HasValue || teller.ChartOfAccountId.Value == Guid.Empty)
+                    return "The teller does not have a cash G/L account configured.";
+
+                var balance = _sqlCommandAppService.FindGlAccountBalance(
+                    teller.ChartOfAccountId.Value,
+                    DateTime.Now,
+                    (int)TransactionDateFilter.CreatedDate,
+                    serviceHeader);
+
+                var projectedBalance = increasesBalance ? balance + amount : balance - amount;
+
+                if (increasesBalance && projectedBalance > teller.Range.UpperLimit)
+                    return string.Format(
+                        "The transaction would increase teller '{0}' above the upper limit of {1:N2}.",
+                        teller.Description,
+                        teller.Range.UpperLimit);
+
+                if (!increasesBalance && projectedBalance < teller.Range.LowerLimit)
+                    return string.Format(
+                        "The transaction would reduce teller '{0}' below the lower limit of {1:N2}.",
+                        teller.Description,
+                        teller.Range.LowerLimit);
+
+                return null;
             }
         }
 

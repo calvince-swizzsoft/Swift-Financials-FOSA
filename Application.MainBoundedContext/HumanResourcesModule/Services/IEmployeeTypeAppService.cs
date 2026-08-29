@@ -19,5 +19,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         PageCollectionInfo<EmployeeTypeDTO> FindEmployeeTypes(string text, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 
         EmployeeTypeDTO FindEmployeeType(Guid employeeTypeId, ServiceHeader serviceHeader);
+
+        string ValidateEmployeeType(EmployeeTypeDTO employeeTypeDTO, Guid? existingEmployeeTypeId, ServiceHeader serviceHeader);
     }
 }

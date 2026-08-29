@@ -17,6 +17,12 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         /// <summary>Branch from the authenticated identity. This is server-derived and must not be populated from request bodies.</summary>
         public System.Guid? ApplicationUserBranchId { get; set; }
 
+        /// <summary>Employee linked to the authenticated user. Server-derived from the validated identity.</summary>
+        public System.Guid? ApplicationUserEmployeeId { get; set; }
+
+        /// <summary>True for interactive API requests whose financial postings must observe designation thresholds.</summary>
+        public bool EnforceTransactionThresholds { get; set; }
+
         public string EnvironmentUserName { get; set; }
 
         public string EnvironmentMachineName { get; set; }

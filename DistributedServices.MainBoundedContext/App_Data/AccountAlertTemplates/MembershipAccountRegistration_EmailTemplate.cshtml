@@ -16,9 +16,12 @@
     <p>
         Your username is @Raw(Model.Username)
     </p>
-    <p>
-        Your password is: <strong>@Raw(Model.UserPassword)</strong>
-    </p>
+    @if (!string.IsNullOrWhiteSpace(Model.UserPassword))
+    {
+        <p>
+            Your password is: <strong>@Raw(Model.UserPassword)</strong>
+        </p>
+    }
     <p>
         Please confirm your account by clicking  <a href=@Raw(Model.CallbackUrl)>here</a>.
     </p>

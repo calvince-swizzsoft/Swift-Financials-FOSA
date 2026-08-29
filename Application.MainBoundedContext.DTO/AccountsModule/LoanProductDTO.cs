@@ -4,6 +4,7 @@ using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
@@ -574,5 +575,19 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         [JsonIgnore] // BREAK CIRCULAR REFERENCE
         [DataMember]
         public ObservableCollection<CommissionDTO> commissions { get; set; }
+    }
+
+    public class LoanProductConfigurationDTO
+    {
+        public LoanProductDTO LoanProduct { get; set; }
+        public List<LoanProductDeductibleDTO> Deductibles { get; set; }
+        public List<LoanCycleDTO> LoanCycles { get; set; }
+        public List<LoanProductAuxiliaryConditionDTO> AuxiliaryConditions { get; set; }
+        public List<LoanProductAuxilliaryAppraisalFactorDTO> AuxiliaryAppraisalFactors { get; set; }
+        public List<DynamicChargeDTO> DynamicCharges { get; set; }
+        public ProductCollectionInfo AppraisalProducts { get; set; }
+        public List<CommissionDTO> Commissions { get; set; }
+        public int CommissionKnownChargeType { get; set; }
+        public int CommissionChargeBasisValue { get; set; }
     }
 }

@@ -38,6 +38,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         private readonly IRecurringBatchAppService _recurringBatchAppService;
         private readonly IBrokerService _brokerService;
         private readonly IAppCache _appCache;
+        private readonly IEmployeeTypeAppService _employeeTypeAppService;
 
         public SalaryPeriodAppService(
            IDbContextScopeFactory dbContextScopeFactory,
@@ -56,7 +57,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
            ISqlCommandAppService sqlCommandAppService,
            IRecurringBatchAppService recurringBatchAppService,
            IBrokerService brokerService,
-           IAppCache appCache)
+           IAppCache appCache,
+           IEmployeeTypeAppService employeeTypeAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -109,6 +111,9 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
+            if (employeeTypeAppService == null)
+                throw new ArgumentNullException(nameof(employeeTypeAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _salaryPeriodRepository = salaryPeriodRepository;
             _postingPeriodAppService = postingPeriodAppService;
@@ -126,6 +131,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
             _recurringBatchAppService = recurringBatchAppService;
             _brokerService = brokerService;
             _appCache = appCache;
+            _employeeTypeAppService = employeeTypeAppService;
         }
 
         public SalaryProcessingDTO AddNewSalaryPeriod(SalaryProcessingDTO salaryPeriodDTO, ServiceHeader serviceHeader)
@@ -742,6 +748,20 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         public bool PostPaySlip(Guid paySlipId, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
             var result = default(bool);
+
+            var pendingPaySlip = _paySlipAppService.FindPaySlip(paySlipId, serviceHeader);
+            if (pendingPaySlip == null)
+                return result;
+
+            var employeeType = _employeeTypeAppService.FindEmployeeType(pendingPaySlip.SalaryCardEmployeeEmployeeTypeId, serviceHeader);
+            if (employeeType == null)
+                throw new InvalidOperationException("The payslip employee type could not be found.");
+            if (employeeType.IsLocked)
+                throw new InvalidOperationException("The payslip employee type is locked and cannot be used for payroll posting.");
+
+            var payrollControlAccount = _chartOfAccountAppService.FindChartOfAccount(employeeType.ChartOfAccountId, serviceHeader);
+            if (payrollControlAccount == null || payrollControlAccount.IsLocked || payrollControlAccount.AccountCategory != (int)ChartOfAccountCategory.DetailAccount)
+                throw new InvalidOperationException("The employee type payroll control account is missing, locked, or non-postable.");
 
             if (_paySlipAppService.MarkPaySlipPosted(paySlipId, serviceHeader))
             {

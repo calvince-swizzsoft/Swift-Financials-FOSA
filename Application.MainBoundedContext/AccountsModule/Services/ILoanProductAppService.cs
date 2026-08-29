@@ -8,6 +8,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 {
     public interface ILoanProductAppService
     {
+        IDictionary<string, string[]> ValidateLoanProduct(LoanProductDTO loanProductDTO, ServiceHeader serviceHeader);
+
+        LoanProductDTO AddNewLoanProductConfiguration(LoanProductConfigurationDTO configuration, ServiceHeader serviceHeader);
+
         LoanProductDTO AddNewLoanProduct(LoanProductDTO loanProductDTO, ServiceHeader serviceHeader);
 
         bool UpdateLoanProduct(LoanProductDTO loanProductDTO, ServiceHeader serviceHeader);

@@ -9,13 +9,9 @@ using System.Runtime.Remoting.Channels;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
-using System.Web.Http.Cors;
 
 namespace WebApplication1.Controllers
 {
-
-    [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [AllowAnonymous]
 
     [Authorize]
     [RoutePrefix("api/humanresource/employees")]
@@ -38,12 +34,9 @@ namespace WebApplication1.Controllers
                 var employees = _employeeAppService.FindEmployees(serviceHeader);
 
          
-                if (employees == null)
-                {
-                    return NotFound();
-                }
-
-                return Ok(employees);
+                // A collection endpoint should return an empty collection,
+                // not 404, when no employees have been created yet.
+                return Ok(employees ?? Enumerable.Empty<EmployeeDTO>());
             }
 
             catch (Exception)
@@ -86,9 +79,14 @@ namespace WebApplication1.Controllers
 
                     var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
 
-                    var createdEmployeeDTO = _employeeAppService.AddNewEmployee(employeeDTO, serviceHeader);
+                var createdEmployeeDTO = _employeeAppService.AddNewEmployee(employeeDTO, serviceHeader);
 
-                   
+                    if (createdEmployeeDTO == null)
+                        return BadRequest("The employee could not be created.");
+
+                    if (!string.IsNullOrWhiteSpace(createdEmployeeDTO.errormassage))
+                        return BadRequest(createdEmployeeDTO.errormassage);
+
                     return Ok(createdEmployeeDTO);
                 }
 

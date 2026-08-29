@@ -141,7 +141,7 @@ namespace WebApplication1.Controllers
                                    new { success = false, message = "ID mismatch" });
 
                 // Validate required fields based on customer type
-                if (customer.Type == 1) // Individual
+                if (customer.Type == (byte)CustomerType.Individual)
                 {
                     if (string.IsNullOrEmpty(customer.IndividualFirstName))
                         return Content(System.Net.HttpStatusCode.BadRequest,
@@ -151,7 +151,9 @@ namespace WebApplication1.Controllers
                         return Content(System.Net.HttpStatusCode.BadRequest,
                                        new { success = false, message = "Identity card number is required for individual customers" });
                 }
-                else if (customer.Type == 3 || customer.Type == 2 || customer.Type == 4) // Corporate/Partnership/MicroCredit
+                else if (customer.Type == (byte)CustomerType.Partnership
+                    || customer.Type == (byte)CustomerType.Corporation
+                    || customer.Type == (byte)CustomerType.MicroCredit)
                 {
                     if (string.IsNullOrEmpty(customer.NonIndividualDescription))
                         return Content(System.Net.HttpStatusCode.BadRequest,

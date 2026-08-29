@@ -185,5 +185,35 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
         }
 
+        public string ValidateTreasuryCashMovementLinkage(Guid bankLinkageId, Guid treasuryBranchId, out BankLinkageDTO bankLinkage, ServiceHeader serviceHeader)
+        {
+            bankLinkage = null;
+
+            if (bankLinkageId == Guid.Empty)
+                return "A bank linkage must be selected.";
+
+            if (treasuryBranchId == Guid.Empty)
+                return "The treasury branch could not be identified.";
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var persisted = _bankLinkageRepository.Get(bankLinkageId, serviceHeader);
+                if (persisted == null)
+                    return "The selected bank linkage could not be found.";
+
+                if (persisted.IsLocked)
+                    return "The selected bank linkage is locked and cannot be used for treasury transactions.";
+
+                if (persisted.BranchId != treasuryBranchId)
+                    return "The selected bank linkage does not belong to the active treasury branch.";
+
+                if (persisted.ChartOfAccountId == Guid.Empty)
+                    return "The selected bank linkage does not have a valid G/L account.";
+
+                bankLinkage = persisted.ProjectedAs<BankLinkageDTO>();
+                return null;
+            }
+        }
+
     }
 }

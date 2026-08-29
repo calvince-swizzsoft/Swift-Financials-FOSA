@@ -4,6 +4,8 @@ using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 using System.Runtime.Remoting.Channels;
 using System.Threading.Tasks;
@@ -37,6 +39,13 @@ namespace WebApplication1.Controllers
 
                 var designations = _designationAppService.FindDesignations(serviceHeader);
 
+                foreach (var designation in designations ?? new System.Collections.Generic.List<DesignationDTO>())
+                {
+                    designation.TransactionThresholds = new ObservableCollection<TransactionThresholdDTO>(
+                        _designationAppService.FindTransactionThresholdCollection(designation.Id, serviceHeader)
+                        ?? new System.Collections.Generic.List<TransactionThresholdDTO>());
+                }
+
                 return Ok(designations);
             }
 
@@ -64,7 +73,10 @@ namespace WebApplication1.Controllers
 
                     var createdDesignationDTO = _designationAppService.AddNewDesignation(designationDTO, serviceHeader);
 
-                    return Ok(designationDTO);
+                    if (createdDesignationDTO == null)
+                        return BadRequest("The designation could not be created.");
+
+                    return Ok(createdDesignationDTO);
                 }
 
                 else
@@ -83,14 +95,18 @@ namespace WebApplication1.Controllers
 
         [HttpPut]
         [Route("{id}")]
-        public async Task<IHttpActionResult> UpdateDesignation(DesignationDTO designationDTO)
+        public async Task<IHttpActionResult> UpdateDesignation(Guid id, DesignationDTO designationDTO)
         {
 
             try
             {
 
-                var serviceHeader = new ServiceHeader();
+                designationDTO.Id = id;
+                var serviceHeader = Utils.CreateServiceHeader();
                 var updatedDesignationDTO = _designationAppService.UpdateDesignation(designationDTO, serviceHeader);
+
+                if (!updatedDesignationDTO)
+                    return NotFound();
 
                 return Ok(updatedDesignationDTO);
             }
@@ -102,7 +118,25 @@ namespace WebApplication1.Controllers
         }
 
 
-        //employee
+        [HttpGet]
+        [Route("{id:guid}/transaction-thresholds")]
+        public IHttpActionResult GetTransactionThresholds(Guid id)
+        {
+            var thresholds = _designationAppService.FindTransactionThresholdCollection(id, Utils.CreateServiceHeader());
+            return Ok(thresholds ?? new List<TransactionThresholdDTO>());
+        }
+
+        [HttpPut]
+        [Route("{id:guid}/transaction-thresholds")]
+        public IHttpActionResult UpdateTransactionThresholds(Guid id, List<TransactionThresholdDTO> thresholds)
+        {
+            var updated = _designationAppService.UpdateTransactionThresholdCollection(
+                id,
+                thresholds ?? new List<TransactionThresholdDTO>(),
+                Utils.CreateServiceHeader());
+
+            return updated ? (IHttpActionResult)Ok() : BadRequest("Transaction thresholds could not be updated.");
+        }
     }
 
 }

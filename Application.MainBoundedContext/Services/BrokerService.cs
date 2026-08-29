@@ -51,6 +51,7 @@ namespace Application.MainBoundedContext.Services
                                         };
 
                         _messageQueueService.Send(_serviceBrokerConfigSection.ServiceBrokerSettingsItems.AccountAlertDispatcherQueuePath, queueDTOs.ToList(), MessageCategory.AccountAlert, MessagePriority.High, _serviceBrokerConfigSection.ServiceBrokerSettingsItems.TimeToBeReceived);
+                        result = true;
 
                         break;
 
@@ -413,6 +414,7 @@ namespace Application.MainBoundedContext.Services
                                         };
 
                         _messageQueueService.Send(_serviceBrokerConfigSection.ServiceBrokerSettingsItems.AccountAlertDispatcherQueuePath, queueDTOs.ToList(), MessageCategory.AccountAlert, MessagePriority.High, _serviceBrokerConfigSection.ServiceBrokerSettingsItems.TimeToBeReceived);
+                        result = true;
 
                         break;
                     default:
@@ -960,7 +962,7 @@ namespace Application.MainBoundedContext.Services
         {
             var result = default(bool);
 
-            if (data != null)
+            if (data != null && data.Any() && _serviceBrokerConfigSection != null)
             {
                 switch (command)
                 {
@@ -977,6 +979,8 @@ namespace Application.MainBoundedContext.Services
                                         };
 
                         _messageQueueService.Send(_serviceBrokerConfigSection.ServiceBrokerSettingsItems.AccountAlertDispatcherQueuePath, queueDTOs.ToList(), MessageCategory.AccountAlert, MessagePriority.High, _serviceBrokerConfigSection.ServiceBrokerSettingsItems.TimeToBeReceived);
+
+                        result = true;
 
                         break;
 

@@ -35,6 +35,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IRepository<LoanProductCommission> _loanProductCommissionRepository;
         private readonly IInvestmentProductAppService _investmentProductAppService;
         private readonly ISavingsProductAppService _savingsProductAppService;
+        private readonly IChartOfAccountAppService _chartOfAccountAppService;
         private readonly IAppCache _appCache;
 
         public LoanProductAppService(
@@ -49,6 +50,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
            IRepository<LoanProductCommission> loanProductCommissionRepository,
            IInvestmentProductAppService investmentProductAppService,
            ISavingsProductAppService savingsProductAppService,
+           IChartOfAccountAppService chartOfAccountAppService,
            IAppCache appCache)
         {
             if (dbContextScopeFactory == null)
@@ -84,6 +86,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (savingsProductAppService == null)
                 throw new ArgumentNullException(nameof(savingsProductAppService));
 
+            if (chartOfAccountAppService == null)
+                throw new ArgumentNullException(nameof(chartOfAccountAppService));
+
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
@@ -98,12 +103,145 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _loanProductCommissionRepository = loanProductCommissionRepository;
             _investmentProductAppService = investmentProductAppService;
             _savingsProductAppService = savingsProductAppService;
+            _chartOfAccountAppService = chartOfAccountAppService;
             _appCache = appCache;
+        }
+
+        public IDictionary<string, string[]> ValidateLoanProduct(LoanProductDTO dto, ServiceHeader serviceHeader)
+        {
+            var errors = new Dictionary<string, List<string>>();
+            Action<string, string> add = (field, message) =>
+            {
+                List<string> messages;
+                if (!errors.TryGetValue(field, out messages)) errors[field] = messages = new List<string>();
+                messages.Add(message);
+            };
+            if (dto == null)
+            {
+                add("LoanProduct", "Loan product details are required.");
+                return errors.ToDictionary(x => x.Key, x => x.Value.ToArray());
+            }
+            if (string.IsNullOrWhiteSpace(dto.Description)) add("Description", "Name is required.");
+            else if (dto.Description.Trim().Length > 256) add("Description", "Name cannot exceed 256 characters.");
+
+            Action<string, Guid, string> validateAccount = (field, id, label) =>
+            {
+                if (id == Guid.Empty) add(field, label + " is required.");
+                else if (_chartOfAccountAppService.FindChartOfAccount(id, serviceHeader) == null)
+                    add(field, "The selected " + label + " does not exist.");
+            };
+            validateAccount("ChartOfAccountId", dto.ChartOfAccountId, "Principal G/L Account");
+            validateAccount("InterestReceivedChartOfAccountId", dto.InterestReceivedChartOfAccountId, "Interest Received G/L Account");
+            validateAccount("InterestReceivableChartOfAccountId", dto.InterestReceivableChartOfAccountId, "Interest Receivable G/L Account");
+            validateAccount("InterestChargedChartOfAccountId", dto.InterestChargedChartOfAccountId, "Interest Charged G/L Account");
+
+            if (new[] { dto.ChartOfAccountId, dto.InterestReceivedChartOfAccountId, dto.InterestReceivableChartOfAccountId, dto.InterestChargedChartOfAccountId }
+                .Where(id => id != Guid.Empty).GroupBy(id => id).Any(group => group.Count() > 1))
+                add("ChartOfAccounts", "Principal and interest G/L accounts must be distinct.");
+            if (double.IsNaN(dto.LoanInterestAnnualPercentageRate) || double.IsInfinity(dto.LoanInterestAnnualPercentageRate) || dto.LoanInterestAnnualPercentageRate < 0d || dto.LoanInterestAnnualPercentageRate > 100d)
+                add("LoanInterestAnnualPercentageRate", "Annual percentage rate must be between 0% and 100%.");
+            if (!Enum.IsDefined(typeof(InterestChargeMode), dto.LoanInterestChargeMode)) add("LoanInterestChargeMode", "Select a valid interest charge mode.");
+            if (!Enum.IsDefined(typeof(InterestRecoveryMode), dto.LoanInterestRecoveryMode)) add("LoanInterestRecoveryMode", "Select a valid interest recovery mode.");
+            if (!Enum.IsDefined(typeof(InterestCalculationMode), dto.LoanInterestCalculationMode)) add("LoanInterestCalculationMode", "Select a valid interest calculation mode.");
+            if (!Enum.IsDefined(typeof(LoanProductSection), dto.LoanRegistrationLoanProductSection)) add("LoanRegistrationLoanProductSection", "Select a valid loan-product section.");
+            if (!Enum.IsDefined(typeof(LoanProductCategory), dto.LoanRegistrationLoanProductCategory)) add("LoanRegistrationLoanProductCategory", "Select a valid loan-product category.");
+            if (!Enum.IsDefined(typeof(PaymentFrequencyPerYear), dto.LoanRegistrationPaymentFrequencyPerYear)) add("LoanRegistrationPaymentFrequencyPerYear", "Select a valid payment frequency.");
+            if (!Enum.IsDefined(typeof(PaymentDueDate), dto.LoanRegistrationPaymentDueDate)) add("LoanRegistrationPaymentDueDate", "Select a valid payment due-date rule.");
+            if (!Enum.IsDefined(typeof(PayoutRecoveryMode), dto.LoanRegistrationPayoutRecoveryMode)) add("LoanRegistrationPayoutRecoveryMode", "Select a valid payout recovery mode.");
+            if (!Enum.IsDefined(typeof(AggregateCheckOffRecoveryMode), dto.LoanRegistrationAggregateCheckOffRecoveryMode)) add("LoanRegistrationAggregateCheckOffRecoveryMode", "Select a valid aggregate check-off mode.");
+            if (!Enum.IsDefined(typeof(StandingOrderTrigger), dto.LoanRegistrationStandingOrderTrigger)) add("LoanRegistrationStandingOrderTrigger", "Select a valid standing-order trigger.");
+            if (!Enum.IsDefined(typeof(GuarantorSecurityMode), dto.LoanRegistrationGuarantorSecurityMode)) add("LoanRegistrationGuarantorSecurityMode", "Select a valid guarantor security mode.");
+            if (!Enum.IsDefined(typeof(RoundingType), dto.LoanRegistrationRoundingType)) add("LoanRegistrationRoundingType", "Select a valid rounding type.");
+            if (!Enum.IsDefined(typeof(ChargeType), dto.TakeHomeType)) add("TakeHomeType", "Select a valid take-home type.");
+
+            if (dto.LoanRegistrationTermInMonths <= 0 || dto.LoanRegistrationTermInMonths > short.MaxValue) add("LoanRegistrationTermInMonths", "Term must be between 1 and 32,767 months.");
+            if (dto.LoanRegistrationMinimumAmount < 0m) add("LoanRegistrationMinimumAmount", "Minimum principal cannot be negative.");
+            if (dto.LoanRegistrationMaximumAmount <= 0m) add("LoanRegistrationMaximumAmount", "Maximum principal must be greater than zero.");
+            else if (dto.LoanRegistrationMaximumAmount < dto.LoanRegistrationMinimumAmount) add("LoanRegistrationMaximumAmount", "Maximum principal cannot be lower than minimum principal.");
+            if (dto.LoanRegistrationMinimumInterestAmount < 0m) add("LoanRegistrationMinimumInterestAmount", "Minimum interest cannot be negative.");
+            if (dto.LoanRegistrationConsecutiveIncome < 0 || dto.LoanRegistrationConsecutiveIncome > short.MaxValue) add("LoanRegistrationConsecutiveIncome", "Consecutive income periods must be between 0 and 32,767.");
+            if (double.IsNaN(dto.LoanRegistrationInvestmentsMultiplier) || double.IsInfinity(dto.LoanRegistrationInvestmentsMultiplier) || dto.LoanRegistrationInvestmentsMultiplier < 0d) add("LoanRegistrationInvestmentsMultiplier", "Investments multiplier cannot be negative.");
+            if (dto.LoanRegistrationMinimumGuarantors < 0 || dto.LoanRegistrationMinimumGuarantors > short.MaxValue) add("LoanRegistrationMinimumGuarantors", "Minimum guarantors must be between 0 and 32,767.");
+            if (dto.LoanRegistrationMaximumGuarantees <= 0 || dto.LoanRegistrationMaximumGuarantees > short.MaxValue) add("LoanRegistrationMaximumGuarantees", "Maximum guarantees must be between 1 and 32,767.");
+            if (dto.LoanRegistrationSecurityRequired && dto.LoanRegistrationMinimumGuarantors <= 0 && !dto.LoanRegistrationAllowSelfGuarantee) add("LoanRegistrationMinimumGuarantors", "Security requires at least one guarantor unless self-guarantee is allowed.");
+            if (dto.LoanRegistrationGracePeriod < 0 || dto.LoanRegistrationGracePeriod > short.MaxValue) add("LoanRegistrationGracePeriod", "Grace period must be between 0 and 32,767 days.");
+            if (dto.LoanRegistrationMinimumMembershipPeriod < 0 || dto.LoanRegistrationMinimumMembershipPeriod > short.MaxValue) add("LoanRegistrationMinimumMembershipPeriod", "Minimum membership period must be between 0 and 32,767 months.");
+            if (dto.Priority < 0 || dto.Priority > 3) add("Priority", "Recovery priority must be between 0 and 3.");
+            Action<string, double, string> percentage = (field, value, label) =>
+            {
+                if (double.IsNaN(value) || double.IsInfinity(value) || value < 0d || value > 100d) add(field, label + " must be between 0% and 100%.");
+            };
+            percentage("LoanRegistrationPayoutRecoveryPercentage", dto.LoanRegistrationPayoutRecoveryPercentage, "Payout recovery percentage");
+            percentage("LoanRegistrationMaximumSelfGuaranteeEligiblePercentage", dto.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage, "Maximum self-guarantee percentage");
+            if (dto.LoanRegistrationAllowSelfGuarantee && dto.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage <= 0d) add("LoanRegistrationMaximumSelfGuaranteeEligiblePercentage", "Set a positive self-guarantee percentage when self-guarantee is allowed.");
+            if (dto.TakeHomeType == (int)ChargeType.Percentage) percentage("TakeHomePercentage", dto.TakeHomePercentage, "Take-home percentage");
+            if (dto.TakeHomeType == (int)ChargeType.FixedAmount && dto.TakeHomeFixedAmount < 0m) add("TakeHomeFixedAmount", "Take-home fixed amount cannot be negative.");
+
+            return errors.ToDictionary(x => x.Key, x => x.Value.Distinct().ToArray());
+        }
+
+        public LoanProductDTO AddNewLoanProductConfiguration(LoanProductConfigurationDTO configuration, ServiceHeader serviceHeader)
+        {
+            if (configuration == null || ValidateLoanProduct(configuration.LoanProduct, serviceHeader).Any()) return null;
+            ValidateConfigurationCollections(configuration);
+            using (var scope = _dbContextScopeFactory.Create())
+            {
+                var created = AddNewLoanProduct(configuration.LoanProduct, serviceHeader);
+                if (created == null) return null;
+                if (configuration.Deductibles != null && !UpdateLoanProductDeductibles(created.Id, configuration.Deductibles, serviceHeader)) throw new InvalidOperationException("Loan-product deductibles could not be saved.");
+                if (configuration.LoanCycles != null && !UpdateLoanCycles(created.Id, configuration.LoanCycles, serviceHeader)) throw new InvalidOperationException("Loan cycles could not be saved.");
+                if (configuration.AuxiliaryConditions != null && !UpdateLoanProductAuxiliaryConditions(created.Id, configuration.AuxiliaryConditions, serviceHeader)) throw new InvalidOperationException("Auxiliary conditions could not be saved.");
+                if (configuration.AuxiliaryAppraisalFactors != null && !UpdateLoanProductAuxilliaryAppraisalFactors(created.Id, configuration.AuxiliaryAppraisalFactors, serviceHeader)) throw new InvalidOperationException("Auxiliary appraisal factors could not be saved.");
+                if (configuration.DynamicCharges != null && !UpdateDynamicCharges(created.Id, configuration.DynamicCharges, serviceHeader)) throw new InvalidOperationException("Dynamic charges could not be saved.");
+                if (configuration.AppraisalProducts != null && !UpdateAppraisalProducts(created.Id, configuration.AppraisalProducts, serviceHeader)) throw new InvalidOperationException("Appraisal products could not be saved.");
+                if (configuration.Commissions != null && !UpdateCommissions(created.Id, configuration.Commissions, configuration.CommissionKnownChargeType, configuration.CommissionChargeBasisValue, serviceHeader)) throw new InvalidOperationException("Commissions could not be saved.");
+                scope.SaveChanges(serviceHeader);
+                return FindLoanProduct(created.Id, serviceHeader);
+            }
+        }
+
+        private static void ValidateConfigurationCollections(LoanProductConfigurationDTO configuration)
+        {
+            if (configuration.LoanCycles != null)
+            {
+                if (configuration.LoanCycles.Any(item => item == null || item.RangeLowerLimit < 0m || item.RangeUpperLimit < item.RangeLowerLimit))
+                    throw new InvalidOperationException("Every loan-cycle band requires a non-negative lower limit and an upper limit not below it.");
+                if (HasOverlappingRanges(configuration.LoanCycles.Select(item => new[] { item.RangeLowerLimit, item.RangeUpperLimit })))
+                    throw new InvalidOperationException("Loan-cycle bands cannot overlap.");
+            }
+            if (configuration.AuxiliaryAppraisalFactors != null)
+            {
+                if (configuration.AuxiliaryAppraisalFactors.Any(item => item == null || item.RangeLowerLimit < 0m || item.RangeUpperLimit < item.RangeLowerLimit ||
+                    double.IsNaN(item.LoaneeMultiplier) || double.IsInfinity(item.LoaneeMultiplier) || item.LoaneeMultiplier < 0d ||
+                    double.IsNaN(item.GuarantorMultiplier) || double.IsInfinity(item.GuarantorMultiplier) || item.GuarantorMultiplier < 0d))
+                    throw new InvalidOperationException("Every appraisal-factor band requires a valid non-negative range and non-negative multipliers.");
+                if (HasOverlappingRanges(configuration.AuxiliaryAppraisalFactors.Select(item => new[] { item.RangeLowerLimit, item.RangeUpperLimit })))
+                    throw new InvalidOperationException("Auxiliary appraisal-factor bands cannot overlap.");
+            }
+            if (configuration.AuxiliaryConditions != null && configuration.AuxiliaryConditions.Any(item => item == null || item.TargetLoanProductId == Guid.Empty ||
+                item.Condition <= 0 || item.MaximumEligiblePercentage < 0d || item.MaximumEligiblePercentage > 100d || double.IsNaN(item.MaximumEligiblePercentage) || double.IsInfinity(item.MaximumEligiblePercentage)))
+                throw new InvalidOperationException("Every auxiliary condition requires a target loan product, at least one condition, and a maximum eligible percentage between 0% and 100%.");
+            if (configuration.Deductibles != null && configuration.Deductibles.Any(item => item == null || string.IsNullOrWhiteSpace(item.Description) ||
+                item.CustomerAccountTypeTargetProductId == Guid.Empty || !Enum.IsDefined(typeof(ProductCode), item.CustomerAccountTypeProductCode) ||
+                !Enum.IsDefined(typeof(ChargeType), item.ChargeType) || item.ChargePercentage < 0d || item.ChargePercentage > 100d || item.ChargeFixedAmount < 0m))
+                throw new InvalidOperationException("Every deductible requires a name, a valid target product and charge type, a percentage between 0% and 100%, and a non-negative fixed amount.");
+            if (configuration.DynamicCharges != null && configuration.DynamicCharges.Any(item => item == null || item.Id == Guid.Empty))
+                throw new InvalidOperationException("Every dynamic charge must reference an existing charge.");
+            if (configuration.Commissions != null && configuration.Commissions.Any(item => item == null || item.Id == Guid.Empty))
+                throw new InvalidOperationException("Every commission must reference an existing commission.");
+        }
+
+        private static bool HasOverlappingRanges(IEnumerable<decimal[]> ranges)
+        {
+            var ordered = ranges.OrderBy(range => range[0]).ThenBy(range => range[1]).ToList();
+            for (var index = 1; index < ordered.Count; index++)
+                if (ordered[index][0] <= ordered[index - 1][1]) return true;
+            return false;
         }
 
         public LoanProductDTO AddNewLoanProduct(LoanProductDTO loanProductDTO, ServiceHeader serviceHeader)
         {
-            if (loanProductDTO != null && loanProductDTO.ChartOfAccountId != Guid.Empty)
+            if (!ValidateLoanProduct(loanProductDTO, serviceHeader).Any())
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
@@ -133,7 +271,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateLoanProduct(LoanProductDTO loanProductDTO, ServiceHeader serviceHeader)
         {
-            if (loanProductDTO == null || loanProductDTO.Id == Guid.Empty || loanProductDTO.ChartOfAccountId == Guid.Empty)
+            if (loanProductDTO == null || loanProductDTO.Id == Guid.Empty || ValidateLoanProduct(loanProductDTO, serviceHeader).Any())
                 return false;
 
             using (var dbContextScope = _dbContextScopeFactory.Create())

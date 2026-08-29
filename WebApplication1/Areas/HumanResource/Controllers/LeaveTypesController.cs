@@ -1,6 +1,11 @@
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
+using Infrastructure.Crosscutting.Framework.Utils;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Web.Http;
 using WebApplication1.Helpers;
 
@@ -27,10 +32,13 @@ namespace WebApplication1.Controllers
     public class LeaveTypesController : ApiController
     {
         private readonly ILeaveTypeAppService _leaveTypeAppService;
+        private readonly INavigationItemInRoleAppService _navigationItemInRoleAppService;
+        private const int LeaveApplicationModuleCode = 22016;
 
-        public LeaveTypesController(ILeaveTypeAppService leaveTypeAppService)
+        public LeaveTypesController(ILeaveTypeAppService leaveTypeAppService, INavigationItemInRoleAppService navigationItemInRoleAppService)
         {
             _leaveTypeAppService = leaveTypeAppService ?? throw new ArgumentNullException(nameof(leaveTypeAppService));
+            _navigationItemInRoleAppService = navigationItemInRoleAppService ?? throw new ArgumentNullException(nameof(navigationItemInRoleAppService));
         }
 
         [HttpGet]
@@ -40,6 +48,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasPermission(serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var leaveTypes = _leaveTypeAppService.FindLeaveTypes(text, pageIndex, pageSize, serviceHeader);
 
@@ -51,10 +60,8 @@ namespace WebApplication1.Controllers
             }
         }
 
-        // Bound to LeaveTypeBindingModel, not LeaveTypeDTO directly, since
-        // LeaveTypeDTO's own settable fields don't include IsLocked (see
-        // ToDTO below) and this is the shape AddNewLeaveType/UpdateLeaveType
-        // validate against internally anyway.
+        // Bound to the write model so validation and lifecycle fields have
+        // one explicit API shape before being mapped to the application DTO.
         [HttpPost]
         [Route("")]
         public IHttpActionResult Create(LeaveTypeBindingModel model)
@@ -65,6 +72,7 @@ namespace WebApplication1.Controllers
                     return BadRequest("Leave type payload is required.");
 
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasPermission(serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var leaveTypeDTO = ToDTO(model);
 
@@ -72,9 +80,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(created);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest("The request could not be completed.");
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
@@ -94,6 +102,7 @@ namespace WebApplication1.Controllers
                 model.Id = id;
 
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasPermission(serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var leaveTypeDTO = ToDTO(model);
 
@@ -104,9 +113,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(leaveTypeDTO);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest("The request could not be completed.");
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
@@ -114,19 +123,6 @@ namespace WebApplication1.Controllers
             }
         }
 
-        // LeaveTypeDTO.IsLocked has a private setter (`get; private set;`)
-        // — genuinely unreachable from any external caller, not just this
-        // one, so it's deliberately left out here rather than worked
-        // around. AddNewLeaveType/UpdateLeaveType both gate their
-        // Lock()/UnLock() calls on leaveTypeDTO.IsLocked, which means as
-        // things stand today there is no way for ANY caller to create or
-        // lock a LeaveType as locked through this app-service method —
-        // that's a pre-existing constraint in the DTO itself, not
-        // something introduced here. IsLocked still round-trips fine on
-        // reads (GET), it just can't be set on write without changing
-        // LeaveTypeDTO's own setter, which is out of scope for a REST
-        // wrapper. No "Is Locked?" control in the frontend form for the
-        // same reason — it would silently do nothing.
         private static LeaveTypeDTO ToDTO(LeaveTypeBindingModel model)
         {
             return new LeaveTypeDTO
@@ -139,7 +135,16 @@ namespace WebApplication1.Controllers
                 UnitType = (byte)model.UnitType,
                 ExcludeHolidays = model.ExcludeHolidays,
                 ExcludeWeekends = model.ExcludeWeekends,
+                IsLocked = model.IsLocked,
             };
+        }
+
+        private bool HasPermission(ServiceHeader serviceHeader)
+        {
+            var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
+            var grantedRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApplicationModuleCode, serviceHeader) ?? new string[0];
+            return callerRoles.Any(callerRole => grantedRoles.Any(grantedRole =>
+                string.Equals(callerRole, grantedRole, StringComparison.OrdinalIgnoreCase)));
         }
     }
 }

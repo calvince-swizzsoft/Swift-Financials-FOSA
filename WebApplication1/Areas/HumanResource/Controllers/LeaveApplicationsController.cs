@@ -1,10 +1,13 @@
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
+using System.Linq;
 using System.Net;
 using System.Web.Http;
 using WebApplication1.Helpers;
+using WebApplication1.Areas.Identity.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -52,14 +55,20 @@ namespace WebApplication1.Controllers
     public class LeaveApplicationsController : ApiController
     {
         private readonly ILeaveApplicationAppService _leaveApplicationAppService;
-        private readonly ILeaveTypeAppService _leaveTypeAppService;
+        private readonly INavigationItemInRoleAppService _navigationItemInRoleAppService;
+        private readonly UserManagerService _userManagerService;
+        private const int LeaveApplicationModuleCode = 22016;
+        private const int LeaveApprovalModuleCode = 22017;
+        private const int LeaveRecallModuleCode = 22018;
 
         public LeaveApplicationsController(
             ILeaveApplicationAppService leaveApplicationAppService,
-            ILeaveTypeAppService leaveTypeAppService)
+            INavigationItemInRoleAppService navigationItemInRoleAppService,
+            UserManagerService userManagerService)
         {
             _leaveApplicationAppService = leaveApplicationAppService ?? throw new ArgumentNullException(nameof(leaveApplicationAppService));
-            _leaveTypeAppService = leaveTypeAppService ?? throw new ArgumentNullException(nameof(leaveTypeAppService));
+            _navigationItemInRoleAppService = navigationItemInRoleAppService ?? throw new ArgumentNullException(nameof(navigationItemInRoleAppService));
+            _userManagerService = userManagerService ?? throw new ArgumentNullException(nameof(userManagerService));
         }
 
         // status omitted -> plain text-search paged browse (the
@@ -74,6 +83,10 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+                var requiredCode = status == (int)LeaveApplicationStatus.Pending ? LeaveApprovalModuleCode
+                    : status == (int)LeaveApplicationStatus.Approved ? LeaveRecallModuleCode
+                    : LeaveApplicationModuleCode;
+                if (!HasPermission(requiredCode, serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var applications = status.HasValue
                     ? _leaveApplicationAppService.FindLeaveApplications(status.Value, DateTime.MinValue, DateTime.MaxValue, text ?? "", pageIndex, pageSize, serviceHeader)
@@ -94,6 +107,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasAnyLeavePermission(serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var application = _leaveApplicationAppService.FindLeaveApplication(id, serviceHeader);
 
@@ -118,6 +132,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasPermission(LeaveApplicationModuleCode, serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var balance = _leaveApplicationAppService.FindEmployeeLeaveBalances(employeeId, leaveTypeId, serviceHeader);
 
@@ -139,27 +154,23 @@ namespace WebApplication1.Controllers
                     return BadRequest("Leave application payload is required.");
 
                 var serviceHeader = Utils.CreateServiceHeader();
-
-                var leaveType = _leaveTypeAppService.FindLeaveType(leaveApplicationDTO.LeaveTypeId, serviceHeader);
-                if (leaveType == null)
-                    return BadRequest("Selected leave type was not found.");
-
-                ApplyLeaveType(leaveApplicationDTO, leaveType);
-
-                var currentBalance = _leaveApplicationAppService.FindEmployeeLeaveBalances(leaveApplicationDTO.EmployeeId, leaveApplicationDTO.LeaveTypeId, serviceHeader);
-                var requestedDays = (decimal)(leaveApplicationDTO.DurationEndDate - leaveApplicationDTO.DurationStartDate).TotalDays;
-                leaveApplicationDTO.Balance = currentBalance - requestedDays;
+                if (!HasPermission(LeaveApplicationModuleCode, serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
+                var approvalRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApprovalModuleCode, serviceHeader) ?? new string[0];
+                if (!_userManagerService.HasActiveEmployeeUserInAnyRole(approvalRoles, serviceHeader))
+                    return BadRequest("Leave cannot be submitted because no active employee user is currently authorized to approve it. Assign Leave Approval permission to a role with an active user, then try again.");
 
                 var created = _leaveApplicationAppService.AddNewLeaveApplication(leaveApplicationDTO, serviceHeader);
 
                 if (created == null)
                     throw new InvalidOperationException("Failed to save the leave application.");
 
+                _userManagerService.NotifyActiveLeaveApprovers(approvalRoles, created, serviceHeader);
+
                 return Ok(created);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest("The request could not be completed.");
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
@@ -177,6 +188,7 @@ namespace WebApplication1.Controllers
                     return BadRequest("Leave application payload is required.");
 
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasPermission(LeaveApplicationModuleCode, serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var persisted = _leaveApplicationAppService.FindLeaveApplication(id, serviceHeader);
                 if (persisted == null)
@@ -187,16 +199,6 @@ namespace WebApplication1.Controllers
 
                 leaveApplicationDTO.Id = id;
 
-                var leaveType = _leaveTypeAppService.FindLeaveType(leaveApplicationDTO.LeaveTypeId, serviceHeader);
-                if (leaveType == null)
-                    return BadRequest("Selected leave type was not found.");
-
-                ApplyLeaveType(leaveApplicationDTO, leaveType);
-
-                var currentBalance = _leaveApplicationAppService.FindEmployeeLeaveBalances(persisted.EmployeeId, leaveApplicationDTO.LeaveTypeId, serviceHeader);
-                var requestedDays = (decimal)(leaveApplicationDTO.DurationEndDate - leaveApplicationDTO.DurationStartDate).TotalDays;
-                leaveApplicationDTO.Balance = currentBalance - requestedDays;
-
                 var updated = _leaveApplicationAppService.UpdateLeaveApplication(leaveApplicationDTO, serviceHeader);
 
                 if (!updated)
@@ -204,9 +206,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(leaveApplicationDTO);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest("The request could not be completed.");
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
@@ -231,6 +233,7 @@ namespace WebApplication1.Controllers
                     return BadRequest("Decision must be 'approve' or 'reject'.");
 
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasPermission(LeaveApprovalModuleCode, serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var persisted = _leaveApplicationAppService.FindLeaveApplication(id, serviceHeader);
                 if (persisted == null)
@@ -249,9 +252,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(persisted);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest("The request could not be completed.");
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
@@ -271,6 +274,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+                if (!HasPermission(LeaveRecallModuleCode, serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
 
                 var persisted = _leaveApplicationAppService.FindLeaveApplication(id, serviceHeader);
                 if (persisted == null)
@@ -288,9 +292,9 @@ namespace WebApplication1.Controllers
 
                 return Ok(persisted);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest("The request could not be completed.");
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
@@ -298,14 +302,37 @@ namespace WebApplication1.Controllers
             }
         }
 
-        private static void ApplyLeaveType(LeaveApplicationDTO leaveApplicationDTO, LeaveTypeDTO leaveType)
+        private bool HasAnyLeavePermission(ServiceHeader serviceHeader)
         {
-            leaveApplicationDTO.LeaveTypeDescription = leaveType.Description;
-            leaveApplicationDTO.LeaveTypeUnitType = leaveType.UnitType;
-            leaveApplicationDTO.LeaveTypeIsAccrued = leaveType.IsAccrued;
-            leaveApplicationDTO.LeaveTypeEntitlement = leaveType.Entitlement;
-            leaveApplicationDTO.LeaveTypeExcludeHolidays = leaveType.ExcludeHolidays;
-            leaveApplicationDTO.LeaveTypeExcludeWeekends = leaveType.ExcludeWeekends;
+            return HasPermission(LeaveApplicationModuleCode, serviceHeader)
+                || HasPermission(LeaveApprovalModuleCode, serviceHeader)
+                || HasPermission(LeaveRecallModuleCode, serviceHeader);
+        }
+
+        [HttpGet]
+        [Route("approval-readiness")]
+        public IHttpActionResult ApprovalReadiness()
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            if (!HasAnyLeavePermission(serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
+
+            var approvalRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApprovalModuleCode, serviceHeader) ?? new string[0];
+            var pending = _leaveApplicationAppService.FindLeaveApplications(
+                (int)LeaveApplicationStatus.Pending, DateTime.MinValue, DateTime.MaxValue, string.Empty, 0, 1, serviceHeader);
+
+            return Ok(new
+            {
+                HasEligibleApprover = _userManagerService.HasActiveEmployeeUserInAnyRole(approvalRoles, serviceHeader),
+                PendingApplications = pending?.ItemsCount ?? 0
+            });
+        }
+
+        private bool HasPermission(int moduleCode, ServiceHeader serviceHeader)
+        {
+            var callerRoles = serviceHeader.ApplicationUserRoles ?? new System.Collections.Generic.List<string>();
+            var grantedRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(moduleCode, serviceHeader) ?? new string[0];
+            return callerRoles.Any(callerRole => grantedRoles.Any(grantedRole =>
+                string.Equals(callerRole, grantedRole, StringComparison.OrdinalIgnoreCase)));
         }
     }
 

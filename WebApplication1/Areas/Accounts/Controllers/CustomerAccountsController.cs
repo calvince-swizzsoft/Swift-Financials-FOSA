@@ -129,14 +129,6 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return Content(System.Net.HttpStatusCode.BadRequest,
                                    new { success = false, message = "CustomerAccountTypeTargetProductId is required" });
 
-                if (account.CustomerAccountTypeProductCode <= 0)
-                    return Content(System.Net.HttpStatusCode.BadRequest,
-                                   new { success = false, message = "CustomerAccountTypeProductCode is required" });
-
-                if (account.CustomerAccountTypeTargetProductCode <= 0)
-                    return Content(System.Net.HttpStatusCode.BadRequest,
-                                   new { success = false, message = "CustomerAccountTypeTargetProductCode is required" });
-
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 var created = _customerAccountService.AddNewCustomerAccount(account, serviceHeader);
@@ -153,6 +145,11 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Content(System.Net.HttpStatusCode.Created,
                                new { success = true, message = "Customer account created successfully", data = created });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(System.Net.HttpStatusCode.BadRequest,
+                               new { success = false, message = ex.Message });
             }
             catch (Exception)
             {

@@ -23,6 +23,25 @@ namespace WebApplication1.Areas.Identity.Services
 {
     public class UserManagerService
     {
+        public sealed class UserCreationResult
+        {
+            public bool Succeeded { get; set; }
+            public List<string> Errors { get; set; } = new List<string>();
+
+            public static UserCreationResult Success()
+            {
+                return new UserCreationResult { Succeeded = true };
+            }
+
+            public static UserCreationResult Failure(params string[] errors)
+            {
+                return new UserCreationResult
+                {
+                    Succeeded = false,
+                    Errors = (errors ?? new string[0]).Where(error => !string.IsNullOrWhiteSpace(error)).Distinct().ToList()
+                };
+            }
+        }
 
 
         private readonly IAuditLogAppService _auditLogAppService;
@@ -78,7 +97,7 @@ namespace WebApplication1.Areas.Identity.Services
         {
             using (var context = new ApplicationDbContext("AuthStore"))
             {
-                var userManager = new UserManager<ApplicationUser>(
+                var userManager = new ApplicationUserManager(
                     new UserStore<ApplicationUser>(context));
 
                 var user = userManager.FindByName(userName);
@@ -90,9 +109,123 @@ namespace WebApplication1.Areas.Identity.Services
             }
         }
 
-        public bool CreateUser(UserDTO userDTO)
+        public bool HasActiveEmployeeUserInAnyRole(IEnumerable<string> roleNames, ServiceHeader serviceHeader)
+        {
+            var normalizedRoles = (roleNames ?? Enumerable.Empty<string>())
+                .Where(role => !string.IsNullOrWhiteSpace(role))
+                .Select(role => role.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!normalizedRoles.Any()) return false;
+
+            List<Guid> employeeIds;
+            using (var context = new ApplicationDbContext("AuthStore"))
+            {
+                var roleIds = context.Roles
+                    .Where(role => normalizedRoles.Contains(role.Name))
+                    .Select(role => role.Id)
+                    .ToList();
+
+                var now = DateTime.UtcNow;
+                employeeIds = context.Users
+                    .Where(user => user.EmployeeId.HasValue
+                        && user.Roles.Any(role => roleIds.Contains(role.RoleId))
+                        && (!user.LockoutEnabled || !user.LockoutEndDateUtc.HasValue || user.LockoutEndDateUtc <= now))
+                    .Select(user => user.EmployeeId.Value)
+                    .Distinct()
+                    .ToList();
+            }
+
+            return employeeIds.Any(employeeId =>
+            {
+                var employee = _employeeAppService.FindEmployee(employeeId, serviceHeader);
+                return employee != null && !employee.IsLocked;
+            });
+        }
+
+        public int NotifyActiveLeaveApprovers(IEnumerable<string> roleNames, LeaveApplicationDTO leaveApplication, ServiceHeader serviceHeader)
+        {
+            if (leaveApplication == null) throw new ArgumentNullException(nameof(leaveApplication));
+
+            var normalizedRoles = (roleNames ?? Enumerable.Empty<string>())
+                .Where(role => !string.IsNullOrWhiteSpace(role)).Select(role => role.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (!normalizedRoles.Any()) return 0;
+
+            List<ApplicationUser> candidates;
+            using (var context = new ApplicationDbContext("AuthStore"))
+            {
+                var roleIds = context.Roles.Where(role => normalizedRoles.Contains(role.Name)).Select(role => role.Id).ToList();
+                var now = DateTime.UtcNow;
+                candidates = context.Users.Where(user => user.EmployeeId.HasValue
+                    && !string.IsNullOrEmpty(user.Email)
+                    && user.Roles.Any(role => roleIds.Contains(role.RoleId))
+                    && (!user.LockoutEnabled || !user.LockoutEndDateUtc.HasValue || user.LockoutEndDateUtc <= now)).ToList();
+            }
+
+            var frontendUrl = (ConfigurationManager.AppSettings["Frontend:LoginUrl"] ?? "http://localhost:5173/login").TrimEnd('/');
+            if (frontendUrl.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
+                frontendUrl = frontendUrl.Substring(0, frontendUrl.Length - "/login".Length);
+            var leaveUrl = frontendUrl + "/HumanResource/Leave/Approval";
+            var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var user in candidates)
+            {
+                var employee = _employeeAppService.FindEmployee(user.EmployeeId.Value, serviceHeader);
+                if (employee == null || employee.IsLocked || !notifiedEmails.Add(user.Email.Trim())) continue;
+
+                var displayName = string.Join(" ", new[] { user.FirstName, user.OtherNames }.Where(value => !string.IsNullOrWhiteSpace(value)));
+                if (string.IsNullOrWhiteSpace(displayName)) displayName = user.UserName;
+
+                var body = new StringBuilder()
+                    .AppendFormat("Dear {0},<br /><br />", HttpUtility.HtmlEncode(displayName))
+                    .Append("A leave application is awaiting your review.<br /><br />")
+                    .AppendFormat("Employee: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(leaveApplication.EmployeeCustomerFullName))
+                    .AppendFormat("Leave type: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(leaveApplication.LeaveTypeDescription))
+                    .AppendFormat("Dates: {0:dd MMM yyyy} to {1:dd MMM yyyy}<br /><br />", leaveApplication.DurationStartDate, leaveApplication.DurationEndDate)
+                    .AppendFormat("<a href=\"{0}\">Review leave applications</a>", HttpUtility.HtmlAttributeEncode(leaveUrl)).ToString();
+
+                var alert = _emailAlertAppService.AddNewEmailAlert(new EmailAlertDTO
+                {
+                    BranchId = user.BranchId,
+                    MailMessageFrom = DefaultSettings.Instance.RootEmail,
+                    MailMessageTo = user.Email.Trim(),
+                    MailMessageSubject = "Leave application awaiting approval",
+                    MailMessageBody = body,
+                    MailMessageIsBodyHtml = true,
+                    MailMessageOrigin = (int)MessageOrigin.Within,
+                    MailMessagePriority = (int)QueuePriority.High,
+                    MailMessageSecurityCritical = false
+                }, serviceHeader);
+
+                if (alert == null)
+                    throw new InvalidOperationException("The leave application was created, but an approver notification could not be queued.");
+            }
+
+            return notifiedEmails.Count;
+        }
+
+        public UserCreationResult CreateUser(UserDTO userDTO)
         {
             var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+
+            if (userDTO == null)
+                return UserCreationResult.Failure("User details are required.");
+            if (!userDTO.EmployeeId.HasValue || userDTO.EmployeeId.Value == Guid.Empty)
+                return UserCreationResult.Failure("Select an employee to link to this user account.");
+            if (string.IsNullOrWhiteSpace(userDTO.UserName))
+                return UserCreationResult.Failure("Username is required.");
+            if (string.IsNullOrWhiteSpace(userDTO.Email))
+                return UserCreationResult.Failure("The selected employee does not have an email address.");
+            if (string.IsNullOrEmpty(userDTO.Password))
+                return UserCreationResult.Failure("A temporary password is required.");
+
+            var employee = _employeeAppService.FindEmployee(userDTO.EmployeeId.Value, serviceHeader);
+            if (employee == null)
+                return UserCreationResult.Failure("The selected employee no longer exists.");
+            if (employee.IsLocked)
+                return UserCreationResult.Failure("The selected employee is locked and cannot be given a user account.");
 
 
             var user = new ApplicationUser
@@ -105,27 +238,54 @@ namespace WebApplication1.Areas.Identity.Services
                 CustomerId = userDTO.CustomerId,
                 BranchId = userDTO.BranchId,
                 PhoneNumber = userDTO.PhoneNumber,
+                TwoFactorEnabled = userDTO.TwoFactorEnabled,
+                LockoutEnabled = userDTO.LockoutEnabled,
                 CreatedDate = DateTime.Now
             };
 
-            bool success = default;
-
             if (serviceHeader.ApplicationUserName.ToUpper().In(string.Format("{0}_{1}", DefaultSettings.Instance.AuditUser, serviceHeader.ApplicationDomainName).ToUpper()))
-                return success;
+                return UserCreationResult.Failure("The audit service account is not permitted to create users.");
 
             using (var context = new ApplicationDbContext("AuthStore"))
             {
-                var userManager = new UserManager<ApplicationUser>(
+                var normalizedUserName = userDTO.UserName.Trim();
+                var normalizedEmail = userDTO.Email.Trim();
+
+                if (context.Users.Any(existing => existing.EmployeeId == userDTO.EmployeeId.Value))
+                    return UserCreationResult.Failure("The selected employee already has a user account. Open that user from the user list to update it.");
+                if (context.Users.Any(existing => existing.UserName == normalizedUserName))
+                    return UserCreationResult.Failure(string.Format("Username '{0}' is already in use.", normalizedUserName));
+                if (context.Users.Any(existing => existing.Email == normalizedEmail))
+                    return UserCreationResult.Failure(string.Format("Email address '{0}' is already linked to another user.", normalizedEmail));
+
+                user.UserName = normalizedUserName;
+                user.Email = normalizedEmail;
+
+                var userManager = new ApplicationUserManager(
                     new UserStore<ApplicationUser>(context));
                 var newUser = userManager.Create(user, userDTO.Password);
 
-                if (newUser.Succeeded)
-                {
-                    success = true;
+                if (!newUser.Succeeded)
+                    return UserCreationResult.Failure(newUser.Errors.ToArray());
 
-                    var loginUrl = ConfigurationManager.AppSettings["Frontend:LoginUrl"];
-                    if (string.IsNullOrWhiteSpace(loginUrl))
-                        loginUrl = "http://localhost:5173/login";
+                var confirmationUrl = ConfigurationManager.AppSettings["Frontend:EmailConfirmationUrl"];
+                if (string.IsNullOrWhiteSpace(confirmationUrl))
+                    confirmationUrl = "http://localhost:5173/confirm-email";
+
+                string confirmationToken;
+                try
+                {
+                    confirmationToken = EmailConfirmationTokens.Issue(context, user);
+                }
+                catch
+                {
+                    // Identity creation commits before token generation. Compensate so callers
+                    // never receive a failure while an unusable, duplicate-blocking user remains.
+                    var rollback = userManager.Delete(user);
+                    if (!rollback.Succeeded)
+                        throw new InvalidOperationException("The user was created, but confirmation setup failed and the incomplete account could not be removed. Do not retry; contact support.");
+                    throw;
+                }
 
                     // Routed through the same AccountAlertTrigger.MembershipAccountRegistration
                     // pipeline every other account-lifecycle notification in this app uses
@@ -140,11 +300,11 @@ namespace WebApplication1.Areas.Identity.Services
                     // Enqueuing (not the HTTP request) is what must not block on a
                     // stopped/unavailable broker after the Identity record has already
                     // committed, same reasoning the old Task.Run(...) here was for.
-                    userDTO.Id = user.Id;
-                    userDTO.CallbackUrl = loginUrl;
+                userDTO.Id = user.Id;
+                userDTO.CallbackUrl = string.Format("{0}?userId={1}&code={2}", confirmationUrl,
+                    Uri.EscapeDataString(user.Id), Uri.EscapeDataString(confirmationToken));
 
-                    Task.Run(() => _brokerService.ProcessMembershipAccountRegistrationAlerts(DMLCommand.None, serviceHeader, userDTO));
-                }
+                Task.Run(() => _brokerService.ProcessMembershipAccountRegistrationAlerts(DMLCommand.None, serviceHeader, userDTO));
             }
 
             #region Audit Trail
@@ -174,7 +334,7 @@ namespace WebApplication1.Areas.Identity.Services
 
             #endregion
 
-            return success;
+            return UserCreationResult.Success();
 
         }
 
@@ -214,6 +374,8 @@ namespace WebApplication1.Areas.Identity.Services
                 user.CustomerId = userDTO.CustomerId;
                 user.BranchId = userDTO.BranchId;
                 user.PhoneNumber = userDTO.PhoneNumber;
+                user.TwoFactorEnabled = userDTO.TwoFactorEnabled;
+                user.LockoutEnabled = userDTO.LockoutEnabled;
 
                 // Don't touch CreatedDate
                 // Don't touch PasswordHash
@@ -263,6 +425,51 @@ namespace WebApplication1.Areas.Identity.Services
             return true;
         }
 
+        public bool ResendEmailConfirmation(string userName)
+        {
+            if (string.IsNullOrWhiteSpace(userName)) return false;
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+
+            using (var context = new ApplicationDbContext("AuthStore"))
+            {
+                var userManager = new ApplicationUserManager(new UserStore<ApplicationUser>(context));
+                var user = userManager.FindByName(userName);
+                if (user == null || user.EmailConfirmed || string.IsNullOrWhiteSpace(user.Email)) return false;
+
+                var confirmationUrl = ConfigurationManager.AppSettings["Frontend:EmailConfirmationUrl"];
+                if (string.IsNullOrWhiteSpace(confirmationUrl)) confirmationUrl = "http://localhost:5173/confirm-email";
+                var token = EmailConfirmationTokens.Issue(context, user);
+                var callbackUrl = string.Format("{0}?userId={1}&code={2}", confirmationUrl,
+                    Uri.EscapeDataString(user.Id), Uri.EscapeDataString(token));
+                var displayName = string.Join(" ", new[] { user.FirstName, user.OtherNames }
+                    .Where(value => !string.IsNullOrWhiteSpace(value)));
+                if (string.IsNullOrWhiteSpace(displayName)) displayName = user.UserName;
+
+                var body = new StringBuilder()
+                    .AppendFormat("Dear {0},<br /><br />", HttpUtility.HtmlEncode(displayName))
+                    .Append("A new Swift Financial email-confirmation link was requested for your account.<br /><br />")
+                    .AppendFormat("Username: <strong>{0}</strong><br /><br />", HttpUtility.HtmlEncode(user.UserName))
+                    .AppendFormat("<a href=\"{0}\">Confirm your email address</a><br /><br />", HttpUtility.HtmlAttributeEncode(callbackUrl))
+                    .Append("This link expires after the configured confirmation-token lifetime. If you did not request it, contact your administrator.")
+                    .ToString();
+
+                var emailAlert = _emailAlertAppService.AddNewEmailAlert(new EmailAlertDTO
+                {
+                    BranchId = user.BranchId,
+                    MailMessageFrom = DefaultSettings.Instance.RootEmail,
+                    MailMessageTo = user.Email.Trim(),
+                    MailMessageSubject = "Swift Financial - Confirm Your Email",
+                    MailMessageBody = body,
+                    MailMessageIsBodyHtml = true,
+                    MailMessageOrigin = (int)MessageOrigin.Within,
+                    MailMessagePriority = (int)QueuePriority.Highest,
+                    MailMessageSecurityCritical = true
+                }, serviceHeader);
+
+                return emailAlert != null;
+            }
+        }
+
         public bool ResetUserPassword(string userName)
         {
             if (string.IsNullOrWhiteSpace(userName))
@@ -276,7 +483,8 @@ namespace WebApplication1.Areas.Identity.Services
 
             using (var context = new ApplicationDbContext("AuthStore"))
             {
-                var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(context));
+                // Use the same configured manager/password hasher as AuthController.Login.
+                var userManager = new ApplicationUserManager(new UserStore<ApplicationUser>(context));
                 var user = userManager.FindByName(userName.Trim());
 
                 if (user == null)
@@ -285,6 +493,8 @@ namespace WebApplication1.Areas.Identity.Services
                     throw new InvalidOperationException("The selected user does not have an email address.");
 
                 var temporaryPassword = GenerateTemporaryPassword();
+                var resetReference = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
+                var resetIssuedUtc = DateTime.UtcNow;
 
                 // An administrator does not need to know the existing password. Clearing this date
                 // activates AuthController's existing forced-password-change flow on the next login.
@@ -294,9 +504,14 @@ namespace WebApplication1.Areas.Identity.Services
                 user.AccessFailedCount = 0;
                 user.LockoutEndDateUtc = null;
 
-                var updateResult = userManager.Update(user);
-                if (!updateResult.Succeeded)
-                    throw new InvalidOperationException(string.Join("; ", updateResult.Errors));
+                // Persist only password workflow state. UserManager.Update also revalidates legacy
+                // profile fields (notably unique email) and can make a valid password reset fail
+                // for an unrelated reason.
+                context.SaveChanges();
+                context.Entry(user).Reload();
+
+                if (userManager.PasswordHasher.VerifyHashedPassword(user.PasswordHash, temporaryPassword) == PasswordVerificationResult.Failed)
+                    throw new InvalidOperationException("The temporary password could not be verified after it was stored. No reset email was queued; retry the reset.");
 
                 var loginUrl = ConfigurationManager.AppSettings["Frontend:LoginUrl"];
                 if (string.IsNullOrWhiteSpace(loginUrl))
@@ -312,6 +527,9 @@ namespace WebApplication1.Areas.Identity.Services
                     .Append("An administrator has reset your Swift Financial password.<br /><br />")
                     .AppendFormat("Username: <strong>{0}</strong><br />", HttpUtility.HtmlEncode(user.UserName))
                     .AppendFormat("Temporary password: <strong>{0}</strong><br /><br />", HttpUtility.HtmlEncode(temporaryPassword))
+                    .AppendFormat("Reset reference: <strong>{0}</strong><br />", resetReference)
+                    .AppendFormat("Issued: {0:dd MMM yyyy HH:mm} UTC<br /><br />", resetIssuedUtc)
+                    .Append("If you receive more than one reset email, only the most recently issued temporary password will work.<br /><br />")
                     .Append("You must change this temporary password when you next sign in.<br /><br />")
                     .AppendFormat("<a href=\"{0}\">Access Swift Financial</a>", HttpUtility.HtmlAttributeEncode(loginUrl))
                     .ToString();
@@ -321,7 +539,7 @@ namespace WebApplication1.Areas.Identity.Services
                     BranchId = user.BranchId,
                     MailMessageFrom = DefaultSettings.Instance.RootEmail,
                     MailMessageTo = user.Email,
-                    MailMessageSubject = "Swift Financial - Password Reset",
+                    MailMessageSubject = string.Format("Swift Financial - Password Reset [{0}]", resetReference),
                     MailMessageBody = emailBody,
                     MailMessageIsBodyHtml = true,
                     MailMessageOrigin = (int)MessageOrigin.Within,

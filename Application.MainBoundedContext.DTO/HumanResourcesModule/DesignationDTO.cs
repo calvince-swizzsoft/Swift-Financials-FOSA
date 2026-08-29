@@ -112,6 +112,8 @@ namespace Application.MainBoundedContext.DTO.HumanResourcesModule
         [Display(Name = "UserName")]
         public string ActiveUser { get; set; }
 
+        [DataMember]
+        [Display(Name = "Transaction Thresholds")]
         public ObservableCollection<TransactionThresholdDTO> TransactionThresholds { get; set; }
 
 

@@ -108,7 +108,11 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                     _zoneRepository.Merge(persisted, current, serviceHeader);
                 }
 
-                return await dbContextScope.SaveChangesAsync(serviceHeader) > 0;
+                // Saving an unchanged zone is still a successful update. The
+                // zone drawer intentionally saves details before its separate
+                // stations PUT, so a station-only edit produces zero changed
+                // zone rows and must not stop that second request with a 500.
+                return persisted != null && await dbContextScope.SaveChangesAsync(serviceHeader) >= 0;
             }
         }
 
@@ -285,63 +289,64 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
         public async Task<bool> UpdateStationsAsync(Guid zoneId, List<StationDTO> stations, ServiceHeader serviceHeader)
         {
+            stations = stations ?? new List<StationDTO>();
+
+            foreach (var station in stations)
+            {
+                station.ValidateAll();
+                if (station.HasErrors)
+                    throw new InvalidOperationException(string.Join(Environment.NewLine, station.ErrorMessages));
+            }
+
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var persisted = await _zoneRepository.GetAsync(zoneId, serviceHeader);
 
-                if (persisted != null)
+                if (persisted == null)
+                    return false;
+
+                var persistedStations = persisted.Stations != null
+                    ? persisted.Stations.ToList()
+                    : new List<Station>();
+                var retainedIds = new HashSet<Guid>(
+                    stations.Where(item => item.Id != Guid.Empty).Select(item => item.Id));
+
+                foreach (var existing in persistedStations.Where(item => !retainedIds.Contains(item.Id)))
                 {
-                    if (persisted.Stations != null && persisted.Stations.Any())
-                    {
-                        foreach (var station in persisted.Stations.ToList())
-                        {
-                            var filter = CustomerSpecifications.CustomerWithStationId(station.Id, string.Empty, (int)CustomerFilter.Reference1);
+                    var filter = CustomerSpecifications.CustomerWithStationId(
+                        existing.Id, string.Empty, (int)CustomerFilter.Reference1);
+                    ISpecification<Customer> spec = filter;
+                    var customers = await _customerRepository.AllMatchingAsync(spec, serviceHeader);
 
-                            ISpecification<Customer> spec = filter;
-
-                            var customers = await _customerRepository.AllMatchingAsync(spec, serviceHeader);
-
-                            if (!(customers != null && customers.Any()))
-                            {
-                                _stationRepository.Remove(station, serviceHeader);
-                            }
-                        }
-                    }
-
-                    if (stations.Any())
-                    {
-                        foreach (var item in stations)
-                        {
-                            if (item.Id == Guid.Empty)
-                            {
-                                var address = new Address(item.AddressAddressLine1, item.AddressAddressLine2, item.AddressStreet, item.AddressPostalCode, item.AddressCity, item.AddressEmail, item.AddressLandLine, item.AddressMobileLine);
-
-                                var station = StationFactory.CreateStation(persisted.Id, item.Description, address);
-
-                                _stationRepository.Add(station, serviceHeader);
-                            }
-                            else
-                            {
-                                var filter = CustomerSpecifications.CustomerWithStationId(item.Id, string.Empty, (int)CustomerFilter.Reference1);
-
-                                ISpecification<Customer> spec = filter;
-
-                                var customers = await _customerRepository.AllMatchingAsync(spec, serviceHeader);
-
-                                if (!(customers != null && customers.Any()))
-                                {
-                                    var address = new Address(item.AddressAddressLine1, item.AddressAddressLine2, item.AddressStreet, item.AddressPostalCode, item.AddressCity, item.AddressEmail, item.AddressLandLine, item.AddressMobileLine);
-
-                                    var station = StationFactory.CreateStation(persisted.Id, item.Description, address);
-
-                                    _stationRepository.Add(station, serviceHeader);
-                                }
-                            }
-                        }
-                    }
+                    if (!(customers != null && customers.Any()))
+                        _stationRepository.Remove(existing, serviceHeader);
                 }
 
-                return await dbContextScope.SaveChangesAsync(serviceHeader) > 0;
+                foreach (var item in stations)
+                {
+                    var address = new Address(
+                        item.AddressAddressLine1, item.AddressAddressLine2,
+                        item.AddressStreet, item.AddressPostalCode,
+                        item.AddressCity, item.AddressEmail,
+                        item.AddressLandLine, item.AddressMobileLine);
+
+                    if (item.Id == Guid.Empty)
+                    {
+                        _stationRepository.Add(
+                            StationFactory.CreateStation(persisted.Id, item.Description, address),
+                            serviceHeader);
+                        continue;
+                    }
+
+                    var existing = persistedStations.SingleOrDefault(station => station.Id == item.Id);
+                    if (existing == null)
+                        throw new InvalidOperationException("A station does not belong to the selected zone.");
+
+                    existing.Description = item.Description;
+                    existing.Address = address;
+                }
+
+                return await dbContextScope.SaveChangesAsync(serviceHeader) >= 0;
             }
         }
 

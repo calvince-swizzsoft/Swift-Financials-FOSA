@@ -13,6 +13,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Configuration;
+using System.Diagnostics;
 using System.Web.Hosting;
 using WebApplication1.Helpers;
 
@@ -421,12 +422,30 @@ namespace WebApplication1.Controllers
                 if (request.Referees != null && request.Referees.Any())
                     await _customerAppService.UpdateRefereeCollectionAsync(createdCustomer.Id, request.Referees, serviceHeader);
 
-                SaveRegistrationImages(request.Customer, createdCustomer, serviceHeader);
+                string imageWarning = null;
+                try
+                {
+                    SaveRegistrationImages(request.Customer, createdCustomer, serviceHeader);
+                }
+                catch (Exception imageException)
+                {
+                    // The customer is already committed before media is sent
+                    // to SQL FILESTREAM. Do not report the whole registration
+                    // as failed (which encourages a duplicate retry); return a
+                    // successful registration with an actionable warning.
+                    var correlationId = WebApplication1.ApiErrors.CorrelationIdHandler.GetCorrelationId(Request);
+                    Trace.TraceError(
+                        "Customer registration image save failed. CorrelationId={0} CustomerId={1} Exception={2}",
+                        correlationId, createdCustomer.Id, imageException);
+                    imageWarning = "Customer created, but one or more registration images could not be saved. " +
+                        "Ask an administrator to check SQL FILESTREAM access. Do not register the customer again.";
+                }
 
                 return Content(HttpStatusCode.Created, new
                 {
                     success = true,
-                    message = "Customer created successfully",
+                    message = imageWarning ?? "Customer created successfully",
+                    warning = imageWarning,
                     data = createdCustomer
                 });
             }
@@ -533,17 +552,52 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+                var customer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
+                if (customer == null)
+                    return ErrorResponse(HttpStatusCode.NotFound, "Customer not found. The alert preferences were not changed.");
 
-                var updated = await _customerAppService.UpdateAccountAlertCollectionAsync(id, accountAlerts ?? new List<AccountAlertDTO>(), serviceHeader);
+                var requestedAlerts = accountAlerts ?? new List<AccountAlertDTO>();
+                for (var index = 0; index < requestedAlerts.Count; index++)
+                {
+                    var item = requestedAlerts[index];
+                    var row = index + 1;
+                    if (item == null)
+                        return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Account alert {0} is empty.", row));
+                    if (!Enum.IsDefined(typeof(SystemTransactionCode), (int)item.Type))
+                        return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Account alert {0} has an invalid transaction type. Remove it and select an available transaction type.", row));
+                    if (item.Threshold < 0)
+                        return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Account alert {0} has a negative threshold. Enter zero or a positive amount.", row));
+                    if (!Enum.IsDefined(typeof(QueuePriority), (int)item.Priority))
+                        return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Account alert {0} has an invalid priority. Select Lowest through Highest.", row));
+                    if (!item.ReceiveTextAlert && !item.ReceiveEmailAlert)
+                        return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Account alert {0} needs at least one delivery channel. Select SMS, email, or both.", row));
+                }
+
+                if (requestedAlerts.GroupBy(item => item.Type).Any(group => group.Count() > 1))
+                    return ErrorResponse(HttpStatusCode.BadRequest, "Only one account alert preference is allowed per transaction type.");
+
+                var existing = await _customerAppService.FindAccountAlertCollectionAsync(id, serviceHeader) ?? new List<AccountAlertDTO>();
+                var updated = await _customerAppService.UpdateAccountAlertCollectionAsync(id, requestedAlerts, serviceHeader);
+                // Replacing an already-empty collection with another empty collection is a valid no-op.
+                if (!updated && !existing.Any() && !requestedAlerts.Any())
+                    return ApiResponse(true, "Account alerts were already empty", requestedAlerts);
+
                 if (!updated)
-                    return ErrorResponse(HttpStatusCode.InternalServerError, "Failed to update account alerts");
+                    return ErrorResponse(HttpStatusCode.InternalServerError, "The account alert changes were valid but the database did not save them. No success has been reported; retry once, then give the administrator the request reference shown by the UI.");
 
                 var refreshed = await _customerAppService.FindAccountAlertCollectionAsync(id, serviceHeader);
                 return ApiResponse(true, "Account alerts updated successfully", refreshed);
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                throw;
+                var correlationId = WebApplication1.ApiErrors.CorrelationIdHandler.GetCorrelationId(Request);
+                Trace.TraceError("Account alert update failed. CorrelationId={0} CustomerId={1} Exception={2}", correlationId, id, exception);
+                return Content(HttpStatusCode.InternalServerError, new
+                {
+                    success = false,
+                    message = "The server could not save the account alert preferences. The failure was logged for investigation; use the reference below instead of retrying repeatedly.",
+                    correlationId
+                });
             }
         }
 

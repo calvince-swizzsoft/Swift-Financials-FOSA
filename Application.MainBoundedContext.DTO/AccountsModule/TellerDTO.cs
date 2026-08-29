@@ -59,7 +59,17 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Upper Limit")]
+        [CustomValidation(typeof(TellerDTO), "ValidateRange", ErrorMessage = "The upper limit must be greater than the lower limit, and both limits must be zero or greater.")]
         public decimal RangeUpperLimit { get; set; }
+
+        public static ValidationResult ValidateRange(object value, ValidationContext context)
+        {
+            var teller = context.ObjectInstance as TellerDTO;
+            if (teller == null || teller.RangeLowerLimit < 0m || teller.RangeUpperLimit < 0m || teller.RangeUpperLimit <= teller.RangeLowerLimit)
+                return new ValidationResult("The upper limit must be greater than the lower limit, and both limits must be zero or greater.");
+
+            return ValidationResult.Success;
+        }
 
         [DataMember]
         [Display(Name = "Mini Statement Items Cap")]

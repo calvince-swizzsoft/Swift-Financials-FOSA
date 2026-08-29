@@ -119,5 +119,13 @@ namespace Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveApplica
 
             return specification;
         }
+
+        public static Specification<LeaveApplication> OverlappingActiveLeaveApplications(Guid employeeId, DateTime startDate, DateTime endDate)
+        {
+            return new DirectSpecification<LeaveApplication>(x =>
+                x.EmployeeId == employeeId &&
+                (x.Status == (int)LeaveApplicationStatus.Pending || x.Status == (int)LeaveApplicationStatus.Approved) &&
+                x.Duration.StartDate <= endDate && x.Duration.EndDate >= startDate);
+        }
     }
 }

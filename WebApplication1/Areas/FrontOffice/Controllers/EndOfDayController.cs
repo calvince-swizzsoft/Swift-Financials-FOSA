@@ -265,6 +265,25 @@ namespace WebApplication1.Controllers
                 }
                 else
                 {
+                    if (SelectedTreasury == null)
+                    {
+                        IsBusy = false;
+                        return Json(new { success = false, message = "Operation error: No treasury is configured for the teller's branch." });
+                    }
+
+                    var balanceLimitError = _treasuryAppService.ValidateCashMovement(
+                        SelectedTreasury.Id,
+                        null,
+                        model.TotalValue,
+                        (int)TreasuryTransactionType.TellerToTreasury,
+                        serviceHeader);
+
+                    if (!string.IsNullOrWhiteSpace(balanceLimitError))
+                    {
+                        IsBusy = false;
+                        return Json(new { success = false, message = "Operation error: " + balanceLimitError });
+                    }
+
                     var NewFiscalCount = new FiscalCountDTO();
 
                     NewFiscalCount.TransactionCode = (int)SystemTransactionCode.TellerEndOfDay;

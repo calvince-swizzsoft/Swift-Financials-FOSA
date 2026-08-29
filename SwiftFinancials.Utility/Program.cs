@@ -158,6 +158,10 @@ namespace SwiftFinancials.Utility
                     {
                         UserName = AdminUserName,
                         Email = "admin@localhost",
+                        // This machine-local bootstrap account cannot receive an email. Its trust
+                        // comes from the one-time credential printed only on the server console,
+                        // followed by the mandatory first-login password change.
+                        EmailConfirmed = true,
                         FirstName = "System",
                         OtherNames = "Administrator",
                         CreatedDate = DateTime.Now
@@ -181,6 +185,21 @@ namespace SwiftFinancials.Utility
                     Console.WriteLine(" This is printed once and is not recoverable - record it now.");
                     Console.WriteLine("==================================================================");
                     Console.WriteLine();
+                }
+
+                // Compatibility repair for bootstrap accounts created by earlier utility builds.
+                // The username, role, absent employee/customer links, and first-login state prevent
+                // this from confirming normal administrator-created users or arbitrary legacy accounts.
+                var existingBootstrapAdmin = identityContext.Users.SingleOrDefault(user =>
+                    user.UserName == AdminUserName && !user.EmployeeId.HasValue &&
+                    !user.CustomerId.HasValue && !user.LastPasswordChangedDate.HasValue);
+                var isBootstrapAdministrator = existingBootstrapAdmin != null &&
+                    userManager.IsInRole(existingBootstrapAdmin.Id, RoleName);
+                if (isBootstrapAdministrator && !existingBootstrapAdmin.EmailConfirmed)
+                {
+                    existingBootstrapAdmin.EmailConfirmed = true;
+                    identityContext.SaveChanges();
+                    Console.WriteLine("Confirmed the legacy bootstrap administrator account.");
                 }
             }
 

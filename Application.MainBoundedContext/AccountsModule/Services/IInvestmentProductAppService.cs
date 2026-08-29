@@ -12,6 +12,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         bool UpdateInvestmentProduct(InvestmentProductDTO investmentProductDTO, ServiceHeader serviceHeader);
 
+        IDictionary<string, string[]> ValidateInvestmentProduct(InvestmentProductDTO investmentProductDTO, ServiceHeader serviceHeader);
+
         List<InvestmentProductDTO> FindInvestmentProducts(ServiceHeader serviceHeader);
 
         List<InvestmentProductDTO> FindCachedInvestmentProducts(ServiceHeader serviceHeader);

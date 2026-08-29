@@ -22,6 +22,9 @@ namespace WebApplication1.Helpers
             Guid applicationUserBranchId;
             var branchClaim = principal?.FindFirst("BranchId")?.Value;
             var hasApplicationUserBranch = Guid.TryParse(branchClaim, out applicationUserBranchId);
+            Guid applicationUserEmployeeId;
+            var employeeClaim = principal?.FindFirst("EmployeeId")?.Value;
+            var hasApplicationUserEmployee = Guid.TryParse(employeeClaim, out applicationUserEmployeeId);
 
             return new ServiceHeader
             {
@@ -29,6 +32,8 @@ namespace WebApplication1.Helpers
                 ApplicationUserName = applicationUserName,   // was hardcoded — now pulled from the validated JWT
                 ApplicationUserRoles = applicationUserRoles,
                 ApplicationUserBranchId = hasApplicationUserBranch ? (Guid?)applicationUserBranchId : null,
+                ApplicationUserEmployeeId = hasApplicationUserEmployee ? (Guid?)applicationUserEmployeeId : null,
+                EnforceTransactionThresholds = principal?.Identity?.IsAuthenticated == true,
                 EnvironmentDomainName = "SwiftApis",
                 EnvironmentIPAddress = HttpContext.Current?.Request?.UserHostAddress ?? "",
                 EnvironmentMACAddress = "",

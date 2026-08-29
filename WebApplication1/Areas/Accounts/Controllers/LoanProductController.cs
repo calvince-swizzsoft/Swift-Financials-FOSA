@@ -3,6 +3,7 @@ using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -150,56 +151,33 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                if (request.LoanProduct.HasErrors)
+                var businessErrors = _loanProductAppService.ValidateLoanProduct(request.LoanProduct, serviceHeader);
+                if (request.LoanProduct.HasErrors || businessErrors.Any())
                 {
-                    return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", request.LoanProduct.ErrorMessages), data = (object)null });
+                    var messages = request.LoanProduct.ErrorMessages.Concat(businessErrors.SelectMany(item => item.Value)).Distinct().ToArray();
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", messages), validationErrors = businessErrors, data = (object)null });
                 }
 
-                var created = _loanProductAppService.AddNewLoanProduct(request.LoanProduct, serviceHeader);
+                var created = _loanProductAppService.AddNewLoanProductConfiguration(new LoanProductConfigurationDTO
+                {
+                    LoanProduct = request.LoanProduct,
+                    Deductibles = request.Deductibles,
+                    LoanCycles = request.LoanCycles,
+                    AuxiliaryConditions = request.AuxiliaryConditions,
+                    AuxiliaryAppraisalFactors = request.AuxiliaryAppraisalFactors,
+                    DynamicCharges = request.DynamicCharges,
+                    AppraisalProducts = request.AppraisalProducts,
+                    Commissions = request.Commissions,
+                    CommissionKnownChargeType = request.CommissionKnownChargeType,
+                    CommissionChargeBasisValue = request.CommissionChargeBasisValue
+                }, serviceHeader);
 
                 if (created == null)
                 {
                     return Content(HttpStatusCode.BadRequest, new { success = false, message = "Sorry, but the loan product could not be created.", data = (object)null });
                 }
 
-                if (request.Deductibles != null)
-                {
-                    _loanProductAppService.UpdateLoanProductDeductibles(created.Id, request.Deductibles, serviceHeader);
-                }
-
-                if (request.LoanCycles != null)
-                {
-                    _loanProductAppService.UpdateLoanCycles(created.Id, request.LoanCycles, serviceHeader);
-                }
-
-                if (request.AuxiliaryConditions != null)
-                {
-                    _loanProductAppService.UpdateLoanProductAuxiliaryConditions(created.Id, request.AuxiliaryConditions, serviceHeader);
-                }
-
-                if (request.AuxiliaryAppraisalFactors != null)
-                {
-                    _loanProductAppService.UpdateLoanProductAuxilliaryAppraisalFactors(created.Id, request.AuxiliaryAppraisalFactors, serviceHeader);
-                }
-
-                if (request.DynamicCharges != null)
-                {
-                    _loanProductAppService.UpdateDynamicCharges(created.Id, request.DynamicCharges, serviceHeader);
-                }
-
-                if (request.AppraisalProducts != null)
-                {
-                    _loanProductAppService.UpdateAppraisalProducts(created.Id, request.AppraisalProducts, serviceHeader);
-                }
-
-                if (request.Commissions != null)
-                {
-                    _loanProductAppService.UpdateCommissions(created.Id, request.Commissions, request.CommissionKnownChargeType, request.CommissionChargeBasisValue, serviceHeader);
-                }
-
-                var refreshed = _loanProductAppService.FindLoanProduct(created.Id, serviceHeader);
-
-                return Ok(new { success = true, message = "Operation Success", data = refreshed });
+                return Ok(new { success = true, message = "Operation Success", data = created });
             }
             catch (Exception)
             {
@@ -226,9 +204,11 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                if (loanProductDTO.HasErrors)
+                var businessErrors = _loanProductAppService.ValidateLoanProduct(loanProductDTO, serviceHeader);
+                if (loanProductDTO.HasErrors || businessErrors.Any())
                 {
-                    return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", loanProductDTO.ErrorMessages), data = (object)null });
+                    var messages = loanProductDTO.ErrorMessages.Concat(businessErrors.SelectMany(item => item.Value)).Distinct().ToArray();
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", messages), validationErrors = businessErrors, data = (object)null });
                 }
 
                 var updated = _loanProductAppService.UpdateLoanProduct(loanProductDTO, serviceHeader);

@@ -32,7 +32,7 @@ sections instead of conditionally-rendered Razor partials.
 |---|---|---|
 | Customer Account picker | `CreditCustomerAccountId` | Always this field, even for withdrawals — the server flips debit/credit internally based on `Type`. Do not build a separate debit-account picker. |
 | Amount | `TotalValue` | |
-| Branch | `BranchId` | Pull from session/JWT, not a visible input. |
+| Branch | *(server-owned)* | Inferred from the authenticated employee's teller linkage. The client omits `BranchId`; `GET /api/frontoffice/requests/context` supplies the read-only display value. |
 
 ### Group 2 — Cheque Deposit only (`Type == 3`)
 | Field | Payload path |

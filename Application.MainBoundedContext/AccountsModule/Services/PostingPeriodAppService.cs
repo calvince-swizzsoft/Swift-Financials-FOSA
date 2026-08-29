@@ -116,7 +116,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     if (postingPeriodDTO.IsActive && !persisted.IsActive)
                         ActivatePostingPeriod(persisted.Id, serviceHeader);
 
-                    return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                    var saved = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                    if (saved)
+                        _appCache.Remove(string.Format("CurrentPostingPeriod_{0}", serviceHeader.ApplicationDomainName));
+
+                    return saved;
                 }
                 else return false;
             }
@@ -385,7 +389,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         persisted.ClosedBy = serviceHeader.ApplicationUserName;
                         persisted.ClosedDate = DateTime.Now;
 
-                        return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        var saved = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        if (saved)
+                            _appCache.Remove(string.Format("CurrentPostingPeriod_{0}", serviceHeader.ApplicationDomainName));
+
+                        return saved;
                     }
                     else return false;
                 }

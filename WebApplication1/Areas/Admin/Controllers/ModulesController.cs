@@ -8,6 +8,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
 using WebApplication1.Areas.Identity;
+using WebApplication1.Areas.Identity.Services;
+using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Infrastructure.Crosscutting.Framework.Utils;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
@@ -23,18 +26,26 @@ namespace WebApplication1.Areas.Admin.Controllers
         private readonly INavigationItemInRoleAppService _navigationItemInRoleAppService;
 
         private readonly ApplicationUserManager _applicationUserManager;
+        private readonly ILeaveApplicationAppService _leaveApplicationAppService;
+        private readonly UserManagerService _userManagerService;
+
+        private const int LeaveApprovalModuleCode = 22017;
 
 
         public ModulesController(IAuthorizationAppService authorizationAppService,
             INavigationItemAppService navigationItemAppService,
             INavigationItemInRoleAppService navigationItemInRoleAppService,
-            ApplicationUserManager applicationUserManager
+            ApplicationUserManager applicationUserManager,
+            ILeaveApplicationAppService leaveApplicationAppService,
+            UserManagerService userManagerService
             )
         {
             _authorizationAppService = authorizationAppService;
             _navigationItemAppService = navigationItemAppService;
             _navigationItemInRoleAppService = navigationItemInRoleAppService;
             _applicationUserManager = applicationUserManager;
+            _leaveApplicationAppService = leaveApplicationAppService;
+            _userManagerService = userManagerService;
         }
 
 
@@ -235,6 +246,30 @@ namespace WebApplication1.Areas.Admin.Controllers
 
             try
             {
+
+                var removesLeaveApproval = false;
+                foreach (var navigationItemId in navigationItemIds)
+                {
+                    var navigationItem = await _navigationItemAppService.FindNavigationItemAsync(navigationItemId, serviceHeader);
+                    if (navigationItem != null && navigationItem.Code == LeaveApprovalModuleCode)
+                    {
+                        removesLeaveApproval = true;
+                        break;
+                    }
+                }
+
+                if (removesLeaveApproval)
+                {
+                    var pending = _leaveApplicationAppService.FindLeaveApplications(
+                        (int)LeaveApplicationStatus.Pending, DateTime.MinValue, DateTime.MaxValue, string.Empty, 0, 1, serviceHeader);
+                    var remainingApprovalRoles = (_navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApprovalModuleCode, serviceHeader) ?? new string[0])
+                        .Where(role => !string.Equals(role, NavigationItemToRoleViewModel.RoleName, StringComparison.OrdinalIgnoreCase))
+                        .ToArray();
+
+                    if (pending != null && pending.ItemsCount > 0
+                        && !_userManagerService.HasActiveEmployeeUserInAnyRole(remainingApprovalRoles, serviceHeader))
+                        return BadRequest("This permission cannot be removed because pending leave applications would have no active approver. Assign Leave Approval to another role with an active employee user first.");
+                }
 
                 var result = await _navigationItemInRoleAppService.RemoveNavigationItemsInRoleAsync(navigationItemIds, NavigationItemToRoleViewModel.RoleName, serviceHeader); 
 

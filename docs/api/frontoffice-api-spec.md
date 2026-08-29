@@ -56,6 +56,14 @@ cycle (WORKFLOW.md §5) — deposit, withdrawal, cheque deposit, payment
 voucher — plus the pending-request queue and posting an already-authorized
 request.
 
+### 4.0 Resolve teller context — `GET /context`
+
+Returns the authenticated employee's teller and branch context for display:
+`tellerId`, `tellerDescription`, `tellerCode`, `branchId`,
+`branchDescription`, `isLocked`, and `bookBalance`. It accepts no employee,
+teller, or branch identifier from the client. A missing teller linkage or
+branch linkage returns `409` with a configuration-specific message.
+
 ### 4.1 List pending/authorized requests — `GET /`
 
 Query params: `type` (optional — `2` = CashDeposit, `1` = CashWithdrawal),
@@ -81,12 +89,18 @@ Query params: `type` (optional — `2` = CashDeposit, `1` = CashWithdrawal),
 
 Body: `CustomerTransactionModel` — `Type` (`FrontOfficeTransactionType`:
 `CashDeposit=2`, `CashWithdrawal=1`, `ChequeDeposit=3`,
-`CashWithdrawalPaymentVoucher=4`), `CreditCustomerAccountId`, `BranchId`,
+`CashWithdrawalPaymentVoucher=4`), `CreditCustomerAccountId`,
 `TotalValue`, plus type-specific fields (`Drawer`/`DrawerBank`/`ChequeType`
 for cheque deposits, `PaymentVoucher` for voucher withdrawals). `ChequeType`
 is `Guid?` — omit it (or send `null`) if the teller doesn't select a cheque
 type; the cheque then matures the same day it's deposited
 (`ChequeType.MaturityPeriod` drives this when one is selected).
+
+`BranchId` is not a client input. The API always replaces any supplied
+value with the authenticated employee's teller branch before resolving the
+branch, product, posting description, journal, or workflow. Clients should
+omit it entirely and may use `GET /context` to show the inferred branch as
+read-only operator context.
 
 **`ChequeDeposit` does not credit the customer's spendable balance.** Unlike
 `CashDeposit`, a cheque deposit posts its credit leg to the
@@ -762,10 +776,43 @@ front-office-specific approval endpoint. Once a request is `Pending`:
 That drives `WorkflowProcessorAppService`, which calls the underlying
 `AuthorizeCashDepositRequest`/`AuthorizeCashWithdrawalRequest`/
 `AuthorizeExpensePayable` app-service method itself and records a
-`WorkflowItem` audit row — do not call any front-office endpoint directly
-to approve a request; there isn't one (the one that used to exist,
+`WorkflowItem` audit row. The dedicated cash-withdrawal screen in §18
+still submits its decision through this workflow endpoint; it does not
+bypass maker-checker. Do not call a front-office endpoint directly to
+approve a request; there isn't one (the one that used to exist,
 `CashDepositController`'s `POST /authorize`, was removed for bypassing
 this engine — see WORKFLOW.md §11).
+
+---
+
+## 18. Cash withdrawal requests — `api/frontoffice/cash-withdrawal-requests`
+
+This is the dedicated Treasury screen described by the supplied Cash
+Withdrawal Request process guide. Its resource endpoints delegate to
+`ICashWithdrawalRequestAppService`; authorization remains in the generic
+workflow engine described in §17.
+
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/` | Paged browse by `status`, optional date range, text and `customerFilter` |
+| `GET` | `/{id}` | Retrieve one request |
+| `POST` | `/` | Lodge a manual withdrawal notice and create its approval workflow |
+
+Create accepts the selected customer-account context, `Type` (`0`
+Immediate Notice, `1` Future Notice), positive `Amount`, and required
+`Remarks`. The API owns `Status`, `Category`, and `TransactionType`; a
+client cannot forge those lifecycle fields. Future notice maturity is
+calculated by the AppService from the savings product withdrawal-notice
+period and holiday calendar.
+
+The screen loads the caller-scoped `GET
+/api/administration/workflows/items/mine` queue and only offers a decision
+when the caller has an unlocked workflow item with permission type
+`CashWithdrawalRequestAuthorization` (`44992`) whose `WorkflowRecordId`
+matches the request. It submits the decision through `POST
+/api/administration/workflows/items/approve`. Users without that workflow
+authority may still see the request (subject to module access), but receive
+an informational explanation instead of a non-functional action.
 
 ---
 
@@ -792,7 +839,7 @@ which seeded entry (if any) corresponds to which controller here.
 | Front-Office → Operations | *(submenu)* | `0x000061A8 + 1` |
 | → Operations → Treasury | *(submenu)* | `0x000061A8 + 2` |
 | → → Treasury → Cash Management | §5 `CashManagementController` | `0x000061A8 + 3` |
-| → → Treasury → Authorizations | §4 cash withdrawal approvals (superseded — see §18, this now goes through the generic workflow inbox, not a dedicated screen) | `0x000061A8 + 4` |
+| → → Treasury → Cash Withdrawal Requests | §18 dedicated request screen; decisions still use the §17 workflow engine | `0x000061A8 + 4` |
 | → Operations → Teller | *(submenu)* | `0x000061A8 + 5` |
 | → → Teller → Savings Receipts/Payments | §4 `CashDepositController` (deposit/withdrawal) | `0x000061A8 + 6` |
 | → → Teller → Sundry Receipts/Payments | §14 `SundryPaymentsController` | `0x000061A8 + 7` |

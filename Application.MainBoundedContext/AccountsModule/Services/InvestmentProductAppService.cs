@@ -19,12 +19,14 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<InvestmentProduct> _investmentProductRepository;
         private readonly IRepository<InvestmentProductExemption> _investmentProductExemptionRepository;
+        private readonly IChartOfAccountAppService _chartOfAccountAppService;
         private readonly IAppCache _appCache;
 
         public InvestmentProductAppService(
            IDbContextScopeFactory dbContextScopeFactory,
            IRepository<InvestmentProduct> investmentProductRepository,
            IRepository<InvestmentProductExemption> investmentProductExemptionRepository,
+           IChartOfAccountAppService chartOfAccountAppService,
            IAppCache appCache)
         {
             if (dbContextScopeFactory == null)
@@ -35,6 +37,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             if (investmentProductExemptionRepository == null)
                 throw new ArgumentNullException(nameof(investmentProductExemptionRepository));
+            if (chartOfAccountAppService == null)
+                throw new ArgumentNullException(nameof(chartOfAccountAppService));
 
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
@@ -42,12 +46,79 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _dbContextScopeFactory = dbContextScopeFactory;
             _investmentProductRepository = investmentProductRepository;
             _investmentProductExemptionRepository = investmentProductExemptionRepository;
+            _chartOfAccountAppService = chartOfAccountAppService;
             _appCache = appCache;
+        }
+
+        public IDictionary<string, string[]> ValidateInvestmentProduct(InvestmentProductDTO dto, ServiceHeader serviceHeader)
+        {
+            var errors = new Dictionary<string, List<string>>();
+            Action<string, string> add = (field, message) =>
+            {
+                List<string> messages;
+                if (!errors.TryGetValue(field, out messages)) errors[field] = messages = new List<string>();
+                messages.Add(message);
+            };
+            if (dto == null)
+            {
+                add("InvestmentProduct", "Investment product details are required.");
+                return errors.ToDictionary(x => x.Key, x => x.Value.ToArray());
+            }
+            if (string.IsNullOrWhiteSpace(dto.Description)) add("Description", "Description is required.");
+            else if (dto.Description.Trim().Length > 256) add("Description", "Description cannot exceed 256 characters.");
+            if (dto.ChartOfAccountId == Guid.Empty) add("ChartOfAccountId", "Chart of Account is required.");
+            else if (_chartOfAccountAppService.FindChartOfAccount(dto.ChartOfAccountId, serviceHeader) == null)
+                add("ChartOfAccountId", "The selected Chart of Account does not exist.");
+            if (dto.MinimumBalance < 0m) add("MinimumBalance", "Minimum balance cannot be negative.");
+            if (dto.MaximumBalance <= 0m) add("MaximumBalance", "Maximum balance must be greater than zero.");
+            else if (dto.MaximumBalance < dto.MinimumBalance) add("MaximumBalance", "Maximum balance cannot be lower than the minimum balance.");
+            if (dto.PoolAmount < 0m) add("PoolAmount", "Pool amount cannot be negative.");
+            if (dto.MaturityPeriod < 0 || dto.MaturityPeriod > short.MaxValue)
+                add("MaturityPeriod", "Maturity period must be between 0 and 32,767 days.");
+            if (double.IsNaN(dto.AnnualPercentageYield) || double.IsInfinity(dto.AnnualPercentageYield) || dto.AnnualPercentageYield < 0d || dto.AnnualPercentageYield > 100d)
+                add("AnnualPercentageYield", "Annual percentage yield must be between 0% and 100%.");
+            if (dto.Priority < 0 || dto.Priority > 3) add("Priority", "Recovery priority must be between 0 and 3.");
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                if (dto.ParentId.HasValue && dto.ParentId.Value != Guid.Empty)
+                {
+                    if (dto.ParentId.Value == dto.Id) add("ParentId", "An investment product cannot be its own parent.");
+                    else if (_investmentProductRepository.Get(dto.ParentId.Value, serviceHeader) == null) add("ParentId", "The selected parent product does not exist.");
+                }
+                if (dto.IsSuperSaver)
+                {
+                    var existingSuperSavers = _investmentProductRepository
+                        .AllMatching(InvestmentProductSpecifications.SuperSavingsProduct(), serviceHeader);
+                    if (existingSuperSavers != null && existingSuperSavers.Any(x => x.Id != dto.Id))
+                        add("IsSuperSaver", "Only one active Super Saver investment product is allowed.");
+                }
+            }
+            if (dto.TransferBalanceToParentOnMembershipTermination && (!dto.ParentId.HasValue || dto.ParentId.Value == Guid.Empty))
+                add("ParentId", "A parent product is required when balances transfer to the parent on termination.");
+            if (dto.IsPooled)
+            {
+                if (!dto.PoolChartOfAccountId.HasValue || dto.PoolChartOfAccountId.Value == Guid.Empty)
+                    add("PoolChartOfAccountId", "Pool G/L Account is required for a pooled product.");
+                else if (_chartOfAccountAppService.FindChartOfAccount(dto.PoolChartOfAccountId.Value, serviceHeader) == null)
+                    add("PoolChartOfAccountId", "The selected Pool G/L Account does not exist.");
+                if (dto.PoolAmount <= 0m) add("PoolAmount", "Pool amount must be greater than zero for a pooled product.");
+                if (dto.PoolChartOfAccountId.HasValue && dto.PoolChartOfAccountId.Value == dto.ChartOfAccountId)
+                    add("PoolChartOfAccountId", "Pool G/L Account must be different from the product G/L Account.");
+            }
+            else
+            {
+                if (dto.PoolChartOfAccountId.HasValue && dto.PoolChartOfAccountId.Value != Guid.Empty)
+                    add("PoolChartOfAccountId", "Pool G/L Account must be empty when the product is not pooled.");
+                if (dto.PoolAmount != 0m) add("PoolAmount", "Pool amount must be zero when the product is not pooled.");
+            }
+            if (dto.ThrottleScheduledArrearsRecovery && !dto.TrackArrears)
+                add("ThrottleScheduledArrearsRecovery", "Track Arrears must be enabled before scheduled arrears recovery can be throttled.");
+            return errors.ToDictionary(x => x.Key, x => x.Value.Distinct().ToArray());
         }
 
         public InvestmentProductDTO AddNewInvestmentProduct(InvestmentProductDTO investmentProductDTO, ServiceHeader serviceHeader)
         {
-            if (investmentProductDTO != null && investmentProductDTO.ChartOfAccountId != Guid.Empty)
+            if (!ValidateInvestmentProduct(investmentProductDTO, serviceHeader).Any())
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
@@ -75,7 +146,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateInvestmentProduct(InvestmentProductDTO investmentProductDTO, ServiceHeader serviceHeader)
         {
-            if (investmentProductDTO == null || investmentProductDTO.Id == Guid.Empty || investmentProductDTO.ChartOfAccountId == Guid.Empty)
+            if (investmentProductDTO == null || investmentProductDTO.Id == Guid.Empty || ValidateInvestmentProduct(investmentProductDTO, serviceHeader).Any())
                 return false;
 
             using (var dbContextScope = _dbContextScopeFactory.Create())

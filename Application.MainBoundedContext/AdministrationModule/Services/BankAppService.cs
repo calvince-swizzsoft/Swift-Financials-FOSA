@@ -75,12 +75,17 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
                 if (persisted != null)
                 {
-                    var current = BankFactory.CreateBank(bankDTO.Code, bankDTO.Description, bankDTO.Address, bankDTO.SwiftCode, bankDTO.IbanNo, bankDTO.City);
-
-                    current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
-
-
-                    _bankRepository.Merge(persisted, current, serviceHeader);
+                    // `No` is database-generated. Merging a newly-created Bank
+                    // copies its default No (0) into the tracked entity, which
+                    // makes EF attempt to update the identity column. Apply only
+                    // caller-editable values and preserve all generated/audit
+                    // fields on the persisted entity.
+                    persisted.Code = (short)bankDTO.Code;
+                    persisted.Description = bankDTO.Description;
+                    persisted.Address = bankDTO.Address;
+                    persisted.SwiftCode = bankDTO.SwiftCode;
+                    persisted.IbanNo = bankDTO.IbanNo;
+                    persisted.City = bankDTO.City;
 
                     return dbContextScope.SaveChanges(serviceHeader) >= 0;
                 }

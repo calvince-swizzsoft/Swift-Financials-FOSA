@@ -99,6 +99,19 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             }
         }
 
+        public string[] GetRolesForNavigationItemCode(int navigationItemCode, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                ISpecification<NavigationItemInRole> spec = NavigationItemInRoleSpecifications.NavigationItemCode(navigationItemCode);
+                var navigationItemsInRoles = _NavigationItemInRoleRepository.AllMatching(spec, serviceHeader);
+
+                return navigationItemsInRoles != null && navigationItemsInRoles.Any()
+                    ? navigationItemsInRoles.Select(item => item.RoleName).ToArray()
+                    : null;
+            }
+        }
+
         public async Task<bool> IsNavigationItemInRoleAsync(int navigationItemCode, string roleName, ServiceHeader serviceHeader)
         {
             if (roleName == null)

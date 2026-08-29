@@ -28,8 +28,6 @@ namespace WebApplication1.Controllers
 
         private readonly ITreasuryAppService _treasuryAppService;
 
-        private readonly IBankAppService _bankAppService;
-
         private readonly IBranchAppService _branchAppService;
 
         private readonly IBankLinkageAppService _bankLinkageAppService;
@@ -46,7 +44,6 @@ namespace WebApplication1.Controllers
         public CashManagementController(
             IPostingPeriodAppService postingPeriodAppService,
             ITreasuryAppService treasuryAppService,
-            IBankAppService bankAppService,
             ITellerAppService tellerAppService,
             IChartOfAccountAppService chartOfAccountAppService,
             IFiscalCountAppService fiscalCountAppService,
@@ -58,7 +55,6 @@ namespace WebApplication1.Controllers
         {
             _postingPeriodAppService = postingPeriodAppService;
             _treasuryAppService = treasuryAppService;
-            _bankAppService = bankAppService;
             _tellerAppService = tellerAppService;
             _chartOfAccountAppService = chartOfAccountAppService;
             _fiscalCountAppService = fiscalCountAppService;
@@ -166,24 +162,18 @@ namespace WebApplication1.Controllers
 
                 try
                 {
+                    Guid? destinationTreasuryId = null;
+
                     switch ((TreasuryTransactionType)treasuryTransactionType)
                     {
                         case TreasuryTransactionType.BankToTreasury:
 
                          
-                            var sendingBank = _bankAppService.FindBank(fiscalCountDTO.Id, serviceHeader);
-                            if (sendingBank == null)
-                            {
-
-                                return Json(new { success = false, message = "Operation Failed: Sending bank not found" });
-                            }
-
-                            var matchingBankLinkage = _bankLinkageAppService.FindBankLinkageByBankAccountId(fiscalCountDTO.Id, serviceHeader);
-                           // var matchingBankLinkage = bankLinkages.FirstOrDefault(li => li.BankName == sendingBank.Description);
-                            if (matchingBankLinkage == null)
-                            {
-                                return Json(new { success = false, message = "Operation Failed: No matching bank linkage found for selected bank account" });
-                            }
+                            BankLinkageDTO matchingBankLinkage;
+                            var bankToTreasuryLinkageError = _bankLinkageAppService.ValidateTreasuryCashMovementLinkage(
+                                fiscalCountDTO.Id, ActiveTreasury.BranchId, out matchingBankLinkage, serviceHeader);
+                            if (!string.IsNullOrWhiteSpace(bankToTreasuryLinkageError))
+                                return Json(new { success = false, message = bankToTreasuryLinkageError });
 
                             transactionModel.CreditChartOfAccountId = matchingBankLinkage.ChartOfAccountId;
                             transactionModel.DebitChartOfAccountId = ActiveTreasury.ChartOfAccountId;
@@ -202,27 +192,25 @@ namespace WebApplication1.Controllers
                             }
                             transactionModel.DebitChartOfAccountId = (Guid)teller.ChartOfAccountId;
                             transactionModel.TransactionCode = (int)SystemTransactionCode.TreasuryToTeller;
+
+                            var tellerLimitError = _tellerAppService.ValidateCashMovement(
+                                teller.Id,
+                                transactionModel.TotalValue,
+                                true,
+                                serviceHeader);
+
+                            if (!string.IsNullOrWhiteSpace(tellerLimitError))
+                                return Json(new { success = false, message = tellerLimitError });
                             break;
 
                         case TreasuryTransactionType.TreasuryToBank:
                             transactionModel.CreditChartOfAccountId = ActiveTreasury.ChartOfAccountId;
 
-                            var receivingBank = _bankAppService.FindBank(fiscalCountDTO.Id, serviceHeader);
-
-                            if (receivingBank == null)
-                            {
-
-                                return Json(new { success = false, message = "Operation Failed: Receiving bank not found" });
-                            }
-
-                            var linkages = _bankLinkageAppService.FindBankLinkages(serviceHeader);
-                            var linkage = linkages.FirstOrDefault(l => l.BankName == receivingBank.Description);
-                            if (linkage == null)
-                            {
-
-                                return Json(new { success = false, message = "Operation Failed: No matching bank linkage found for selected bank account." });
-
-                            }
+                            BankLinkageDTO linkage;
+                            var treasuryToBankLinkageError = _bankLinkageAppService.ValidateTreasuryCashMovementLinkage(
+                                fiscalCountDTO.Id, ActiveTreasury.BranchId, out linkage, serviceHeader);
+                            if (!string.IsNullOrWhiteSpace(treasuryToBankLinkageError))
+                                return Json(new { success = false, message = treasuryToBankLinkageError });
                             transactionModel.DebitChartOfAccountId = linkage.ChartOfAccountId;
                             transactionModel.TransactionCode = (int)SystemTransactionCode.TreasuryToBank;
 
@@ -238,12 +226,24 @@ namespace WebApplication1.Controllers
 
                                 return Json(new { success = false, message = "Operation Failed: Receiving treasury not found" });
                             }
+                            destinationTreasuryId = treasury.Id;
                             transactionModel.DebitChartOfAccountId = treasury.ChartOfAccountId;
                             transactionModel.TransactionCode = (int)SystemTransactionCode.TreasuryToTreasury;
                             break;
                     }
 
                     transactionModel.fiscalCountDTO = fiscalCountDTO;
+
+                    var balanceLimitError = _treasuryAppService.ValidateCashMovement(
+                        ActiveTreasury.Id,
+                        destinationTreasuryId,
+                        transactionModel.TotalValue,
+                        treasuryTransactionType,
+                        serviceHeader);
+
+                    if (!string.IsNullOrWhiteSpace(balanceLimitError))
+                        return Json(new { success = false, message = balanceLimitError });
+
                     //await ProcessTreasuryTransactionAsync(transactionModel);
 
                     switch ((TreasuryTransactionType)treasuryTransactionType)

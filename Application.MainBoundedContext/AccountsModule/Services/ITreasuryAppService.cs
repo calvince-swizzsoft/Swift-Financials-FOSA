@@ -26,5 +26,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         TreasuryDTO FindTreasuryByBranchId(Guid branchId, ServiceHeader serviceHeader);
 
         void FetchTreasuryBalances(List<TreasuryDTO> treasuries, ServiceHeader serviceHeader);
+
+        string ValidateCashMovement(Guid activeTreasuryId, Guid? destinationTreasuryId, decimal amount, int transactionType, ServiceHeader serviceHeader);
     }
 }

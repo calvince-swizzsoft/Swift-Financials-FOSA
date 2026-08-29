@@ -1,6 +1,10 @@
+using System;
+using System.Configuration;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Formatting;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,8 +16,8 @@ namespace WebApplication1.ApiErrors
             HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var response = await base.SendAsync(request, cancellationToken);
-            if (HasStandardError(response) || IsExternalVersionedContract(request) ||
-                (int)response.StatusCode < 400) return response;
+            if (HasStandardError(response) || HasBackendMessage(response) || IsExternalVersionedContract(request) ||
+                (int)response.StatusCode < 400) return AddCorsHeaders(request, response);
 
             string code;
             string message;
@@ -21,13 +25,64 @@ namespace WebApplication1.ApiErrors
 
             var statusCode = response.StatusCode;
             response.Dispose();
-            return ApiErrorResponses.Create(request, statusCode, code, message);
+            return AddCorsHeaders(
+                request,
+                ApiErrorResponses.Create(request, statusCode, code, message));
+        }
+
+        // Web API 2's CORS action filter does not run when routing rejects a
+        // request (for example, 404/405) and can also be bypassed by responses
+        // replaced in a delegating handler. Apply the configured allowlist to
+        // the final response so browser clients can read the real API error.
+        private static HttpResponseMessage AddCorsHeaders(
+            HttpRequestMessage request, HttpResponseMessage response)
+        {
+            if (request == null || response == null ||
+                !request.Headers.Contains("Origin") ||
+                response.Headers.Contains("Access-Control-Allow-Origin"))
+                return response;
+
+            var origin = request.Headers.GetValues("Origin").FirstOrDefault();
+            var configuredOrigins = ConfigurationManager.AppSettings["AllowedCorsOrigins"]
+                ?? "http://localhost:5173";
+            var allowedOrigins = configuredOrigins
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(value => value.Trim())
+                .ToArray();
+            var allowAnyOrigin = allowedOrigins.Contains("*");
+
+            if (!allowAnyOrigin && !allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                return response;
+
+            response.Headers.TryAddWithoutValidation(
+                "Access-Control-Allow-Origin", allowAnyOrigin ? "*" : origin);
+            response.Headers.Vary.Add("Origin");
+            return response;
         }
 
         private static bool HasStandardError(HttpResponseMessage response)
         {
             var objectContent = response != null ? response.Content as ObjectContent : null;
             return objectContent != null && objectContent.Value is ApiErrorResponse;
+        }
+
+        // Controllers frequently return an anonymous { success = false,
+        // message = "..." } body containing the actionable business reason.
+        // Keep that response intact. Replacing it with a status-only generic
+        // message destroys information that the client cannot recover.
+        private static bool HasBackendMessage(HttpResponseMessage response)
+        {
+            var objectContent = response != null ? response.Content as ObjectContent : null;
+            var value = objectContent != null ? objectContent.Value : null;
+            if (value == null) return false;
+
+            var messageProperty = value.GetType().GetProperty(
+                "Message",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+            if (messageProperty == null) return false;
+
+            var message = messageProperty.GetValue(value, null) as string;
+            return !string.IsNullOrWhiteSpace(message);
         }
 
         private static bool IsExternalVersionedContract(HttpRequestMessage request)

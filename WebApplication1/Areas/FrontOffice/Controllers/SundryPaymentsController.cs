@@ -112,6 +112,19 @@ namespace WebApplication1.Controllers
                         return BadRequest("Unsupported transaction type");
                 }
 
+                var increasesTellerBalance =
+                    transactionType == GeneralTransactionType.CashReceipt ||
+                    transactionType == GeneralTransactionType.ChequeReceipt;
+
+                var tellerLimitError = _tellerAppService.ValidateCashMovement(
+                    teller.Id,
+                    request.TotalValue,
+                    increasesTellerBalance,
+                    serviceHeader);
+
+                if (!string.IsNullOrWhiteSpace(tellerLimitError))
+                    return BadRequest(tellerLimitError);
+
                 var secondaryDescription = string.Format("B{0}/T{1}/#{2}", branch.Code, teller.Code, teller.ItemsCount);
 
                 var journal = _journalAppService.AddNewJournal(

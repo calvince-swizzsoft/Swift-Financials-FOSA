@@ -43,7 +43,7 @@ namespace Application.MainBoundedContext.DTO.HumanResourcesModule
         }
 
         [Display(Name = "Is Locked?")]
-        public bool IsLocked { get; private set; }
+        public bool IsLocked { get; set; }
 
         [Display(Name = "Created By")]
         public string CreatedBy { get; set; }

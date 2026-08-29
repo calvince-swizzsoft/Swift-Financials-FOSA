@@ -492,7 +492,7 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                 new NavigationMenu { AreaCode = 0x000061A8 + 1, IsArea = true, Description = "Treasury", Icon = "", Code = 0x000061A8 + 2 },
                 new NavigationMenu { AreaCode = 0x000061A8 + 2, IsArea = false, Description = "Cash Management", Icon = "fa fa-cogs", ControllerName = "CashManagement", ActionName = "Create", AreaName = "FrontOffice",
                     Code =  0x000061A8 + 3},
-                new NavigationMenu { AreaCode = 0x000061A8 + 2, IsArea = false, Description = "Authorizations", Icon = "fa fa-cogs", ControllerName = "CashWithdrawalRequest", ActionName = "Create", AreaName = "FrontOffice",
+                new NavigationMenu { AreaCode = 0x000061A8 + 2, IsArea = false, Description = "Cash Withdrawal Requests", Icon = "fa fa-cogs", ControllerName = "CashWithdrawalRequest", ActionName = "Index", AreaName = "FrontOffice",
                     Code =  0x000061A8 + 4},
                 new NavigationMenu { AreaCode = 0x000061A8 + 2, IsArea = false, Description = "Fiscal Counts", Icon = "fa fa-table", ControllerName = "FiscalCount", ActionName = "Index", AreaName = "FrontOffice",
                     Code =  0x000061A8 + 15},

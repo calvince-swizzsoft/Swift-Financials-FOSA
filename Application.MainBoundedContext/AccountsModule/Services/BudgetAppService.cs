@@ -148,36 +148,38 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public async Task<bool> UpdateBudgetEntriesAsync(Guid budgetId, List<BudgetEntryDTO> budgetEntries, ServiceHeader serviceHeader)
         {
+            if (budgetId == Guid.Empty || budgetEntries == null)
+                return false;
+
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var persisted = await _budgetRepository.GetAsync(budgetId, serviceHeader);
 
                 if (persisted != null)
                 {
+                    if (budgetEntries.Sum(x => x.Amount) != persisted.TotalValue)
+                        return false;
+
+                    var currentEntries = _budgetEntryRepository.AllMatching(
+                        BudgetEntrySpecifications.BudgetEntryWithBudgetId(budgetId), serviceHeader);
+                    if (currentEntries != null)
                     {
-                        foreach (var item in budgetEntries)
-                        {
-                            if (item.Id == Guid.Empty)
-                            {
-                                var budgetEntry = BudgetEntryFactory.CreateBudgetEntry(persisted.Id, item.Type, item.ChartOfAccountId, item.LoanProductId, item.Amount, item.Reference);
-
-                                _budgetEntryRepository.Add(budgetEntry, serviceHeader);
-                            }
-                            else
-                            {
-
-                                if (!(budgetEntries != null && budgetEntries.Any()))
-                                {
-                                    var budgetEntry = BudgetEntryFactory.CreateBudgetEntry(persisted.Id, item.Type, item.ChartOfAccountId, item.LoanProductId, item.Amount, item.Reference);
-
-                                    _budgetEntryRepository.Add(budgetEntry, serviceHeader);
-                                }
-                            }
-                        }
+                        foreach (var currentEntry in currentEntries)
+                            _budgetEntryRepository.Remove(currentEntry, serviceHeader);
                     }
 
+                    foreach (var item in budgetEntries)
+                    {
+                        var budgetEntry = BudgetEntryFactory.CreateBudgetEntry(
+                            persisted.Id, item.Type, item.ChartOfAccountId,
+                            item.LoanProductId, item.Amount, item.Reference);
+                        budgetEntry.CreatedBy = serviceHeader.ApplicationUserName;
+                        _budgetEntryRepository.Add(budgetEntry, serviceHeader);
+                    }
+
+                    return await dbContextScope.SaveChangesAsync(serviceHeader) >= 0;
                 }
-                    return await dbContextScope.SaveChangesAsync(serviceHeader) > 0;
+                return false;
             }
         }
 

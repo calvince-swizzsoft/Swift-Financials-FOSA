@@ -36,6 +36,9 @@ namespace WebApplication1.ErrorHandling.Tests
             await InvalidCorrelationIdIsReplaced();
             await FrameworkUnauthorizedResponseIsNormalized();
             await FrameworkNotFoundResponseIsNormalized();
+            await ControllerMessageIsPreserved();
+            await AllowedOriginIsAddedToFrameworkError();
+            await UnapprovedOriginIsNotAddedToFrameworkError();
             await ExternalVersionedErrorIsNotRewritten();
         }
 
@@ -134,6 +137,47 @@ namespace WebApplication1.ErrorHandling.Tests
                 "normalized not-found code");
         }
 
+        private static async Task ControllerMessageIsPreserved()
+        {
+            const string expected = "The customer must have at least one account before being linked.";
+            var request = NewRequest();
+            var handler = new CorrelationIdHandler
+            {
+                InnerHandler = new ApiErrorNormalizationHandler
+                {
+                    InnerHandler = new ControllerErrorResponseHandler(expected)
+                }
+            };
+
+            HttpResponseMessage response;
+            using (var invoker = new HttpMessageInvoker(handler))
+                response = await invoker.SendAsync(request, CancellationToken.None);
+
+            var json = JObject.Parse(await response.Content.ReadAsStringAsync());
+            Equal(expected, (string)json["message"], "controller error message");
+        }
+
+        private static async Task AllowedOriginIsAddedToFrameworkError()
+        {
+            var request = NewRequest();
+            request.Headers.Add("Origin", "http://localhost:5173");
+            var response = await SendThroughNormalizer(request, HttpStatusCode.MethodNotAllowed);
+
+            Equal("http://localhost:5173",
+                string.Join("", response.Headers.GetValues("Access-Control-Allow-Origin")),
+                "allowed CORS origin on framework error");
+        }
+
+        private static async Task UnapprovedOriginIsNotAddedToFrameworkError()
+        {
+            var request = NewRequest();
+            request.Headers.Add("Origin", "http://unapproved.example");
+            var response = await SendThroughNormalizer(request, HttpStatusCode.MethodNotAllowed);
+
+            False(response.Headers.Contains("Access-Control-Allow-Origin"),
+                "unapproved CORS origin was added");
+        }
+
         private static async Task ExternalVersionedErrorIsNotRewritten()
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/v1/accounts/balance");
@@ -215,6 +259,24 @@ namespace WebApplication1.ErrorHandling.Tests
                 HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 return Task.FromResult(new HttpResponseMessage(_statusCode) { RequestMessage = request });
+            }
+        }
+
+        private sealed class ControllerErrorResponseHandler : HttpMessageHandler
+        {
+            private readonly string _message;
+
+            public ControllerErrorResponseHandler(string message)
+            {
+                _message = message;
+            }
+
+            protected override Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                return Task.FromResult(request.CreateResponse(
+                    HttpStatusCode.BadRequest,
+                    new { success = false, message = _message }));
             }
         }
     }

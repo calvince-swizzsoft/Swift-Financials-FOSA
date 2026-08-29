@@ -8,6 +8,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 {
     public interface IJournalAppService
     {
+        string ValidateTransactionAuthority(decimal amount, int transactionCode, ServiceHeader serviceHeader);
+
         JournalDTO AddNewJournal(Guid? parentJournalId, Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid creditChartOfAccountId, Guid debitChartOfAccountId, ServiceHeader serviceHeader, bool useCache = true);
 
         JournalDTO AddNewJournal(Guid? parentJournalId, Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid creditChartOfAccountId, Guid debitChartOfAccountId, CustomerAccountDTO creditCustomerAccountDTO, CustomerAccountDTO debitCustomerAccountDTO, ServiceHeader serviceHeader, bool useCache = true);

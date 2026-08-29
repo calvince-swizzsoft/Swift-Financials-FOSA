@@ -93,7 +93,17 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Upper Limit")]
+        [CustomValidation(typeof(TreasuryDTO), "ValidateRange", ErrorMessage = "The upper limit must be greater than the lower limit, and both limits must be zero or greater.")]
         public decimal RangeUpperLimit { get; set; }
+
+        public static ValidationResult ValidateRange(object value, ValidationContext context)
+        {
+            var treasury = context.ObjectInstance as TreasuryDTO;
+            if (treasury == null || treasury.RangeLowerLimit < 0m || treasury.RangeUpperLimit < 0m || treasury.RangeUpperLimit <= treasury.RangeLowerLimit)
+                return new ValidationResult("The upper limit must be greater than the lower limit, and both limits must be zero or greater.");
+
+            return ValidationResult.Success;
+        }
 
         [DataMember]
         [Display(Name = "Is Locked?")]

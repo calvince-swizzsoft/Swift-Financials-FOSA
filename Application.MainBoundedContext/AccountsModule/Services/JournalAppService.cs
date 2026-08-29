@@ -1,6 +1,7 @@
 ﻿using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.Services;
+using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Application.Seedwork;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.AlternateChannelLogAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountCarryForwardAgg;
@@ -31,6 +32,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly ICommissionAppService _commissionAppService;
         private readonly ICustomerAccountAppService _customerAccountAppService;
         private readonly ISqlCommandAppService _sqlCommandAppService;
+        private readonly IEmployeeAppService _employeeAppService;
+        private readonly IDesignationAppService _designationAppService;
 
         public JournalAppService(
             IDbContextScopeFactory dbContextScopeFactory,
@@ -44,7 +47,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             ISavingsProductAppService savingsProductAppService,
             ICommissionAppService commissionAppService,
             ICustomerAccountAppService customerAccountAppService,
-            ISqlCommandAppService sqlCommandAppService)
+            ISqlCommandAppService sqlCommandAppService,
+            IEmployeeAppService employeeAppService,
+            IDesignationAppService designationAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -82,6 +87,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (sqlCommandAppService == null)
                 throw new ArgumentNullException(nameof(sqlCommandAppService));
 
+            if (employeeAppService == null)
+                throw new ArgumentNullException(nameof(employeeAppService));
+
+            if (designationAppService == null)
+                throw new ArgumentNullException(nameof(designationAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _journalRepository = journalRepository;
             _journalEntryRepository = journalEntryRepository;
@@ -94,10 +105,55 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _commissionAppService = commissionAppService;
             _customerAccountAppService = customerAccountAppService;
             _sqlCommandAppService = sqlCommandAppService;
+            _employeeAppService = employeeAppService;
+            _designationAppService = designationAppService;
+        }
+
+        public string ValidateTransactionAuthority(decimal amount, int transactionCode, ServiceHeader serviceHeader)
+        {
+            if (serviceHeader == null || !serviceHeader.EnforceTransactionThresholds)
+                return null;
+
+            if (!serviceHeader.ApplicationUserEmployeeId.HasValue || serviceHeader.ApplicationUserEmployeeId.Value == Guid.Empty)
+                return "Your user account is not linked to an employee, so transaction authority cannot be verified.";
+
+            var employee = _employeeAppService.FindEmployee(serviceHeader.ApplicationUserEmployeeId.Value, serviceHeader);
+            if (employee == null || employee.IsLocked)
+                return "Your employee record is missing or locked, so this transaction cannot be performed.";
+
+            if (employee.DesignationId == Guid.Empty)
+                return "Your employee record does not have a designation with transaction authority.";
+
+            var designation = _designationAppService.FindDesignation(employee.DesignationId, serviceHeader);
+            if (designation == null || designation.IsLocked)
+                return "Your employee designation is missing or locked, so this transaction cannot be performed.";
+
+            var transactionAmount = Math.Abs(amount);
+            if (!_designationAppService.ValidateTransactionThreshold(employee.DesignationId, transactionCode, transactionAmount, serviceHeader))
+            {
+                var transactionDescription = Enum.IsDefined(typeof(SystemTransactionCode), transactionCode)
+                    ? EnumHelper.GetDescription((SystemTransactionCode)transactionCode)
+                    : transactionCode.ToString();
+
+                return string.Format(
+                    "Your designation does not have sufficient authority for {0} amount {1:N2}.",
+                    transactionDescription,
+                    transactionAmount);
+            }
+
+            return null;
+        }
+
+        private void EnforceDesignationTransactionThreshold(decimal amount, int transactionCode, ServiceHeader serviceHeader)
+        {
+            var validationError = ValidateTransactionAuthority(amount, transactionCode, serviceHeader);
+            if (!string.IsNullOrWhiteSpace(validationError))
+                throw new InvalidOperationException(validationError);
         }
 
         public JournalDTO AddNewJournal(Guid? parentJournalId, Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid creditChartOfAccountId, Guid debitChartOfAccountId, ServiceHeader serviceHeader, bool useCache)
         {
+            EnforceDesignationTransactionThreshold(totalValue, transactionCode, serviceHeader);
             var postingPeriod = useCache ? _postingPeriodAppService.FindCachedCurrentPostingPeriod(serviceHeader) : _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
 
             if (postingPeriod != null)
@@ -129,6 +185,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public JournalDTO AddNewJournalSingleEntry(Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid chartOfAccountId, Guid contraChartOfAccountId, int journalType, ServiceHeader serviceHeader, bool useCache)
         {
+            EnforceDesignationTransactionThreshold(totalValue, transactionCode, serviceHeader);
             var postingPeriod = useCache ? _postingPeriodAppService.FindCachedCurrentPostingPeriod(serviceHeader) : _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
 
             if (postingPeriod != null)
@@ -173,6 +230,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public JournalDTO AddNewJournal(Guid? parentJournalId, Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid creditChartOfAccountId, Guid debitChartOfAccountId, CustomerAccountDTO creditCustomerAccountDTO, CustomerAccountDTO debitCustomerAccountDTO, ServiceHeader serviceHeader, bool useCache)
         {
+            EnforceDesignationTransactionThreshold(totalValue, transactionCode, serviceHeader);
             var postingPeriod = useCache ? _postingPeriodAppService.FindCachedCurrentPostingPeriod(serviceHeader) : _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
 
             if (postingPeriod != null)
@@ -425,6 +483,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     {
                         tariffs.ForEach(item =>
                         {
+                            EnforceDesignationTransactionThreshold(item.Amount, transactionCode, serviceHeader);
                             var journal = JournalFactory.CreateJournal(parentJournalId, postingPeriod.Id, branchId, alternateChannelLogId, item.Amount, item.Description, secondaryDescription, reference, moduleNavigationItemCode, transactionCode, valueDate, serviceHeader, true);
 
                             _journalEntryPostingService.PerformDoubleEntry(journal, item.CreditGLAccountId, item.DebitGLAccountId, creditCustomerAccountDTO, debitCustomerAccountDTO, serviceHeader);
@@ -504,6 +563,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     foreach (var journalDTO in journalDTOs)
                     {
                         if (journalDTO.IsLocked) continue;
+
+                        EnforceDesignationTransactionThreshold(journalDTO.TotalValue, journalDTO.TransactionCode, serviceHeader);
 
                         var primaryDescription = string.Format("{0}~{1}", description ?? "Reversal", journalDTO.PrimaryDescription);
                         var secondaryDescription = journalDTO.SecondaryDescription;
@@ -805,6 +866,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 var primaryDescription = string.Format("Carry Forwards Paid~{0}", beneficiaryCustomerAccountDTO.CustomerAccountTypeTargetProductDescription);
 
                                 // Credit CarryForward.BeneficiaryChartOfAccountId, Debit Benefactor.ChartOfAccountId
+                                EnforceDesignationTransactionThreshold(principalArrears, transactionCode, serviceHeader);
                                 var carryFowardBeneficiaryJournal = JournalFactory.CreateJournal(parentJournalId, postingPeriodId, branchId, alternateChannelLogId, principalArrears, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, transactionCode, null, serviceHeader);
                                 _journalEntryPostingService.PerformDoubleEntry(carryFowardBeneficiaryJournal, item.BeneficiaryChartOfAccountId, benefactorCustomerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, benefactorCustomerAccountDTO, benefactorCustomerAccountDTO, serviceHeader);
                                 journals.Add(carryFowardBeneficiaryJournal);

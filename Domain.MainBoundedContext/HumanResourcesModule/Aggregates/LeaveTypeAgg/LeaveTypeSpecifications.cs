@@ -25,5 +25,11 @@ namespace Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveTypeAgg
 
             return specification;
         }
+
+        public static Specification<LeaveType> LeaveTypeWithDescription(string description)
+        {
+            var normalized = (description ?? string.Empty).Trim().ToUpper();
+            return new DirectSpecification<LeaveType>(c => c.Description.Trim().ToUpper() == normalized);
+        }
     }
 }

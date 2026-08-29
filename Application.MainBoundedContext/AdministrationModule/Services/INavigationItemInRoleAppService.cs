@@ -31,6 +31,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
         Task<string[]> GetRolesForNavigationItemCodeAsync(int navigationItemCode, ServiceHeader serviceHeader);
 
+        string[] GetRolesForNavigationItemCode(int navigationItemCode, ServiceHeader serviceHeader);
+
         Task<bool> ValidateModuleAccessAsync(string controllerName, string roleName, ServiceHeader serviceHeader);
     }
 }

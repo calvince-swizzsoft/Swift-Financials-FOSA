@@ -21,5 +21,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         BankLinkageDTO FindBankLinkage(Guid bankLinkageId, ServiceHeader serviceHeader);
 
         BankLinkageDTO FindBankLinkageByBankAccountId(Guid bankAccountId, ServiceHeader serviceHeader);
+
+        string ValidateTreasuryCashMovementLinkage(Guid bankLinkageId, Guid treasuryBranchId, out BankLinkageDTO bankLinkage, ServiceHeader serviceHeader);
     }
 }

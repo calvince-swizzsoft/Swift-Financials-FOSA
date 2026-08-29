@@ -12,6 +12,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         bool UpdateSavingsProduct(SavingsProductDTO savingsProductDTO, ServiceHeader serviceHeader);
 
+        IDictionary<string, string[]> ValidateSavingsProduct(SavingsProductDTO savingsProductDTO, ServiceHeader serviceHeader);
+
         List<SavingsProductDTO> FindSavingsProducts(ServiceHeader serviceHeader);
 
         List<SavingsProductDTO> FindMandatorySavingsProducts(bool isMandatory, ServiceHeader serviceHeader);

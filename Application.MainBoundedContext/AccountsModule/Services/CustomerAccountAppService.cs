@@ -192,9 +192,51 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         {
             if (customerAccountDTO != null && customerAccountDTO.CustomerId != Guid.Empty && customerAccountDTO.BranchId != Guid.Empty)
             {
+                if (customerAccountDTO.CustomerAccountTypeTargetProductId == Guid.Empty)
+                    throw new InvalidOperationException("A savings or investment product is required.");
+
                 var branch = _branchAppService.FindBranch(customerAccountDTO.BranchId, serviceHeader);
                 if (branch == null)
                     throw new InvalidOperationException("The customer account branch could not be resolved.");
+
+                // Product classification is server-owned. A caller selects only the persisted
+                // product ID; never trust denormalized product codes or the posting G/L account
+                // supplied by a browser when creating an account.
+                var savingsProduct = _savingsProductAppService.FindSavingsProduct(
+                    customerAccountDTO.CustomerAccountTypeTargetProductId,
+                    customerAccountDTO.BranchId,
+                    serviceHeader);
+
+                if (savingsProduct != null)
+                {
+                    if (savingsProduct.IsLocked)
+                        throw new InvalidOperationException("The selected savings product is locked and cannot accept new accounts.");
+                    if (savingsProduct.Code <= 0 || savingsProduct.ChartOfAccountId == Guid.Empty)
+                        throw new InvalidOperationException("The selected savings product is missing its product code or G/L account configuration.");
+
+                    customerAccountDTO.CustomerAccountTypeProductCode = (int)ProductCode.Savings;
+                    customerAccountDTO.CustomerAccountTypeTargetProductCode = savingsProduct.Code;
+                    customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId = savingsProduct.ChartOfAccountId;
+                    customerAccountDTO.CustomerAccountTypeTargetProductDescription = savingsProduct.Description;
+                }
+                else
+                {
+                    var investmentProduct = _investmentProductAppService.FindInvestmentProduct(
+                        customerAccountDTO.CustomerAccountTypeTargetProductId,
+                        serviceHeader);
+
+                    if (investmentProduct == null)
+                        throw new InvalidOperationException("The selected savings or investment product could not be found.");
+                    if (investmentProduct.IsLocked)
+                        throw new InvalidOperationException("The selected investment product is locked and cannot accept new accounts.");
+                    if (investmentProduct.Code <= 0 || investmentProduct.ChartOfAccountId == Guid.Empty)
+                        throw new InvalidOperationException("The selected investment product is missing its product code or G/L account configuration.");
+
+                    customerAccountDTO.CustomerAccountTypeProductCode = (int)ProductCode.Investment;
+                    customerAccountDTO.CustomerAccountTypeTargetProductCode = investmentProduct.Code;
+                    customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId = investmentProduct.ChartOfAccountId;
+                    customerAccountDTO.CustomerAccountTypeTargetProductDescription = investmentProduct.Description;
+                }
 
                 var requiresVerification = branch.CompanyEnforceCustomerAccountMakerChecker;
                 var verificationRoles = requiresVerification

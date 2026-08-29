@@ -68,9 +68,8 @@ namespace WebApplication1.Controllers
 
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                tellerDTO.ValidateAll();
-
                 UpdateTellerAccounts(tellerDTO);
+                tellerDTO.ValidateAll();
 
                 if (!tellerDTO.HasErrors)
                 {
@@ -87,6 +86,10 @@ namespace WebApplication1.Controllers
 
             }
 
+            catch (InvalidOperationException exception)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
+            }
             catch (Exception)
             {
                 throw;
@@ -104,9 +107,8 @@ namespace WebApplication1.Controllers
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 tellerDTO.Id = id;
-                tellerDTO.ValidateAll();
-
                 UpdateTellerAccounts(tellerDTO);
+                tellerDTO.ValidateAll();
 
                 if (!tellerDTO.HasErrors)
                 {
@@ -130,6 +132,10 @@ namespace WebApplication1.Controllers
                 }
             }
 
+            catch (InvalidOperationException exception)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
+            }
             catch (Exception)
             {
                 throw;

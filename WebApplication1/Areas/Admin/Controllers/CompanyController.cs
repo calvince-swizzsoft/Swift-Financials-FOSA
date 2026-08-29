@@ -4,7 +4,9 @@ using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Web.Http;
+using WebApplication1.ApiErrors;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
@@ -109,9 +111,12 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return Ok(company);
             }
-            catch (Exception)
+            catch (InvalidOperationException ex)
             {
-                throw;
+                // CompanyAppService owns company validation. Translate its
+                // known caller-correctable validation failure at the HTTP
+                // boundary so clients receive a real 400 and its message.
+                return ValidationError(ex.Message);
             }
         }
 
@@ -132,10 +137,19 @@ namespace WebApplication1.Areas.Admin.Controllers
                 var company = _companyAppService.FindCompany(id, serviceHeader);
                 return Ok(company);
             }
-            catch (Exception)
+            catch (InvalidOperationException ex)
             {
-                throw;
+                return ValidationError(ex.Message);
             }
+        }
+
+        private IHttpActionResult ValidationError(string message)
+        {
+            return ResponseMessage(ApiErrorResponses.Create(
+                Request,
+                HttpStatusCode.BadRequest,
+                ErrorCodes.ValidationFailed,
+                message));
         }
 
         [HttpGet, Route("{id:guid}/debit-types")]

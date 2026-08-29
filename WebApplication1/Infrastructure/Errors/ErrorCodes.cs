@@ -6,6 +6,8 @@ namespace WebApplication1.ApiErrors
         public const string ValidationFailed = "VALIDATION_FAILED";
         public const string AuthenticationRequired = "AUTHENTICATION_REQUIRED";
         public const string InvalidCredentials = "INVALID_CREDENTIALS";
+        public const string EmailNotConfirmed = "EMAIL_NOT_CONFIRMED";
+        public const string InvalidEmailConfirmation = "INVALID_EMAIL_CONFIRMATION";
         public const string AccessDenied = "ACCESS_DENIED";
         public const string ResourceNotFound = "RESOURCE_NOT_FOUND";
         public const string ResourceConflict = "RESOURCE_CONFLICT";
