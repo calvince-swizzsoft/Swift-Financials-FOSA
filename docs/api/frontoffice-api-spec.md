@@ -269,7 +269,7 @@ Controller: `TransfersController.cs`.
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/cheques?TellerId={id}` | GET | Untransferred-cheques summary for a teller — previously threw an unhandled `ArgumentNullException` for any teller with zero pending cheques (the normal/clean state), since the underlying app-service call returns `null` rather than an empty list when there's nothing to find; fixed |
+| `/cheques` | GET | Current authenticated teller's transfer context: server-resolved `TellerToTreasury` direction, daily balances/totals, and pending-cheque value |
 | `/cash` | GET | List cash transfer requests |
 | `/cash` | POST | Raise a cash transfer request (`CashTransferRequestDTO`) |
 | `/cheques` | POST | Batch-transfer selected cheques (`List<ExternalChequeDTO>`) — the EOD precondition, WORKFLOW.md §7 |
@@ -277,13 +277,12 @@ Controller: `TransfersController.cs`.
 | `/` | GET | All cash transfer requests |
 | `/cash/utilize?request={id}` | POST | Mark a cash transfer request `Utilized` |
 
-`POST /cash` requires a denomination breakdown that reconciles to `Amount`,
-same as treasury cash movement (§5) — `CashTransferRequestDTO` carries the
-same eleven `Denomination*Value` fields as `FiscalCountDTO`. As with §5,
-this controller reports the mismatch — and every other business-rule
-failure on `/cash` — as `success: false` with HTTP `200`, not `400`; check
-`success` in the body. The only real `400` on `TransfersController` at all
-is `POST /cash/utilize` with a missing `request` id.
+`POST /cash` is always classified server-side as `TellerToTreasury`; callers
+cannot select or spoof the direction. `TallyByTotal: false` requires the eleven
+`Denomination*Value` fields to reconcile to `Amount`. `TallyByTotal: true`
+accepts the stated total without inventing a denomination breakdown. Creation,
+daily teller-value resolution, reconciliation, status classification, and the
+companion fiscal-count write are owned by `ICashTransferRequestAppService`.
 
 `POST /cash` and `POST /cash/acknowledge` now actually run
 `CashTransferRequestDTO.ValidateAll()` before checking `HasErrors` — the

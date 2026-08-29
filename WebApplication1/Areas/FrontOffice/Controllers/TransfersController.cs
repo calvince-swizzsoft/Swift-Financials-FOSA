@@ -67,7 +67,7 @@ namespace WebApplication1.Controllers
 
         [HttpGet]
         [Route("cheques")]
-        public async Task<IHttpActionResult> Cheques(Guid? TellerId)
+        public async Task<IHttpActionResult> Cheques()
         {
             var model = new CashTransferRequestDTO();
 
@@ -75,7 +75,10 @@ namespace WebApplication1.Controllers
 
             _selectedTeller = await GetCurrentTeller();
 
-            var untransferredChequesList = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId((Guid)TellerId, "", serviceHeader);
+            if (_selectedTeller == null)
+                return Content(System.Net.HttpStatusCode.BadRequest, new { success = false, message = "Current teller could not be resolved." });
+
+            var untransferredChequesList = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId(_selectedTeller.Id, "", serviceHeader);
 
             // FindUnTransferredExternalChequesByTellerId returns null (not an empty list)
             // when a teller has no pending cheques — the normal/clean state — which
@@ -91,6 +94,7 @@ namespace WebApplication1.Controllers
             model.ClosingBalance = _selectedTeller.ClosingBalance;
 
             model.UntransferredChequesValue = untransferredChequesValue;
+            model.TransactionType = (int)TreasuryTransactionType.TellerToTreasury;
             return Ok(model);
         }
 
@@ -142,77 +146,15 @@ namespace WebApplication1.Controllers
                 return Json(new { success = false, message = "Operation error: " + missingMessage });
             }
 
-            cashTransferRequestDTO.EmployeeId = selectedTeller.EmployeeId;
-            cashTransferRequestDTO.ValidateAll();
-
-            if (!cashTransferRequestDTO.HasErrors)
+            try
             {
-                var countedTotal = Utils.SumDenominationValues(
-                    cashTransferRequestDTO.DenominationOneThousandValue, cashTransferRequestDTO.DenominationFiveHundredValue,
-                    cashTransferRequestDTO.DenominationTwoHundredValue, cashTransferRequestDTO.DenominationOneHundredValue,
-                    cashTransferRequestDTO.DenominationFiftyValue, cashTransferRequestDTO.DenominationFourtyValue,
-                    cashTransferRequestDTO.DenominationTwentyValue, cashTransferRequestDTO.DenominationTenValue,
-                    cashTransferRequestDTO.DenominationFiveValue, cashTransferRequestDTO.DenominationOneValue,
-                    cashTransferRequestDTO.DenominationFiftyCentValue);
-
-                if (countedTotal != cashTransferRequestDTO.Amount)
-                {
-                    return Json(new { success = false, message = $"Operation Failed: Counted denominations ({countedTotal}) do not match the transfer amount ({cashTransferRequestDTO.Amount})." });
-                }
-
                 var serviceHeader = Utils.CreateServiceHeader();
-
-                // Complete persistence before creating the companion fiscal count.
-                // Previously the un-awaited Task was always non-null and both operations
-                // raced on the same request-scoped data context, causing requests to hang.
-                var successRequest = await _cashTransferRequestAppService.AddNewCashTransferRequestAsync(cashTransferRequestDTO, serviceHeader);
-
-                if (successRequest != null)
-                {
-                    // CashTransferRequest itself has nowhere to persist a denomination
-                    // breakdown (no such columns on that aggregate) — record the physical
-                    // count as a companion FiscalCount instead, same pattern used by
-                    // treasury cash movement and End of Day close.
-                    var currentPostingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
-
-                    var fiscalCount = new FiscalCountDTO
-                    {
-                        TransactionCode = (int)SystemTransactionCode.TellerCashTransfer,
-                        TransactionType = (int)TreasuryTransactionType.TellerCashTransfer,
-                        PostingPeriodId = currentPostingPeriod?.Id ?? Guid.Empty,
-                        BranchId = selectedTeller.EmployeeBranchId,
-                        ChartOfAccountId = selectedTeller.ChartOfAccountId ?? Guid.Empty,
-                        PrimaryDescription = "Cash Transfer Request",
-                        SecondaryDescription = selectedTeller.Description,
-                        Reference = cashTransferRequestDTO.Reference,
-                        TotalValue = cashTransferRequestDTO.Amount,
-                        DenominationOneThousandValue = cashTransferRequestDTO.DenominationOneThousandValue,
-                        DenominationFiveHundredValue = cashTransferRequestDTO.DenominationFiveHundredValue,
-                        DenominationTwoHundredValue = cashTransferRequestDTO.DenominationTwoHundredValue,
-                        DenominationOneHundredValue = cashTransferRequestDTO.DenominationOneHundredValue,
-                        DenominationFiftyValue = cashTransferRequestDTO.DenominationFiftyValue,
-                        DenominationFourtyValue = cashTransferRequestDTO.DenominationFourtyValue,
-                        DenominationTwentyValue = cashTransferRequestDTO.DenominationTwentyValue,
-                        DenominationTenValue = cashTransferRequestDTO.DenominationTenValue,
-                        DenominationFiveValue = cashTransferRequestDTO.DenominationFiveValue,
-                        DenominationOneValue = cashTransferRequestDTO.DenominationOneValue,
-                        DenominationFiftyCentValue = cashTransferRequestDTO.DenominationFiftyCentValue
-                    };
-
-                    _fiscalCountAppService.AddNewFiscalCount(fiscalCount, serviceHeader);
-
-                    return Json(new { success = true, message = "Operation Success" });
-                }
-                else
-                {
-                    return Json(new { success = false, message = "Operation Failed" });
-                }
+                var created = await _cashTransferRequestAppService.CreateCashTransferAsync(cashTransferRequestDTO, selectedTeller, serviceHeader);
+                return Json(new { success = created != null, message = created != null ? "Operation Success" : "Operation Failed", data = created });
             }
-            else
+            catch (InvalidOperationException ex)
             {
-                var errorMessages = cashTransferRequestDTO.ErrorMessages;
-
-                return Json(new { success = false, message = errorMessages });
+                return Content(System.Net.HttpStatusCode.BadRequest, new { success = false, message = ex.Message });
             }
         }
 
@@ -311,48 +253,30 @@ namespace WebApplication1.Controllers
         [Route("cash/acknowledge")]
         public async Task<IHttpActionResult> AcknowledgeCashTransferRequest(CashTransferRequestDTO cashTransferRequestDTO, int option)
         {
-
-            var selectedTeller = await GetCurrentTeller();
-
-            var missingParameters = new List<string>();
-
             var serviceHeader = Utils.CreateServiceHeader();
-
-
-            if (selectedTeller == null)
-            {
-                missingParameters.Add("Teller");
-            }
-
-            // Check if any parameter is missing
-            if (missingParameters.Any())
-            {
-                var missingMessage = $"Some features may not work, you are missing {string.Join(", ", missingParameters)}";
-
-                return Json(new { success = false, message = "Operation error: " + missingMessage });
-            }
-
-            cashTransferRequestDTO.EmployeeId = selectedTeller.EmployeeId;
-            cashTransferRequestDTO.ValidateAll();
-
-            if (!cashTransferRequestDTO.HasErrors)
+            try
             {
                 var successRequest = await _cashTransferRequestAppService.AcknowledgeCashTransferRequestAsync(cashTransferRequestDTO, option, serviceHeader);
-
-                if (successRequest)
-                {
-                    return Json(new { success = true, message = "Operation Success" });
-                }
-                else
-                {
-                    return Json(new { success = false, message = "Failed to Acknowledge cash transfer request" });
-                }
+                return Json(new { success = successRequest, message = successRequest ? "Operation Success" : "Cash transfer is no longer actionable." });
             }
-            else
+            catch (InvalidOperationException ex)
             {
-                var errorMessages = cashTransferRequestDTO.ErrorMessages;
+                return Content(System.Net.HttpStatusCode.Forbidden, new { success = false, message = ex.Message });
+            }
+        }
 
-                return Json(new { success = false, message = errorMessages });
+        [HttpGet]
+        [Route("cash/actionable")]
+        public async Task<IHttpActionResult> GetActionableCashTransferRequests()
+        {
+            try
+            {
+                var requests = await _cashTransferRequestAppService.FindActionableCashTransferRequestsAsync(Utils.CreateServiceHeader());
+                return Ok(requests);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(System.Net.HttpStatusCode.Forbidden, new { success = false, message = ex.Message });
             }
         }
 

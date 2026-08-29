@@ -1,5 +1,6 @@
 ﻿using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
+using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
@@ -10,10 +11,12 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
     public interface ICashTransferRequestAppService
     {
         Task<CashTransferRequestDTO> AddNewCashTransferRequestAsync(CashTransferRequestDTO cashTransferRequestDTO, ServiceHeader serviceHeader);
+        Task<CashTransferRequestDTO> CreateCashTransferAsync(CashTransferRequestDTO cashTransferRequestDTO, TellerDTO teller, ServiceHeader serviceHeader);
 
         Task<bool> AcknowledgeCashTransferRequestAsync(CashTransferRequestDTO cashTransferRequestDTO, int cashTransferRequestAcknowledgeOption, ServiceHeader serviceHeader);
 
         Task<List<CashTransferRequestDTO>> FindCashTransferRequestsAsync(ServiceHeader serviceHeader);
+        Task<List<CashTransferRequestDTO>> FindActionableCashTransferRequestsAsync(ServiceHeader serviceHeader);
 
         Task<PageCollectionInfo<CashTransferRequestDTO>> FindCashTransferRequestsAsync(Guid employeeId, DateTime startDate, DateTime endDate, int status, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 

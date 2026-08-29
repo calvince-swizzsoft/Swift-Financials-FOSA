@@ -47,6 +47,19 @@ namespace Domain.MainBoundedContext.FrontOfficeModule.Aggregates.CashTransferReq
             return specification;
         }
 
+        public static Specification<CashTransferRequest> PendingCashTransferRequestsForBranch(Guid branchId, Guid actingEmployeeId)
+        {
+            Specification<CashTransferRequest> specification = DefaultSpec();
+
+            specification &= new DirectSpecification<CashTransferRequest>(x =>
+                x.Status == (int)CashTransferRequestStatus.Pending &&
+                !x.Utilized &&
+                x.EmployeeId != actingEmployeeId &&
+                x.Employee.BranchId == branchId);
+
+            return specification;
+        }
+
         public static Specification<CashTransferRequest> CashTransferRequestWithDateRangeStatusAndFullText(DateTime startDate, DateTime endDate, int status, string text, int customerFilter)
         {
             Specification<CashTransferRequest> specification = CashTransferRequestWithDateRange(startDate, endDate, status);

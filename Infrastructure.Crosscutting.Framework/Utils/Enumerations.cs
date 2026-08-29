@@ -361,6 +361,8 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         BackOfficeCheckOffPeriodClosing = 0xAFC0 + 111,
         [Description("BOSA Check-Off Catalogue Viewing")]
         BackOfficeCheckOffCatalogueViewing = 0xAFC0 + 112,
+        [Description("Teller Cash Transfer Acknowledgement")]
+        TellerCashTransferAcknowledgement = 0xAFC0 + 113,
     }
 
     public enum SystemTransactionType

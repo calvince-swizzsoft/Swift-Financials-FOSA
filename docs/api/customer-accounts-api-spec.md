@@ -147,11 +147,14 @@ distinction matters to your UI.
 
 `id` is the **customerId** (despite the path segment name matching the
 account routes above — this is a sub-resource of *customer*, not of
-*account*). Returns `ApiEnvelope<CustomerAccountDTO[]>`.
+*account*). Returns `ApiEnvelope<CustomerAccountDTO[]>`. Each account includes
+its current balance fields. For savings accounts, both `bookBalance` and
+`availableBalance` are populated; loan and investment balance fields follow
+the product-specific rules applied by `ICustomerAccountAppService`.
 
 ### 4.7 Get a customer's accounts (paged) — `GET /customer/{customerId}`
 
-Same data as §4.6, paged. Query: `pageIndex` (default `0`), `pageSize`
+Same balance-enriched data as §4.6, paged. Query: `pageIndex` (default `0`), `pageSize`
 (default `20`). Prefer this one for UI listings; §4.6 is unpaged and
 exists mainly for internal/bulk use.
 

@@ -710,7 +710,7 @@ namespace Application.MainBoundedContext.Services
             {
                 var query = _repository.DatabaseSqlQuery<GLAccountStatisticsBag>("EXEC sp_GetGlTotalDebitsCredits @ChartOfAccountID, @StartDate, @EndDate, @TransactionDateFilter", serviceHeader,
                     new SqlParameter("ChartOfAccountID", chartOfAccountId),
-                    new SqlParameter("StartDate", endDate),
+                    new SqlParameter("StartDate", startDate),
                     new SqlParameter("EndDate", endDate),
                     new SqlParameter("TransactionDateFilter", transactionDateFilter));
 
@@ -718,8 +718,14 @@ namespace Application.MainBoundedContext.Services
                 {
                     foreach (var item in query)
                     {
-                        totalCredits = item.Credit;
-                        totalDebits = item.Debit;
+                        // Journal.PostDoubleEntries persists debit legs as positive
+                        // amounts and credit legs as negative amounts.  The legacy
+                        // sp_GetGlTotalDebitsCredits procedure aliases those buckets
+                        // backwards (positive => Credit, negative => Debit), so translate
+                        // them here to preserve the AppService tuple contract instead of
+                        // leaking the stored procedure's incorrect terminology.
+                        totalDebits = item.Credit;
+                        totalCredits = item.Debit;
                         itemsCount = item.Count;
                     }
                 }

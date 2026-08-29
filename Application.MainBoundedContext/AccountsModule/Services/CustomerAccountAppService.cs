@@ -728,6 +728,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         var pageCollection = customerAccountPagedCollection.PageCollection.ProjectedAsCollection<CustomerAccountDTO>();
 
                         FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+                        FetchCustomerAccountBalances(pageCollection, serviceHeader, false, true);
 
                         var itemsCount = customerAccountPagedCollection.ItemsCount;
 
@@ -864,6 +865,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         var pageCollection = customerAccounts.ProjectedAsCollection<CustomerAccountDTO>();
 
                         FetchCustomerAccountsProductDescription(pageCollection, serviceHeader, true);
+                        FetchCustomerAccountBalances(pageCollection, serviceHeader, false, true);
 
                         return pageCollection;
                     }

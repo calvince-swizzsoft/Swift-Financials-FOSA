@@ -108,9 +108,11 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Reference")]
         public string Reference { get; set; }
 
+        [DataMember]
         [Display(Name = "Remarks")]
         public string Remarks { get; set; }
 
@@ -126,9 +128,19 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         [Display(Name = "From")]
         public string CreatedBy { get; set; }
 
-        //[DataMember]
-        //[Display(Name = "TransactionType")]
-        //public int TransactionType { get; set; }
+        [DataMember]
+        [Display(Name = "Transaction Type")]
+        public int TransactionType { get; set; }
+
+        [DataMember]
+        public bool TallyByTotal { get; set; }
+
+        [DataMember]
+        [Display(Name = "Transaction Type")]
+        public string TransactionTypeDescription
+        {
+            get { return Enum.IsDefined(typeof(TreasuryTransactionType), TransactionType) ? EnumHelper.GetDescription((TreasuryTransactionType)TransactionType) : string.Empty; }
+        }
 
         //[DataMember]
         //[Display(Name = "TransactionType")]
