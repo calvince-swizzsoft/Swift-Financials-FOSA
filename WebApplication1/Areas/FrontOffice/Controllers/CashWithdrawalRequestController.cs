@@ -77,5 +77,22 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpPost, Route("{id:guid}/resend-approval")]
+        public IHttpActionResult ResendApproval(Guid id)
+        {
+            try
+            {
+                var resent = _cashWithdrawalRequestAppService.ResendCashWithdrawalApprovalRequest(id, Utils.CreateServiceHeader());
+                if (!resent)
+                    return Content(HttpStatusCode.Conflict, new { success = false, message = "The approval request could not be resent." });
+
+                return Ok(new { success = true, message = "The cash withdrawal approval request was resent successfully." });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Content(HttpStatusCode.Conflict, new { success = false, message = exception.Message });
+            }
+        }
+
     }
 }

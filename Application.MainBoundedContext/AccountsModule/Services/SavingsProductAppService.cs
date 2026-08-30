@@ -1,5 +1,6 @@
 ﻿using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Utils;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.SavingsProductAgg;
@@ -22,6 +23,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IRepository<SavingsProductCommission> _savingsProductCommissionRepository;
         private readonly IRepository<SavingsProductExemption> _savingsProductExemptionRepository;
         private readonly IChartOfAccountAppService _chartOfAccountAppService;
+        private readonly IBranchAppService _branchAppService;
         private readonly IAppCache _appCache;
 
         public SavingsProductAppService(
@@ -30,6 +32,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
            IRepository<SavingsProductCommission> savingsProductCommissionRepository,
            IRepository<SavingsProductExemption> savingsProductExemptionRepository,
            IChartOfAccountAppService chartOfAccountAppService,
+           IBranchAppService branchAppService,
            IAppCache appCache)
         {
             if (dbContextScopeFactory == null)
@@ -47,6 +50,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (chartOfAccountAppService == null)
                 throw new ArgumentNullException(nameof(chartOfAccountAppService));
 
+            if (branchAppService == null)
+                throw new ArgumentNullException(nameof(branchAppService));
+
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
@@ -55,6 +61,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _savingsProductCommissionRepository = savingsProductCommissionRepository;
             _savingsProductExemptionRepository = savingsProductExemptionRepository;
             _chartOfAccountAppService = chartOfAccountAppService;
+            _branchAppService = branchAppService;
             _appCache = appCache;
         }
 
@@ -495,7 +502,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateSavingsProductExemptions(Guid savingsProductId, List<SavingsProductExemptionDTO> savingsProductExemptions, ServiceHeader serviceHeader)
         {
-            if (savingsProductId != null && savingsProductExemptions != null)
+            if (!ValidateSavingsProductExemptions(savingsProductId, savingsProductExemptions, serviceHeader).Any())
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
@@ -536,6 +543,58 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 }
             }
             else return false;
+        }
+
+        public IDictionary<string, string[]> ValidateSavingsProductExemptions(Guid savingsProductId, List<SavingsProductExemptionDTO> savingsProductExemptions, ServiceHeader serviceHeader)
+        {
+            var errors = new Dictionary<string, List<string>>();
+            Action<string, string> add = (field, message) =>
+            {
+                List<string> messages;
+                if (!errors.TryGetValue(field, out messages))
+                {
+                    messages = new List<string>();
+                    errors[field] = messages;
+                }
+                messages.Add(message);
+            };
+
+            if (savingsProductId == Guid.Empty || _savingsProductRepository.Get(savingsProductId, serviceHeader) == null)
+                add("SavingsProductId", "The savings product does not exist.");
+            if (savingsProductExemptions == null)
+            {
+                add("Exemptions", "Savings product exemptions are required.");
+                return errors.ToDictionary(item => item.Key, item => item.Value.ToArray());
+            }
+
+            var duplicateBranches = savingsProductExemptions.Where(item => item != null && item.BranchId != Guid.Empty)
+                .GroupBy(item => item.BranchId).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
+            if (duplicateBranches.Any()) add("BranchId", "A branch can only have one exemption for this savings product.");
+
+            for (var index = 0; index < savingsProductExemptions.Count; index++)
+            {
+                var item = savingsProductExemptions[index];
+                var prefix = string.Format("Exemptions[{0}]", index);
+                if (item == null) { add(prefix, "Exemption details are required."); continue; }
+                if (item.BranchId == Guid.Empty) add(prefix + ".BranchId", "Branch is required.");
+                else if (_branchAppService.FindBranch(item.BranchId, serviceHeader) == null) add(prefix + ".BranchId", "The selected branch does not exist.");
+                if (item.MaximumAllowedWithdrawal <= 0m) add(prefix + ".MaximumAllowedWithdrawal", "Maximum withdrawal must be greater than zero.");
+                if (item.MaximumAllowedDeposit <= 0m) add(prefix + ".MaximumAllowedDeposit", "Maximum deposit must be greater than zero.");
+                if (item.MinimumBalance < 0m) add(prefix + ".MinimumBalance", "Minimum balance cannot be negative.");
+                if (item.OperatingBalance < item.MinimumBalance) add(prefix + ".OperatingBalance", "Operating balance cannot be lower than minimum balance.");
+                if (item.WithdrawalNoticeAmount < 0m || item.WithdrawalNoticeAmount > item.MaximumAllowedWithdrawal)
+                    add(prefix + ".WithdrawalNoticeAmount", "Withdrawal notice amount must be between zero and maximum withdrawal.");
+                if (item.WithdrawalNoticePeriod < 0 || item.WithdrawalNoticePeriod > short.MaxValue)
+                    add(prefix + ".WithdrawalNoticePeriod", "Withdrawal notice period must be between 0 and 32,767 days.");
+                else if (item.WithdrawalNoticeAmount > 0m && item.WithdrawalNoticePeriod == 0)
+                    add(prefix + ".WithdrawalNoticePeriod", "Withdrawal notice period must be greater than zero when a notice amount is configured.");
+                if (item.WithdrawalInterval < 0 || item.WithdrawalInterval > short.MaxValue)
+                    add(prefix + ".WithdrawalInterval", "Withdrawal interval must be between 0 and 32,767 days.");
+                if (double.IsNaN(item.AnnualPercentageYield) || double.IsInfinity(item.AnnualPercentageYield) || item.AnnualPercentageYield < 0d || item.AnnualPercentageYield > 100d)
+                    add(prefix + ".AnnualPercentageYield", "Annual percentage yield must be between 0% and 100%.");
+            }
+
+            return errors.ToDictionary(item => item.Key, item => item.Value.Distinct().ToArray());
         }
 
         private bool SetSavingsProductAsDefault(Guid savingsProductId, ServiceHeader serviceHeader)

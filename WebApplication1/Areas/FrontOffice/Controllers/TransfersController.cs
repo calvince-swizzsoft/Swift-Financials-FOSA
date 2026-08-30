@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web;
@@ -69,14 +70,16 @@ namespace WebApplication1.Controllers
         [Route("cheques")]
         public async Task<IHttpActionResult> Cheques()
         {
-            var model = new CashTransferRequestDTO();
+            try
+            {
+                var model = new CashTransferRequestDTO();
 
-            var serviceHeader = Utils.CreateServiceHeader();
+                var serviceHeader = Utils.CreateServiceHeader();
 
-            _selectedTeller = await GetCurrentTeller();
+                _selectedTeller = await GetCurrentTeller();
 
-            if (_selectedTeller == null)
-                return Content(System.Net.HttpStatusCode.BadRequest, new { success = false, message = "Current teller could not be resolved." });
+                if (_selectedTeller == null)
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = "Current teller could not be resolved.", data = (object)null });
 
             var untransferredChequesList = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId(_selectedTeller.Id, "", serviceHeader);
 
@@ -95,7 +98,12 @@ namespace WebApplication1.Controllers
 
             model.UntransferredChequesValue = untransferredChequesValue;
             model.TransactionType = (int)TreasuryTransactionType.TellerToTreasury;
-            return Ok(model);
+                return Ok(model);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
+            }
         }
 
 
@@ -111,9 +119,9 @@ namespace WebApplication1.Controllers
                 return Ok(cashTransferRequests);
             }
 
-            catch (Exception)
+            catch (InvalidOperationException exception)
             {
-                throw;
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
             }
         }
 
@@ -125,36 +133,19 @@ namespace WebApplication1.Controllers
         public async Task<IHttpActionResult> Create(CashTransferRequestDTO cashTransferRequestDTO)
         {
 
-            var selectedTeller = await GetCurrentTeller();
-
-            //get teller cash balance status
-
-
-
-            var missingParameters = new List<string>();
-
-            if (selectedTeller == null)
-            {
-                missingParameters.Add("Teller");
-            }
-
-            // Check if any parameter is missing
-            if (missingParameters.Any())
-            {
-                var missingMessage = $"Some features may not work, you are missing {string.Join(", ", missingParameters)}";
-
-                return Json(new { success = false, message = "Operation error: " + missingMessage });
-            }
-
             try
             {
+                var selectedTeller = await GetCurrentTeller();
+                if (selectedTeller == null)
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = "Current teller could not be resolved.", data = (object)null });
+
                 var serviceHeader = Utils.CreateServiceHeader();
                 var created = await _cashTransferRequestAppService.CreateCashTransferAsync(cashTransferRequestDTO, selectedTeller, serviceHeader);
                 return Json(new { success = created != null, message = created != null ? "Operation Success" : "Operation Failed", data = created });
             }
             catch (InvalidOperationException ex)
             {
-                return Content(System.Net.HttpStatusCode.BadRequest, new { success = false, message = ex.Message });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
         }
 
@@ -165,7 +156,7 @@ namespace WebApplication1.Controllers
         {
             if (cheques == null || cheques.Count == 0)
             {
-                return Json(new { success = false, message = "No cheques were selected for transfer." });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "No cheques were selected for transfer.", data = (object)null });
             }
 
             try
@@ -223,9 +214,13 @@ namespace WebApplication1.Controllers
 
                     var message = "Sorry, but the requisite teller and / or external cheques in hand account has not been setup!";
 
-                    return Json(new { success = false, message = "Operation error: " + message });
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = message, data = (object)null });
                 }
 
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
             }
             catch (Exception)
             {
@@ -294,9 +289,9 @@ namespace WebApplication1.Controllers
                 return Ok(cashTransferRequests);
             }
 
-            catch (Exception)
+            catch (InvalidOperationException exception)
             {
-                throw;
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
             }
         }
 
@@ -316,8 +311,6 @@ namespace WebApplication1.Controllers
             {
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                var cashTransferRequest = await _cashTransferRequestAppService.FindCashTransferRequestAsync(request, serviceHeader);
-
                 var successRequest = await _cashTransferRequestAppService.UtilizeCashTransferRequestAsync(request, serviceHeader);
 
                 if (successRequest)
@@ -329,9 +322,9 @@ namespace WebApplication1.Controllers
                     return Json(new { success = false, message = "Failed to mark cash transfer request as Utilized" });
                 }
             }
-            catch (Exception)
+            catch (InvalidOperationException ex)
             {
-                throw;
+                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = ex.Message });
             }
         }
     }

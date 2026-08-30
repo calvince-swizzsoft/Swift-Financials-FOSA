@@ -16,9 +16,15 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
             AddAllAttributeValidators();
         }
 
-        [Display(Name = "TellerId")]
+        [DataMember]
+        [Display(Name = "Teller Id")]
         public Guid TellerId { get; set; }
 
+        [DataMember]
+        [Display(Name = "Teller")]
+        public string TellerDescription { get; set; }
+
+        [DataMember]
         [Display(Name = "Id")]
         public Guid Id { get; set; }
 
@@ -42,6 +48,7 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         }
 
 
+        [DataMember]
         [Display(Name = "Customer")]
         public Guid EmployeeCustomerId { get; set; }
 
@@ -63,6 +70,7 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         [Display(Name = "Other Names")]
         public string EmployeeCustomerIndividualLastName { get; set; }
 
+        [DataMember]
         [Display(Name = "Employee Name")]
         public string EmployeeCustomerFullName
         {
@@ -72,9 +80,11 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
             }
         }
 
+        [DataMember]
         [Display(Name = "Status")]
         public int Status { get; set; }
 
+        [DataMember]
         [Display(Name = "Status")]
         public string StatusDescription
         {
@@ -85,6 +95,7 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         }
 
   
+        [DataMember]
         [Display(Name = "Utilized")]
         public bool Utilized { get; set; }
 
@@ -116,15 +127,19 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         [Display(Name = "Remarks")]
         public string Remarks { get; set; }
 
+        [DataMember]
         [Display(Name = "Acknowledged By")]
         public string AcknowledgedBy { get; set; }
 
+        [DataMember]
         [Display(Name = "Acknowledged Date")]
         public DateTime? AcknowledgedDate { get; set; }
 
+        [DataMember]
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }
 
+        [DataMember]
         [Display(Name = "From")]
         public string CreatedBy { get; set; }
 

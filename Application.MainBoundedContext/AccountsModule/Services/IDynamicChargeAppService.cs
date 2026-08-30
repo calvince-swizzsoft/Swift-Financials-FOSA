@@ -10,6 +10,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
     {
         DynamicChargeDTO AddNewDynamicCharge(DynamicChargeDTO dynamicChargeDTO, ServiceHeader serviceHeader);
 
+        DynamicChargeDTO AddNewDynamicChargeConfiguration(DynamicChargeDTO dynamicChargeDTO, List<Guid> commissionIds, ServiceHeader serviceHeader);
+
+        DynamicChargeDTO UpdateDynamicChargeConfiguration(DynamicChargeDTO dynamicChargeDTO, List<Guid> commissionIds, ServiceHeader serviceHeader);
+
+        void ValidateDynamicChargeConfiguration(DynamicChargeDTO dynamicChargeDTO, List<Guid> commissionIds);
+
         bool UpdateDynamicCharge(DynamicChargeDTO dynamicChargeDTO, ServiceHeader serviceHeader);
 
         List<DynamicChargeDTO> FindDynamicCharges(ServiceHeader serviceHeader);

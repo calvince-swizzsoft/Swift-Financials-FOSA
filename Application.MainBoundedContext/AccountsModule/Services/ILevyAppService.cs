@@ -10,6 +10,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
     {
         LevyDTO AddNewLevy(LevyDTO levyDTO, ServiceHeader serviceHeader);
 
+        LevyDTO AddNewLevyConfiguration(LevyDTO levyDTO, List<LevySplitDTO> levySplits, ServiceHeader serviceHeader);
+
+        void ValidateLevyConfiguration(LevyDTO levyDTO, List<LevySplitDTO> levySplits);
+
         bool UpdateLevy(LevyDTO levyDTO, ServiceHeader serviceHeader);
 
         List<LevyDTO> FindLevies(ServiceHeader serviceHeader);

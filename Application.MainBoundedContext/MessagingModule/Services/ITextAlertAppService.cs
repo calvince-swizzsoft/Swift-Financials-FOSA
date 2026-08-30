@@ -46,5 +46,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
         List<CommissionDTO> FindCachedCommissions(int systemTransactionCode, ServiceHeader serviceHeader);
 
         bool UpdateCommissions(int systemTransactionCode, CommissionDTO[] commissionDTOs, int chargeBenefactor, ServiceHeader serviceHeader);
+
+        bool UpdateCommissionsByIds(int systemTransactionCode, List<Guid> commissionIds, int chargeBenefactor, ServiceHeader serviceHeader);
     }
 }

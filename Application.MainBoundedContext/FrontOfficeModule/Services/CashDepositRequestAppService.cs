@@ -66,6 +66,31 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             _workflowAppService = workflowAppService;
         }
 
+        private void EnrichRequestDetails(CashDepositRequestDTO request, ServiceHeader serviceHeader)
+        {
+            if (request == null) return;
+
+            // Legacy creation stored the teller id in Remarks. It is not a
+            // human-entered remark, so do not expose the implementation GUID
+            // as request commentary. CreatedBy remains the request audit actor.
+            Guid tellerId;
+            if (Guid.TryParse(request.Remarks, out tellerId))
+            {
+                request.Remarks = null;
+            }
+
+            if (string.IsNullOrWhiteSpace(request.CustomerAccountCustomerAccountTypeTargetProductDescription)
+                && request.CustomerAccountCustomerAccountTypeTargetProductId != Guid.Empty)
+            {
+                var product = _savingsProductAppService.FindSavingsProduct(
+                    request.CustomerAccountCustomerAccountTypeTargetProductId,
+                    request.BranchId,
+                    serviceHeader);
+                request.CustomerAccountCustomerAccountTypeTargetProductDescription =
+                    product != null ? product.Description : null;
+            }
+        }
+
         public CashDepositRequestDTO AddNewCashDepositRequestWithWorkflow(CashDepositRequestDTO cashDepositRequestDTO, ServiceHeader serviceHeader)
         {
             var roles = _authorizationAppService.GetRolesListForSystemPermissionType(
@@ -91,6 +116,35 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 throw new InvalidOperationException("The cash deposit request was stored, but its approval workflow could not be created. Contact an administrator before retrying.");
 
             return created;
+        }
+
+        public bool ResendCashDepositApprovalRequest(Guid cashDepositRequestId, ServiceHeader serviceHeader)
+        {
+            if (cashDepositRequestId == Guid.Empty)
+                throw new InvalidOperationException("A cash deposit request is required.");
+
+            var request = FindCashDepositRequest(cashDepositRequestId, serviceHeader);
+            if (request == null)
+                throw new InvalidOperationException("The cash deposit request could not be found.");
+            if (request.Status != (int)CashDepositRequestAuthStatus.Pending)
+                throw new InvalidOperationException("Only a pending cash deposit request can be resent for approval.");
+
+            var permissionType = (int)SystemPermissionType.CashDepositRequestAuthorization;
+            if (_workflowAppService.IsWorkflowInProgress(request.Id, permissionType, serviceHeader))
+                throw new InvalidOperationException("This cash deposit already has an unactioned approval request. Complete that approval before resending.");
+
+            var roles = _authorizationAppService.GetRolesListForSystemPermissionType(permissionType, serviceHeader);
+            if (roles == null || !roles.Any() || roles.Sum(x => x.RequiredApprovers) < 1)
+                throw new InvalidOperationException("Cash deposit request cannot be resent because no approval role is configured for Cash Deposit Request Authorization.");
+
+            return _workflowAppService.AddNewWorkflow(new WorkflowDTO
+            {
+                RecordId = request.Id,
+                BranchId = request.BranchId,
+                Status = (int)WorkflowRecordStatus.Pending,
+                SystemPermissionType = permissionType,
+                RequiredApprovals = roles.Sum(x => x.RequiredApprovers)
+            }, roles, serviceHeader);
         }
 
         public CashDepositRequestDTO AddNewCashDepositRequest(CashDepositRequestDTO cashDepositRequestDTO, ServiceHeader serviceHeader)
@@ -124,7 +178,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                     dbContextScope.SaveChanges(serviceHeader);
 
-                    return cashDepositRequest.ProjectedAs<CashDepositRequestDTO>();
+                    var result = cashDepositRequest.ProjectedAs<CashDepositRequestDTO>();
+                    EnrichRequestDetails(result, serviceHeader);
+                    return result;
                 }
             }
             else return null;
@@ -265,7 +321,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                     if (cashDepositRequest != null)
                     {
-                        return cashDepositRequest.ProjectedAs<CashDepositRequestDTO>();
+                        var result = cashDepositRequest.ProjectedAs<CashDepositRequestDTO>();
+                        EnrichRequestDetails(result, serviceHeader);
+                        return result;
                     }
                     else return null;
                 }

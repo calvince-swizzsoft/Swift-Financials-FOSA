@@ -93,7 +93,49 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             return created;
         }
 
+        public bool ResendCashWithdrawalApprovalRequest(Guid cashWithdrawalRequestId, ServiceHeader serviceHeader)
+        {
+            if (cashWithdrawalRequestId == Guid.Empty)
+                throw new InvalidOperationException("A cash withdrawal request is required.");
+
+            var request = FindCashWithdrawalRequest(cashWithdrawalRequestId, serviceHeader);
+            if (request == null)
+                throw new InvalidOperationException("The cash withdrawal request could not be found.");
+            if (request.Status != (int)CashWithdrawalRequestAuthStatus.Pending)
+                throw new InvalidOperationException("Only a pending cash withdrawal request can be resent for approval.");
+
+            var permissionType = (int)SystemPermissionType.CashWithdrawalRequestAuthorization;
+            if (_workflowAppService.IsWorkflowInProgress(request.Id, permissionType, serviceHeader))
+                throw new InvalidOperationException("This cash withdrawal already has an unactioned approval request. Complete that approval before resending.");
+
+            var roles = _authorizationAppService.GetRolesListForSystemPermissionType(permissionType, serviceHeader);
+            if (roles == null || !roles.Any() || roles.Sum(x => x.RequiredApprovers) < 1)
+                throw new InvalidOperationException("Cash withdrawal request cannot be resent because no approval role is configured for Cash Withdrawal Request Authorization.");
+
+            return _workflowAppService.AddNewWorkflow(new WorkflowDTO
+            {
+                RecordId = request.Id,
+                BranchId = request.BranchId,
+                Status = (int)WorkflowRecordStatus.Pending,
+                SystemPermissionType = permissionType,
+                RequiredApprovals = roles.Sum(x => x.RequiredApprovers)
+            }, roles, serviceHeader);
+        }
+
         public CashWithdrawalRequestDTO AddNewCashWithdrawalRequest(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader)
+        {
+            return AddNewCashWithdrawalRequest(cashWithdrawalRequestDTO, false, serviceHeader);
+        }
+
+        public CashWithdrawalRequestDTO RecordPaidCashWithdrawal(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader)
+        {
+            if (cashWithdrawalRequestDTO == null || cashWithdrawalRequestDTO.Category != (int)CashWithdrawalCategory.WithinLimits)
+                throw new InvalidOperationException("Only a successfully posted within-limit withdrawal can be recorded as paid.");
+
+            return AddNewCashWithdrawalRequest(cashWithdrawalRequestDTO, true, serviceHeader);
+        }
+
+        private CashWithdrawalRequestDTO AddNewCashWithdrawalRequest(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, bool recordAsPaid, ServiceHeader serviceHeader)
         {
             if (cashWithdrawalRequestDTO != null && cashWithdrawalRequestDTO.BranchId != Guid.Empty)
             {
@@ -133,8 +175,17 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                             break;
                     }
 
-                    cashWithdrawalRequest.Status = (int)CashWithdrawalRequestAuthStatus.Pending;
+                    cashWithdrawalRequest.Status = (byte)(recordAsPaid
+                        ? CashWithdrawalRequestAuthStatus.Paid
+                        : CashWithdrawalRequestAuthStatus.Pending);
                     cashWithdrawalRequest.CreatedBy = serviceHeader.ApplicationUserName;
+                    if (recordAsPaid)
+                    {
+                        cashWithdrawalRequest.AuthorizedBy = serviceHeader.ApplicationUserName;
+                        cashWithdrawalRequest.AuthorizedDate = DateTime.Now;
+                        cashWithdrawalRequest.PaidBy = serviceHeader.ApplicationUserName;
+                        cashWithdrawalRequest.PaidDate = DateTime.Now;
+                    }
 
                     _cashWithdrawalRequestRepository.Add(cashWithdrawalRequest, serviceHeader);
 

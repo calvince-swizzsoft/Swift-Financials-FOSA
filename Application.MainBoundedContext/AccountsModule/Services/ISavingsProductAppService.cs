@@ -42,6 +42,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         List<SavingsProductExemptionDTO> FindSavingsProductExemptions(Guid savingsProductId, ServiceHeader serviceHeader);
 
+        IDictionary<string, string[]> ValidateSavingsProductExemptions(Guid savingsProductId, List<SavingsProductExemptionDTO> savingsProductExemptions, ServiceHeader serviceHeader);
+
         bool UpdateSavingsProductExemptions(Guid savingsProductId, List<SavingsProductExemptionDTO> savingsProductExemptions, ServiceHeader serviceHeader);
 
         List<SavingsProductDTO> FindSavingsProductsWithAutomatedLedgerFeeCalculation(ServiceHeader serviceHeader);

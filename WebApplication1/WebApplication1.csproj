@@ -354,6 +354,10 @@
     <Compile Include="Areas\Accounts\Controllers\ChequeTypeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\ChequeBookController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CommissionController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\WellKnownChargeController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\IndefiniteChargeController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\TextAlertChargeController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\AlternateChannelChargeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LoanProductController.cs" />
     <Compile Include="Areas\Accounts\Controllers\FixedDepositTypeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LevyController.cs" />

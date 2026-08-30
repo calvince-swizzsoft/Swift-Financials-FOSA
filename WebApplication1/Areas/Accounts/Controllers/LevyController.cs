@@ -112,11 +112,6 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return Content(HttpStatusCode.BadRequest, new { success = false, message = "Invalid levy data", data = (object)null });
                 }
 
-                if (!TryValidateSplitPercentages(request.LevySplits, out var splitError))
-                {
-                    return Content(HttpStatusCode.BadRequest, new { success = false, message = splitError, data = (object)null });
-                }
-
                 request.Levy.LevySplitsTotalPercentage = (request.LevySplits == null || !request.LevySplits.Any())
                     ? 100
                     : request.LevySplits.Sum(s => s.Percentage);
@@ -130,21 +125,23 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", request.Levy.ErrorMessages), data = (object)null });
                 }
 
-                var createdLevy = _levyAppService.AddNewLevy(request.Levy, serviceHeader);
+                var createdLevy = _levyAppService.AddNewLevyConfiguration(request.Levy, request.LevySplits, serviceHeader);
 
                 if (createdLevy == null)
                 {
                     return Content(HttpStatusCode.BadRequest, new { success = false, message = "Sorry, but the levy could not be created.", data = (object)null });
                 }
 
-                if (request.LevySplits != null)
+                if (!string.IsNullOrWhiteSpace(createdLevy.ErrorMessageResult))
                 {
-                    _levyAppService.UpdateLevySplits(createdLevy.Id, request.LevySplits, serviceHeader);
+                    return Content(HttpStatusCode.Conflict, new { success = false, message = createdLevy.ErrorMessageResult, data = (object)null });
                 }
 
-                var refreshed = _levyAppService.FindLevy(createdLevy.Id, serviceHeader);
-
-                return Ok(new { success = true, message = "Operation Success", data = refreshed });
+                return Ok(new { success = true, message = "Operation Success", data = createdLevy });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {
@@ -192,6 +189,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
+            }
             catch (Exception)
             {
                 throw;
@@ -222,11 +223,6 @@ namespace WebApplication1.Areas.Accounts.Controllers
         {
             try
             {
-                if (!TryValidateSplitPercentages(levySplits, out var splitError))
-                {
-                    return Content(HttpStatusCode.BadRequest, new { success = false, message = splitError, data = (object)null });
-                }
-
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 var updated = _levyAppService.UpdateLevySplits(id, levySplits ?? new List<LevySplitDTO>(), serviceHeader);
@@ -240,31 +236,16 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<LevySplitDTO>() });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
+            }
             catch (Exception)
             {
                 throw;
             }
         }
 
-        private static bool TryValidateSplitPercentages(List<LevySplitDTO> splits, out string error)
-        {
-            error = null;
-
-            if (splits == null || !splits.Any())
-            {
-                return true;
-            }
-
-            var total = splits.Sum(s => s.Percentage);
-
-            if (Math.Abs(total - 100d) > 0.01d)
-            {
-                error = string.Format("Total levy split percentage must equal 100% (got {0}%).", total);
-                return false;
-            }
-
-            return true;
-        }
     }
 
     public class CreateLevyRequest

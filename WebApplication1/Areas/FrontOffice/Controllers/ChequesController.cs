@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net;
 using System.Runtime.Remoting.Channels;
 using System.Threading.Tasks;
 using System.Web;
@@ -54,27 +55,29 @@ namespace WebApplication1.Controllers
         //public async Task<IHttpActionResult> BankSelectedCheques(List<Guid> selectedChequeIds, BankLinkageDTO bankLinkageDTO)
         public async Task<IHttpActionResult> BankSelectedCheques([FromBody] ChequeBankingRequest chequeBankingRequest)
         {
+            if (chequeBankingRequest == null)
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "A cheque-banking request is required.", data = (object)null });
+
             var selectedChequeIds = chequeBankingRequest.selectedChequeIds;
             var bankLinkageDTO = chequeBankingRequest.bankLinkageDTO;
 
             if (selectedChequeIds == null || !selectedChequeIds.Any())
             {
-                return Json(new { success = false, message = "No cheques selected." });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Select at least one cheque to bank.", data = (object)null });
             }
+
+            if (selectedChequeIds.Any(id => id == Guid.Empty) || selectedChequeIds.Distinct().Count() != selectedChequeIds.Count)
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Selected cheque identifiers must be valid and unique.", data = (object)null });
 
             if (bankLinkageDTO == null || bankLinkageDTO.Id == Guid.Empty)
             {
-                return Json(new
-                {
-                    success = false,
-                    message = "Bank linkage is required. Please enter the bank linkage details and try again."
-                });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Select the bank linkage where the cheques will be deposited.", data = (object)null });
             }
 
-            var serviceHeader = Utils.CreateServiceHeader();
-            bool isSuccess = true;
-            string errorMessage = string.Empty;
+            if (chequeBankingRequest.ModuleNavigationItemCode <= 0)
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "The cheque-banking navigation context is required.", data = (object)null });
 
+            var serviceHeader = Utils.CreateServiceHeader();
             try
             {
 
@@ -97,6 +100,9 @@ namespace WebApplication1.Controllers
                     return Json(new { success = false, message = "Selected cheques not found in unbanked cheques." });
                 }
 
+                if (selectedCheques.Count != selectedChequeIds.Count)
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = "One or more selected cheques are no longer available for banking. Refresh the list and try again.", data = (object)null });
+
                 //foreach (var cheque in selectedCheques)
                 //{
                 //    cheque.BankLinkageChartOfAccountId = (Guid)TempData["BankLinkageChartOfAccountId"];
@@ -117,16 +123,20 @@ namespace WebApplication1.Controllers
                 
                 if (!result)
                 {
-                    isSuccess = false;
-                    errorMessage = "Failed to bank the cheques. Ensure valid data and try again.";
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = "No cheque was banked. Refresh the list and verify the selected bank linkage.", data = (object)null });
                 }
             }
-            catch (Exception)
+            catch (InvalidOperationException exception)
             {
-                throw;
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Cheque banking failed: {0}", exception);
+                return Content(HttpStatusCode.InternalServerError, new { success = false, message = "Cheque banking could not be completed. No cheque should be retried until its current banking status is refreshed.", data = (object)null });
             }
 
-            return Json(new { success = isSuccess, message = isSuccess ? "Cheques processed successfully." : errorMessage });
+            return Ok(new { success = true, message = "Cheques banked successfully.", data = (object)null });
         }
 
       
@@ -136,9 +146,11 @@ namespace WebApplication1.Controllers
         //public async Task<IHttpActionResult> ClearSelectedCheques(List<Guid> selectedChequeIds, int clearingOption, string actionType, UnPayReasonDTO unPayReasonDTO = null)
         public async Task<IHttpActionResult> ClearSelectedCheques(ChequeClearingRequest chequeClearingRequest)
         {
+            if (chequeClearingRequest == null)
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "A cheque-clearing request is required.", data = (object)null });
+
             var selectedChequeIds = chequeClearingRequest.selectedChequeIds;
             var clearingOption = chequeClearingRequest.clearingOption;
-            var actionType = chequeClearingRequest.actionType;
             var unPayReasonDTO = chequeClearingRequest.unPayReasonDTO;
 
 
@@ -146,6 +158,12 @@ namespace WebApplication1.Controllers
             {
                 return Json(new { success = false, message = "No cheques selected." });
             }
+
+            if (clearingOption != 1 && clearingOption != 2)
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Select either Pay or UnPay.", data = (object)null });
+
+            if (clearingOption == 2 && (unPayReasonDTO == null || unPayReasonDTO.Id == Guid.Empty))
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "An unpaid-cheque reason is required.", data = (object)null });
 
             var serviceHeader = Utils.CreateServiceHeader();
 
@@ -179,7 +197,7 @@ namespace WebApplication1.Controllers
                 {
                     bool chequeProcessed = false;
 
-                    if (actionType.ToLower() == "clear")
+                    if (clearingOption == 1)
                     {
                         var result = _externalChequeAppService.ClearExternalCheque(
                             cheque,
@@ -190,31 +208,15 @@ namespace WebApplication1.Controllers
                         );
 
                         if (result)
-                        {
-                            var markClearedResult = _externalChequeAppService.MarkExternalChequeCleared(cheque.Id, serviceHeader);
-                            if (markClearedResult)
-                            {
-                                chequeProcessed = true;
-                            }
-                            else
-                            {
-                                isSuccess = false;
-                                errorMessage += $"Failed to mark cheque with ID {cheque.ChequeTypeDescription} as cleared. ";
-                            }
-                        }
+                            chequeProcessed = true;
                         else
                         {
                             isSuccess = false;
-                            errorMessage += $"Failed to clear cheque with ID {cheque.ChequeTypeDescription}. ";
+                            errorMessage += $"Failed to clear cheque #{cheque.Number}. ";
                         }
                     }
-                    else if (actionType.ToLower() == "unpay")
+                    else
                     {
-                        if (unPayReasonDTO == null)
-                        {
-                            return Json(new { success = false, message = "UnPay reason is required." });
-                        }
-
                         var result = _externalChequeAppService.ClearExternalCheque(
                             cheque,
                             clearingOption,
@@ -224,22 +226,11 @@ namespace WebApplication1.Controllers
                         );
 
                         if (result)
-                        {
-                            var markClearedResult = _externalChequeAppService.MarkExternalChequeCleared(cheque.Id, serviceHeader);
-                            if (markClearedResult)
-                            {
-                                chequeProcessed = true;
-                            }
-                            else
-                            {
-                                isSuccess = false;
-                                errorMessage += $"Failed to mark cheque with ID {cheque.ChequeTypeDescription} as cleared. ";
-                            }
-                        }
+                            chequeProcessed = true;
                         else
                         {
                             isSuccess = false;
-                            errorMessage += $"Failed to unpay cheque with ID {cheque.ChequeTypeDescription}. ";
+                            errorMessage += $"Failed to unpay cheque #{cheque.Number}. ";
                         }
                     }
 
@@ -248,9 +239,14 @@ namespace WebApplication1.Controllers
                     }
                 }
             }
-            catch (Exception)
+            catch (InvalidOperationException exception)
             {
-                throw;
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = exception.Message, data = (object)null });
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Cheque clearance failed: {0}", exception);
+                return Content(HttpStatusCode.InternalServerError, new { success = false, message = "Cheque clearance could not be completed. Refresh the cheque status before retrying.", data = (object)null });
             }
 
             return Json(new { success = isSuccess, message = isSuccess ? "Cheques processed successfully." : errorMessage });
@@ -296,8 +292,6 @@ namespace WebApplication1.Controllers
         public List<Guid> selectedChequeIds { get; set; } = new List<Guid>();
 
         public int clearingOption { get; set; }
-
-        public string actionType { get; set; }
 
         public UnPayReasonDTO unPayReasonDTO { get; set; }
 

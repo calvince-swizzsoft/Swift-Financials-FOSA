@@ -60,7 +60,7 @@ namespace Application.MainBoundedContext.Services
 
                         double fixedInterestInterestPayment = (fixedInterestStartingBalance * (APR / 100));
 
-                        paymentPerPeriod = (fixedInterestStartingBalance + fixedInterestInterestPayment) / termInMonths;
+                        paymentPerPeriod = (fixedInterestStartingBalance + fixedInterestInterestPayment) / NPer;
 
                         break;
                     default:
@@ -515,11 +515,13 @@ namespace Application.MainBoundedContext.Services
 
             double startingBalance = PV * -1 > 0d ? PV * -1 : PV;
 
-            double principalPayment = startingBalance / termInMonths;
+            double numberOfPeriods = (termInMonths / 12d) * paymentFrequencyPerYear;
 
-            double interestPayment = (startingBalance * Rate) / termInMonths;
+            double principalPayment = startingBalance / numberOfPeriods;
 
-            for (int i = 0; i < termInMonths; i++)
+            double interestPayment = (startingBalance * Rate) / numberOfPeriods;
+
+            for (int i = 0; i < numberOfPeriods; i++)
             {
                 int period = i + 1;
 

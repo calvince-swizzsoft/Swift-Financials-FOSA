@@ -179,6 +179,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = created });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
+            }
             catch (Exception)
             {
                 throw;
@@ -264,6 +268,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _loanProductAppService.FindDynamicCharges(id, serviceHeader);
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<DynamicChargeDTO>() });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {
@@ -396,6 +404,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _loanProductAppService.FindLoanProductDeductibles(id, serviceHeader);
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<LoanProductDeductibleDTO>() });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {

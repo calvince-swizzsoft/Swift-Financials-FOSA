@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.MessagingModule.Services;
 using Application.MainBoundedContext.RegistryModule.Services;
@@ -164,8 +164,25 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _appCache = appCache;
         }
 
+        public CommissionDTO AddNewCommissionConfiguration(CommissionDTO commissionDTO, List<GraduatedScaleDTO> graduatedScales, List<CommissionSplitDTO> commissionSplits, List<LevyDTO> levies, ServiceHeader serviceHeader)
+        {
+            if (commissionSplits == null || !commissionSplits.Any()) throw new InvalidOperationException("At least one G/L split is required to create a charge.");
+            ValidateCommissionConfiguration(commissionDTO, graduatedScales, commissionSplits, levies);
+            using (var scope = _dbContextScopeFactory.Create())
+            {
+                var created = AddNewCommission(commissionDTO, serviceHeader);
+                if (created == null || !string.IsNullOrWhiteSpace(created.ErrorMessageResult)) return created;
+                if (graduatedScales != null && !UpdateGraduatedScales(created.Id, graduatedScales, serviceHeader)) throw new InvalidOperationException("Graduated scales could not be saved.");
+                if (commissionSplits != null && !UpdateCommissionSplits(created.Id, commissionSplits, serviceHeader)) throw new InvalidOperationException("G/L splits could not be saved.");
+                if (levies != null && !UpdateLevies(created.Id, levies, serviceHeader)) throw new InvalidOperationException("Linked levies could not be saved.");
+                scope.SaveChanges(serviceHeader);
+                return FindCommission(created.Id, serviceHeader);
+            }
+        }
+
         public CommissionDTO AddNewCommission(CommissionDTO commissionDTO, ServiceHeader serviceHeader)
         {
+            ValidateCommissionConfiguration(commissionDTO, null, null, null);
             if (commissionDTO != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -199,8 +216,54 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             else return null;
         }
 
+        public void ValidateCommissionConfiguration(CommissionDTO commissionDTO, List<GraduatedScaleDTO> graduatedScales, List<CommissionSplitDTO> commissionSplits, List<LevyDTO> levies)
+        {
+            if (commissionDTO == null) throw new InvalidOperationException("Commission data is required.");
+            if (string.IsNullOrWhiteSpace(commissionDTO.Description)) throw new InvalidOperationException("Charge description is required.");
+            if (commissionDTO.MaximumCharge < 0m) throw new InvalidOperationException("Maximum charge cannot be negative.");
+            if (!Enum.IsDefined(typeof(RoundingType), commissionDTO.RoundingType)) throw new InvalidOperationException("Select a valid rounding type.");
+            ValidateGraduatedScaleRows(graduatedScales);
+            ValidateCommissionSplitRows(commissionSplits);
+            if (levies != null)
+            {
+                if (levies.Any(item => item == null || item.Id == Guid.Empty)) throw new InvalidOperationException("Every linked levy must reference an existing levy.");
+                if (levies.GroupBy(item => item.Id).Any(group => group.Count() > 1)) throw new InvalidOperationException("The same levy cannot be linked more than once.");
+            }
+        }
+
+        private static void ValidateGraduatedScaleRows(IEnumerable<GraduatedScaleDTO> graduatedScales)
+        {
+            if (graduatedScales == null) return;
+            var items = graduatedScales.ToList();
+            if (items.Any(item => item == null || item.RangeLowerLimit < 0m || item.RangeUpperLimit < item.RangeLowerLimit ||
+                !Enum.IsDefined(typeof(ChargeType), item.ChargeType) || double.IsNaN(item.ChargePercentage) || double.IsInfinity(item.ChargePercentage) ||
+                item.ChargePercentage < 0d || item.ChargePercentage > 100d || item.ChargeFixedAmount < 0m))
+                throw new InvalidOperationException("Every graduated-scale row requires a valid non-negative range and charge type.");
+            if (items.Any(item => item.ChargeType == (int)ChargeType.Percentage && item.ChargePercentage <= 0d))
+                throw new InvalidOperationException("Every percentage scale requires a rate greater than 0% and no more than 100%.");
+            if (items.Any(item => item.ChargeType == (int)ChargeType.FixedAmount && item.ChargeFixedAmount <= 0m))
+                throw new InvalidOperationException("Every fixed-amount scale requires an amount greater than zero.");
+            var ordered = items.OrderBy(item => item.RangeLowerLimit).ThenBy(item => item.RangeUpperLimit).ToList();
+            for (var index = 1; index < ordered.Count; index++)
+                if (ordered[index].RangeLowerLimit <= ordered[index - 1].RangeUpperLimit)
+                    throw new InvalidOperationException("Graduated-scale amount ranges cannot overlap.");
+        }
+
+        private static void ValidateCommissionSplitRows(IEnumerable<CommissionSplitDTO> commissionSplits)
+        {
+            if (commissionSplits == null) return;
+            var items = commissionSplits.ToList();
+            if (items.Any(item => item == null || item.ChartOfAccountId == Guid.Empty || string.IsNullOrWhiteSpace(item.Description) ||
+                double.IsNaN(item.Percentage) || double.IsInfinity(item.Percentage) || item.Percentage <= 0d || item.Percentage > 100d))
+                throw new InvalidOperationException("Every G/L split requires an account, description, and percentage greater than 0% and no more than 100%.");
+            var total = items.Sum(item => item.Percentage);
+            if (items.Any() && Math.Abs(total - 100d) > 0.01d)
+                throw new InvalidOperationException(string.Format("Total split percentage must equal 100% (got {0}%).", total));
+        }
+
         public bool UpdateCommission(CommissionDTO commissionDTO, ServiceHeader serviceHeader)
         {
+            ValidateCommissionConfiguration(commissionDTO, null, null, null);
             if (commissionDTO == null || commissionDTO.Id == Guid.Empty)
                 return false;
 
@@ -338,6 +401,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateGraduatedScales(Guid commissionId, List<GraduatedScaleDTO> graduatedScales, ServiceHeader serviceHeader)
         {
+            ValidateGraduatedScaleRows(graduatedScales);
             if (commissionId != null && graduatedScales != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -417,6 +481,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateLevies(Guid commissionId, List<LevyDTO> levies, ServiceHeader serviceHeader)
         {
+            if (levies != null && (levies.Any(item => item == null || item.Id == Guid.Empty) || levies.GroupBy(item => item.Id).Any(group => group.Count() > 1)))
+                throw new InvalidOperationException("Linked levies must contain unique, valid levy IDs.");
             if (commissionId != null && levies != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -486,6 +552,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateCommissionSplits(Guid commissionId, List<CommissionSplitDTO> commissionSplits, ServiceHeader serviceHeader)
         {
+            ValidateCommissionSplitRows(commissionSplits);
             if (commissionId != null && commissionSplits != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -637,6 +704,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool MapSystemTransactionTypeToCommissions(int systemTransactionType, CommissionDTO[] commissions, ChargeDTO chargeDTO, ServiceHeader serviceHeader)
         {
+            ValidateSystemTransactionTypeMapping(systemTransactionType, commissions, chargeDTO, serviceHeader);
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var existingCommissions = GetCommissionsForSystemTransactionType(systemTransactionType, serviceHeader);
@@ -718,6 +786,36 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
         }
 
+        public bool MapSystemTransactionTypeToCommissionIds(int systemTransactionType, List<Guid> commissionIds, ChargeDTO complement, ServiceHeader serviceHeader)
+        {
+            if (commissionIds == null || !commissionIds.Any()) throw new InvalidOperationException("Select at least one applicable charge.");
+            if (commissionIds.Any(id => id == Guid.Empty)) throw new InvalidOperationException("Every selected charge must have a valid ID.");
+            if (commissionIds.Distinct().Count() != commissionIds.Count) throw new InvalidOperationException("The same charge cannot be selected more than once.");
+            var commissions = commissionIds.Select(id =>
+            {
+                var commission = _commissionRepository.Get(id, serviceHeader);
+                if (commission == null) throw new InvalidOperationException(string.Format("Selected charge {0} does not exist.", id));
+                if (commission.IsLocked) throw new InvalidOperationException(string.Format("Charge \"{0}\" is locked and cannot be mapped.", commission.Description));
+                return commission.ProjectedAs<CommissionDTO>();
+            }).ToArray();
+            return MapSystemTransactionTypeToCommissions(systemTransactionType, commissions, complement, serviceHeader);
+        }
+
+        private void ValidateSystemTransactionTypeMapping(int systemTransactionType, CommissionDTO[] commissions, ChargeDTO complement, ServiceHeader serviceHeader)
+        {
+            if (!Enum.IsDefined(typeof(SystemTransactionType), systemTransactionType)) throw new InvalidOperationException("Select a valid predefined system transaction type.");
+            if (commissions == null || !commissions.Any()) throw new InvalidOperationException("Select at least one applicable charge.");
+            if (commissions.Any(item => item == null || item.Id == Guid.Empty)) throw new InvalidOperationException("Every selected charge must have a valid ID.");
+            if (commissions.Select(item => item.Id).Distinct().Count() != commissions.Length) throw new InvalidOperationException("The same charge cannot be selected more than once.");
+            if (complement == null || !Enum.IsDefined(typeof(ChargeType), complement.Type)) throw new InvalidOperationException("Select a valid employer contribution type.");
+            if (double.IsNaN(complement.Percentage) || double.IsInfinity(complement.Percentage) || complement.Percentage < 0d || complement.Percentage > 100d || complement.FixedAmount < 0m)
+                throw new InvalidOperationException("Employer contribution values must be valid and non-negative.");
+            if (complement.Type == (int)ChargeType.Percentage && complement.Percentage <= 0d)
+                throw new InvalidOperationException("Percentage employer contribution must be greater than 0% and no more than 100%.");
+            if (complement.Type == (int)ChargeType.FixedAmount && complement.FixedAmount <= 0m)
+                throw new InvalidOperationException("Fixed employer contribution must be greater than zero.");
+        }
+
         public bool UpdateCommissionSplit(CommissionSplitDTO commissionSplitDTO, ServiceHeader serviceHeader)
         {
             if (commissionSplitDTO == null || commissionSplitDTO.Id == Guid.Empty)
@@ -765,11 +863,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -916,11 +1014,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -1049,6 +1147,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 dynamicCharges.ForEach(dynamicChargeDTO =>
                 {
+                    if (dynamicChargeDTO.IsLocked) return;
                     if (dynamicChargeDTO.RecoverySource == dynamicChargeRecoverySource && dynamicChargeDTO.RecoveryMode == dynamicChargeRecoveryMode)
                     {
                         var commissions = useCache ? FindCachedCommissionsByDynamicChargeId(dynamicChargeDTO.Id, serviceHeader) : FindCommissionsByDynamicChargeId(dynamicChargeDTO.Id, serviceHeader);
@@ -1083,11 +1182,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                     {
                                         case ChargeType.Percentage:
                                             commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(workingAmount)) / 100);
-                                            commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                            commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                             break;
                                         case ChargeType.FixedAmount:
                                             commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                            commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                            commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                             break;
                                         default:
                                             break;
@@ -1255,11 +1354,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -1402,11 +1501,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -1545,11 +1644,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             {
                                 case ChargeType.Percentage:
                                     commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                    commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                    commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                     break;
                                 case ChargeType.FixedAmount:
                                     commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                    commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                    commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                     break;
                                 default:
                                     break;
@@ -1697,11 +1796,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -1844,11 +1943,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -1996,12 +2095,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
                                 commissionCharges = commissionCharges * (decimal)multiplier;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
                                 commissionCharges = commissionCharges * (decimal)multiplier;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -2152,11 +2251,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -2312,12 +2411,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
                                 commissionCharges = commissionCharges * (decimal)multiplier;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
                                 commissionCharges = commissionCharges * (decimal)multiplier;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -2484,11 +2583,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(workingAmount)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -2615,6 +2714,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 dynamicCharges.ForEach(dynamicChargeDTO =>
                 {
+                    if (dynamicChargeDTO.IsLocked) return;
                     var commissions = useCache ? FindCachedCommissionsByDynamicChargeId(dynamicChargeDTO.Id, serviceHeader) : FindCommissionsByDynamicChargeId(dynamicChargeDTO.Id, serviceHeader);
 
                     if (commissions != null && commissions.Any())
@@ -2643,11 +2743,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 {
                                     case ChargeType.Percentage:
                                         commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                        commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                        commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                         break;
                                     case ChargeType.FixedAmount:
                                         commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                        commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                        commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                         break;
                                     default:
                                         break;
@@ -2805,11 +2905,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -2966,11 +3066,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;
@@ -3123,11 +3223,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             case ChargeType.Percentage:
                                 commissionCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(totalValue)) / 100);
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             case ChargeType.FixedAmount:
                                 commissionCharges = targetGraduatedScale.ChargeFixedAmount;
-                                commissionCharges = Math.Min(commissionCharges, commission.MaximumCharge);
+                                commissionCharges = commission.MaximumCharge > 0m ? Math.Min(commissionCharges, commission.MaximumCharge) : commissionCharges;
                                 break;
                             default:
                                 break;

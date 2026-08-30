@@ -146,12 +146,12 @@ namespace SwiftFinancials.Utility
             using (var identityContext = new ApplicationDbContext("AuthStore"))
             {
                 var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(identityContext));
+                var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityContext));
                 if (!roleManager.RoleExists(RoleName))
                     roleManager.Create(new IdentityRole(RoleName));
 
                 if (!identityContext.Users.Any())
                 {
-                    var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityContext));
                     var temporaryPassword = GenerateTemporaryPassword();
 
                     var admin = new ApplicationUser

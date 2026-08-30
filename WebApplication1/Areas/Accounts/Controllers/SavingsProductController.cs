@@ -1,8 +1,7 @@
 
 using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
-using iTextSharp.text;
-using iTextSharp.xmp.impl;
+using Infrastructure.Crosscutting.Framework.Utils;
 using Microsoft.Ajax.Utilities;
 using System;
 using System.Collections.Generic;
@@ -189,5 +188,96 @@ namespace WebApplication1.Controllers
 
             return Ok(savingsProductDTOs);
         }
+
+        [HttpGet]
+        [Route("configuration-options")]
+        public IHttpActionResult GetConfigurationOptions()
+        {
+            var chargeTypes = Enum.GetValues(typeof(SavingsProductKnownChargeType)).Cast<SavingsProductKnownChargeType>()
+                .Select(value => new { Value = (int)value, Description = EnumHelper.GetDescription(value) });
+            var chargeBenefactors = Enum.GetValues(typeof(ChargeBenefactor)).Cast<ChargeBenefactor>()
+                .Select(value => new { Value = (int)value, Description = EnumHelper.GetDescription(value) });
+            return Ok(new { success = true, data = new { ChargeTypes = chargeTypes, ChargeBenefactors = chargeBenefactors } });
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/commissions")]
+        public IHttpActionResult GetCommissions(Guid id, int knownChargeType)
+        {
+            if (!Enum.IsDefined(typeof(SavingsProductKnownChargeType), knownChargeType))
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Select a supported savings-product charge type." });
+
+            var commissions = _savingsProductAppService.FindCommissions(id, knownChargeType, Utils.CreateServiceHeader()) ?? new List<CommissionDTO>();
+            var first = commissions.FirstOrDefault();
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    CommissionIds = commissions.Select(item => item.Id),
+                    ChargeBenefactor = first == null ? (int)ChargeBenefactor.Customer : first.ChargeBenefactor
+                }
+            });
+        }
+
+        [HttpPut]
+        [Route("{id:guid}/commissions")]
+        public IHttpActionResult UpdateCommissions(Guid id, UpdateSavingsProductCommissionsRequest request)
+        {
+            if (request == null || !Enum.IsDefined(typeof(SavingsProductKnownChargeType), request.KnownChargeType))
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Select a supported savings-product charge type." });
+            if (!Enum.IsDefined(typeof(ChargeBenefactor), request.ChargeBenefactor))
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Select who bears the charges." });
+
+            var ids = (request.CommissionIds ?? new List<Guid>()).Where(value => value != Guid.Empty).Distinct().ToList();
+            if (ids.Count != (request.CommissionIds ?? new List<Guid>()).Count)
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "Charge selections must contain unique, valid identifiers." });
+
+            var serviceHeader = Utils.CreateServiceHeader();
+            var available = _commissionAppService.FindCommissions(serviceHeader) ?? new List<CommissionDTO>();
+            var commissions = available.Where(item => ids.Contains(item.Id) && !item.IsLocked).ToList();
+            if (commissions.Count != ids.Count)
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = "One or more selected charges do not exist or are locked." });
+
+            if (!_savingsProductAppService.UpdateCommissions(id, commissions, request.KnownChargeType, request.ChargeBenefactor, serviceHeader))
+                return Content(HttpStatusCode.NotFound, new { success = false, message = "Savings product was not found or its charge mapping could not be updated." });
+
+            return Ok(new { success = true, message = "Savings product charge mapping updated successfully." });
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/exemptions")]
+        public IHttpActionResult GetExemptions(Guid id)
+        {
+            var exemptions = _savingsProductAppService.FindSavingsProductExemptions(id, Utils.CreateServiceHeader()) ?? new List<SavingsProductExemptionDTO>();
+            return Ok(new { success = true, data = exemptions });
+        }
+
+        [HttpPut]
+        [Route("{id:guid}/exemptions")]
+        public IHttpActionResult UpdateExemptions(Guid id, List<SavingsProductExemptionDTO> exemptions)
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            var validationErrors = _savingsProductAppService.ValidateSavingsProductExemptions(id, exemptions, serviceHeader);
+            if (validationErrors.Any())
+                return Content(HttpStatusCode.BadRequest, new
+                {
+                    success = false,
+                    message = string.Join(" ", validationErrors.SelectMany(item => item.Value)),
+                    validationErrors
+                });
+
+            if (!_savingsProductAppService.UpdateSavingsProductExemptions(id, exemptions, serviceHeader))
+                return Content(HttpStatusCode.NotFound, new { success = false, message = "Savings product was not found or its exemptions could not be updated." });
+
+            return Ok(new { success = true, message = "Savings product exemptions updated successfully." });
+        }
+    }
+
+    public class UpdateSavingsProductCommissionsRequest
+    {
+        public int KnownChargeType { get; set; }
+        public int ChargeBenefactor { get; set; }
+        public List<Guid> CommissionIds { get; set; }
     }
 }

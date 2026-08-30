@@ -2755,6 +2755,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 case InterestCalculationMode.ReducingBalance:
                                 case InterestCalculationMode.DiminishingBalanceAmortization:
 
+                                    // Upfront interest is fully charged during disbursement.
+                                    // Recurring capitalization is only valid for products
+                                    // configured for periodic charging.
+                                    if (loanProductDTO.LoanInterestChargeMode != (int)InterestChargeMode.Periodic)
+                                        break;
+
                                     // calculate rate
                                     double rb_Rate = (loanProductDTO.LoanInterestAnnualPercentageRate / 100) / loanProductDTO.LoanRegistrationPaymentFrequencyPerYear;
 
@@ -2805,6 +2811,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                     break;
                                 case InterestCalculationMode.StraightLine:
                                 case InterestCalculationMode.StraightLineAmortization:
+                                case InterestCalculationMode.FixedInterest:
+
+                                    if (loanProductDTO.LoanInterestChargeMode != (int)InterestChargeMode.Periodic)
+                                        break;
 
                                     var standingOrderDTOs = FindStandingOrdersByBeneficiaryCustomerAccountId(customerAccountDTO.Id, serviceHeader);
 

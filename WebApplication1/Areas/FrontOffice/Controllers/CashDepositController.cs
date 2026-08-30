@@ -223,6 +223,8 @@ namespace WebApplication1.Controllers
                     tellerId = teller.Id,
                     tellerDescription = teller.Description,
                     tellerCode = teller.Code,
+                    chartOfAccountId = teller.ChartOfAccountId,
+                    chartOfAccountName = teller.ChartOfAccountName,
                     branchId = branch.Id,
                     branchDescription = branch.Description,
                     isLocked = teller.IsLocked,
@@ -580,6 +582,21 @@ namespace WebApplication1.Controllers
 
                 }
             }
+            catch (InvalidOperationException exception)
+            {
+                // App-service validation and workflow-configuration failures are
+                // expected business failures. Returning them through the normal
+                // transaction envelope lets the teller correct the setup (for
+                // example, a missing Cash Deposit Request Authorization role)
+                // instead of having the global exception handler mask the reason
+                // behind an HTTP 500 "An unexpected error occurred" response.
+                return Json(new
+                {
+                    success = false,
+                    message = exception.Message,
+                    data = (object)null
+                });
+            }
             catch (Exception)
             {
                 throw;
@@ -594,6 +611,32 @@ namespace WebApplication1.Controllers
         // which calls AuthorizeCashDepositRequest/AuthorizeCashWithdrawalRequest itself with
         // correct multi-level approval counting and a WorkflowItem audit row, which this
         // endpoint never did. See WebApplication1/Areas/FrontOffice/WORKFLOW.md.
+
+        [HttpPost]
+        [Route("resend-approval")]
+        public IHttpActionResult ResendApproval(Guid id)
+        {
+            if (id == Guid.Empty)
+                return BadRequest("A cash transaction request is required.");
+
+            try
+            {
+                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+                var deposit = _cashDepositRequestAppService.FindCashDepositRequest(id, serviceHeader);
+                var resent = deposit != null
+                    ? _cashDepositRequestAppService.ResendCashDepositApprovalRequest(id, serviceHeader)
+                    : _cashWithdrawalRequestAppService.ResendCashWithdrawalApprovalRequest(id, serviceHeader);
+
+                if (!resent)
+                    return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = "The approval request could not be resent.", data = (object)null });
+
+                return Ok(new { success = true, message = "The transaction approval request was resent successfully.", data = (object)null });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = exception.Message, data = (object)null });
+            }
+        }
 
 
         [HttpPost]
@@ -626,8 +669,17 @@ namespace WebApplication1.Controllers
 
                         var currentTellerDTO = GetCurrentTeller(serviceHeader);
 
+                        if (customerAccount == null)
+                            return BadRequest("The customer account linked to this authorized cash deposit could not be found.");
+
+                        if (currentTellerDTO == null)
+                            return BadRequest("Your user account is not linked to a teller profile.");
+
                         if (customerAccount != null && currentTellerDTO != null)
                         {
+                            if (!currentTellerDTO.ChartOfAccountId.HasValue || currentTellerDTO.ChartOfAccountId.Value == Guid.Empty)
+                                return BadRequest("The current teller does not have a cash G/L account configured.");
+
                             if (cashDepositRequestDTO.BranchId != currentTellerDTO.EmployeeBranchId)
                                 return BadRequest("This authorized request belongs to a different branch and cannot be posted by the current teller.");
 
@@ -641,10 +693,11 @@ namespace WebApplication1.Controllers
                             model.TotalValue = cashDepositRequestDTO.Amount;
                             model.BranchId = currentTellerDTO.EmployeeBranchId;
                             model.CashDepositRequestId = cashDepositRequestDTO.Id;
-                            model.DebitChartOfAccountId = (Guid)currentTellerDTO.ChartOfAccountId;
+                            model.DebitChartOfAccountId = currentTellerDTO.ChartOfAccountId.Value;
 
 
                             model.Type = (int)FrontOfficeTransactionType.CashDeposit;
+                            model.TransactionCode = (int)SystemTransactionCode.CashDeposit;
                             model.CreditCustomerAccount = customerAccount;
 
                             model.DebitCustomerAccountId = customerAccount.Id;
@@ -657,11 +710,29 @@ namespace WebApplication1.Controllers
 
 
                             var SelectedCustomer = _customerAppService.FindCustomer(customerAccount.CustomerId, serviceHeader);
+                            if (SelectedCustomer == null)
+                                return BadRequest("The customer linked to this authorized request could not be found.");
+
+                            var selectedBranch = _branchAppService.FindBranch(model.BranchId, serviceHeader);
+                            if (selectedBranch == null)
+                                return BadRequest("The teller's branch could not be resolved. Check the employee/teller branch linkage.");
+
+                            var postingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
+                            if (postingPeriod == null)
+                                return BadRequest("No active posting period is configured for this transaction.");
+
+                            model.PostingPeriodId = postingPeriod.Id;
+                            model.PrimaryDescription = "Authorized cash deposit";
+                            model.SecondaryDescription = string.Format("B{0}/T{1}/#{2}", selectedBranch.Code, currentTellerDTO.Code, currentTellerDTO.ItemsCount);
+                            model.Reference = customerAccount.CustomerReference1;
 
                             var selectedProduct = _savingsProductAppService.FindSavingsProduct(customerAccount.CustomerAccountTypeTargetProductId, model.BranchId, serviceHeader);
 
                             if (selectedProduct == null)
                                 return BadRequest("The savings product for this request is no longer configured for the teller's branch.");
+
+                            if (selectedProduct.ChartOfAccountId == Guid.Empty)
+                                return BadRequest("The savings product for this request does not have a control G/L account configured.");
 
                             model.CreditChartOfAccountId = selectedProduct.ChartOfAccountId;
 
@@ -695,8 +766,17 @@ namespace WebApplication1.Controllers
 
                         var currentTellerDTO = GetCurrentTeller(serviceHeader);
 
+                        if (customerAccount == null)
+                            return BadRequest("The customer account linked to this authorized cash withdrawal could not be found.");
+
+                        if (currentTellerDTO == null)
+                            return BadRequest("Your user account is not linked to a teller profile.");
+
                         if (customerAccount != null && currentTellerDTO != null)
                         {
+                            if (!currentTellerDTO.ChartOfAccountId.HasValue || currentTellerDTO.ChartOfAccountId.Value == Guid.Empty)
+                                return BadRequest("The current teller does not have a cash G/L account configured.");
+
                             if (cashWithdrawalRequestDTO.BranchId != currentTellerDTO.EmployeeBranchId)
                                 return BadRequest("This authorized request belongs to a different branch and cannot be posted by the current teller.");
 
@@ -710,10 +790,11 @@ namespace WebApplication1.Controllers
                             model.TotalValue = cashWithdrawalRequestDTO.Amount;
                             model.BranchId = currentTellerDTO.EmployeeBranchId;
                             model.CashWithdrawalRequestId = cashWithdrawalRequestDTO.Id;
-                            model.CreditChartOfAccountId = (Guid)currentTellerDTO.ChartOfAccountId;
+                            model.CreditChartOfAccountId = currentTellerDTO.ChartOfAccountId.Value;
 
 
                             model.Type = (int)FrontOfficeTransactionType.CashWithdrawal;
+                            model.TransactionCode = (int)SystemTransactionCode.CashWithdrawal;
                             model.CreditCustomerAccount = customerAccount;
 
                             model.DebitCustomerAccountId = customerAccount.Id;
@@ -726,11 +807,29 @@ namespace WebApplication1.Controllers
 
 
                             var SelectedCustomer = _customerAppService.FindCustomer(customerAccount.CustomerId, serviceHeader);
+                            if (SelectedCustomer == null)
+                                return BadRequest("The customer linked to this authorized request could not be found.");
+
+                            var selectedBranch = _branchAppService.FindBranch(model.BranchId, serviceHeader);
+                            if (selectedBranch == null)
+                                return BadRequest("The teller's branch could not be resolved. Check the employee/teller branch linkage.");
+
+                            var postingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
+                            if (postingPeriod == null)
+                                return BadRequest("No active posting period is configured for this transaction.");
+
+                            model.PostingPeriodId = postingPeriod.Id;
+                            model.PrimaryDescription = "Authorized cash withdrawal";
+                            model.SecondaryDescription = string.Format("B{0}/T{1}/#{2}", selectedBranch.Code, currentTellerDTO.Code, currentTellerDTO.ItemsCount);
+                            model.Reference = customerAccount.CustomerReference1;
 
                             var selectedProduct = _savingsProductAppService.FindSavingsProduct(customerAccount.CustomerAccountTypeTargetProductId, model.BranchId, serviceHeader);
 
                             if (selectedProduct == null)
                                 return BadRequest("The savings product for this request is no longer configured for the teller's branch.");
+
+                            if (selectedProduct.ChartOfAccountId == Guid.Empty)
+                                return BadRequest("The savings product for this request does not have a control G/L account configured.");
 
                             model.DebitChartOfAccountId = selectedProduct.ChartOfAccountId;
 
@@ -756,6 +855,24 @@ namespace WebApplication1.Controllers
                
             }
 
+            catch (InvalidOperationException exception)
+            {
+                return Content(System.Net.HttpStatusCode.BadRequest, new
+                {
+                    success = false,
+                    message = exception.Message,
+                    data = (object)null
+                });
+            }
+            catch (ArgumentException exception)
+            {
+                return Content(System.Net.HttpStatusCode.BadRequest, new
+                {
+                    success = false,
+                    message = exception.Message,
+                    data = (object)null
+                });
+            }
             catch (Exception)
             {
                 throw;
@@ -816,6 +933,24 @@ namespace WebApplication1.Controllers
                 
             }
 
+            catch (InvalidOperationException exception)
+            {
+                return Content(System.Net.HttpStatusCode.BadRequest, new
+                {
+                    success = false,
+                    message = exception.Message,
+                    data = (object)null
+                });
+            }
+            catch (ArgumentException exception)
+            {
+                return Content(System.Net.HttpStatusCode.BadRequest, new
+                {
+                    success = false,
+                    message = exception.Message,
+                    data = (object)null
+                });
+            }
             catch (Exception)
             {
                 throw;
@@ -1027,7 +1162,8 @@ namespace WebApplication1.Controllers
                                     aboveMaxCashDepositRequestDTO.Posted = false;
                                     aboveMaxCashDepositRequestDTO.TransactionType = transactionModel.Type;
 
-                                    aboveMaxCashDepositRequestDTO.Remarks = SelectedTeller.Id.ToString();
+                                    aboveMaxCashDepositRequestDTO.Remarks =
+                                        "Cash deposit above the savings product maximum";
 
                                     aboveMaxCashDepositRequestDTO.ValidateAll();
                                     if (aboveMaxCashDepositRequestDTO.HasErrors)
@@ -1213,6 +1349,7 @@ namespace WebApplication1.Controllers
 
                                     if (createNewCashWithdrawalRequest)
                                     {
+                                        var isPaymentVoucherWithdrawal = cashWithdrawalCategory == CashWithdrawalCategory.PaymentVoucher;
                                         CashWithdrawalRequestDTO aboveLimitsCashWithdrawalRequest = new CashWithdrawalRequestDTO();
 
                                         aboveLimitsCashWithdrawalRequest.Amount = transactionModel.TotalValue;
@@ -1225,9 +1362,16 @@ namespace WebApplication1.Controllers
                                             : (int)CashWithdrawalRequestType.ImmediateNotice;
                                         aboveLimitsCashWithdrawalRequest.CustomerAccountBranchId = SelectedCustomerAccount.BranchId;
                                         aboveLimitsCashWithdrawalRequest.CustomerAccountCustomerAccountTypeTargetProductId = SelectedCustomerAccount.CustomerAccountTypeTargetProductId;
-                                        aboveLimitsCashWithdrawalRequest.Remarks = selectedTellerDTO.Id.ToString();
+                                        aboveLimitsCashWithdrawalRequest.Remarks = string.IsNullOrWhiteSpace(transactionModel.Reference)
+                                            ? string.Format("Cash withdrawal initiated by teller {0}.", selectedTellerDTO.Description)
+                                            : transactionModel.Reference.Trim();
                                         aboveLimitsCashWithdrawalRequest.TransactionType = frontOfficeTransactionType;
                                         aboveLimitsCashWithdrawalRequest.Status = (int)CashWithdrawalRequestAuthStatus.Pending;
+                                        if (isPaymentVoucherWithdrawal)
+                                        {
+                                            aboveLimitsCashWithdrawalRequest.PaymentVoucherId = transactionModel.PaymentVoucher.Id;
+                                            aboveLimitsCashWithdrawalRequest.PaymentVoucherPayee = transactionModel.PaymentVoucher.Payee;
+                                        }
 
                                         aboveLimitsCashWithdrawalRequest.ValidateAll();
                                         if (aboveLimitsCashWithdrawalRequest.HasErrors)
@@ -1241,6 +1385,15 @@ namespace WebApplication1.Controllers
                                         }
 
                                         var cashWithdrawalRequestDTO = _cashWithdrawalRequestAppService.AddNewCashWithdrawalRequestWithWorkflow(aboveLimitsCashWithdrawalRequest, serviceHeader);
+                                        if (cashWithdrawalRequestDTO == null || cashWithdrawalRequestDTO.Id == Guid.Empty)
+                                        {
+                                            return new OperationResult
+                                            {
+                                                Success = false,
+                                                Dialog = false,
+                                                Message = "The cash withdrawal authorization request could not be created."
+                                            };
+                                        }
 
                                         string message = string.Format("{0}.\nSuccessfully placed cash withdrawal authorization request", EnumHelper.GetDescription(cashWithdrawalCategory));
 
@@ -1260,13 +1413,12 @@ namespace WebApplication1.Controllers
                                             TransactionData = new CustomerTransactionModel
                                             {
                                                 DebitCustomerAccountId = SelectedCustomerAccount.Id,
-                                                //TotalValue = (cashWithdrawalCategory == CashWithdrawalCategory.PaymentVoucher) ? transactionModel.PaymentVoucher.Amount : transactionModel.TotalValue,
                                                 TotalValue = transactionModel.TotalValue,
-                                                Reference = transactionModel.PaymentVoucher.Reference,
-                                                PaymentVoucherId = transactionModel.PaymentVoucher.Id,
-                                                PaymentVoucherPayee = transactionModel.PaymentVoucher.Payee,
+                                                Reference = isPaymentVoucherWithdrawal ? transactionModel.PaymentVoucher.Reference : transactionModel.Reference,
+                                                PaymentVoucherId = isPaymentVoucherWithdrawal ? transactionModel.PaymentVoucher.Id : Guid.Empty,
+                                                PaymentVoucherPayee = isPaymentVoucherWithdrawal ? transactionModel.PaymentVoucher.Payee : null,
                                                 CashWithdrawalCategory = (int)cashWithdrawalCategory,
-                                                PaymentVoucherWriteDate = transactionModel.PaymentVoucher.WriteDate,
+                                                PaymentVoucherWriteDate = isPaymentVoucherWithdrawal ? transactionModel.PaymentVoucher.WriteDate : null,
                                                 CashWithdrawalRequestId = cashWithdrawalRequestDTO.Id
                                             }
                                         }; 
@@ -1309,7 +1461,9 @@ namespace WebApplication1.Controllers
                                             withinLimitsCashWithdrawalRequest.CustomerAccountCustomerAccountTypeTargetProductId = SelectedCustomerAccount.CustomerAccountTypeTargetProductId;
                                             withinLimitsCashWithdrawalRequest.CustomerName = SelectedCustomer.FullName;
                                             withinLimitsCashWithdrawalRequest.TransactionType = (int)FrontOfficeTransactionType.CashWithdrawal;
-                                            withinLimitsCashWithdrawalRequest.Remarks = SelectedTeller.Id.ToString();
+                                            withinLimitsCashWithdrawalRequest.Remarks = string.IsNullOrWhiteSpace(transactionModel.Reference)
+                                                ? string.Format("Cash withdrawal posted by teller {0}.", SelectedTeller.Description)
+                                                : transactionModel.Reference.Trim();
 
                                             withinLimitsCashWithdrawalRequest.ValidateAll();
                                             if (withinLimitsCashWithdrawalRequest.HasErrors)
@@ -1322,7 +1476,7 @@ namespace WebApplication1.Controllers
                                                 };
                                             }
 
-                                            _cashWithdrawalRequestAppService.AddNewCashWithdrawalRequest(withinLimitsCashWithdrawalRequest, serviceHeader);
+                                            _cashWithdrawalRequestAppService.RecordPaidCashWithdrawal(withinLimitsCashWithdrawalRequest, serviceHeader);
                                         }
 
                                         string message = $"Operation success: Customer's new balance is {transactionModel.CustomerAccount.NewAvailableBalance}";
@@ -1432,9 +1586,13 @@ namespace WebApplication1.Controllers
 
                             var externalChequeResult = _externalChequeAppService.AddNewExternalCheque(NewExternalCheque, serviceHeader);
 
-
-                            if (externalChequeResult != null)
-                            {
+                            if (externalChequeResult == null)
+                                return new OperationResult
+                                {
+                                    Success = false,
+                                    Dialog = false,
+                                    Message = "The cheque record could not be created. No deposit journal was posted."
+                                };
 
                                 var ExternalChequePayables = new List<ExternalChequePayableDTO>();
 
@@ -1452,10 +1610,14 @@ namespace WebApplication1.Controllers
                                 ExternalChequePayables.Add(externalChequePayable);
 
 
-                                if (ExternalChequePayables != null)
-                                    _externalChequeAppService.UpdateExternalChequePayables(externalChequeResult.Id, new List<ExternalChequePayableDTO>(ExternalChequePayables), serviceHeader);
-                                    
-                            }
+                                var payablesUpdated = _externalChequeAppService.UpdateExternalChequePayables(externalChequeResult.Id, new List<ExternalChequePayableDTO>(ExternalChequePayables), serviceHeader);
+                                if (!payablesUpdated)
+                                    return new OperationResult
+                                    {
+                                        Success = false,
+                                        Dialog = false,
+                                        Message = "The cheque was captured, but its customer-account allocation could not be created. Do not resubmit it; ask a supervisor to review the captured cheque."
+                                    };
 
                             //var chequeDepositJournal = await _channelService.AddJournalWithCustomerAccountAndTariffsAsync(transactionModel, tariffs, GetServiceHeader());
 
@@ -1465,43 +1627,14 @@ namespace WebApplication1.Controllers
                             {
 
 
-                                #region Send Text Notification
-
-                                if (!string.IsNullOrWhiteSpace(SelectedCustomer.AddressMobileLine) &&
-                           Regex.IsMatch(SelectedCustomer.AddressMobileLine, @"^\+(?:[0-9]??){6,14}[0-9]$") &&
-                           SelectedCustomer.AddressMobileLine.Length >= 13)
-                                {
-
-                                    var smsBody = new StringBuilder();
-                                    smsBody.AppendFormat(
-                                        "Dear customer, {0} of {1} has been effected on your fosa account at {2} at Branch {3}",
-                                        transactionModel.Reference,
-                                        transactionModel.TotalValue,
-                                        SelectedCustomerAccount.BranchDescription,
-                                        SelectedCustomerAccount.BranchCompanyDescription,
-                                        DateTime.Now.ToString("MMMM dd, yyyy")
-                                    );
-
-
-                                    var textAlertDTO = new TextAlertDTO
-                                    {
-                                        BranchId = SelectedCustomerAccount.BranchId,
-                                        TextMessageOrigin = (int)MessageOrigin.Within,
-                                        TextMessageRecipient = SelectedCustomer.AddressMobileLine,
-                                        TextMessageBody = smsBody.ToString(),
-                                        MessageCategory = (int)MessageCategory.SMSAlert,
-                                        AppendSignature = false,
-                                        TextMessagePriority = (int)QueuePriority.Highest,
-                                    };
-
-
-                                    var textAlertDTOs = new List<TextAlertDTO>{ textAlertDTO };
-
-
-                                    _textAlertAppService.AddNewTextAlerts(textAlertDTOs, serviceHeader);
-                                }
-
-                                #endregion
+                                await SendTextNotificationAsync(
+                                    "Dear customer, {0} has been received by cheque on your account at {1}, {2}, on {3}. Reference: {4}. {5}. Funds remain unavailable until clearance.",
+                                    SelectedCustomer,
+                                    SelectedCustomerAccount,
+                                    transactionModel.TotalValue,
+                                    transactionModel.Reference,
+                                    transactionModel.PrimaryDescription,
+                                    _textAlertAppService);
 
                                 SelectedCustomerAccount = _customerAccountAppService.FindCustomerAccountDTO(SelectedCustomerAccount.Id, serviceHeader);
 
@@ -1596,46 +1729,51 @@ namespace WebApplication1.Controllers
 
         public static async Task SendTextNotificationAsync(string MessageTemplate, CustomerDTO Recipient, CustomerAccountDTO RecipientAccount, decimal Amount, string Reference, string PrimaryDescription, ITextAlertAppService textAlertAppService)
         {
-
-            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
-          
-            if (!string.IsNullOrWhiteSpace(Recipient.AddressMobileLine) &&
-                         Regex.IsMatch(Recipient.AddressMobileLine, @"^\+(?:[0-9]??){6,14}[0-9]$") &&
-                         Recipient.AddressMobileLine.Length >= 13)
+            try
             {
-                // Build the SMS body message
-                var smsBody = new StringBuilder();
-                smsBody.AppendFormat(
-                    MessageTemplate,
-                    Amount,
-                    RecipientAccount.BranchDescription,
-                    RecipientAccount.BranchCompanyDescription,
-                    DateTime.Now.ToString("MMMM dd, yyyy"),
-                    Reference,
-                    PrimaryDescription
-                );
+                if (Recipient == null || RecipientAccount == null || textAlertAppService == null)
+                    return;
 
+                var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
 
-                var textAlertDTO = new TextAlertDTO
+                if (!string.IsNullOrWhiteSpace(Recipient.AddressMobileLine) &&
+                             Regex.IsMatch(Recipient.AddressMobileLine, @"^\+(?:[0-9]??){6,14}[0-9]$") &&
+                             Recipient.AddressMobileLine.Length >= 13)
                 {
-                    BranchId = RecipientAccount.BranchId,
-                    TextMessageOrigin = (int)MessageOrigin.Within,
-                    TextMessageRecipient = Recipient.AddressMobileLine,
-                    TextMessageBody = smsBody.ToString(),
-                    MessageCategory = (int)MessageCategory.SMSAlert,
-                    AppendSignature = false,
-                    TextMessagePriority = (int)QueuePriority.Highest,
-                };
+                    var smsBody = new StringBuilder();
+                    smsBody.AppendFormat(
+                        MessageTemplate,
+                        Amount,
+                        RecipientAccount.BranchDescription,
+                        RecipientAccount.BranchCompanyDescription,
+                        DateTime.Now.ToString("MMMM dd, yyyy"),
+                        Reference,
+                        PrimaryDescription
+                    );
 
+                    var textAlertDTO = new TextAlertDTO
+                    {
+                        BranchId = RecipientAccount.BranchId,
+                        TextMessageOrigin = (int)MessageOrigin.Within,
+                        TextMessageRecipient = Recipient.AddressMobileLine,
+                        TextMessageBody = smsBody.ToString(),
+                        MessageCategory = (int)MessageCategory.SMSAlert,
+                        AppendSignature = false,
+                        TextMessagePriority = (int)QueuePriority.Highest,
+                    };
 
-                var textAlertDTOs = new List<TextAlertDTO> { textAlertDTO };
-
-               
-
-                textAlertAppService.AddNewTextAlerts(textAlertDTOs, serviceHeader);
+                    textAlertAppService.AddNewTextAlerts(new List<TextAlertDTO> { textAlertDTO }, serviceHeader);
+                }
             }
-
-
+            catch (Exception exception)
+            {
+                // Notification is a post-transaction side effect. It must not
+                // turn a successfully posted journal into a client-visible
+                // failure that encourages the teller to submit it again.
+                System.Diagnostics.Trace.TraceError(
+                    "Cash transaction posted but SMS notification creation failed: {0}",
+                    exception);
+            }
         }
 
 

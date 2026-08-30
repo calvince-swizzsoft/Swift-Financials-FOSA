@@ -70,18 +70,16 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     bankLinkages = new List<BankLinkageDTO>();
                 }
 
-                var generalLedgerAccounts = _chartOfAccountAppService
-                    .FindGeneralLedgerAccounts(serviceHeader, true);
-
-                if (generalLedgerAccounts == null)
+                var balances = new Dictionary<Tuple<Guid, Guid>, decimal>();
+                foreach (var branchGroup in bankLinkages.Where(item => item.BranchId != Guid.Empty && item.ChartOfAccountId != Guid.Empty).GroupBy(item => item.BranchId))
                 {
-                    generalLedgerAccounts = new List<Application.MainBoundedContext.DTO.GeneralLedgerAccount>();
+                    var generalLedgerAccounts = branchGroup.Select(item => item.ChartOfAccountId).Distinct()
+                        .Select(accountId => _chartOfAccountAppService.FindGeneralLedgerAccount(accountId, serviceHeader))
+                        .Where(account => account != null).ToList();
+                    _chartOfAccountAppService.FetchGeneralLedgerAccountBalances(branchGroup.Key, generalLedgerAccounts, DateTime.Now, serviceHeader, TransactionDateFilter.CreatedDate, false);
+                    foreach (var account in generalLedgerAccounts)
+                        balances[Tuple.Create(branchGroup.Key, account.Id)] = account.Balance;
                 }
-
-                var balances = generalLedgerAccounts
-                    .Where(account => account != null && account.Id != Guid.Empty)
-                    .GroupBy(account => account.Id)
-                    .ToDictionary(group => group.Key, group => group.First().Balance);
 
                 foreach (var bankLinkage in bankLinkages)
                 {
@@ -96,7 +94,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     }
 
                     decimal balance;
-                    bankLinkage.BankLinkageBalance = balances.TryGetValue(bankLinkage.ChartOfAccountId, out balance)
+                    bankLinkage.BankLinkageBalance = balances.TryGetValue(Tuple.Create(bankLinkage.BranchId, bankLinkage.ChartOfAccountId), out balance)
                         ? balance
                         : 0m;
                 }

@@ -210,7 +210,7 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         [Display(Name = "Remarks")]
         [Required]
         public string Remarks { get; set; }
-        
+
         [DataMember]
         [Display(Name = "Authorized/Rejected By")]
         public string AuthorizedBy { get; set; }

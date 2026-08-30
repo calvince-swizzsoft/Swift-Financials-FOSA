@@ -29,5 +29,10 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.LevyAgg
 
             return specification;
         }
+
+        public static Specification<Levy> LevyWithDescription(string description)
+        {
+            return new DirectSpecification<Levy>(levy => levy.Description == description);
+        }
     }
 }

@@ -106,6 +106,24 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             _moduleNavigationCode = 0;
         }
 
+        public object FindRelatedRecord(Guid recordId, int workflowRecordType, ServiceHeader serviceHeader)
+        {
+            if (recordId == Guid.Empty)
+                throw new InvalidOperationException("The workflow related-record identifier is required.");
+
+            switch ((SystemPermissionType)workflowRecordType)
+            {
+                case SystemPermissionType.CashDepositRequestAuthorization:
+                    return _cashDepositRequestAppService.FindCashDepositRequest(recordId, serviceHeader);
+
+                case SystemPermissionType.CashWithdrawalRequestAuthorization:
+                    return _cashWithdrawalRequestAppService.FindCashWithdrawalRequest(recordId, serviceHeader);
+
+                default:
+                    throw new NotSupportedException("Related-record details are not available for this workflow type.");
+            }
+        }
+
         public async Task<bool> ProcessWorkflowQueueAsync(Guid recordId, int workflowRecordType, int workflowRecordStatus, ServiceHeader serviceHeader)
         {
             var _workflowRecordType = (SystemPermissionType)workflowRecordType;
@@ -230,6 +248,9 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 
                     if (cashWithdrawalRequestDTO != null)
                     {
+                        cashWithdrawalRequestDTO.AuthorizationRemarks = approved
+                            ? "Approved through the configured cash withdrawal workflow."
+                            : "Rejected through the configured cash withdrawal workflow.";
                         var customerTransactionAuthOption = (int)(approved
                             ? CustomerTransactionAuthOption.Authorize
                             : CustomerTransactionAuthOption.Reject);

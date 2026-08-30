@@ -39,17 +39,62 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _levySplitRepository = levySplitRepository;
         }
 
+        public LevyDTO AddNewLevyConfiguration(LevyDTO levyDTO, List<LevySplitDTO> levySplits, ServiceHeader serviceHeader)
+        {
+            if (levySplits == null || !levySplits.Any()) throw new InvalidOperationException("At least one G/L split is required to create a levy.");
+            ValidateLevyConfiguration(levyDTO, levySplits);
+            using (var scope = _dbContextScopeFactory.Create())
+            {
+                var created = AddNewLevy(levyDTO, serviceHeader);
+                if (created == null || !string.IsNullOrWhiteSpace(created.ErrorMessageResult)) return created;
+                if (levySplits != null && !UpdateLevySplits(created.Id, levySplits, serviceHeader)) throw new InvalidOperationException("Levy G/L splits could not be saved.");
+                scope.SaveChanges(serviceHeader);
+                return FindLevy(created.Id, serviceHeader);
+            }
+        }
+
+        public void ValidateLevyConfiguration(LevyDTO levyDTO, List<LevySplitDTO> levySplits)
+        {
+            if (levyDTO == null) throw new InvalidOperationException("Levy data is required.");
+            if (string.IsNullOrWhiteSpace(levyDTO.Description)) throw new InvalidOperationException("Levy description is required.");
+            if (!Enum.IsDefined(typeof(ChargeType), levyDTO.ChargeType)) throw new InvalidOperationException("Select a valid levy charge type.");
+            if (double.IsNaN(levyDTO.ChargePercentage) || double.IsInfinity(levyDTO.ChargePercentage) || levyDTO.ChargePercentage < 0d || levyDTO.ChargePercentage > 100d || levyDTO.ChargeFixedAmount < 0m)
+                throw new InvalidOperationException("Levy charge values must be valid and non-negative.");
+            if (levyDTO.ChargeType == (int)ChargeType.Percentage && levyDTO.ChargePercentage <= 0d)
+                throw new InvalidOperationException("A percentage levy requires a rate greater than 0% and no more than 100%.");
+            if (levyDTO.ChargeType == (int)ChargeType.FixedAmount && levyDTO.ChargeFixedAmount <= 0m)
+                throw new InvalidOperationException("A fixed-amount levy requires an amount greater than zero.");
+            ValidateLevySplitRows(levySplits);
+        }
+
+        private static void ValidateLevySplitRows(IEnumerable<LevySplitDTO> levySplits)
+        {
+            if (levySplits == null) return;
+            var items = levySplits.ToList();
+            if (items.Any(item => item == null || item.ChartOfAccountId == Guid.Empty || string.IsNullOrWhiteSpace(item.Description) ||
+                double.IsNaN(item.Percentage) || double.IsInfinity(item.Percentage) || item.Percentage <= 0d || item.Percentage > 100d))
+                throw new InvalidOperationException("Every levy G/L split requires an account, description, and percentage greater than 0% and no more than 100%.");
+            var total = items.Sum(item => item.Percentage);
+            if (items.Any() && Math.Abs(total - 100d) > 0.01d)
+                throw new InvalidOperationException(string.Format("Total levy split percentage must equal 100% (got {0}%).", total));
+        }
+
         public LevyDTO AddNewLevy(LevyDTO levyDTO, ServiceHeader serviceHeader)
         {
+            ValidateLevyConfiguration(levyDTO, null);
             if (levyDTO != null)
             {
-                levyDTO.ErrorMessageResult = string.Format("Charge Percentage cant be more than "+ levyDTO.ChargePercentage);
-                
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
+                    var matched = _levyRepository.AllMatching(LevySpecifications.LevyWithDescription(levyDTO.Description.Trim()), serviceHeader);
+                    if (matched != null && matched.Any())
+                    {
+                        levyDTO.ErrorMessageResult = string.Format("A levy named \"{0}\" already exists.", levyDTO.Description.Trim());
+                        return levyDTO;
+                    }
                     var charge = new Charge(levyDTO.ChargeType, levyDTO.ChargePercentage, levyDTO.ChargeFixedAmount);
 
-                    var levy = LevyFactory.CreateLevy(levyDTO.Description, charge);
+                    var levy = LevyFactory.CreateLevy(levyDTO.Description.Trim(), charge);
 
                     if (levyDTO.IsLocked)
                         levy.Lock();
@@ -67,6 +112,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateLevy(LevyDTO levyDTO, ServiceHeader serviceHeader)
         {
+            ValidateLevyConfiguration(levyDTO, null);
             if (levyDTO == null || levyDTO.Id == Guid.Empty)
                 return false;
 
@@ -76,6 +122,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (persisted != null)
                 {
+                    var matched = _levyRepository.AllMatching(LevySpecifications.LevyWithDescription(levyDTO.Description.Trim()), serviceHeader);
+                    if (matched != null && matched.Any(item => item.Id != persisted.Id))
+                        throw new InvalidOperationException(string.Format("A levy named \"{0}\" already exists.", levyDTO.Description.Trim()));
                     var charge = new Charge(levyDTO.ChargeType, levyDTO.ChargePercentage, levyDTO.ChargeFixedAmount);
 
                     var current = LevyFactory.CreateLevy(levyDTO.Description, charge);
@@ -198,6 +247,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateLevySplits(Guid levyId, List<LevySplitDTO> levySplits, ServiceHeader serviceHeader)
         {
+            ValidateLevySplitRows(levySplits);
             if (levyId != null && levySplits != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())

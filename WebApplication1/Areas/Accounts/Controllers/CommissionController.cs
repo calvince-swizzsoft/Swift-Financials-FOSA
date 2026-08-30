@@ -124,12 +124,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return Content(HttpStatusCode.BadRequest, new { success = false, message = string.Join("; ", request.Commission.ErrorMessages), data = (object)null });
                 }
 
-                if (!TryValidateSplitPercentages(request.Splits, out var splitError))
-                {
-                    return Content(HttpStatusCode.BadRequest, new { success = false, message = splitError, data = (object)null });
-                }
-
-                var createdCommission = _commissionAppService.AddNewCommission(request.Commission, serviceHeader);
+                var createdCommission = _commissionAppService.AddNewCommissionConfiguration(request.Commission, request.GraduatedScales, request.Splits, request.Levies, serviceHeader);
 
                 if (createdCommission == null)
                 {
@@ -143,24 +138,11 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return Content(HttpStatusCode.Conflict, new { success = false, message = createdCommission.ErrorMessageResult, data = (object)null });
                 }
 
-                if (request.GraduatedScales != null)
-                {
-                    _commissionAppService.UpdateGraduatedScales(createdCommission.Id, request.GraduatedScales, serviceHeader);
-                }
-
-                if (request.Splits != null)
-                {
-                    _commissionAppService.UpdateCommissionSplits(createdCommission.Id, request.Splits, serviceHeader);
-                }
-
-                if (request.Levies != null)
-                {
-                    _commissionAppService.UpdateLevies(createdCommission.Id, request.Levies, serviceHeader);
-                }
-
-                var refreshed = _commissionAppService.FindCommission(createdCommission.Id, serviceHeader);
-
-                return Ok(new { success = true, message = "Operation Success", data = refreshed });
+                return Ok(new { success = true, message = "Operation Success", data = createdCommission });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {
@@ -203,6 +185,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _commissionAppService.FindCommission(id, serviceHeader);
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {
@@ -247,6 +233,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<GraduatedScaleDTO>() });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
+            }
             catch (Exception)
             {
                 throw;
@@ -277,11 +267,6 @@ namespace WebApplication1.Areas.Accounts.Controllers
         {
             try
             {
-                if (!TryValidateSplitPercentages(splits, out var splitError))
-                {
-                    return Content(HttpStatusCode.BadRequest, new { success = false, message = splitError, data = (object)null });
-                }
-
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 var updated = _commissionAppService.UpdateCommissionSplits(id, splits ?? new List<CommissionSplitDTO>(), serviceHeader);
@@ -294,6 +279,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _commissionAppService.FindCommissionSplits(id, serviceHeader);
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<CommissionSplitDTO>() });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {
@@ -342,35 +331,16 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed ?? new List<LevyDTO>() });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
+            }
             catch (Exception)
             {
                 throw;
             }
         }
 
-        // Splits divide 100% of the computed commission amount across GL accounts — the
-        // one real validation rule the reference ChargesController enforced (amid a lot of
-        // dead/commented-out percentage-checking code). An empty list clears all splits
-        // and is exempt from the check (nothing to sum).
-        private static bool TryValidateSplitPercentages(List<CommissionSplitDTO> splits, out string error)
-        {
-            error = null;
-
-            if (splits == null || !splits.Any())
-            {
-                return true;
-            }
-
-            var total = splits.Sum(s => s.Percentage);
-
-            if (Math.Abs(total - 100d) > 0.01d)
-            {
-                error = string.Format("Total split percentage must equal 100% (got {0}%).", total);
-                return false;
-            }
-
-            return true;
-        }
     }
 
     public class CreateCommissionRequest

@@ -458,6 +458,36 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (loanProduct == null)
                     return ErrorResponse("Loan product not found");
 
+                if (loanProduct.IsLocked)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The selected loan product is locked and cannot accept new applications"));
+
+                var existingCustomerAccounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCaseDTO.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                if (loanProduct.LoanRegistrationRejectIfMemberHasBalance)
+                {
+                    var hasExistingBalance = existingCustomerAccounts
+                        .Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Loan && account.CustomerAccountTypeTargetProductId == loanProduct.Id)
+                        .Any(account => Math.Abs(account.BookBalance + account.CarryForwardsBalance) > 0m);
+                    if (hasExistingBalance)
+                        return Content(HttpStatusCode.Conflict, ErrorEnvelope("This product does not allow a new application while the member has an existing balance on the same loan product"));
+                }
+
+                if (loanProduct.LoanRegistrationMicrocredit)
+                {
+                    var cycles = _loanProductAppService.FindLoanCycles(loanProduct.Id, serviceHeader) ?? new List<LoanCycleDTO>();
+                    if (cycles.Any())
+                    {
+                        var matchingCycle = cycles.SingleOrDefault(cycle => loanCaseDTO.AmountApplied >= cycle.RangeLowerLimit && loanCaseDTO.AmountApplied <= cycle.RangeUpperLimit);
+                        if (matchingCycle == null)
+                            return ErrorResponse("The amount applied does not fall within any configured loan-cycle band");
+                        loanCaseDTO.LoanCycleRangeLowerLimit = matchingCycle.RangeLowerLimit;
+                        loanCaseDTO.LoanCycleRangeUpperLimit = matchingCycle.RangeUpperLimit;
+                    }
+                }
+
+                var auxiliaryConditionError = ValidateAuxiliaryConditions(loanCaseDTO, loanProduct, existingCustomerAccounts, serviceHeader);
+                if (auxiliaryConditionError != null)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope(auxiliaryConditionError));
+
                 var registrationPermission = GetLoanStagePermission(
                     loanProduct.LoanRegistrationLoanProductSection,
                     SystemPermissionType.FrontOfficeLoanRegistration,
@@ -614,10 +644,16 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 var maximumLoan = investmentsBalance * Convert.ToDecimal(loanProduct.LoanRegistrationInvestmentsMultiplier);
 
-                var loanProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(loanCase.CustomerId, loanCase.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
-                var outstandingLoansBalance = loanProductAccounts.Sum(a => a.BookBalance + a.CarryForwardsBalance);
+                var loaneeFactor = _loanProductAppService.GetLoaneeAppraisalFactor(loanProduct.Id, totalShares, serviceHeader);
+                if (loaneeFactor > 0d)
+                    maximumLoan *= Convert.ToDecimal(loaneeFactor);
 
-                var maximumEntitled = maximumLoan - outstandingLoansBalance;
+                var loanProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(loanCase.CustomerId, loanCase.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                var outstandingLoansBalance = loanProductAccounts.Sum(a => Math.Abs(a.BookBalance + a.CarryForwardsBalance));
+
+                var maximumEntitled = loanProduct.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement
+                    ? maximumLoan
+                    : maximumLoan - outstandingLoansBalance;
 
                 var loanPart = loanCase.AmountApplied;
                 var interestPart = loanPart * Convert.ToDecimal((loanCase.LoanInterestAnnualPercentageRate / 100) * (loanCase.LoanRegistrationTermInMonths / 12.0));
@@ -752,9 +788,18 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 existing.AppraisedAbility = request.AppraisedAbility;
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(existing.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
                 var investmentsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(a => a.BookBalance);
-                var maximumLoan = investmentsBalance * Convert.ToDecimal(existing.LoanRegistrationInvestmentsMultiplier);
+                var appraisalBaseBalance = existing.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal
+                    ? accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment || a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance)
+                    : investmentsBalance;
+                var maximumLoan = appraisalBaseBalance * Convert.ToDecimal(existing.LoanRegistrationInvestmentsMultiplier);
+                var loaneeFactor = _loanProductAppService.GetLoaneeAppraisalFactor(existing.LoanProductId, appraisalBaseBalance, serviceHeader);
+                if (loaneeFactor > 0d)
+                    maximumLoan *= Convert.ToDecimal(loaneeFactor);
                 var sameProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(existing.CustomerId, existing.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
-                var maximumEntitled = Math.Max(0m, maximumLoan - sameProductAccounts.Sum(a => a.BookBalance + a.CarryForwardsBalance));
+                var outstandingSameProductBalance = sameProductAccounts.Sum(a => Math.Abs(a.BookBalance + a.CarryForwardsBalance));
+                var maximumEntitled = existing.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement
+                    ? Math.Max(0m, maximumLoan)
+                    : Math.Max(0m, maximumLoan - outstandingSameProductBalance);
                 existing.SystemAppraisedAmount = Math.Min(existing.AmountApplied, maximumEntitled);
                 existing.SystemAppraisalRemarks = existing.SystemAppraisedAmount >= existing.AmountApplied
                     ? "The applied amount is within the member's investment-based entitlement."
@@ -763,6 +808,25 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     && request.AppraisedAmount != existing.SystemAppraisedAmount
                     && string.IsNullOrWhiteSpace(request.AppraisedAmountRemarks))
                     return ErrorResponse("Appraised amount remarks are required when overriding the system-appraised amount");
+                if (request.Option == (int)LoanAppraisalOption.Appraise
+                    && existing.LoanRegistrationEnforceSystemAppraisalRecommendation
+                    && request.AppraisedAmount > existing.SystemAppraisedAmount)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("This loan product enforces the system appraisal recommendation; the appraised amount cannot exceed the system-appraised amount"));
+
+                if (request.Option == (int)LoanAppraisalOption.Appraise)
+                {
+                    var takeHome = request.AppraisedNetIncome - request.MonthlyPaybackAmount;
+                    if (existing.TakeHomeType == (int)ChargeType.Percentage)
+                    {
+                        var requiredTakeHome = request.AppraisedNetIncome * Convert.ToDecimal(existing.TakeHomePercentage / 100d);
+                        if (takeHome < requiredTakeHome)
+                            return Content(HttpStatusCode.Conflict, ErrorEnvelope("The proposed repayment would reduce the member's take-home below the percentage required by this loan product"));
+                    }
+                    else if (existing.TakeHomeType == (int)ChargeType.FixedAmount && takeHome < existing.TakeHomeFixedAmount)
+                    {
+                        return Content(HttpStatusCode.Conflict, ErrorEnvelope("The proposed repayment would reduce the member's take-home below the fixed amount required by this loan product"));
+                    }
+                }
                 existing.AppraisedAmount = request.AppraisedAmount;
                 existing.AppraisedAmountRemarks = request.AppraisedAmountRemarks;
                 existing.AppraisalRemarks = request.AppraisalRemarks;
@@ -1088,6 +1152,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (guarantor.GuarantorId == loanCaseDTO.CustomerId && !loanProduct.LoanRegistrationAllowSelfGuarantee)
                     return "The selected loan product does not allow self-guarantee";
 
+                if (guarantor.GuarantorId == loanCaseDTO.CustomerId && loanProduct.LoanRegistrationAllowSelfGuarantee)
+                {
+                    var maximumSelfGuarantee = loanCaseDTO.AmountApplied * Convert.ToDecimal(loanProduct.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage / 100d);
+                    if (guarantor.AmountGuaranteed > maximumSelfGuarantee)
+                        return $"Self-guarantee cannot exceed {loanProduct.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage}% of the amount applied";
+                }
+
                 guarantor.CustomerId = guarantor.GuarantorId;
                 guarantor.LoaneeCustomerId = loanCaseDTO.CustomerId;
                 guarantor.LoanProductId = loanCaseDTO.LoanProductId;
@@ -1114,6 +1185,50 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 return "The total amount guaranteed does not fully secure the amount applied";
             }
 
+            return null;
+        }
+
+        private string ValidateAuxiliaryConditions(LoanCaseDTO loanCase, LoanProductDTO loanProduct, List<CustomerAccountDTO> accounts, ServiceHeader serviceHeader)
+        {
+            var conditions = _loanProductAppService.FindLoanProductAuxiliaryConditions(loanProduct.Id, serviceHeader) ?? new List<LoanProductAuxiliaryConditionDTO>();
+            foreach (var condition in conditions)
+            {
+                var flags = condition.Condition;
+                if ((flags & 16) != 0 || (flags & 32) != 0)
+                    return "This loan product contains a conditional-list or dividends-payable auxiliary rule that is not supported by the current origination service";
+
+                if ((flags & (int)AuxiliaryLoanCondition.SubjectToNotHavingOutstandingBalance) != 0)
+                {
+                    var hasBalance = accounts
+                        .Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Loan && account.CustomerAccountTypeTargetProductId == condition.TargetLoanProductId)
+                        .Any(account => Math.Abs(account.BookBalance + account.CarryForwardsBalance) > 0m);
+                    if (hasBalance)
+                        return $"The member must have no outstanding balance on {condition.TargetLoanProductDescription ?? "the configured auxiliary loan product"}";
+                }
+
+                var eligibleCases = new List<LoanCaseDTO>();
+                foreach (var required in new[]
+                {
+                    AuxiliaryLoanCondition.SubjectToHavingLoanInProcessApproved,
+                    AuxiliaryLoanCondition.SubjectToHavingLoanInProcessAudited,
+                    AuxiliaryLoanCondition.SubjectToHavingLoanInProcessAppraised
+                })
+                {
+                    if ((flags & (int)required) == 0) continue;
+                    var matches = _loanCaseAppService.FindLoanCasesByCustomerIdAndLoanProductIdAndAuxiliaryLoanCondition(loanCase.CustomerId, condition.TargetLoanProductId, (int)required, serviceHeader) ?? new List<LoanCaseDTO>();
+                    if (!matches.Any())
+                        return $"The member does not satisfy the configured auxiliary loan condition: {required}";
+                    eligibleCases.AddRange(matches);
+                }
+
+                if (eligibleCases.Any() && condition.MaximumEligiblePercentage > 0d)
+                {
+                    var targetAmount = eligibleCases.Max(item => item.ApprovedAmount > 0m ? item.ApprovedAmount : item.AppraisedAmount > 0m ? item.AppraisedAmount : item.AmountApplied);
+                    var maximumEligible = targetAmount * Convert.ToDecimal(condition.MaximumEligiblePercentage / 100d);
+                    if (loanCase.AmountApplied > maximumEligible)
+                        return $"The amount applied exceeds the {condition.MaximumEligiblePercentage}% auxiliary eligibility limit";
+                }
+            }
             return null;
         }
 

@@ -10,6 +10,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
     {
         CommissionDTO AddNewCommission(CommissionDTO commissionDTO, ServiceHeader serviceHeader);
 
+        CommissionDTO AddNewCommissionConfiguration(CommissionDTO commissionDTO, List<GraduatedScaleDTO> graduatedScales, List<CommissionSplitDTO> commissionSplits, List<LevyDTO> levies, ServiceHeader serviceHeader);
+
+        void ValidateCommissionConfiguration(CommissionDTO commissionDTO, List<GraduatedScaleDTO> graduatedScales, List<CommissionSplitDTO> commissionSplits, List<LevyDTO> levies);
+
         bool UpdateCommission(CommissionDTO commissionDTO, ServiceHeader serviceHeader);
 
         List<CommissionDTO> FindCommissions(ServiceHeader serviceHeader);
@@ -47,6 +51,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         bool IsSystemTransactionTypeInCommission(int systemTransactionType, Guid commissionId, ServiceHeader serviceHeader);
 
         bool MapSystemTransactionTypeToCommissions(int systemTransactionType, CommissionDTO[] commissions, ChargeDTO chargeDTO, ServiceHeader serviceHeader);
+
+        bool MapSystemTransactionTypeToCommissionIds(int systemTransactionType, List<Guid> commissionIds, ChargeDTO complement, ServiceHeader serviceHeader);
 
         bool UpdateCommissionSplit(CommissionSplitDTO commissionSplitDTO, ServiceHeader serviceHeader);
 

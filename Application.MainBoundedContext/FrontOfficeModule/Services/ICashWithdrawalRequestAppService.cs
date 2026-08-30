@@ -11,7 +11,11 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
     {
         CashWithdrawalRequestDTO AddNewCashWithdrawalRequest(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader);
 
+        CashWithdrawalRequestDTO RecordPaidCashWithdrawal(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader);
+
         CashWithdrawalRequestDTO AddNewCashWithdrawalRequestWithWorkflow(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader);
+
+        bool ResendCashWithdrawalApprovalRequest(Guid cashWithdrawalRequestId, ServiceHeader serviceHeader);
 
         bool AuthorizeCashWithdrawalRequest(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, int customerTransactionAuthOption, ServiceHeader serviceHeader);
 

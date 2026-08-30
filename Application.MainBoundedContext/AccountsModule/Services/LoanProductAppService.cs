@@ -219,14 +219,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     throw new InvalidOperationException("Auxiliary appraisal-factor bands cannot overlap.");
             }
             if (configuration.AuxiliaryConditions != null && configuration.AuxiliaryConditions.Any(item => item == null || item.TargetLoanProductId == Guid.Empty ||
-                item.Condition <= 0 || item.MaximumEligiblePercentage < 0d || item.MaximumEligiblePercentage > 100d || double.IsNaN(item.MaximumEligiblePercentage) || double.IsInfinity(item.MaximumEligiblePercentage)))
+                item.Condition <= 0 || (item.Condition & ~15) != 0 || item.MaximumEligiblePercentage < 0d || item.MaximumEligiblePercentage > 100d || double.IsNaN(item.MaximumEligiblePercentage) || double.IsInfinity(item.MaximumEligiblePercentage)))
                 throw new InvalidOperationException("Every auxiliary condition requires a target loan product, at least one condition, and a maximum eligible percentage between 0% and 100%.");
-            if (configuration.Deductibles != null && configuration.Deductibles.Any(item => item == null || string.IsNullOrWhiteSpace(item.Description) ||
-                item.CustomerAccountTypeTargetProductId == Guid.Empty || !Enum.IsDefined(typeof(ProductCode), item.CustomerAccountTypeProductCode) ||
-                !Enum.IsDefined(typeof(ChargeType), item.ChargeType) || item.ChargePercentage < 0d || item.ChargePercentage > 100d || item.ChargeFixedAmount < 0m))
-                throw new InvalidOperationException("Every deductible requires a name, a valid target product and charge type, a percentage between 0% and 100%, and a non-negative fixed amount.");
-            if (configuration.DynamicCharges != null && configuration.DynamicCharges.Any(item => item == null || item.Id == Guid.Empty))
-                throw new InvalidOperationException("Every dynamic charge must reference an existing charge.");
+            ValidateDeductibles(configuration.Deductibles);
+            ValidateDynamicCharges(configuration.DynamicCharges);
             if (configuration.Commissions != null && configuration.Commissions.Any(item => item == null || item.Id == Guid.Empty))
                 throw new InvalidOperationException("Every commission must reference an existing commission.");
         }
@@ -237,6 +233,31 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             for (var index = 1; index < ordered.Count; index++)
                 if (ordered[index][0] <= ordered[index - 1][1]) return true;
             return false;
+        }
+
+        private static void ValidateDeductibles(IEnumerable<LoanProductDeductibleDTO> deductibles)
+        {
+            if (deductibles == null) return;
+            var items = deductibles.ToList();
+            if (items.Any(item => item == null || string.IsNullOrWhiteSpace(item.Description) ||
+                item.CustomerAccountTypeTargetProductId == Guid.Empty || !Enum.IsDefined(typeof(ProductCode), item.CustomerAccountTypeProductCode) ||
+                !Enum.IsDefined(typeof(ChargeType), item.ChargeType) || double.IsNaN(item.ChargePercentage) || double.IsInfinity(item.ChargePercentage) ||
+                item.ChargePercentage < 0d || item.ChargePercentage > 100d || item.ChargeFixedAmount < 0m))
+                throw new InvalidOperationException("Every deductible requires a name, a valid target product and charge type, a percentage between 0% and 100%, and a non-negative fixed amount.");
+            if (items.Any(item => item.ChargeType == (int)ChargeType.Percentage && item.ChargePercentage <= 0d))
+                throw new InvalidOperationException("A percentage deductible requires a charge percentage greater than 0% and no more than 100%.");
+            if (items.Any(item => item.ChargeType == (int)ChargeType.FixedAmount && item.ChargeFixedAmount <= 0m))
+                throw new InvalidOperationException("A fixed-amount deductible requires a fixed amount greater than zero.");
+        }
+
+        private static void ValidateDynamicCharges(IEnumerable<DynamicChargeDTO> dynamicCharges)
+        {
+            if (dynamicCharges == null) return;
+            var items = dynamicCharges.ToList();
+            if (items.Any(item => item == null || item.Id == Guid.Empty))
+                throw new InvalidOperationException("Every dynamic charge must reference an existing charge with a valid ID.");
+            if (items.GroupBy(item => item.Id).Any(group => group.Count() > 1))
+                throw new InvalidOperationException("The same dynamic charge cannot be attached more than once.");
         }
 
         public LoanProductDTO AddNewLoanProduct(LoanProductDTO loanProductDTO, ServiceHeader serviceHeader)
@@ -538,6 +559,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateDynamicCharges(Guid loanProductId, List<DynamicChargeDTO> dynamicCharges, ServiceHeader serviceHeader)
         {
+            ValidateDynamicCharges(dynamicCharges);
             if (loanProductId != null && dynamicCharges != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -857,6 +879,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateLoanProductAuxiliaryConditions(Guid baseLoanProductId, List<LoanProductAuxiliaryConditionDTO> loanProductAuxiliaryConditions, ServiceHeader serviceHeader)
         {
+            if (loanProductAuxiliaryConditions != null && loanProductAuxiliaryConditions.Any(item => item == null || item.TargetLoanProductId == Guid.Empty ||
+                item.Condition <= 0 || (item.Condition & ~15) != 0 || item.MaximumEligiblePercentage < 0d || item.MaximumEligiblePercentage > 100d ||
+                double.IsNaN(item.MaximumEligiblePercentage) || double.IsInfinity(item.MaximumEligiblePercentage)))
+                throw new InvalidOperationException("Auxiliary conditions support no-outstanding-balance and Approved, Audited, or Appraised target-loan requirements only; percentages must be between 0% and 100%.");
+
             if (baseLoanProductId != null && loanProductAuxiliaryConditions != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -922,6 +949,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateLoanProductDeductibles(Guid loanProductId, List<LoanProductDeductibleDTO> loanProductDeductibles, ServiceHeader serviceHeader)
         {
+            ValidateDeductibles(loanProductDeductibles);
             if (loanProductId != null && loanProductDeductibles != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())

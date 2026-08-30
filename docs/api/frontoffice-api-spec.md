@@ -275,12 +275,35 @@ Controller: `TransfersController.cs`.
 | `/cheques` | POST | Batch-transfer selected cheques (`List<ExternalChequeDTO>`) — the EOD precondition, WORKFLOW.md §7 |
 | `/cash/acknowledge?option={n}` | POST | Acknowledge a cash transfer request (`CashTransferRequestDTO`) |
 | `/` | GET | All cash transfer requests |
-| `/cash/utilize?request={id}` | POST | Mark a cash transfer request `Utilized` |
+| `/cash/utilize?request={id}` | POST | Post an acknowledged teller-to-treasury transfer and mark it `Utilized` |
+
+Both `GET /cash` and `GET /cash/actionable` return enriched
+`CashTransferRequestDTO` rows. In addition to `Id`, `EmployeeId`, `Amount`,
+`Status`, and `Utilized`, each row includes `TellerId`, `TellerDescription`,
+`EmployeeCustomerFullName`, `Reference`, `CreatedBy`, `CreatedDate`,
+`AcknowledgedBy`, and `AcknowledgedDate`. Acknowledgement fields are `null`
+until the request is acknowledged or rejected.
+
+Cash-transfer processing is a three-stage maker-checker flow. Creation records
+the pending request and persists its physical denominations on that request;
+it does not create an official fiscal count. A different,
+permissioned cash-management employee acknowledges or rejects it; this is an
+authorization step and does not move the ledger. Only the originating teller
+can then utilize an acknowledged request. Utilization validates both teller
+and treasury cash limits, creates the official fiscal count, credits the teller
+cash G/L, debits the teller's branch treasury G/L using
+`SystemTransactionCode.TellerCashTransfer`, and marks the request `Utilized` in
+the same ambient unit of work. Requests that are
+pending, rejected, already utilized, owned by another teller, or missing either
+cash G/L configuration are rejected without changing their workflow state.
+Requests created before denomination persistence reuse the fiscal count that
+the legacy creation flow already recorded, avoiding a duplicate during rollout.
 
 `POST /cash` is always classified server-side as `TellerToTreasury`; callers
-cannot select or spoof the direction. `TallyByTotal: false` requires the eleven
-`Denomination*Value` fields to reconcile to `Amount`. `TallyByTotal: true`
-accepts the stated total without inventing a denomination breakdown. Creation,
+cannot select or spoof the direction. The eleven `Denomination*Value` fields
+must contain a positive physical count and reconcile exactly to `Amount`;
+total-only cash transfers are rejected because they cannot produce a valid
+fiscal count. Creation,
 daily teller-value resolution, reconciliation, status classification, and the
 companion fiscal-count write are owned by `ICashTransferRequestAppService`.
 
@@ -310,19 +333,15 @@ Controller: `ChequesController.cs`.
   `ExternalChequeDTO` row carries `IsTransferred`/`IsBanked`/`IsCleared` —
   use these to decide which actions to offer per row (see below) rather
   than letting the user attempt an action the API will reject.
-- `POST /bank` — body `{ selectedChequeIds: Guid[], bankLinkageDTO,
+- `POST /bank` — body `{ selectedChequeIds: Guid[], bankLinkageDTO: { id },
   moduleNavigationItemCode }`. Only cheques with `IsTransferred: true` are
-  eligible — the server already filters its own candidate list to these, so
-  an id for a not-yet-transferred cheque is simply ignored (excluded from
-  `selectedCheques`), not an error.
+  eligible. The application service reloads both the cheque and bank linkage
+  server-side and uses their persisted amount, number, branch, and G/L account;
+  client-supplied linkage accounting fields are ignored.
 - `POST /clear` — body `{ selectedChequeIds: Guid[], clearingOption,
-  actionType: "clear"|"unpay", unPayReasonDTO, moduleNavigationItemCode }`
-  (`unPayReasonDTO` required when `actionType` is `"unpay"`). **`clearingOption` must agree with
-  `actionType`** (`Pay=1` with `"clear"`, `UnPay=2` with `"unpay"`) — the
-  server does not derive one from the other, so a mismatched pair silently
-  takes whichever branch `clearingOption` selects, not the one `actionType`
-  implies (open issue, `CHEQUE-PROCESSING-ANALYSIS.md` Finding #5 — always
-  send them in agreement). As of this doc, clearing (either `Pay` or
+  unPayReasonDTO, moduleNavigationItemCode }` (`1` = Pay, `2` = UnPay;
+  `unPayReasonDTO.id` is required for UnPay). `clearingOption` is the single
+  authoritative action field. As of this doc, clearing (either `Pay` or
   `UnPay`) now requires `IsTransferred: true` **and** `IsBanked: true` on the
   cheque — attempting to clear a cheque that hasn't been banked yet fails
   with `success: false`, `message` containing "Failed to clear cheque" (or

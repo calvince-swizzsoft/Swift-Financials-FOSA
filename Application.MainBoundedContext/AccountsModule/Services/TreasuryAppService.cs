@@ -3,6 +3,8 @@ using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.Services;
 using Application.Seedwork;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.TreasuryAgg;
+using Domain.MainBoundedContext.AccountsModule.Aggregates.ChartOfAccountAgg;
+using Domain.MainBoundedContext.AdministrationModule.Aggregates.BranchAgg;
 using Domain.MainBoundedContext.ValueObjects;
 using Domain.Seedwork;
 using Domain.Seedwork.Specification;
@@ -18,11 +20,15 @@ namespace Application.MainBoundedContext.AccountsModule.Services
     {
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<Treasury> _treasuryRepository;
+        private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<ChartOfAccount> _chartOfAccountRepository;
         private readonly ISqlCommandAppService _sqlCommandAppService;
 
         public TreasuryAppService(
            IDbContextScopeFactory dbContextScopeFactory,
            IRepository<Treasury> treasuryRepository,
+           IRepository<Branch> branchRepository,
+           IRepository<ChartOfAccount> chartOfAccountRepository,
            ISqlCommandAppService sqlCommandAppService)
         {
             if (dbContextScopeFactory == null)
@@ -31,16 +37,27 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (treasuryRepository == null)
                 throw new ArgumentNullException(nameof(treasuryRepository));
 
+            if (branchRepository == null)
+                throw new ArgumentNullException(nameof(branchRepository));
+
+            if (chartOfAccountRepository == null)
+                throw new ArgumentNullException(nameof(chartOfAccountRepository));
+
             if (sqlCommandAppService == null)
                 throw new ArgumentNullException(nameof(sqlCommandAppService));
 
             _dbContextScopeFactory = dbContextScopeFactory;
             _treasuryRepository = treasuryRepository;
+            _branchRepository = branchRepository;
+            _chartOfAccountRepository = chartOfAccountRepository;
             _sqlCommandAppService = sqlCommandAppService;
         }
 
         public TreasuryDTO AddNewTreasury(TreasuryDTO treasuryDTO, ServiceHeader serviceHeader)
         {
+            ValidateTreasury(treasuryDTO, serviceHeader);
+            treasuryDTO.Description = treasuryDTO.Description.Trim();
+
             if (treasuryDTO != null && treasuryDTO.BranchId != Guid.Empty && treasuryDTO.ChartOfAccountId != Guid.Empty)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -53,7 +70,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (treasuries != null && treasuries.Any())
                     {
-                        treasuryDTO.ErrorMessageResult = string.Format("Sorry, but another treasury has already been linked to branch {0}", treasuryDTO.BranchDescription);
+                        var branch = _branchRepository.Get(treasuryDTO.BranchId, serviceHeader);
+                        treasuryDTO.ErrorMessageResult = string.Format("Another treasury has already been linked to branch '{0}'.", branch.Description);
 
                         return treasuryDTO;
                     }
@@ -101,12 +119,20 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (treasuryDTO == null || treasuryDTO.Id == Guid.Empty || treasuryDTO.BranchId == Guid.Empty || treasuryDTO.ChartOfAccountId == Guid.Empty)
                 return false;
 
+            ValidateTreasury(treasuryDTO, serviceHeader);
+            treasuryDTO.Description = treasuryDTO.Description.Trim();
+
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var persisted = _treasuryRepository.Get(treasuryDTO.Id, serviceHeader);
 
                 if (persisted != null)
                 {
+                    var duplicateDescription = _treasuryRepository.AllMatching(
+                        TreasurySpecifications.DescriptionWithDescription(treasuryDTO.Description), serviceHeader);
+                    if (duplicateDescription != null && duplicateDescription.Any(x => x.Id != treasuryDTO.Id))
+                        throw new InvalidOperationException(string.Format("Treasury '{0}' already exists.", treasuryDTO.Description));
+
                     var range = new Range(treasuryDTO.RangeLowerLimit, treasuryDTO.RangeUpperLimit);
 
                     var current = TreasuryFactory.CreateTreasury(persisted.BranchId, treasuryDTO.ChartOfAccountId, treasuryDTO.Description, range);
@@ -125,6 +151,38 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 }
                 else return false;
             }
+        }
+
+        private void ValidateTreasury(TreasuryDTO treasuryDTO, ServiceHeader serviceHeader)
+        {
+            if (treasuryDTO == null)
+                throw new ArgumentNullException(nameof(treasuryDTO), "Treasury details are required.");
+            if (string.IsNullOrWhiteSpace(treasuryDTO.Description))
+                throw new InvalidOperationException("Treasury name is required.");
+            if (treasuryDTO.Description.Trim().Length > 256)
+                throw new InvalidOperationException("Treasury name cannot exceed 256 characters.");
+            if (treasuryDTO.BranchId == Guid.Empty)
+                throw new InvalidOperationException("A branch is required.");
+            if (treasuryDTO.ChartOfAccountId == Guid.Empty)
+                throw new InvalidOperationException("A G/L account is required.");
+            if (treasuryDTO.RangeLowerLimit < 0m || treasuryDTO.RangeUpperLimit < 0m)
+                throw new InvalidOperationException("Treasury limits cannot be negative.");
+            if (treasuryDTO.RangeUpperLimit <= treasuryDTO.RangeLowerLimit)
+                throw new InvalidOperationException("The upper limit must be greater than the lower limit.");
+
+            var branch = _branchRepository.Get(treasuryDTO.BranchId, serviceHeader);
+            if (branch == null)
+                throw new InvalidOperationException("The selected branch could not be found.");
+            if (branch.IsLocked)
+                throw new InvalidOperationException("The selected branch is locked and cannot be assigned to a treasury.");
+
+            var chartOfAccount = _chartOfAccountRepository.Get(treasuryDTO.ChartOfAccountId, serviceHeader);
+            if (chartOfAccount == null)
+                throw new InvalidOperationException("The selected G/L account could not be found.");
+            if (chartOfAccount.IsLocked)
+                throw new InvalidOperationException("The selected G/L account is locked and cannot be assigned to a treasury.");
+            if (chartOfAccount.IsControlAccount)
+                throw new InvalidOperationException("A control G/L account cannot be assigned directly to a treasury.");
         }
 
         public List<TreasuryDTO> FindTreasuries(ServiceHeader serviceHeader)

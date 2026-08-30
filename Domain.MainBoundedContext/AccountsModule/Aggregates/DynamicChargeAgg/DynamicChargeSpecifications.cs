@@ -25,5 +25,10 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.DynamicChargeAgg
 
             return specification;
         }
+
+        public static Specification<DynamicCharge> DynamicChargeWithDescription(string description)
+        {
+            return new DirectSpecification<DynamicCharge>(charge => charge.Description == description);
+        }
     }
 }

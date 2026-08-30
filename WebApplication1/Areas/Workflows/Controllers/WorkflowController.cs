@@ -3,6 +3,7 @@ using Application.MainBoundedContext.DTO.AdministrationModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -234,6 +235,44 @@ namespace WebApplication1.Areas.Workflows.Controllers
             }
         }
 
+        [HttpGet, Route("items/{workflowItemId:guid}/record")]
+        public IHttpActionResult GetRelatedRecord(Guid workflowItemId)
+        {
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+
+            var item = _workflowAppService.FindWorkflowItem(workflowItemId, serviceHeader);
+            if (item == null)
+                return Error(HttpStatusCode.NotFound, ErrorCodes.ResourceNotFound,
+                    "The workflow item was not found.");
+
+            var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
+            if (!callerRoles.Any(role => string.Equals(role, item.RoleName, StringComparison.OrdinalIgnoreCase)))
+                return Error(HttpStatusCode.Forbidden, ErrorCodes.AccessDenied,
+                    "You do not hold the role assigned to this approval item.");
+
+            try
+            {
+                var record = _workflowProcessorAppService.FindRelatedRecord(
+                    item.WorkflowRecordId,
+                    item.WorkflowSystemPermissionType,
+                    serviceHeader);
+
+                if (record == null)
+                    return Error(HttpStatusCode.NotFound, ErrorCodes.ResourceNotFound,
+                        "The record related to this workflow item was not found.");
+
+                return Ok(new
+                {
+                    recordType = item.WorkflowSystemPermissionTypeDescription,
+                    data = record
+                });
+            }
+            catch (NotSupportedException exception)
+            {
+                return Error(HttpStatusCode.BadRequest, ErrorCodes.ValidationFailed, exception.Message);
+            }
+        }
+
         // Checker inbox: pending (and other status) items awaiting action for a given permission type.
         [HttpGet, Route("items")]
         public IHttpActionResult GetItems(int systemPermissionType, int status, string text, DateTime startDate, DateTime endDate, int pageIndex = 0, int pageSize = 20)
@@ -275,7 +314,7 @@ namespace WebApplication1.Areas.Workflows.Controllers
         }
 
         [HttpPost, Route("items/approve")]
-        public IHttpActionResult ApproveItem(ApproveWorkflowItemRequest request)
+        public async Task<IHttpActionResult> ApproveItem(ApproveWorkflowItemRequest request)
         {
             var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
 
@@ -309,6 +348,26 @@ namespace WebApplication1.Areas.Workflows.Controllers
                         "The final loan-stage workflow item must be completed from its detailed loan screen.");
 
                 var result = _workflowAppService.ApproveWorkflowItem(request.WorkflowItem, request.UsedBiometrics, serviceHeader);
+
+                if (result)
+                {
+                    var workflow = _workflowAppService.FindWorkflow(persisted.WorkflowId, serviceHeader);
+                    var isCashRequestWorkflow = persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.CashDepositRequestAuthorization
+                        || persisted.WorkflowSystemPermissionType == (int)SystemPermissionType.CashWithdrawalRequestAuthorization;
+
+                    if (isCashRequestWorkflow
+                        && workflow != null
+                        && workflow.MatchedStatus != (int)WorkflowMatchedStatus.Matched
+                        && (workflow.Status == (int)WorkflowApprovalOption.Approved
+                            || workflow.Status == (int)WorkflowApprovalOption.Rejected))
+                    {
+                        var processed = await _workflowProcessorAppService.ProcessWorkflowQueueAsync(
+                            workflow.RecordId, workflow.SystemPermissionType, workflow.Status, serviceHeader);
+                        if (!processed)
+                            return Error(HttpStatusCode.Conflict, ErrorCodes.WorkflowInvalidState,
+                                "The approval was recorded, but the cash request could not be moved to its final authorization status. Verify request maturity and workflow configuration.");
+                    }
+                }
 
                 return Ok(result);
             }

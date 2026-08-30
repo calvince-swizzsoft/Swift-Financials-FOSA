@@ -932,7 +932,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total credits
                             source6 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal creditAmount = (element.Amount > 0m) ? element.Amount : 0m;
+                                decimal creditAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
 
                                 return result + creditAmount;
                             });
@@ -940,7 +940,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total debits
                             source7 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal debitAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
+                                decimal debitAmount = (element.Amount > 0m) ? element.Amount : 0m;
 
                                 return result + debitAmount;
                             });
@@ -1072,7 +1072,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total credits
                             source6 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal creditAmount = (element.Amount > 0m) ? element.Amount : 0m;
+                                decimal creditAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
 
                                 return result + creditAmount;
                             });
@@ -1080,7 +1080,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total debits
                             source7 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal debitAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
+                                decimal debitAmount = (element.Amount > 0m) ? element.Amount : 0m;
 
                                 return result + debitAmount;
                             });
@@ -1132,7 +1132,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total credits
                             source4 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal creditAmount = (element.Amount > 0m) ? element.Amount : 0m;
+                                decimal creditAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
 
                                 return result + creditAmount;
                             });
@@ -1140,7 +1140,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total debits
                             source5 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal debitAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
+                                decimal debitAmount = (element.Amount > 0m) ? element.Amount : 0m;
 
                                 return result + debitAmount;
                             });
@@ -1198,7 +1198,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total credits
                             source4 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal creditAmount = (element.Amount > 0m) ? element.Amount : 0m;
+                                decimal creditAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
 
                                 return result + creditAmount;
                             });
@@ -1206,7 +1206,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total debits
                             source5 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal debitAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
+                                decimal debitAmount = (element.Amount > 0m) ? element.Amount : 0m;
 
                                 return result + debitAmount;
                             });
@@ -1257,7 +1257,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total credits
                             source4 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal creditAmount = (element.Amount > 0m) ? element.Amount : 0m;
+                                decimal creditAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
 
                                 return result + creditAmount;
                             });
@@ -1265,7 +1265,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total debits
                             source5 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal debitAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
+                                decimal debitAmount = (element.Amount > 0m) ? element.Amount : 0m;
 
                                 return result + debitAmount;
                             });
@@ -1327,7 +1327,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total credits
                             source4 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal creditAmount = (element.Amount > 0m) ? element.Amount : 0m;
+                                decimal creditAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
 
                                 return result + creditAmount;
                             });
@@ -1335,7 +1335,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             // total debits
                             source5 = closingBalanceJournalEntries.Aggregate(0m, (result, element) =>
                             {
-                                decimal debitAmount = (element.Amount < 0m) ? element.Amount * -1 : 0m;
+                                decimal debitAmount = (element.Amount > 0m) ? element.Amount : 0m;
 
                                 return result + debitAmount;
                             });
@@ -1385,8 +1385,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 GLAccountId = line.ChartOfAccountId,
                                 CustomerAccountId = line.CustomerAccountId,
                                 ContraGLAccountId = line.ContraChartOfAccountId,
-                                Credit = (line.Amount > 0m) ? line.Amount : 0m,
-                                Debit = (line.Amount < 0m) ? line.Amount * -1 : 0m,
+                                Debit = (line.Amount > 0m) ? line.Amount : 0m,
+                                Credit = (line.Amount < 0m) ? line.Amount * -1 : 0m,
                                 ApplicationUserName = line.JournalApplicationUserName,
                                 EnvironmentUserName = line.JournalEnvironmentUserName,
                                 EnvironmentMachineName = line.JournalEnvironmentMachineName,
@@ -1415,11 +1415,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             var netBookValue = 0m;
 
-                            netBookValue = (line.Credit + (line.Debit * -1));
+                            netBookValue = line.Debit - line.Credit;
 
                             cumulativeBookBalance += netBookValue;
 
                             line.BookBalance = cumulativeBookBalance;
+                            line.RunningBalance = line.BookBalance;
                         });
 
                         result.AddRange(generalLedgerTransactions);

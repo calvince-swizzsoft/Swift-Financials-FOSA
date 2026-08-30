@@ -13,6 +13,8 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
         CashDepositRequestDTO AddNewCashDepositRequestWithWorkflow(CashDepositRequestDTO cashDepositRequestDTO, ServiceHeader serviceHeader);
 
+        bool ResendCashDepositApprovalRequest(Guid cashDepositRequestId, ServiceHeader serviceHeader);
+
         bool AuthorizeCashDepositRequest(CashDepositRequestDTO cashDepositRequestDTO, int customerTransactionAuthOption, ServiceHeader serviceHeader);
 
         bool PostCashDepositRequest(CashDepositRequestDTO cashDepositRequestDTO, ServiceHeader serviceHeader);

@@ -76,6 +76,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
         {
             try
             {
+                if (treasuryDTO == null)
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = "Treasury details are required.", data = (object)null });
+
                 treasuryDTO.ValidateAll();
 
 
@@ -111,9 +114,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
             }
 
-            catch (Exception)
+            catch (InvalidOperationException ex)
             {
-                throw;
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
         }
 
@@ -124,6 +127,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
         {
             try
             {
+                if (treasuryDTO == null)
+                    return Content(HttpStatusCode.BadRequest, new { success = false, message = "Treasury details are required.", data = (object)null });
+
                 treasuryDTO.Id = id;
                 treasuryDTO.ValidateAll();
 
@@ -152,9 +158,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 }
             }
 
-            catch (Exception)
+            catch (InvalidOperationException ex)
             {
-                throw;
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
         }
     }

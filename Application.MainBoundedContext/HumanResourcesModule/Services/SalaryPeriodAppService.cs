@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
@@ -1133,11 +1133,11 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                 {
                     case ChargeType.Percentage:
                         totalCharges = Convert.ToDecimal((targetCommission.ComplementPercentage * Convert.ToDouble(chargeableAmount)) / 100);
-                        totalCharges = Math.Min(totalCharges, targetCommission.MaximumCharge);
+                        totalCharges = targetCommission.MaximumCharge > 0m ? Math.Min(totalCharges, targetCommission.MaximumCharge) : totalCharges;
                         break;
                     case ChargeType.FixedAmount:
                         totalCharges = targetCommission.ComplementFixedAmount;
-                        totalCharges = Math.Min(totalCharges, targetCommission.MaximumCharge);
+                        totalCharges = targetCommission.MaximumCharge > 0m ? Math.Min(totalCharges, targetCommission.MaximumCharge) : totalCharges;
                         break;
                     default:
                         break;
@@ -1235,11 +1235,11 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                 {
                                     case ChargeType.Percentage:
                                         totalCharges = Convert.ToDecimal((targetGraduatedScale.ChargePercentage * Convert.ToDouble(chargeableAmount)) / 100);
-                                        totalCharges = Math.Min(totalCharges, targetCommission.MaximumCharge);
+                                        totalCharges = targetCommission.MaximumCharge > 0m ? Math.Min(totalCharges, targetCommission.MaximumCharge) : totalCharges;
                                         break;
                                     case ChargeType.FixedAmount:
                                         totalCharges = targetGraduatedScale.ChargeFixedAmount;
-                                        totalCharges = Math.Min(totalCharges, targetCommission.MaximumCharge);
+                                        totalCharges = targetCommission.MaximumCharge > 0m ? Math.Min(totalCharges, targetCommission.MaximumCharge) : totalCharges;
                                         break;
                                     default:
                                         break;

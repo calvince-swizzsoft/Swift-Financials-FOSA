@@ -135,6 +135,24 @@ want kept, not just the delta — and returns the refreshed list.
 | `.../{id}/deductibles` | `LoanProductDeductibleDTO` | Deductions taken against this loan product at disbursement. |
 | `.../{id}/auxiliary-appraisal-factors` | `LoanProductAuxilliaryAppraisalFactorDTO` | Investments-range-banded `LoaneeMultiplier`/`GuarantorMultiplier`, overrides `LoanRegistrationInvestmentsMultiplier` when a matching band exists. |
 
+### Runtime enforcement
+
+- Locked loan products are rejected when registering a new loan case.
+- All five interest calculation modes, including `FixedInterest`, are used by
+  repayment schedules and periodic capitalization. Upfront products are
+  charged at disbursement and are excluded from recurring capitalization.
+- Fixed-interest schedules derive their number of instalments from term and
+  payment frequency; they are not implicitly monthly.
+- Microcredit applications must fall within a configured loan-cycle band.
+- Auxiliary appraisal factors apply to both loanee entitlement and guarantor
+  capacity. Auxiliary conditions enforce no-outstanding-balance and required
+  Approved/Audited/Appraised target-loan states. Conditional-list and
+  dividends-payable flags are rejected because those data sources are not
+  available in the current origination service.
+- Same-product balance rejection, maximum self-guarantee percentage, take-home
+  limits, system-appraisal enforcement, and outstanding-balance entitlement
+  behavior are enforced during registration/appraisal.
+
 ## 4. Sub-resource — appraisal products
 
 `.../{id}/appraisal-products` (`GET`/`PUT`) round-trips a

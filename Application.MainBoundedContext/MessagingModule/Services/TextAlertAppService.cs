@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Domain.MainBoundedContext.MessagingModule.Aggregates.TextAlertCommissionAgg;
+using Domain.MainBoundedContext.AccountsModule.Aggregates.CommissionAgg;
 using LazyCache;
 
 namespace Application.MainBoundedContext.MessagingModule.Services
@@ -25,6 +26,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<TextAlert> _textAlertRepository;
         private readonly IRepository<TextAlertCommission> _textAlertCommissionRepository;
+        private readonly IRepository<Commission> _commissionRepository;
         private readonly IBranchAppService _branchAppService;
         private readonly IMessageGroupAppService _messageGroupAppService;
         private readonly IBrokerService _brokerService;
@@ -34,6 +36,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
             IDbContextScopeFactory dbContextScopeFactory,
             IRepository<TextAlert> textAlertRepository,
             IRepository<TextAlertCommission> textAlertCommissionRepository,
+            IRepository<Commission> commissionRepository,
             IBranchAppService branchAppService,
             IMessageGroupAppService messageGroupAppService,
             IBrokerService brokerService,
@@ -47,6 +50,9 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 
             if (textAlertCommissionRepository == null)
                 throw new ArgumentNullException(nameof(textAlertCommissionRepository));
+
+            if (commissionRepository == null)
+                throw new ArgumentNullException(nameof(commissionRepository));
 
             if (branchAppService == null)
                 throw new ArgumentNullException(nameof(branchAppService));
@@ -63,6 +69,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
             _dbContextScopeFactory = dbContextScopeFactory;
             _textAlertRepository = textAlertRepository;
             _textAlertCommissionRepository = textAlertCommissionRepository;
+            _commissionRepository = commissionRepository;
             _branchAppService = branchAppService;
             _messageGroupAppService = messageGroupAppService;
             _brokerService = brokerService;
@@ -543,6 +550,15 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 
         public bool UpdateCommissions(int systemTransactionCode, CommissionDTO[] commissionDTOs, int chargeBenefactor, ServiceHeader serviceHeader)
         {
+            if (!Enum.IsDefined(typeof(SystemTransactionCode), systemTransactionCode))
+                throw new InvalidOperationException("Select a valid system transaction code.");
+            if (!Enum.IsDefined(typeof(ChargeBenefactor), chargeBenefactor))
+                throw new InvalidOperationException("Select whether the text alert charges are borne by the customer or the institution.");
+            if (commissionDTOs == null || commissionDTOs.Length == 0)
+                throw new InvalidOperationException("Select at least one applicable charge.");
+            if (commissionDTOs.Any(item => item == null || item.Id == Guid.Empty) || commissionDTOs.Select(item => item.Id).Distinct().Count() != commissionDTOs.Length)
+                throw new InvalidOperationException("Applicable charges must contain unique, valid charge identifiers.");
+
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var existingCommissions = FindCommissions(systemTransactionCode, serviceHeader);
@@ -616,8 +632,39 @@ namespace Application.MainBoundedContext.MessagingModule.Services
                     }
                 }
 
-                return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                var updated = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                if (updated)
+                    _appCache.Remove(string.Format("TextAlertCommissionsBySystemTransactionCode_{0}_{1}", serviceHeader.ApplicationDomainName, systemTransactionCode));
+                return updated;
             }
+        }
+
+        public bool UpdateCommissionsByIds(int systemTransactionCode, List<Guid> commissionIds, int chargeBenefactor, ServiceHeader serviceHeader)
+        {
+            if (!Enum.IsDefined(typeof(SystemTransactionCode), systemTransactionCode))
+                throw new InvalidOperationException("Select a valid system transaction code.");
+            if (!Enum.IsDefined(typeof(ChargeBenefactor), chargeBenefactor))
+                throw new InvalidOperationException("Select whether the text alert charges are borne by the customer or the institution.");
+            if (commissionIds == null || commissionIds.Count == 0)
+                throw new InvalidOperationException("Select at least one applicable charge.");
+            if (commissionIds.Any(id => id == Guid.Empty) || commissionIds.Distinct().Count() != commissionIds.Count)
+                throw new InvalidOperationException("Applicable charges must contain unique, valid charge identifiers.");
+
+            var commissions = new List<CommissionDTO>();
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                foreach (var commissionId in commissionIds)
+                {
+                    var commission = _commissionRepository.Get(commissionId, serviceHeader);
+                    if (commission == null)
+                        throw new InvalidOperationException("One or more selected charges no longer exist.");
+                    if (commission.IsLocked)
+                        throw new InvalidOperationException(string.Format("The charge '{0}' is locked and cannot be assigned.", commission.Description));
+                    commissions.Add(commission.ProjectedAs<CommissionDTO>());
+                }
+            }
+
+            return UpdateCommissions(systemTransactionCode, commissions.ToArray(), chargeBenefactor, serviceHeader);
         }
     }
 }

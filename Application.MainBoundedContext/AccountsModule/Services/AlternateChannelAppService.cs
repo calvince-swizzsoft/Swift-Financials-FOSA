@@ -4,6 +4,7 @@ using Application.MainBoundedContext.Services;
 using Application.Seedwork;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.AlternateChannelAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.AlternateChannelTypeCommissionAgg;
+using Domain.MainBoundedContext.AccountsModule.Aggregates.CommissionAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountHistoryAgg;
 using Domain.Seedwork;
 using Domain.Seedwork.Specification;
@@ -23,6 +24,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IRepository<AlternateChannel> _alternateChannelRepository;
         private readonly IRepository<CustomerAccountHistory> _customerAccountHistoryRepository;
         private readonly IRepository<AlternateChannelTypeCommission> _alternateChannelTypeCommissionRepository;
+        private readonly IRepository<Commission> _commissionRepository;
         private readonly IAppCache _appCache;
         //private readonly IBrokerService _brokerService;
 
@@ -31,6 +33,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             IRepository<AlternateChannel> alternateChannelRepository,
             IRepository<CustomerAccountHistory> customerAccountHistoryRepository,
             IRepository<AlternateChannelTypeCommission> alternateChannelTypeCommissionRepository,
+            IRepository<Commission> commissionRepository,
             IAppCache appCache
            // IBrokerService brokerService
             )
@@ -47,6 +50,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (alternateChannelTypeCommissionRepository == null)
                 throw new ArgumentNullException(nameof(alternateChannelTypeCommissionRepository));
 
+            if (commissionRepository == null)
+                throw new ArgumentNullException(nameof(commissionRepository));
+
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
@@ -57,6 +63,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _alternateChannelRepository = alternateChannelRepository;
             _customerAccountHistoryRepository = customerAccountHistoryRepository;
             _alternateChannelTypeCommissionRepository = alternateChannelTypeCommissionRepository;
+            _commissionRepository = commissionRepository;
             _appCache = appCache;
             //_brokerService = brokerService;
         }
@@ -675,6 +682,17 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool UpdateCommissions(int alternateChannelType, List<CommissionDTO> commissionDTOs, int alternateChannelTypeKnownChargeType, int chargeBenefactor, ServiceHeader serviceHeader)
         {
+            if (!Enum.IsDefined(typeof(AlternateChannelType), alternateChannelType))
+                throw new InvalidOperationException("Select a valid alternate channel type.");
+            if (!Enum.IsDefined(typeof(AlternateChannelKnownChargeType), alternateChannelTypeKnownChargeType))
+                throw new InvalidOperationException("Select a valid alternate channel charge type.");
+            if (!Enum.IsDefined(typeof(ChargeBenefactor), chargeBenefactor))
+                throw new InvalidOperationException("Select whether the charges are borne by the customer or the institution.");
+            if (commissionDTOs == null || commissionDTOs.Count == 0)
+                throw new InvalidOperationException("Select at least one applicable charge.");
+            if (commissionDTOs.Any(item => item == null || item.Id == Guid.Empty) || commissionDTOs.Select(item => item.Id).Distinct().Count() != commissionDTOs.Count)
+                throw new InvalidOperationException("Applicable charges must contain unique, valid charge identifiers.");
+
             if (commissionDTOs != null)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -702,10 +720,37 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         }
                     }
 
-                    return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                    var updated = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                    if (updated)
+                        _appCache.Remove(string.Format("CommissionsByAlternateChannelTypeAndAlternateChannelTypeKnownChargeType_{0}_{1}_{2}", serviceHeader.ApplicationDomainName, alternateChannelType, alternateChannelTypeKnownChargeType));
+                    return updated;
                 }
             }
             else return false;
+        }
+
+        public bool UpdateCommissionsByIds(int alternateChannelType, List<Guid> commissionIds, int alternateChannelTypeKnownChargeType, int chargeBenefactor, ServiceHeader serviceHeader)
+        {
+            if (commissionIds == null || commissionIds.Count == 0)
+                throw new InvalidOperationException("Select at least one applicable charge.");
+            if (commissionIds.Any(id => id == Guid.Empty) || commissionIds.Distinct().Count() != commissionIds.Count)
+                throw new InvalidOperationException("Applicable charges must contain unique, valid charge identifiers.");
+
+            var commissions = new List<CommissionDTO>();
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                foreach (var commissionId in commissionIds)
+                {
+                    var commission = _commissionRepository.Get(commissionId, serviceHeader);
+                    if (commission == null)
+                        throw new InvalidOperationException("One or more selected charges no longer exist.");
+                    if (commission.IsLocked)
+                        throw new InvalidOperationException(string.Format("The charge '{0}' is locked and cannot be assigned.", commission.Description));
+                    commissions.Add(commission.ProjectedAs<CommissionDTO>());
+                }
+            }
+
+            return UpdateCommissions(alternateChannelType, commissions, alternateChannelTypeKnownChargeType, chargeBenefactor, serviceHeader);
         }
     }
 }

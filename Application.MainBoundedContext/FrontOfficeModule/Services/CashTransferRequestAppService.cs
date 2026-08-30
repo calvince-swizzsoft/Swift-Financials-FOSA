@@ -13,6 +13,7 @@ using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using System.Linq;
+using Domain.MainBoundedContext.ValueObjects;
 
 namespace Application.MainBoundedContext.FrontOfficeModule.Services
 {
@@ -23,13 +24,19 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         private readonly IFiscalCountAppService _fiscalCountAppService;
         private readonly IPostingPeriodAppService _postingPeriodAppService;
         private readonly IAuthorizationAppService _authorizationAppService;
+        private readonly ITellerAppService _tellerAppService;
+        private readonly ITreasuryAppService _treasuryAppService;
+        private readonly IJournalAppService _journalAppService;
 
         public CashTransferRequestAppService(
            IDbContextScopeFactory dbContextScopeFactory,
            IRepository<CashTransferRequest> cashTransferRequestRepository,
            IFiscalCountAppService fiscalCountAppService,
            IPostingPeriodAppService postingPeriodAppService,
-           IAuthorizationAppService authorizationAppService)
+           IAuthorizationAppService authorizationAppService,
+           ITellerAppService tellerAppService,
+           ITreasuryAppService treasuryAppService,
+           IJournalAppService journalAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -42,6 +49,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             _fiscalCountAppService = fiscalCountAppService ?? throw new ArgumentNullException(nameof(fiscalCountAppService));
             _postingPeriodAppService = postingPeriodAppService ?? throw new ArgumentNullException(nameof(postingPeriodAppService));
             _authorizationAppService = authorizationAppService ?? throw new ArgumentNullException(nameof(authorizationAppService));
+            _tellerAppService = tellerAppService ?? throw new ArgumentNullException(nameof(tellerAppService));
+            _treasuryAppService = treasuryAppService ?? throw new ArgumentNullException(nameof(treasuryAppService));
+            _journalAppService = journalAppService ?? throw new ArgumentNullException(nameof(journalAppService));
         }
 
         public async Task<CashTransferRequestDTO> CreateCashTransferAsync(CashTransferRequestDTO dto, TellerDTO teller, ServiceHeader serviceHeader)
@@ -54,7 +64,8 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 dto.DenominationTwoHundredValue + dto.DenominationOneHundredValue + dto.DenominationFiftyValue +
                 dto.DenominationFourtyValue + dto.DenominationTwentyValue + dto.DenominationTenValue +
                 dto.DenominationFiveValue + dto.DenominationOneValue + dto.DenominationFiftyCentValue;
-            if (!dto.TallyByTotal && countedTotal != dto.Amount) throw new InvalidOperationException($"Counted denominations ({countedTotal}) do not match the transfer amount ({dto.Amount}).");
+            if (countedTotal <= 0m) throw new InvalidOperationException("A cash transfer requires a physical denomination count.");
+            if (countedTotal != dto.Amount) throw new InvalidOperationException($"Counted denominations ({countedTotal}) do not match the transfer amount ({dto.Amount}).");
 
             dto.EmployeeId = teller.EmployeeId;
             dto.TotalCredits = teller.TotalCredits;
@@ -64,26 +75,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             dto.ClosingBalance = teller.ClosingBalance;
             dto.TellerCashBalanceStatusValue = dto.Amount == teller.BookBalance ? (int)TellerCashBalanceStatus.Balanced : dto.Amount < teller.BookBalance ? (int)TellerCashBalanceStatus.Shortage : (int)TellerCashBalanceStatus.Excess;
 
-            var request = await AddNewCashTransferRequestAsync(dto, serviceHeader);
-            if (request == null) return null;
-            var period = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
-            if (period == null) throw new InvalidOperationException("The current posting period could not be resolved.");
-
-            _fiscalCountAppService.AddNewFiscalCount(new FiscalCountDTO {
-                TransactionCode = (int)SystemTransactionCode.TellerCashTransfer,
-                TransactionType = (int)TreasuryTransactionType.TellerToTreasury,
-                PostingPeriodId = period.Id, BranchId = teller.EmployeeBranchId,
-                ChartOfAccountId = teller.ChartOfAccountId ?? Guid.Empty,
-                PrimaryDescription = "Teller to Treasury", SecondaryDescription = teller.Description,
-                Reference = dto.Reference, TotalValue = dto.Amount,
-                DenominationOneThousandValue = dto.DenominationOneThousandValue, DenominationFiveHundredValue = dto.DenominationFiveHundredValue,
-                DenominationTwoHundredValue = dto.DenominationTwoHundredValue, DenominationOneHundredValue = dto.DenominationOneHundredValue,
-                DenominationFiftyValue = dto.DenominationFiftyValue, DenominationFourtyValue = dto.DenominationFourtyValue,
-                DenominationTwentyValue = dto.DenominationTwentyValue, DenominationTenValue = dto.DenominationTenValue,
-                DenominationFiveValue = dto.DenominationFiveValue, DenominationOneValue = dto.DenominationOneValue,
-                DenominationFiftyCentValue = dto.DenominationFiftyCentValue
-            }, serviceHeader);
-            return request;
+            return await AddNewCashTransferRequestAsync(dto, serviceHeader);
         }
 
         public async Task<CashTransferRequestDTO> AddNewCashTransferRequestAsync(CashTransferRequestDTO cashTransferRequestDTO, ServiceHeader serviceHeader)
@@ -96,7 +88,18 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
-                var cashTransferRequest = CashTransferRequestFactory.CreateCashTransferRequest(cashTransferRequestDTO.EmployeeId.Value, cashTransferRequestDTO.Amount, cashTransferRequestDTO.Reference);
+                var denomination = new Denomination(
+                    cashTransferRequestDTO.DenominationOneThousandValue, cashTransferRequestDTO.DenominationFiveHundredValue,
+                    cashTransferRequestDTO.DenominationTwoHundredValue, cashTransferRequestDTO.DenominationOneHundredValue,
+                    cashTransferRequestDTO.DenominationFiftyValue, cashTransferRequestDTO.DenominationFourtyValue,
+                    cashTransferRequestDTO.DenominationTwentyValue, cashTransferRequestDTO.DenominationTenValue,
+                    cashTransferRequestDTO.DenominationFiveValue, cashTransferRequestDTO.DenominationOneValue,
+                    cashTransferRequestDTO.DenominationFiftyCentValue);
+                var cashTransferRequest = CashTransferRequestFactory.CreateCashTransferRequest(
+                    cashTransferRequestDTO.EmployeeId.Value,
+                    cashTransferRequestDTO.Amount,
+                    cashTransferRequestDTO.Reference,
+                    denomination);
 
                 cashTransferRequest.Status = (int)CashTransferRequestStatus.Pending;
 
@@ -161,7 +164,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
-                return await _cashTransferRequestRepository.GetAllAsync<CashTransferRequestDTO>(serviceHeader);
+                var requests = await _cashTransferRequestRepository.GetAllAsync<CashTransferRequestDTO>(serviceHeader);
+                EnrichTellerDetails(requests, serviceHeader);
+                return requests;
             }
         }
 
@@ -176,7 +181,33 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 var filter = CashTransferRequestSpecifications.PendingCashTransferRequestsForBranch(
                     serviceHeader.ApplicationUserBranchId.Value,
                     serviceHeader.ApplicationUserEmployeeId.Value);
-                return await _cashTransferRequestRepository.AllMatchingAsync<CashTransferRequestDTO>(filter, serviceHeader);
+                var requests = await _cashTransferRequestRepository.AllMatchingAsync<CashTransferRequestDTO>(filter, serviceHeader);
+                EnrichTellerDetails(requests, serviceHeader);
+                return requests;
+            }
+        }
+
+        private void EnrichTellerDetails(IEnumerable<CashTransferRequestDTO> requests, ServiceHeader serviceHeader)
+        {
+            if (requests == null) return;
+
+            var tellersByEmployee = requests
+                .Where(request => request.EmployeeId.HasValue && request.EmployeeId.Value != Guid.Empty)
+                .Select(request => request.EmployeeId.Value)
+                .Distinct()
+                .Select(employeeId => _tellerAppService.FindTellerByEmployeeId(employeeId, serviceHeader))
+                .Where(teller => teller != null && teller.EmployeeId.HasValue)
+                .ToDictionary(teller => teller.EmployeeId.Value);
+
+            foreach (var request in requests)
+            {
+                if (!request.EmployeeId.HasValue) continue;
+
+                TellerDTO teller;
+                if (!tellersByEmployee.TryGetValue(request.EmployeeId.Value, out teller)) continue;
+
+                request.TellerId = teller.Id;
+                request.TellerDescription = teller.Description;
             }
         }
 
@@ -244,18 +275,127 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
         public async Task<bool> UtilizeCashTransferRequestAsync(Guid cashTransferRequestId, ServiceHeader serviceHeader)
         {
+            if (cashTransferRequestId == Guid.Empty)
+                throw new InvalidOperationException("A cash transfer request is required.");
+            if (serviceHeader == null || !serviceHeader.ApplicationUserEmployeeId.HasValue)
+                throw new InvalidOperationException("The authenticated teller could not be resolved.");
+
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
-                if (cashTransferRequestId != null && cashTransferRequestId != Guid.Empty)
-                {
-                    var persisted = await _cashTransferRequestRepository.GetAsync(cashTransferRequestId, serviceHeader);
+                var persisted = await _cashTransferRequestRepository.GetAsync(cashTransferRequestId, serviceHeader);
+                if (persisted == null)
+                    throw new InvalidOperationException("The cash transfer request could not be found.");
+                if (persisted.Utilized || persisted.Status == (int)CashTransferRequestStatus.Utilized)
+                    throw new InvalidOperationException("The cash transfer request has already been utilized.");
+                if (persisted.Status != (int)CashTransferRequestStatus.Acknowledged)
+                    throw new InvalidOperationException("Only an acknowledged cash transfer request can be utilized.");
+                if (!persisted.EmployeeId.HasValue || persisted.EmployeeId.Value != serviceHeader.ApplicationUserEmployeeId.Value)
+                    throw new InvalidOperationException("Only the teller who created this cash transfer request can utilize it.");
 
-                    if (persisted != null && persisted.Status != (int)CashTransferRequestStatus.Pending)
+                var teller = _tellerAppService.FindTellerByEmployeeId(persisted.EmployeeId.Value, serviceHeader);
+                if (teller == null)
+                    throw new InvalidOperationException("The originating teller could not be found.");
+                if (!teller.ChartOfAccountId.HasValue || teller.ChartOfAccountId.Value == Guid.Empty)
+                    throw new InvalidOperationException("The originating teller does not have a cash G/L account configured.");
+                if (teller.EmployeeBranchId == Guid.Empty)
+                    throw new InvalidOperationException("The originating teller does not have a branch configured.");
+
+                var treasury = _treasuryAppService.FindTreasuryByBranchId(teller.EmployeeBranchId, serviceHeader);
+                if (treasury == null || treasury.ChartOfAccountId == Guid.Empty)
+                    throw new InvalidOperationException("No treasury cash G/L account is configured for the teller's branch.");
+
+                var tellerLimitError = _tellerAppService.ValidateCashMovement(teller.Id, persisted.Amount, false, serviceHeader);
+                if (!string.IsNullOrWhiteSpace(tellerLimitError))
+                    throw new InvalidOperationException(tellerLimitError);
+
+                var treasuryLimitError = _treasuryAppService.ValidateCashMovement(
+                    treasury.Id,
+                    null,
+                    persisted.Amount,
+                    (int)TreasuryTransactionType.TellerToTreasury,
+                    serviceHeader);
+                if (!string.IsNullOrWhiteSpace(treasuryLimitError))
+                    throw new InvalidOperationException(treasuryLimitError);
+
+                var denomination = persisted.Denomination;
+                var countedTotal = denomination == null ? 0m :
+                    denomination.OneThousandValue + denomination.FiveHundredValue + denomination.TwoHundredValue +
+                    denomination.OneHundredValue + denomination.FiftyValue + denomination.FourtyValue +
+                    denomination.TwentyValue + denomination.TenValue + denomination.FiveValue +
+                    denomination.OneValue + denomination.FiftyCentValue;
+
+                if (countedTotal > 0m)
+                {
+                    if (countedTotal != persisted.Amount)
+                        throw new InvalidOperationException($"The persisted denomination count ({countedTotal}) does not match the transfer amount ({persisted.Amount}).");
+
+                    var period = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
+                    if (period == null)
+                        throw new InvalidOperationException("The current posting period could not be resolved.");
+
+                    var fiscalCount = _fiscalCountAppService.AddNewFiscalCount(new FiscalCountDTO
                     {
-                        persisted.Utilized = true;
-                        persisted.Status = (int)CashTransferRequestStatus.Utilized;
-                    }
+                        TransactionCode = (int)SystemTransactionCode.TellerCashTransfer,
+                        TransactionType = (int)TreasuryTransactionType.TellerToTreasury,
+                        PostingPeriodId = period.Id,
+                        BranchId = teller.EmployeeBranchId,
+                        ChartOfAccountId = teller.ChartOfAccountId.Value,
+                        PrimaryDescription = "Teller to Treasury",
+                        SecondaryDescription = teller.Description,
+                        Reference = persisted.Reference,
+                        DenominationOneThousandValue = denomination.OneThousandValue,
+                        DenominationFiveHundredValue = denomination.FiveHundredValue,
+                        DenominationTwoHundredValue = denomination.TwoHundredValue,
+                        DenominationOneHundredValue = denomination.OneHundredValue,
+                        DenominationFiftyValue = denomination.FiftyValue,
+                        DenominationFourtyValue = denomination.FourtyValue,
+                        DenominationTwentyValue = denomination.TwentyValue,
+                        DenominationTenValue = denomination.TenValue,
+                        DenominationFiveValue = denomination.FiveValue,
+                        DenominationOneValue = denomination.OneValue,
+                        DenominationFiftyCentValue = denomination.FiftyCentValue
+                    }, serviceHeader);
+                    if (fiscalCount == null)
+                        throw new InvalidOperationException("The official fiscal count could not be recorded.");
                 }
+                else
+                {
+                    // Requests created before denomination persistence already wrote their
+                    // fiscal count at request time. Reuse that historical count so deployment
+                    // does not strand acknowledged requests or create a duplicate count.
+                    var legacyCounts = _fiscalCountAppService.FindFiscalCounts(
+                        (int)SystemTransactionCode.TellerCashTransfer,
+                        persisted.Reference,
+                        0,
+                        1000,
+                        serviceHeader);
+                    var hasLegacyCount = legacyCounts?.PageCollection != null && legacyCounts.PageCollection.Any(item =>
+                        string.Equals(item.Reference, persisted.Reference, StringComparison.OrdinalIgnoreCase));
+                    if (!hasLegacyCount)
+                        throw new InvalidOperationException("This legacy request has neither a persisted denomination count nor an existing fiscal count.");
+                }
+
+                var journal = _journalAppService.AddNewJournal(
+                    null,
+                    teller.EmployeeBranchId,
+                    null,
+                    persisted.Amount,
+                    "Teller Cash Transfer",
+                    teller.Description,
+                    persisted.Reference,
+                    0,
+                    (int)SystemTransactionCode.TellerCashTransfer,
+                    DateTime.Today,
+                    teller.ChartOfAccountId.Value,
+                    treasury.ChartOfAccountId,
+                    serviceHeader,
+                    true);
+                if (journal == null)
+                    throw new InvalidOperationException("The teller-to-treasury journal could not be posted.");
+
+                persisted.Utilized = true;
+                persisted.Status = (int)CashTransferRequestStatus.Utilized;
+
                 return await dbContextScope.SaveChangesAsync(serviceHeader) > 0;
             }
         }

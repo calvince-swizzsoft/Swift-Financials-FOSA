@@ -31,6 +31,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         private readonly IPostingPeriodAppService _postingPeriodAppService;
         private readonly IRecurringBatchAppService _recurringBatchAppService;
         private readonly IChequeTypeAppService _chequeTypeAppService;
+        private readonly IBankLinkageAppService _bankLinkageAppService;
 
         public ExternalChequeAppService(
            IDbContextScopeFactory dbContextScopeFactory,
@@ -44,7 +45,8 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
            IJournalEntryPostingService journalEntryPostingService,
            IPostingPeriodAppService postingPeriodAppService,
            IRecurringBatchAppService recurringBatchAppService,
-           IChequeTypeAppService chequeTypeAppService)
+           IChequeTypeAppService chequeTypeAppService,
+           IBankLinkageAppService bankLinkageAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -82,6 +84,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             if (chequeTypeAppService == null)
                 throw new ArgumentNullException(nameof(chequeTypeAppService));
 
+            if (bankLinkageAppService == null)
+                throw new ArgumentNullException(nameof(bankLinkageAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _externalChequeRepository = externalChequeRepository;
             _externalChequePayableRepository = externalChequePayableRepository;
@@ -94,12 +99,26 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             _postingPeriodAppService = postingPeriodAppService;
             _recurringBatchAppService = recurringBatchAppService;
             _chequeTypeAppService = chequeTypeAppService;
+            _bankLinkageAppService = bankLinkageAppService;
         }
 
         public ExternalChequeDTO AddNewExternalCheque(ExternalChequeDTO externalChequeDTO, ServiceHeader serviceHeader)
         {
             if (externalChequeDTO != null)
             {
+                using (_dbContextScopeFactory.CreateReadOnly())
+                {
+                    var duplicateSpecification = new DirectSpecification<ExternalCheque>(cheque =>
+                        cheque.Number == externalChequeDTO.Number &&
+                        cheque.CustomerAccountId == externalChequeDTO.CustomerAccountId &&
+                        cheque.DrawerBank == externalChequeDTO.DrawerBank &&
+                        cheque.DrawerBankBranch == externalChequeDTO.DrawerBankBranch &&
+                        cheque.WriteDate == externalChequeDTO.WriteDate);
+
+                    if (_externalChequeRepository.AllMatching(duplicateSpecification, serviceHeader).Any())
+                        throw new InvalidOperationException("This cheque has already been deposited for the selected customer account.");
+                }
+
                 var chequeType = (externalChequeDTO.ChequeTypeId != null && externalChequeDTO.ChequeTypeId != Guid.Empty)
                     ? _chequeTypeAppService.FindChequeType(externalChequeDTO.ChequeTypeId.Value, serviceHeader)
                     : null;
@@ -490,6 +509,11 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                     if (persisted != null && !persisted.IsCleared && persisted.CustomerAccount != null)
                     {
+                        // Treat the request DTO as an identifier only. Amount, cheque number,
+                        // branch, bank linkage, cheque type and audit-sensitive values must
+                        // come from the persisted aggregate at the write boundary.
+                        externalChequeDTO = persisted.ProjectedAs<ExternalChequeDTO>();
+
                         var customerAccountDTO = persisted.CustomerAccount.ProjectedAs<CustomerAccountDTO>();
 
                         _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccountDTO }, serviceHeader);
@@ -519,6 +543,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                                             var reference = string.Format("Cheque #{0}", externalChequeDTO.Number);
 
                                             var primaryJournal = _journalAppService.AddNewJournal(externalChequeDTO.TellerEmployeeBranchId, null, externalChequeDTO.Amount, string.Format("Cheque Clearance~{0} PAID", externalChequeDTO.Number), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeClearance, null, customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, chequesSuspenseChartOfAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+
+                                            if (primaryJournal == null || primaryJournal.HasErrors)
+                                                throw new InvalidOperationException("The cheque clearance journal could not be created. The cheque remains uncleared.");
 
                                             if (externalChequeDTO.ChequeTypeId != null && externalChequeDTO.ChequeTypeId != Guid.Empty && externalChequeDTO.ChequeTypeChargeRecoveryMode == (int)ChequeTypeChargeRecoveryMode.OnChequeClearance)
                                             {
@@ -677,42 +704,66 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
         public bool BankExternalCheques(List<ExternalChequeDTO> externalChequeDTOs, BankLinkageDTO bankLinkageDTO, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
-            if (externalChequeDTOs != null && externalChequeDTOs.Any())
-            {
+            if (externalChequeDTOs == null || !externalChequeDTOs.Any())
+                throw new InvalidOperationException("Select at least one cheque to bank.");
+            if (externalChequeDTOs.Any(item => item == null || item.Id == Guid.Empty))
+                throw new InvalidOperationException("Every selected cheque must have a valid identifier.");
+            if (externalChequeDTOs.Select(item => item.Id).Distinct().Count() != externalChequeDTOs.Count)
+                throw new InvalidOperationException("The same cheque cannot be selected more than once.");
+            if (bankLinkageDTO == null || bankLinkageDTO.Id == Guid.Empty)
+                throw new InvalidOperationException("Select the bank linkage where the cheques will be deposited.");
+            if (moduleNavigationItemCode <= 0)
+                throw new InvalidOperationException("The cheque-banking navigation context is required.");
+
                 var chequesInHandChartOfAccountId = _chartOfAccountAppService.GetChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)SystemGeneralLedgerAccountCode.ExternalChequesInHand, serviceHeader);
 
-                if (bankLinkageDTO != null && chequesInHandChartOfAccountId != Guid.Empty)
+                var persistedBankLinkage = bankLinkageDTO != null && bankLinkageDTO.Id != Guid.Empty
+                    ? _bankLinkageAppService.FindBankLinkage(bankLinkageDTO.Id, serviceHeader)
+                    : null;
+
+                if (persistedBankLinkage == null)
+                    throw new InvalidOperationException("The selected bank linkage could not be found.");
+                if (persistedBankLinkage.IsLocked)
+                    throw new InvalidOperationException("The selected bank linkage is locked and cannot receive cheque deposits.");
+                if (persistedBankLinkage.BranchId == Guid.Empty)
+                    throw new InvalidOperationException("The selected bank linkage has no branch configured.");
+                if (persistedBankLinkage.ChartOfAccountId == Guid.Empty)
+                    throw new InvalidOperationException("The selected bank linkage has no G/L account configured.");
+                if (chequesInHandChartOfAccountId == Guid.Empty)
+                    throw new InvalidOperationException("The External Cheques in Hand system G/L mapping has not been configured.");
+
+                using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    var persistedCheques = externalChequeDTOs
+                        .Select(item => _externalChequeRepository.Get(item.Id, serviceHeader))
+                        .ToList();
+
+                    if (persistedCheques.Any(item => item == null))
+                        throw new InvalidOperationException("One or more selected cheques could not be found. Refresh the banking list and try again.");
+                    if (persistedCheques.Any(item => !item.IsTransferred))
+                        throw new InvalidOperationException("Every selected cheque must be transferred out of the teller till before banking.");
+                    if (persistedCheques.Any(item => item.IsBanked))
+                        throw new InvalidOperationException("One or more selected cheques have already been banked. Refresh the banking list and try again.");
+                    if (persistedCheques.Any(item => item.IsCleared))
+                        throw new InvalidOperationException("A cleared cheque cannot be banked.");
+                    if (persistedCheques.Any(item => item.Amount <= 0m))
+                        throw new InvalidOperationException("Every selected cheque must have an amount greater than zero.");
+
+                    persistedCheques.ForEach(persisted =>
                     {
-                        externalChequeDTOs.ForEach(externalChequeDTO =>
-                        {
-                            var persisted = _externalChequeRepository.Get(externalChequeDTO.Id, serviceHeader);
+                                var journal = _journalAppService.AddNewJournal(persistedBankLinkage.BranchId, null, persisted.Amount, string.Format("Cheque Banking~{0}", persisted.Number), persistedBankLinkage.BankBranchName, persisted.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeBanking, null, chequesInHandChartOfAccountId, persistedBankLinkage.ChartOfAccountId, serviceHeader);
 
-                            if (persisted != null && !persisted.IsBanked)
-                            {
-                                // Same guard as TransferExternalCheques — AddNewJournal returns
-                                // null (no exception) rather than throwing on failure (e.g. no
-                                // current posting period), so the flag flip must not happen
-                                // unconditionally or a failed journal gets reported as success.
-                                var journal = _journalAppService.AddNewJournal(bankLinkageDTO.BranchId, null, externalChequeDTO.Amount, string.Format("Cheque Banking~{0}", externalChequeDTO.Number), bankLinkageDTO.BankBranchName, externalChequeDTO.Number, moduleNavigationItemCode, (int)SystemTransactionCode.ExternalChequeBanking, null, chequesInHandChartOfAccountId, bankLinkageDTO.ChartOfAccountId, serviceHeader);
+                                if (journal == null)
+                                    throw new InvalidOperationException(string.Format("The banking journal for cheque {0} could not be created. Verify the posting period and G/L configuration.", persisted.Number));
 
-                                if (journal != null)
-                                {
-                                    persisted.IsBanked = true;
-                                    persisted.BankLinkageChartOfAccountId = bankLinkageDTO.ChartOfAccountId;
-                                    persisted.BankedBy = serviceHeader.ApplicationUserName;
-                                    persisted.BankedDate = DateTime.Now;
-                                }
-                            }
-                        });
+                                persisted.IsBanked = true;
+                                persisted.BankLinkageChartOfAccountId = persistedBankLinkage.ChartOfAccountId;
+                                persisted.BankedBy = serviceHeader.ApplicationUserName;
+                                persisted.BankedDate = DateTime.Now;
+                    });
 
-                        return dbContextScope.SaveChanges(serviceHeader) > 0;
-                    }
+                    return dbContextScope.SaveChanges(serviceHeader) > 0;
                 }
-                else throw new InvalidOperationException("Sorry, but the requisite bank-linkage and/or external cheques in hand account has not been setup!");
-            }
-            else return false;
         }
 
         public List<ExternalChequePayableDTO> FindExternalChequePayablesByExternalChequeId(Guid externalChequeId, ServiceHeader serviceHeader)

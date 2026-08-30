@@ -45,5 +45,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         List<CommissionDTO> FindCachedCommissions(int alternateChannelType, int alternateChannelTypeKnownChargeType, ServiceHeader serviceHeader);
 
         bool UpdateCommissions(int alternateChannelType, List<CommissionDTO> commissionDTOs, int alternateChannelTypeKnownChargeType, int alternateChannelTypeChargeBenefactor, ServiceHeader serviceHeader);
+
+        bool UpdateCommissionsByIds(int alternateChannelType, List<Guid> commissionIds, int alternateChannelTypeKnownChargeType, int alternateChannelTypeChargeBenefactor, ServiceHeader serviceHeader);
     }
 }

@@ -85,6 +85,8 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Name")]
+        [Required(ErrorMessage = "Treasury name is required.")]
+        [StringLength(256, ErrorMessage = "Treasury name cannot exceed 256 characters.")]
         public string Description { get; set; }
 
         [DataMember]

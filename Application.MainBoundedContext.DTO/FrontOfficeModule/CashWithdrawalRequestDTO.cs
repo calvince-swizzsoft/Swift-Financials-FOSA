@@ -66,6 +66,10 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         public int CustomerAccountCustomerAccountTypeTargetProductCode { get; set; }
 
         [DataMember]
+        [Display(Name = "Savings Product")]
+        public string CustomerAccountCustomerAccountTypeTargetProductDescription { get; set; }
+
+        [DataMember]
         [Display(Name = "Customer Account Product Code")]
         public int CustomerAccountCustomerAccountTypeProductCode { get; set; }
 
@@ -243,7 +247,7 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         {
             get
             {
-                return Enum.IsDefined(typeof(FrontOfficeTransactionType), Type) ? EnumHelper.GetDescription((FrontOfficeTransactionType)TransactionType) : string.Empty;
+                return Enum.IsDefined(typeof(FrontOfficeTransactionType), TransactionType) ? EnumHelper.GetDescription((FrontOfficeTransactionType)TransactionType) : string.Empty;
             }
         }
 
