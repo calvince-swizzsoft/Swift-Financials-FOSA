@@ -439,7 +439,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             }
                         }
 
-                        return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        var saved = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        if (saved)
+                            _appCache.Remove(string.Format("GraduatedScalesByCommissionId_{0}_{1}", serviceHeader.ApplicationDomainName, commissionId.ToString("D")));
+                        return saved;
                     }
                     else return false;
                 }
@@ -512,7 +515,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             }
                         }
 
-                        return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        var saved = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        if (saved)
+                            _appCache.Remove(string.Format("LeviesByCommissionId_{0}_{1}", serviceHeader.ApplicationDomainName, commissionId.ToString("D")));
+                        return saved;
                     }
                     else return false;
                 }
@@ -586,7 +592,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             }
                         }
 
-                        return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        var saved = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        if (saved)
+                            _appCache.Remove(string.Format("CommissionSplitsByCommissionId_{0}_{1}", serviceHeader.ApplicationDomainName, commissionId.ToString("D")));
+                        return saved;
                     }
                     else return false;
                 }

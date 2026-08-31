@@ -20,6 +20,9 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.AccountsModu
             Property(x => x.AuthorizedBy).HasMaxLength(256);
             Property(x => x.AuthorizationRemarks).HasMaxLength(256);
             Property(x => x.PaidBy).HasMaxLength(256);
+            Property(x => x.PaymentVoucherPayee).HasMaxLength(256);
+            Property(x => x.PaymentVoucherReference).HasMaxLength(256);
+            Property(x => x.PaymentVoucherWriteDate).HasColumnType("date");
 
             Property(t => t.Status).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute("IX_CashWithdrawalRequest_Status")));
 

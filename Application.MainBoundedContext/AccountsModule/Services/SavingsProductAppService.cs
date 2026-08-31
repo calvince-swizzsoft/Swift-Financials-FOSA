@@ -470,7 +470,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             }
                         }
 
-                        return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        var saved = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                        if (saved)
+                            _appCache.Remove(string.Format("CommissionsBySavingsProductIdAndSavingsProductKnownChargeType_{0}_{1}_{2}", serviceHeader.ApplicationDomainName, savingsProductId.ToString("D"), savingsProductKnownChargeType));
+                        return saved;
                     }
                     else return false;
                 }

@@ -66,6 +66,39 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             _workflowAppService = workflowAppService;
         }
 
+        private void EnrichRequestDetails(CashWithdrawalRequestDTO request, ServiceHeader serviceHeader)
+        {
+            if (request == null) return;
+
+            // Some legacy requests stored an internal actor/teller identifier
+            // in Remarks. It is not customer-facing commentary.
+            Guid internalId;
+            if (Guid.TryParse(request.Remarks, out internalId))
+                request.Remarks = null;
+
+            if (string.IsNullOrWhiteSpace(request.CustomerAccountCustomerAccountTypeTargetProductDescription)
+                && request.CustomerAccountCustomerAccountTypeTargetProductId != Guid.Empty)
+            {
+                var product = _savingsProductAppService.FindSavingsProduct(
+                    request.CustomerAccountCustomerAccountTypeTargetProductId,
+                    request.CustomerAccountBranchId != Guid.Empty ? request.CustomerAccountBranchId : request.BranchId,
+                    serviceHeader);
+
+                request.CustomerAccountCustomerAccountTypeTargetProductDescription =
+                    product != null ? product.Description : null;
+            }
+
+            if (request.PaymentVoucherId != Guid.Empty)
+            {
+                var voucher = _chequeBookAppService.FindPaymentVoucher(request.PaymentVoucherId, serviceHeader);
+                if (voucher != null)
+                {
+                    request.PaymentVoucherNumber = voucher.PaddedVoucherNumber;
+                    request.PaymentVoucherStatus = voucher.Status;
+                }
+            }
+        }
+
         public CashWithdrawalRequestDTO AddNewCashWithdrawalRequestWithWorkflow(CashWithdrawalRequestDTO cashWithdrawalRequestDTO, ServiceHeader serviceHeader)
         {
             var roles = _authorizationAppService.GetRolesListForSystemPermissionType(
@@ -156,9 +189,35 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                     cashWithdrawalRequestDTO.TransactionType != (int)FrontOfficeTransactionType.CashWithdrawalPaymentVoucher)
                     throw new InvalidOperationException("The transaction type is not a cash withdrawal.");
 
+                if (cashWithdrawalRequestDTO.TransactionType == (int)FrontOfficeTransactionType.CashWithdrawalPaymentVoucher)
+                {
+                    if (cashWithdrawalRequestDTO.PaymentVoucherId == Guid.Empty)
+                        throw new InvalidOperationException("An active payment voucher is required.");
+                    if (string.IsNullOrWhiteSpace(cashWithdrawalRequestDTO.PaymentVoucherPayee)
+                        || string.IsNullOrWhiteSpace(cashWithdrawalRequestDTO.PaymentVoucherReference)
+                        || !cashWithdrawalRequestDTO.PaymentVoucherWriteDate.HasValue)
+                        throw new InvalidOperationException("Payment voucher payee, reference, and write date are required.");
+
+                    var voucher = _chequeBookAppService.FindPaymentVoucher(cashWithdrawalRequestDTO.PaymentVoucherId, serviceHeader);
+                    if (voucher == null || voucher.Status != (int)PaymentVoucherStatus.Active)
+                        throw new InvalidOperationException("The selected payment voucher does not exist, has already been paid, or has been flagged.");
+                    if (!cashWithdrawalRequestDTO.CustomerAccountId.HasValue
+                        || voucher.ChequeBookCustomerAccountId != cashWithdrawalRequestDTO.CustomerAccountId.Value
+                        || !voucher.ChequeBookIsActive || voucher.ChequeBookIsLocked)
+                        throw new InvalidOperationException("The selected payment voucher is not from an active, unlocked cheque book for this customer account.");
+
+                    voucher.Payee = cashWithdrawalRequestDTO.PaymentVoucherPayee.Trim();
+                    voucher.Reference = cashWithdrawalRequestDTO.PaymentVoucherReference.Trim();
+                    voucher.WriteDate = cashWithdrawalRequestDTO.PaymentVoucherWriteDate;
+                    voucher.Amount = cashWithdrawalRequestDTO.Amount;
+                    voucher.ValidateAll();
+                    if (voucher.HasErrors)
+                        throw new InvalidOperationException(string.Join("; ", voucher.ErrorMessages));
+                }
+
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
-                    var cashWithdrawalRequest = CashWithdrawalRequestFactory.CreateCashWithdrawalRequest(cashWithdrawalRequestDTO.BranchId, cashWithdrawalRequestDTO.CustomerAccountId, cashWithdrawalRequestDTO.ChartOfAccountId, cashWithdrawalRequestDTO.Type, cashWithdrawalRequestDTO.Category, cashWithdrawalRequestDTO.Amount, cashWithdrawalRequestDTO.Remarks, cashWithdrawalRequestDTO.PaymentVoucherId, cashWithdrawalRequestDTO.PaymentVoucherPayee,cashWithdrawalRequestDTO.TransactionType);
+                    var cashWithdrawalRequest = CashWithdrawalRequestFactory.CreateCashWithdrawalRequest(cashWithdrawalRequestDTO.BranchId, cashWithdrawalRequestDTO.CustomerAccountId, cashWithdrawalRequestDTO.ChartOfAccountId, cashWithdrawalRequestDTO.Type, cashWithdrawalRequestDTO.Category, cashWithdrawalRequestDTO.Amount, cashWithdrawalRequestDTO.Remarks, cashWithdrawalRequestDTO.PaymentVoucherId, cashWithdrawalRequestDTO.PaymentVoucherPayee, cashWithdrawalRequestDTO.PaymentVoucherReference, cashWithdrawalRequestDTO.PaymentVoucherWriteDate, cashWithdrawalRequestDTO.TransactionType);
 
                     switch ((CashWithdrawalRequestType)cashWithdrawalRequestDTO.Type)
                     {
@@ -276,8 +335,8 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                         persisted.PaidBy = serviceHeader.ApplicationUserName;
                         persisted.PaidDate = DateTime.Now;
 
-                        if (paymentVoucherDTO != null)
-                            _chequeBookAppService.PayVoucher(paymentVoucherDTO, serviceHeader);
+                        if (paymentVoucherDTO != null && !_chequeBookAppService.PayVoucher(paymentVoucherDTO, serviceHeader))
+                            throw new InvalidOperationException("The payment voucher could not be marked as paid. It may already be paid or flagged.");
 
                         result = dbContextScope.SaveChanges(serviceHeader) >= 0;
                     }
@@ -395,7 +454,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 
                     if (cashWithdrawalRequest != null)
                     {
-                        return cashWithdrawalRequest.ProjectedAs<CashWithdrawalRequestDTO>();
+                        var projection = cashWithdrawalRequest.ProjectedAs<CashWithdrawalRequestDTO>();
+                        EnrichRequestDetails(projection, serviceHeader);
+                        return projection;
                     }
                     else return null;
                 }

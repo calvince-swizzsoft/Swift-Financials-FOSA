@@ -148,7 +148,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 {
                     var persisted = _paymentVoucherRepository.Get(paymentVoucherDTO.Id, serviceHeader);
 
-                    if (persisted != null && persisted.Status != (int)PaymentVoucherStatus.Paid)
+                    if (persisted != null && persisted.Status == (int)PaymentVoucherStatus.Active)
                     {
                         persisted.Status = (int)PaymentVoucherStatus.Paid;
                         persisted.Payee = paymentVoucherDTO.Payee;
@@ -196,6 +196,17 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 }
             }
             else return false;
+        }
+
+        public PaymentVoucherDTO FindPaymentVoucher(Guid paymentVoucherId, ServiceHeader serviceHeader)
+        {
+            if (paymentVoucherId == Guid.Empty) return null;
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var paymentVoucher = _paymentVoucherRepository.Get(paymentVoucherId, serviceHeader);
+                return paymentVoucher != null ? paymentVoucher.ProjectedAs<PaymentVoucherDTO>() : null;
+            }
         }
 
         public List<ChequeBookDTO> FindChequeBooks(ServiceHeader serviceHeader)

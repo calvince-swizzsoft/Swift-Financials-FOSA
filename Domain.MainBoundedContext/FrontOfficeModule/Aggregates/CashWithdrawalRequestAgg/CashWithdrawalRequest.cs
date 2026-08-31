@@ -46,6 +46,10 @@ namespace Domain.MainBoundedContext.FrontOfficeModule.Aggregates.CashWithdrawalR
 
         public string PaymentVoucherPayee { get; set; }
 
+        public string PaymentVoucherReference { get; set; }
+
+        public DateTime? PaymentVoucherWriteDate { get; set; }
+
         public int TransactionType { get; set; }
     }
 }

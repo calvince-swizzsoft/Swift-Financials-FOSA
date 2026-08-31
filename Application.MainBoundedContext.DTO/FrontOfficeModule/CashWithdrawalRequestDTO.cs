@@ -352,6 +352,34 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
 
         public string PaymentVoucherPayee { get; set; }
 
+        [DataMember]
+        [Display(Name = "Payment Voucher Reference")]
+        public string PaymentVoucherReference { get; set; }
+
+        [DataMember]
+        [Display(Name = "Payment Voucher Write Date")]
+        public DateTime? PaymentVoucherWriteDate { get; set; }
+
+        [DataMember]
+        [Display(Name = "Payment Voucher Number")]
+        public string PaymentVoucherNumber { get; set; }
+
+        [DataMember]
+        [Display(Name = "Payment Voucher Status")]
+        public int? PaymentVoucherStatus { get; set; }
+
+        [DataMember]
+        [Display(Name = "Payment Voucher Status")]
+        public string PaymentVoucherStatusDescription
+        {
+            get
+            {
+                return PaymentVoucherStatus.HasValue && Enum.IsDefined(typeof(Infrastructure.Crosscutting.Framework.Utils.PaymentVoucherStatus), PaymentVoucherStatus.Value)
+                    ? EnumHelper.GetDescription((Infrastructure.Crosscutting.Framework.Utils.PaymentVoucherStatus)PaymentVoucherStatus.Value)
+                    : string.Empty;
+            }
+        }
+
         public bool Posted { get; set; }
 
         [DataMember]

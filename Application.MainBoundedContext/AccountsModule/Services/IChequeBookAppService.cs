@@ -24,6 +24,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         ChequeBookDTO FindChequeBook(Guid chequeBookId, ServiceHeader serviceHeader);
 
+        PaymentVoucherDTO FindPaymentVoucher(Guid paymentVoucherId, ServiceHeader serviceHeader);
+
         List<PaymentVoucherDTO> FindPaymentVouchersByChequeBookId(Guid chequeBookId, ServiceHeader serviceHeader);
 
         List<PaymentVoucherDTO> FindPaymentVouchersByVoucherNumberAndChequeBookReference(int chequeBookType, int voucherNumber, string chequeBookReference, ServiceHeader serviceHeader);

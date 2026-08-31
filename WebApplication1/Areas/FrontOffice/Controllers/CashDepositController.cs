@@ -445,6 +445,9 @@ namespace WebApplication1.Controllers
 
                 transactionModel.PaymentVoucher.ChequeBookId = persistedVoucher.ChequeBookId;
                 transactionModel.PaymentVoucher.Amount = transactionModel.TotalValue;
+                transactionModel.PaymentVoucher.ValidateAll();
+                if (transactionModel.PaymentVoucher.HasErrors)
+                    return Json(new { success = false, message = string.Join("; ", transactionModel.PaymentVoucher.ErrorMessages), data = (object)null });
             }
 
             var authorityError = _journalAppService.ValidateTransactionAuthority(
@@ -758,7 +761,7 @@ namespace WebApplication1.Controllers
 
                 if (cashWithdrawalRequestDTO != null)
                 {
-                    if (cashWithdrawalRequestDTO.Status == (int)CashDepositRequestAuthStatus.Authorized)
+                    if (cashWithdrawalRequestDTO.Status == (int)CashWithdrawalRequestAuthStatus.Authorized)
                     {
                         CustomerTransactionModel model = new CustomerTransactionModel();
 
@@ -774,6 +777,39 @@ namespace WebApplication1.Controllers
 
                         if (customerAccount != null && currentTellerDTO != null)
                         {
+                            var isPaymentVoucherWithdrawal =
+                                cashWithdrawalRequestDTO.TransactionType == (int)FrontOfficeTransactionType.CashWithdrawalPaymentVoucher
+                                || cashWithdrawalRequestDTO.Category == (int)CashWithdrawalCategory.PaymentVoucher;
+                            PaymentVoucherDTO paymentVoucher = null;
+
+                            if (isPaymentVoucherWithdrawal)
+                            {
+                                if (cashWithdrawalRequestDTO.PaymentVoucherId == Guid.Empty)
+                                    return BadRequest("The authorized withdrawal does not identify its payment voucher.");
+
+                                paymentVoucher = _chequeBookAppService.FindPaymentVoucher(cashWithdrawalRequestDTO.PaymentVoucherId, serviceHeader);
+                                if (paymentVoucher == null)
+                                    return BadRequest("The payment voucher linked to this authorized withdrawal no longer exists.");
+                                if (paymentVoucher.Status != (int)PaymentVoucherStatus.Active)
+                                    return BadRequest("The payment voucher is no longer active. It may already be paid or flagged.");
+                                if (paymentVoucher.ChequeBookCustomerAccountId != customerAccount.Id || !paymentVoucher.ChequeBookIsActive || paymentVoucher.ChequeBookIsLocked)
+                                    return BadRequest("The payment voucher is not from an active, unlocked cheque book for this customer account.");
+                                if (string.IsNullOrWhiteSpace(cashWithdrawalRequestDTO.PaymentVoucherPayee)
+                                    || string.IsNullOrWhiteSpace(cashWithdrawalRequestDTO.PaymentVoucherReference)
+                                    || !cashWithdrawalRequestDTO.PaymentVoucherWriteDate.HasValue)
+                                    return BadRequest("The authorized payment-voucher request is missing its payee, reference, or write date. Re-initiate the request so it can be safely posted.");
+                                if (cashWithdrawalRequestDTO.PaymentVoucherWriteDate.Value.Date > DateTime.Today)
+                                    return BadRequest("The payment voucher write date cannot be in the future.");
+
+                                paymentVoucher.Payee = cashWithdrawalRequestDTO.PaymentVoucherPayee.Trim();
+                                paymentVoucher.Reference = cashWithdrawalRequestDTO.PaymentVoucherReference.Trim();
+                                paymentVoucher.WriteDate = cashWithdrawalRequestDTO.PaymentVoucherWriteDate;
+                                paymentVoucher.Amount = cashWithdrawalRequestDTO.Amount;
+                                paymentVoucher.ValidateAll();
+                                if (paymentVoucher.HasErrors)
+                                    return BadRequest(string.Join("; ", paymentVoucher.ErrorMessages));
+                            }
+
                             if (!currentTellerDTO.ChartOfAccountId.HasValue || currentTellerDTO.ChartOfAccountId.Value == Guid.Empty)
                                 return BadRequest("The current teller does not have a cash G/L account configured.");
 
@@ -793,8 +829,9 @@ namespace WebApplication1.Controllers
                             model.CreditChartOfAccountId = currentTellerDTO.ChartOfAccountId.Value;
 
 
-                            model.Type = (int)FrontOfficeTransactionType.CashWithdrawal;
-                            model.TransactionCode = (int)SystemTransactionCode.CashWithdrawal;
+                            model.Type = isPaymentVoucherWithdrawal ? (int)FrontOfficeTransactionType.CashWithdrawalPaymentVoucher : (int)FrontOfficeTransactionType.CashWithdrawal;
+                            model.TransactionCode = isPaymentVoucherWithdrawal ? (int)SystemTransactionCode.CashWithdrawalPaymentVoucher : (int)SystemTransactionCode.CashWithdrawal;
+                            model.PaymentVoucher = paymentVoucher;
                             model.CreditCustomerAccount = customerAccount;
 
                             model.DebitCustomerAccountId = customerAccount.Id;
@@ -819,9 +856,9 @@ namespace WebApplication1.Controllers
                                 return BadRequest("No active posting period is configured for this transaction.");
 
                             model.PostingPeriodId = postingPeriod.Id;
-                            model.PrimaryDescription = "Authorized cash withdrawal";
+                            model.PrimaryDescription = isPaymentVoucherWithdrawal ? "Authorized payment voucher withdrawal" : "Authorized cash withdrawal";
                             model.SecondaryDescription = string.Format("B{0}/T{1}/#{2}", selectedBranch.Code, currentTellerDTO.Code, currentTellerDTO.ItemsCount);
-                            model.Reference = customerAccount.CustomerReference1;
+                            model.Reference = isPaymentVoucherWithdrawal ? cashWithdrawalRequestDTO.PaymentVoucherReference : customerAccount.CustomerReference1;
 
                             var selectedProduct = _savingsProductAppService.FindSavingsProduct(customerAccount.CustomerAccountTypeTargetProductId, model.BranchId, serviceHeader);
 
@@ -917,6 +954,10 @@ namespace WebApplication1.Controllers
                 {
                     if (cashWithdrawalRequestDto.Status == (int)CashWithdrawalRequestAuthStatus.Authorized)
                     {
+                        if (cashWithdrawalRequestDto.PaymentVoucherId != Guid.Empty
+                            || cashWithdrawalRequestDto.TransactionType == (int)FrontOfficeTransactionType.CashWithdrawalPaymentVoucher)
+                            return BadRequest("Payment-voucher withdrawals must be posted through the transaction posting endpoint so the journal and voucher status are updated together.");
+
                         CustomerTransactionModel model = new CustomerTransactionModel();
 
                         cashWithdrawalRequestDto.Status = (int)CashWithdrawalRequestAuthStatus.Paid;
@@ -1296,7 +1337,7 @@ namespace WebApplication1.Controllers
                                                 if (updateAuhorizedResult)
                                                 {
 
-                                                    _cashWithdrawalRequestAppService.PayCashWithdrawalRequest(targetCashWithdrawalRequest, null, serviceHeader);
+                                                    _cashWithdrawalRequestAppService.PayCashWithdrawalRequest(targetCashWithdrawalRequest, transactionModel.PaymentVoucher, serviceHeader);
 
                                                     string message = $"Operation success: Customer's new balance is {SelectedCustomerAccount.NewAvailableBalance}";
 
@@ -1371,6 +1412,8 @@ namespace WebApplication1.Controllers
                                         {
                                             aboveLimitsCashWithdrawalRequest.PaymentVoucherId = transactionModel.PaymentVoucher.Id;
                                             aboveLimitsCashWithdrawalRequest.PaymentVoucherPayee = transactionModel.PaymentVoucher.Payee;
+                                            aboveLimitsCashWithdrawalRequest.PaymentVoucherReference = transactionModel.PaymentVoucher.Reference;
+                                            aboveLimitsCashWithdrawalRequest.PaymentVoucherWriteDate = transactionModel.PaymentVoucher.WriteDate;
                                         }
 
                                         aboveLimitsCashWithdrawalRequest.ValidateAll();
