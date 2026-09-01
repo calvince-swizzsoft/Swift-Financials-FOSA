@@ -10,6 +10,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
     {
         string ValidateTransactionAuthority(decimal amount, int transactionCode, ServiceHeader serviceHeader);
 
+        bool HasFixedDepositFixingJournal(Guid fixedDepositId, Guid branchId, Guid customerAccountId, decimal value, string legacyReference, DateTime auditedDate, ServiceHeader serviceHeader);
+
         JournalDTO AddNewJournal(Guid? parentJournalId, Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid creditChartOfAccountId, Guid debitChartOfAccountId, ServiceHeader serviceHeader, bool useCache = true);
 
         JournalDTO AddNewJournal(Guid? parentJournalId, Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid creditChartOfAccountId, Guid debitChartOfAccountId, CustomerAccountDTO creditCustomerAccountDTO, CustomerAccountDTO debitCustomerAccountDTO, ServiceHeader serviceHeader, bool useCache = true);

@@ -73,6 +73,10 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         LoanCaseDTO FindLoanCase(Guid loanCaseId, ServiceHeader serviceHeader);
 
+        List<AmortizationTableEntry> BuildRepaymentSchedule(Guid loanCaseId, decimal principal, ServiceHeader serviceHeader);
+
+        LoanCaseDTO RecalculateRepaymentSchedule(Guid loanCaseId, ServiceHeader serviceHeader);
+
         LoanGuarantorDTO FindLoanGuarantor(Guid loanGuarantorId, ServiceHeader serviceHeader);
 
         List<LoanGuarantorDTO> FindLoanGuarantorsByCustomerId(Guid customerId, ServiceHeader serviceHeader);

@@ -43,7 +43,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                var result = _recurringBatchAppService.ExecuteStandingOrders(
+                var result = _recurringBatchAppService.ExecuteStandingOrdersDetailed(
                     request.TargetDate ?? DateTime.Today,
                     request.TargetDateOption,
                     request.Priority,
@@ -51,7 +51,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     request.PageSize,
                     serviceHeader);
 
-                return ApiResponse(result, result ? "Standing orders executed successfully" : "No standing orders were executed");
+                return ApiResponse(
+                    true,
+                    result.QueuedCount > 0 ? "Standing orders queued successfully" : result.Detail,
+                    result);
             }
             catch (Exception)
             {

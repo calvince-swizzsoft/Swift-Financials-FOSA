@@ -410,8 +410,16 @@ namespace WebApplication1.Controllers
                     request.ModuleNavigationItemCode,
                     serviceHeader);
 
-                if (createdCustomer == null || createdCustomer.Id == Guid.Empty || !string.IsNullOrWhiteSpace(createdCustomer.ErrorMessageResult))
+                if (createdCustomer == null || createdCustomer.Id == Guid.Empty)
                     return ErrorResponse(HttpStatusCode.BadRequest, createdCustomer?.ErrorMessageResult ?? "Customer creation failed");
+
+                if (!string.IsNullOrWhiteSpace(createdCustomer.ErrorMessageResult))
+                    return Content(HttpStatusCode.Conflict, new
+                    {
+                        success = false,
+                        message = createdCustomer.ErrorMessageResult,
+                        data = createdCustomer
+                    });
 
                 if (request.PartnershipMembers != null && request.PartnershipMembers.Any())
                     await _customerAppService.UpdatePartnershipMemberCollectionAsync(createdCustomer.Id, request.PartnershipMembers, serviceHeader);
@@ -448,6 +456,10 @@ namespace WebApplication1.Controllers
                     warning = imageWarning,
                     data = createdCustomer
                 });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return ErrorResponse(HttpStatusCode.BadRequest, exception.Message);
             }
             catch (Exception)
             {

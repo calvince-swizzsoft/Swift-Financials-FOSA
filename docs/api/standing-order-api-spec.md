@@ -148,12 +148,18 @@ Body: full `StandingOrderDTO`. The server runs `ValidateAll()` first (`400`
 with the collected `ErrorMessages` joined by `; ` if invalid), then calls
 `AddNewStandingOrder`.
 
+The application service also validates the account relationship and business
+rules against persisted data. Both accounts must exist, must be different,
+and must not be closed; dates and enum values must be valid; monetary values
+cannot be negative; non-sweep savings/investment orders require a positive
+fixed amount or a percentage in the range `(0, 100]`; and loan beneficiaries
+require a positive principal and/or interest recovery. These failures return
+`400 Bad Request` with the specific validation message.
+
 A standing order with the same benefactor/beneficiary/trigger combination
-already existing is **not** rejected outright — the app service still
-creates the record but sets `ErrorMessageResult` on the returned DTO
-describing the conflict. The controller surfaces that as `409 Conflict`
-rather than `201`; treat a `409` here as "created but flagged", not a hard
-failure, and show the message to the user for confirmation/cleanup.
+is rejected before persistence. The app service returns the submitted DTO
+with `ErrorMessageResult` describing the conflict, and the controller
+surfaces it as `409 Conflict`. No duplicate record is created.
 
 Success → `201`:
 ```json

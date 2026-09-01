@@ -1,4 +1,5 @@
 ﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
@@ -30,6 +31,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         private readonly IJournalEntryPostingService _journalEntryPostingService;
         private readonly IPostingPeriodAppService _postingPeriodAppService;
         private readonly IRecurringBatchAppService _recurringBatchAppService;
+        private readonly IBranchAppService _branchAppService;
 
         public FixedDepositAppService(
            IDbContextScopeFactory dbContextScopeFactory,
@@ -42,7 +44,8 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
            ISqlCommandAppService sqlCommandAppService,
            IJournalEntryPostingService journalEntryPostingService,
            IPostingPeriodAppService postingPeriodAppService,
-           IRecurringBatchAppService recurringBatchAppService)
+           IRecurringBatchAppService recurringBatchAppService,
+           IBranchAppService branchAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -77,6 +80,9 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             if (recurringBatchAppService == null)
                 throw new ArgumentNullException(nameof(recurringBatchAppService));
 
+            if (branchAppService == null)
+                throw new ArgumentNullException(nameof(branchAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _fixedDepositRepository = fixedDepositRepository;
             _fixedDepositPayableRepository = fixedDepositPayableRepository;
@@ -88,12 +94,99 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
             _journalEntryPostingService = journalEntryPostingService;
             _postingPeriodAppService = postingPeriodAppService;
             _recurringBatchAppService = recurringBatchAppService;
+            _branchAppService = branchAppService;
         }
 
-        public FixedDepositDTO InvokeFixedDeposit(FixedDepositDTO fixedDepositDTO, ServiceHeader serviceHeader)
+        public FixedDepositDTO InvokeFixedDeposit(FixedDepositDTO fixedDepositDTO, ServiceHeader serviceHeader, bool suppressBalanceCheck = false)
         {
             if (fixedDepositDTO != null)
             {
+                if (!Enum.IsDefined(typeof(FixedDepositCategory), fixedDepositDTO.Category))
+                {
+                    fixedDepositDTO.errormassage = "Select a valid fixed deposit category.";
+                    return null;
+                }
+                if (!Enum.IsDefined(typeof(FixedDepositMaturityAction), fixedDepositDTO.MaturityAction))
+                {
+                    fixedDepositDTO.errormassage = "Select a valid fixed deposit maturity action.";
+                    return null;
+                }
+                if (fixedDepositDTO.Value <= 0m || fixedDepositDTO.Term <= 0 || fixedDepositDTO.Rate <= 0d || fixedDepositDTO.Rate > 100d)
+                {
+                    fixedDepositDTO.errormassage = "Value and term must be greater than zero, and the annual rate must be between 0 and 100 percent.";
+                    return null;
+                }
+                if (string.IsNullOrWhiteSpace(fixedDepositDTO.Remarks) || fixedDepositDTO.Remarks.Trim().Length > 250)
+                {
+                    fixedDepositDTO.errormassage = "Remarks are required and cannot exceed 250 characters.";
+                    return null;
+                }
+                if (_branchAppService.FindBranch(fixedDepositDTO.BranchId, serviceHeader) == null)
+                {
+                    fixedDepositDTO.errormassage = "The selected branch could not be found.";
+                    return null;
+                }
+
+                var customerAccount = _customerAccountAppService.FindCustomerAccountDTO(fixedDepositDTO.CustomerAccountId, serviceHeader);
+                if (customerAccount == null)
+                {
+                    fixedDepositDTO.errormassage = "The selected customer account could not be found.";
+                    return null;
+                }
+                if (customerAccount.Status != (int)CustomerAccountStatus.Normal)
+                {
+                    fixedDepositDTO.errormassage = "Only a normal, active customer account can fund a fixed deposit.";
+                    return null;
+                }
+                if (customerAccount.CustomerAccountTypeProductCode != (int)ProductCode.Savings
+                    && customerAccount.CustomerAccountTypeProductCode != (int)ProductCode.Investment)
+                {
+                    fixedDepositDTO.errormassage = "A fixed deposit can only be funded from a savings or investment account.";
+                    return null;
+                }
+                _customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
+                if (!suppressBalanceCheck && fixedDepositDTO.Value > customerAccount.AvailableBalance)
+                {
+                    fixedDepositDTO.errormassage = "The selected account has insufficient available balance for this fixed deposit.";
+                    return null;
+                }
+
+                if (fixedDepositDTO.FixedDepositTypeId.HasValue && fixedDepositDTO.FixedDepositTypeId.Value != Guid.Empty)
+                {
+                    var fixedDepositType = _fixedDepositTypeAppService.FindFixedDepositType(fixedDepositDTO.FixedDepositTypeId.Value, serviceHeader);
+                    if (fixedDepositType == null)
+                    {
+                        fixedDepositDTO.errormassage = "The selected fixed deposit type could not be found.";
+                        return null;
+                    }
+                    if (fixedDepositType.IsLocked)
+                    {
+                        fixedDepositDTO.errormassage = "The selected fixed deposit type is locked.";
+                        return null;
+                    }
+                    if (fixedDepositDTO.Category == (int)FixedDepositCategory.TermDeposit && fixedDepositDTO.Term != fixedDepositType.Months)
+                    {
+                        fixedDepositDTO.errormassage = string.Format("The selected fixed deposit type requires a term of {0} month(s).", fixedDepositType.Months);
+                        return null;
+                    }
+
+                    var scales = _fixedDepositTypeAppService.FindGraduatedScales(fixedDepositType.Id, serviceHeader) ?? new List<FixedDepositTypeGraduatedScaleDTO>();
+                    if (scales.Any())
+                    {
+                        var matchingScales = scales.Where(scale => fixedDepositDTO.Value >= scale.RangeLowerLimit && fixedDepositDTO.Value <= scale.RangeUpperLimit).ToList();
+                        if (matchingScales.Count != 1)
+                        {
+                            fixedDepositDTO.errormassage = "The fixed amount does not resolve to exactly one configured interest band.";
+                            return null;
+                        }
+                        if (Math.Abs(fixedDepositDTO.Rate - matchingScales[0].Percentage) > 0.0001d)
+                        {
+                            fixedDepositDTO.errormassage = string.Format("The annual rate must be {0}% for the selected type and amount.", matchingScales[0].Percentage);
+                            return null;
+                        }
+                    }
+                }
+
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var fixedDeposit = FixedDepositFactory.CreateFixedDeposit(fixedDepositDTO.FixedDepositTypeId, fixedDepositDTO.BranchId, fixedDepositDTO.CustomerAccountId, fixedDepositDTO.Category, fixedDepositDTO.MaturityAction, fixedDepositDTO.Value, fixedDepositDTO.Term, fixedDepositDTO.Rate, fixedDepositDTO.Remarks);
@@ -134,6 +227,49 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 return result;
 
             var fixedDepositChartOfAccountId = Guid.Empty;
+            CustomerAccountDTO customerAccount = null;
+
+            // Complete every posting precondition before changing New to Running.
+            // In particular, a failed balance check must leave the deposit pending
+            // verification instead of creating a Running deposit with no journal.
+            if (fixedDepositAuthOption == (int)FixedDepositAuthOption.Post)
+            {
+                fixedDepositChartOfAccountId = _chartOfAccountAppService.GetChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)SystemGeneralLedgerAccountCode.FixedDeposit, serviceHeader);
+                if (fixedDepositChartOfAccountId == Guid.Empty)
+                {
+                    fixedDepositDTO.errormassage = "Sorry, but the requisite fixed deposit control account has not been set up!";
+                    return false;
+                }
+
+                customerAccount = _customerAccountAppService.FindCustomerAccountDTO(fixedDepositDTO.CustomerAccountId, serviceHeader);
+                if (customerAccount == null)
+                {
+                    fixedDepositDTO.errormassage = "The customer account for this fixed deposit could not be found.";
+                    return false;
+                }
+
+                _customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
+                if (!suppressBalanceCheck && fixedDepositDTO.Value > customerAccount.AvailableBalance)
+                {
+                    fixedDepositDTO.errormassage = "Sorry, but the customer account has insufficient available balance for this fixed deposit!";
+                    return false;
+                }
+
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
+
+                var authorityError = _journalAppService.ValidateTransactionAuthority(fixedDepositDTO.Value, (int)SystemTransactionCode.FixedDeposit, serviceHeader);
+                if (!string.IsNullOrWhiteSpace(authorityError))
+                {
+                    fixedDepositDTO.errormassage = authorityError;
+                    return false;
+                }
+
+                if (_postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader) == null)
+                {
+                    fixedDepositDTO.errormassage = "A current posting period is required before this fixed deposit can be posted.";
+                    return false;
+                }
+            }
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
@@ -145,20 +281,32 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 switch ((FixedDepositAuthOption)fixedDepositAuthOption)
                 {
                     case FixedDepositAuthOption.Post:
-
-                        fixedDepositChartOfAccountId = _chartOfAccountAppService.GetChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)SystemGeneralLedgerAccountCode.FixedDeposit, serviceHeader);
-
-
-                        if (fixedDepositChartOfAccountId == Guid.Empty)
-                        {
-                            fixedDepositDTO.errormassage = string.Format(("Sorry, but the requisite fixed deposit control account has not been set up!"));
-                            return result;
-                        }
-
                         persisted.Status = (int)FixedDepositStatus.Running;
                         persisted.AuditRemarks = fixedDepositDTO.AuditRemarks;
                         persisted.AuditedBy = serviceHeader.ApplicationUserName;
                         persisted.AuditedDate = DateTime.Now;
+
+                        try
+                        {
+                            var journal = _journalAppService.AddNewJournal(
+                                fixedDepositDTO.BranchId, null, fixedDepositDTO.Value,
+                                "FDR Fixing", fixedDepositDTO.CategoryDescription,
+                                BuildFixedDepositJournalReference(fixedDepositDTO.Id, fixedDepositDTO.Remarks), moduleNavigationItemCode,
+                                (int)SystemTransactionCode.FixedDeposit, null,
+                                fixedDepositChartOfAccountId,
+                                customerAccount.CustomerAccountTypeTargetProductChartOfAccountId,
+                                customerAccount, customerAccount, serviceHeader);
+                            if (journal == null)
+                            {
+                                fixedDepositDTO.errormassage = "The fixed-deposit journal could not be created. Confirm the posting period and G/L configuration.";
+                                return false;
+                            }
+                        }
+                        catch (InvalidOperationException exception)
+                        {
+                            fixedDepositDTO.errormassage = exception.Message;
+                            return false;
+                        }
 
                         break;
 
@@ -177,31 +325,74 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                 result = dbContextScope.SaveChanges(serviceHeader) >= 0;
             }
 
-            if (result && fixedDepositAuthOption == (int)FixedDepositAuthOption.Post)
-            {
-                var customerAccount = _customerAccountAppService.FindCustomerAccountDTO(fixedDepositDTO.CustomerAccountId, serviceHeader);
-
-                _customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
-
-                
-                if (!suppressBalanceCheck && fixedDepositDTO.Value > customerAccount.AvailableBalance)
-                {
-                    fixedDepositDTO.errormassage = string.Format(("Sorry, but the customer account has insufficient cash!"));
-                    return result;
-                }
-
-                _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { customerAccount }, serviceHeader);
-
-                var primaryDescription = "FDR Fixing";
-
-                var secondaryDescription = fixedDepositDTO.CategoryDescription;
-
-                var reference = fixedDepositDTO.Remarks;
-
-                _journalAppService.AddNewJournal(fixedDepositDTO.BranchId, null, fixedDepositDTO.Value, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.FixedDeposit, null, fixedDepositChartOfAccountId, customerAccount.CustomerAccountTypeTargetProductChartOfAccountId, customerAccount, customerAccount, serviceHeader);
-            }
-
             return result;
+        }
+
+        public FixedDepositReconciliationEligibilityDTO GetPostingReconciliationEligibility(Guid fixedDepositId, ServiceHeader serviceHeader)
+        {
+            var fixedDeposit = FindFixedDeposit(fixedDepositId, serviceHeader);
+            if (fixedDeposit == null)
+                return new FixedDepositReconciliationEligibilityDTO { Eligible = false, Reason = "Fixed deposit not found." };
+            if (fixedDeposit.Status != (int)FixedDepositStatus.Running)
+                return new FixedDepositReconciliationEligibilityDTO { Eligible = false, Reason = "Only a Running fixed deposit can be checked for failed-posting reconciliation." };
+            if (!fixedDeposit.AuditedDate.HasValue)
+                return new FixedDepositReconciliationEligibilityDTO { Eligible = false, Reason = "The fixed deposit has no verification timestamp." };
+
+            var authorityError = _journalAppService.ValidateTransactionAuthority(fixedDeposit.Value, (int)SystemTransactionCode.FixedDeposit, serviceHeader);
+            if (!string.IsNullOrWhiteSpace(authorityError))
+                return new FixedDepositReconciliationEligibilityDTO { Eligible = false, Reason = authorityError };
+
+            var hasJournal = _journalAppService.HasFixedDepositFixingJournal(
+                fixedDeposit.Id, fixedDeposit.BranchId, fixedDeposit.CustomerAccountId,
+                fixedDeposit.Value, fixedDeposit.Remarks, fixedDeposit.AuditedDate.Value,
+                serviceHeader);
+            return hasJournal
+                ? new FixedDepositReconciliationEligibilityDTO { Eligible = false, Reason = "A matching FDR Fixing journal exists; this deposit must not be reset." }
+                : new FixedDepositReconciliationEligibilityDTO { Eligible = true, Reason = "No matching FDR Fixing journal exists." };
+        }
+
+        public FixedDepositDTO ReconcileUnpostedFixedDeposit(Guid fixedDepositId, string reason, ServiceHeader serviceHeader)
+        {
+            reason = (reason ?? string.Empty).Trim();
+            if (reason.Length < 10 || reason.Length > 180)
+                return null;
+
+            var eligibility = GetPostingReconciliationEligibility(fixedDepositId, serviceHeader);
+            if (!eligibility.Eligible)
+                return null;
+
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+                var persisted = _fixedDepositRepository.Get(fixedDepositId, serviceHeader);
+                if (persisted == null || persisted.Status != (int)FixedDepositStatus.Running || !persisted.AuditedDate.HasValue)
+                    return null;
+
+                // Recheck inside the mutation scope to prevent a journal appearing
+                // between the eligibility query and the status correction.
+                if (_journalAppService.HasFixedDepositFixingJournal(
+                    persisted.Id, persisted.BranchId, persisted.CustomerAccountId,
+                    persisted.Value, persisted.Remarks, persisted.AuditedDate.Value,
+                    serviceHeader))
+                    return null;
+
+                persisted.Status = (int)FixedDepositStatus.New;
+                persisted.AuditRemarks = string.Format("Failed-posting reconciliation by {0}: {1}", serviceHeader.ApplicationUserName, reason);
+                persisted.AuditedBy = null;
+                persisted.AuditedDate = null;
+
+                return dbContextScope.SaveChanges(serviceHeader) >= 0
+                    ? persisted.ProjectedAs<FixedDepositDTO>()
+                    : null;
+            }
+        }
+
+        private static string BuildFixedDepositJournalReference(Guid fixedDepositId, string remarks)
+        {
+            var prefix = "FD:" + fixedDepositId.ToString("N") + "|";
+            var available = Math.Max(0, 256 - prefix.Length);
+            var suffix = remarks ?? string.Empty;
+            if (suffix.Length > available) suffix = suffix.Substring(0, available);
+            return prefix + suffix;
         }
 
         public bool RevokeFixedDeposits(List<FixedDepositDTO> fixedDepositDTOs, int moduleNavigationItemCode, ServiceHeader serviceHeader)
@@ -385,7 +576,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                                         Status = (int)FixedDepositStatus.Running,
                                     };
 
-                                    payInterestDueAndRollOverPrincipal = InvokeFixedDeposit(payInterestDueAndRollOverPrincipal, serviceHeader);
+                                    payInterestDueAndRollOverPrincipal = InvokeFixedDeposit(payInterestDueAndRollOverPrincipal, serviceHeader, true);
 
                                     if (payInterestDueAndRollOverPrincipal != null)
                                         AuditFixedDeposit(payInterestDueAndRollOverPrincipal, (int)FixedDepositAuthOption.Post, moduleNavigationItemCode, serviceHeader, true);
@@ -407,7 +598,7 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
                                         Status = (int)FixedDepositStatus.Running,
                                     };
 
-                                    rollOverPrincipalAndInterestDue = InvokeFixedDeposit(rollOverPrincipalAndInterestDue, serviceHeader);
+                                    rollOverPrincipalAndInterestDue = InvokeFixedDeposit(rollOverPrincipalAndInterestDue, serviceHeader, true);
                                     if (rollOverPrincipalAndInterestDue != null)
                                         AuditFixedDeposit(rollOverPrincipalAndInterestDue, (int)FixedDepositAuthOption.Post, moduleNavigationItemCode, serviceHeader, true);
 
@@ -571,6 +762,10 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
+                var today = DefaultSettings.Instance.ServerDate.Date;
+                if (endDate > today) endDate = today;
+                if (startDate > endDate)
+                    return new PageCollectionInfo<FixedDepositDTO> { PageCollection = new List<FixedDepositDTO>(), ItemsCount = 0 };
                 var filter = FixedDepositSpecifications.PayableFixedDepositsWithMaturityDateRangeAndFullText(startDate, endDate, text);
 
                 ISpecification<FixedDeposit> spec = filter;
@@ -619,6 +814,10 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
+                var firstFutureDate = DefaultSettings.Instance.ServerDate.Date.AddDays(1);
+                if (startDate < firstFutureDate) startDate = firstFutureDate;
+                if (startDate > endDate)
+                    return new PageCollectionInfo<FixedDepositDTO> { PageCollection = new List<FixedDepositDTO>(), ItemsCount = 0 };
                 var filter = FixedDepositSpecifications.RevocableFixedDepositsWithMaturityDateRangeAndFullText(startDate, endDate, text);
 
                 ISpecification<FixedDeposit> spec = filter;

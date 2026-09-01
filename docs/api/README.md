@@ -21,6 +21,56 @@ what to go update.
   (duplicate / business-rule block), `500` unhandled exception with the raw
   `ex.Message` — call out per-endpoint deviations are noted in each doc.
 
+## Well-known issues
+
+### No canonical post-disbursement loan-case inspection endpoint
+
+The current API does not expose one complete, read-only view of a posted loan
+case. In particular, there is no canonical endpoint that returns the loan-case
+properties together with its approved terms, persisted repayment schedule,
+workflow decisions, disbursement details, linked loan/customer accounts,
+guarantors, collateral, standing order, and journal references.
+
+Legacy loan-register endpoints and any repayment schedule calculated in a
+client are **non-authoritative and must be ignored** for integration, audit, or
+financial decisions. New work must use the `WebApplication1` API controllers
+that delegate to `Application.MainBoundedContext` AppServices and domain
+services; persisted financial calculations must come from the shared financial
+service/domain implementation rather than being reconstructed in the UI.
+
+Until a dedicated inspection query is added at the AppService/domain boundary,
+the existing stage-specific loan-case endpoints may be used only for the data
+they explicitly return. Their responses must not be combined with legacy data
+to imply a complete or canonical post-disbursement loan record.
+
+### No worker-service or message-queue health endpoint
+
+The API currently provides no authoritative way to determine whether its
+out-of-process schedulers and queue consumers are installed, running, stale,
+or able to reach their dependencies. This includes, among others,
+`SwiftFinancials.StandingOrderInvoker`, `SwiftFinancials.RecurringBatchPosting`,
+and `SwiftFinancials.LoanDisbursementPosting`. An API call that successfully
+queues work therefore does **not** prove that a worker is available to process
+it.
+
+Persisted batch and batch-entry statuses provide useful operational evidence:
+old `Pending` entries can indicate that a consumer is unavailable or failing,
+and `Posted`/`Rejected` entries show completed attempts. They are not health
+checks, however, because an idle healthy worker produces the same absence of
+recent activity as a stopped worker. The existing message-queue service only
+sends to configured MSMQ paths; it does not expose queue reachability, backlog,
+oldest-message age, consumer activity, or worker heartbeats through the API.
+
+A supported solution still needs to be built. It should include authenticated,
+operations-only readiness/status endpoints backed by a focused application
+service, plus persisted heartbeats emitted by every scheduler and consumer.
+At minimum the read model should report each worker's last heartbeat, last
+successful run, last failure (sanitized), configured queue, queue availability,
+pending/backlog count, oldest pending age, and an overall state such as
+`Healthy`, `Degraded`, `Stopped`, or `Unknown`. The UI must treat an invocation
+response as "queued" until the corresponding entry reaches a terminal status,
+not as proof that asynchronous processing succeeded.
+
 ## API areas
 
 | Area | Base path | Doc |
@@ -35,6 +85,7 @@ what to go update.
 | Customer account statements | `api/accounts/statements/customer-account` | [`customer-account-statement-api-spec.md`](customer-account-statement-api-spec.md) |
 | General ledger statements | `api/accounts/statements/gl-account` | [`general-ledger-statement-api-spec.md`](general-ledger-statement-api-spec.md) |
 | Standing orders | `api/accounts/standingorders` | [`standing-order-api-spec.md`](standing-order-api-spec.md) |
+| Recurring batch inspection | `api/accounts/recurringbatches` | [`recurring-batch-api-spec.md`](recurring-batch-api-spec.md) |
 | Standing order execution (batch triggers) | `api/accounts/standingorders/execution` | [`standing-order-execution-api-spec.md`](standing-order-execution-api-spec.md) |
 | Electronic statement orders (recurring statement subscriptions) | `api/accounts/electronicstatementorders` | [`electronic-statement-order-api-spec.md`](electronic-statement-order-api-spec.md) |
 | Electronic statement order execution (batch triggers) | `api/accounts/electronicstatementorders/execution` | [`electronic-statement-order-execution-api-spec.md`](electronic-statement-order-execution-api-spec.md) |

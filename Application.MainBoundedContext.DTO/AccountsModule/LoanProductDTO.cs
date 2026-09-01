@@ -590,4 +590,19 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         public int CommissionKnownChargeType { get; set; }
         public int CommissionChargeBasisValue { get; set; }
     }
+
+    public class LoanQualificationDTO
+    {
+        public decimal InvestmentsBalance { get; set; }
+        public decimal SavingsBalance { get; set; }
+        public bool SavingsIncluded { get; set; }
+        public decimal AppraisalBaseBalance { get; set; }
+        public double EffectiveMultiplier { get; set; }
+        public decimal BalanceBasedMaximum { get; set; }
+        public decimal ProductMaximumAmount { get; set; }
+        public decimal MaximumLoan { get; set; }
+        public decimal OutstandingLoansBalance { get; set; }
+        public bool ExistingBalanceExcluded { get; set; }
+        public decimal MaximumEntitled { get; set; }
+    }
 }

@@ -1,5 +1,6 @@
 ﻿using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.RegistryModule;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
 using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -10,6 +11,7 @@ using Domain.Seedwork.Specification;
 using Numero3.EntityFramework.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 
 namespace Application.MainBoundedContext.RegistryModule.Services
@@ -20,12 +22,14 @@ namespace Application.MainBoundedContext.RegistryModule.Services
         private readonly IRepository<FileRegister> _fileRegisterRepository;
         private readonly IRepository<FileMovementHistory> _fileMovementHistoryRepository;
         private readonly IDepartmentAppService _departmentAppService;
+        private readonly IBranchAppService _branchAppService;
 
         public FileRegisterAppService(
             IDbContextScopeFactory dbContextScopeFactory,
             IRepository<FileRegister> fileRegisterRepository,
             IRepository<FileMovementHistory> fileMovementHistoryRepository,
-            IDepartmentAppService departmentAppService)
+            IDepartmentAppService departmentAppService,
+            IBranchAppService branchAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -39,10 +43,14 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             if (departmentAppService == null)
                 throw new ArgumentNullException(nameof(departmentAppService));
 
+            if (branchAppService == null)
+                throw new ArgumentNullException(nameof(branchAppService));
+
             _dbContextScopeFactory = dbContextScopeFactory;
             _fileRegisterRepository = fileRegisterRepository;
             _fileMovementHistoryRepository = fileMovementHistoryRepository;
             _departmentAppService = departmentAppService;
+            _branchAppService = branchAppService;
         }
 
         public bool MultiDestinationDispatch(List<FileMovementHistoryDTO> fileMovementHistoryDTOs, ServiceHeader serviceHeader)
@@ -358,7 +366,40 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
         public CustomerFileRegisterLastDepartmentInfo FindFileRegisterAndLastDepartmentByCustomerId(Guid customerId, ServiceHeader serviceHeader)
         {
+            return FindFileRegisterAndLastDepartmentByCustomerId(
+                customerId,
+                serviceHeader?.ApplicationUserBranchId ?? Guid.Empty,
+                serviceHeader);
+        }
+
+        public CustomerFileRegisterLastDepartmentInfo FindFileRegisterAndLastDepartmentByCustomerId(Guid customerId, Guid policyBranchId, ServiceHeader serviceHeader)
+        {
+            // The supplied business record branch determines the owning company and its
+            // policy. A missing/invalid branch is treated as enforced (fail closed).
+            var fileTrackingEnforced = true;
+            if (policyBranchId != Guid.Empty)
+            {
+                var branch = _branchAppService.FindCachedBranch(policyBranchId, serviceHeader);
+                if (branch != null)
+                    fileTrackingEnforced = branch.CompanyIsFileTrackingEnforced;
+            }
+
             var fileRegister = FindFileRegisterByCustomerId(customerId, serviceHeader);
+
+            var expectedDepartmentName = ConfigurationManager.AppSettings["LoanAppraisalDepartmentName"];
+            if (string.IsNullOrWhiteSpace(expectedDepartmentName))
+                expectedDepartmentName = "Credit Administration Office";
+
+            var result = new CustomerFileRegisterLastDepartmentInfo
+            {
+                FileRegister = fileRegister,
+                ExpectedLoanAppraisalDepartmentName = expectedDepartmentName,
+                IsLoanAppraisalFileTrackingEnforced = fileTrackingEnforced,
+                IsReadyForLoanAppraisal = !fileTrackingEnforced
+            };
+
+            if (!fileTrackingEnforced)
+                return result;
 
             if (fileRegister != null)
             {
@@ -370,11 +411,28 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                     var destinationDepartment = _departmentAppService.FindDepartment(lastHistory.DestinationDepartmentId, serviceHeader);
 
-                    return new CustomerFileRegisterLastDepartmentInfo { FileRegister = fileRegister, LastDepartment = destinationDepartment };
+                    result.LastDepartment = destinationDepartment;
+                    result.IsReadyForLoanAppraisal = fileRegister.Status == (int)FileMovementStatus.Received
+                        && destinationDepartment != null
+                        && string.Equals(destinationDepartment.Description?.Trim(), expectedDepartmentName.Trim(), StringComparison.OrdinalIgnoreCase);
+                    result.LoanAppraisalReadinessMessage = result.IsReadyForLoanAppraisal
+                        ? null
+                        : fileRegister.Status != (int)FileMovementStatus.Received
+                            ? "The physical file has not been received through File Tracking."
+                            : destinationDepartment == null
+                                ? "The physical file's current department could not be determined."
+                                : $"The physical file is in {destinationDepartment.Description}; it must be received by {expectedDepartmentName}.";
                 }
-                else return null;
+                else
+                {
+                    result.LoanAppraisalReadinessMessage = $"The physical file must be dispatched and received by {expectedDepartmentName}.";
+                }
+
+                return result;
             }
-            else return null;
+
+            result.LoanAppraisalReadinessMessage = $"The customer's physical file must be registered, dispatched, and received by {expectedDepartmentName}.";
+            return result;
         }
 
         public PageCollectionInfo<FileMovementHistoryDTO> FindFileMovementHistoryByFileRegisterId(Guid fileRegisterId, int pageIndex, int pageSize, ServiceHeader serviceHeader)

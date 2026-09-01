@@ -86,10 +86,28 @@ namespace WebApplication1.Controllers
             }
         }
 
+        // Maker/checker queue — newly originated deposits that still require
+        // an explicit Post or Reject decision.
+        [HttpGet]
+        [Route("pending-posting")]
+        public IHttpActionResult GetPendingPosting(string text = "", int pageIndex = 0, int pageSize = 20)
+        {
+            try
+            {
+                var serviceHeader = Utils.CreateServiceHeader();
+                var deposits = _fixedDepositAppService.FindFixedDepositsByStatus((int)FixedDepositStatus.New, text ?? "", pageIndex, pageSize, serviceHeader);
+                return Ok(new { success = true, message = "", data = deposits });
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         // Maturity payout queue — deposits due for a Pay Principal/roll-over decision.
         [HttpGet]
         [Route("payable")]
-        public IHttpActionResult GetPayable(DateTime? startDate, DateTime? endDate, string text = "", int pageIndex = 0, int pageSize = 20)
+        public IHttpActionResult GetPayable(DateTime? startDate = null, DateTime? endDate = null, string text = "", int pageIndex = 0, int pageSize = 20)
         {
             try
             {
@@ -108,7 +126,7 @@ namespace WebApplication1.Controllers
         // Early-termination queue.
         [HttpGet]
         [Route("revocable")]
-        public IHttpActionResult GetRevocable(DateTime? startDate, DateTime? endDate, string text = "", int pageIndex = 0, int pageSize = 20)
+        public IHttpActionResult GetRevocable(DateTime? startDate = null, DateTime? endDate = null, string text = "", int pageIndex = 0, int pageSize = 20)
         {
             try
             {
@@ -183,7 +201,7 @@ namespace WebApplication1.Controllers
                 var created = _fixedDepositAppService.InvokeFixedDeposit(fixedDepositDTO, serviceHeader);
 
                 if (created == null)
-                    return BadRequest("Failed to create the fixed deposit");
+                    return BadRequest(string.IsNullOrWhiteSpace(fixedDepositDTO.errormassage) ? "Failed to create the fixed deposit" : fixedDepositDTO.errormassage);
 
                 return Ok(new { success = true, message = "Fixed deposit created successfully", data = created });
             }
@@ -198,6 +216,9 @@ namespace WebApplication1.Controllers
         [Route("{id:guid}/verify")]
         public IHttpActionResult Verify(Guid id, [FromBody] FixedDepositVerifyRequest request)
         {
+            if (request == null)
+                return BadRequest("Verification request is required.");
+
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
@@ -212,7 +233,7 @@ namespace WebApplication1.Controllers
                 var result = _fixedDepositAppService.AuditFixedDeposit(existing, option, request?.ModuleNavigationItemCode ?? 0, serviceHeader);
 
                 if (!result)
-                    return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = "Failed to process the fixed deposit verification", data = (object)null });
+                    return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = string.IsNullOrWhiteSpace(existing.errormassage) ? "Failed to process the fixed deposit verification" : existing.errormassage, data = (object)null });
 
                 var updated = _fixedDepositAppService.FindFixedDeposit(id, serviceHeader);
 
@@ -222,6 +243,35 @@ namespace WebApplication1.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/posting-reconciliation")]
+        public IHttpActionResult GetPostingReconciliation(Guid id)
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            var eligibility = _fixedDepositAppService.GetPostingReconciliationEligibility(id, serviceHeader);
+            return Ok(new { success = true, message = "", data = eligibility });
+        }
+
+        [HttpPost]
+        [Route("{id:guid}/posting-reconciliation")]
+        public IHttpActionResult ReconcilePosting(Guid id, [FromBody] FixedDepositReconciliationRequest request)
+        {
+            var reason = request?.Reason?.Trim() ?? string.Empty;
+            if (reason.Length < 10 || reason.Length > 180)
+                return BadRequest("A reconciliation reason between 10 and 180 characters is required.");
+
+            var serviceHeader = Utils.CreateServiceHeader();
+            var eligibility = _fixedDepositAppService.GetPostingReconciliationEligibility(id, serviceHeader);
+            if (!eligibility.Eligible)
+                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = eligibility.Reason, data = (object)null });
+
+            var reconciled = _fixedDepositAppService.ReconcileUnpostedFixedDeposit(id, reason, serviceHeader);
+            if (reconciled == null)
+                return Content(System.Net.HttpStatusCode.Conflict, new { success = false, message = "The deposit changed during reconciliation. Refresh and check it again.", data = (object)null });
+
+            return Ok(new { success = true, message = "The unposted fixed deposit was reset to New.", data = reconciled });
         }
 
         // Batch early termination.
@@ -310,5 +360,10 @@ namespace WebApplication1.Controllers
         public List<Guid> SelectedFixedDepositIds { get; set; } = new List<Guid>();
 
         public int ModuleNavigationItemCode { get; set; }
+    }
+
+    public class FixedDepositReconciliationRequest
+    {
+        public string Reason { get; set; }
     }
 }

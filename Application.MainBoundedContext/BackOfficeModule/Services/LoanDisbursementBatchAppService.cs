@@ -294,9 +294,21 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var persisted = _loanCaseRepository.Get(loanDisbursementBatchEntryDTO.LoanCaseId, serviceHeader);
+                    var batch = _loanDisbursementBatchRepository.Get(loanDisbursementBatchEntryDTO.LoanDisbursementBatchId, serviceHeader);
 
-                    if (persisted != null)
+                    if (persisted != null && batch != null)
                     {
+                        if (batch.Status != (int)BatchStatus.Pending)
+                            throw new InvalidOperationException("Loan cases can only be added to a Pending disbursement batch.");
+                        if (persisted.Status != (int)LoanCaseStatus.Audited)
+                            throw new InvalidOperationException("Only an Audited loan case can be added to a disbursement batch.");
+                        if (persisted.IsBatched)
+                            throw new InvalidOperationException("Sorry, but the selected loan number has already been batched!");
+                        if (persisted.BranchId != batch.BranchId)
+                            throw new InvalidOperationException("The loan case branch does not match the disbursement batch branch.");
+                        if (persisted.LoanRegistration.LoanProductCategory != batch.LoanProductCategory)
+                            throw new InvalidOperationException("The loan case product category does not match the disbursement batch category.");
+
                         if (_loanDisbursementBatchEntryRepository.AllMatchingCount(LoanDisbursementBatchEntrySpecifications.LoanDisbursementBatchEntryWithLoanCaseId(persisted.Id), serviceHeader) != 0)
                             throw new InvalidOperationException("Sorry, but the selected loan number has already been batched!");
                         else
@@ -642,6 +654,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                         // do we need to reset?
                         var chargeableFirstInterestValue = Math.Max(repaymentSchedule.First().InterestPayment, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationMinimumInterestAmount);
+                        var standingOrderInterest = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                            ? 0m
+                            : Math.Max(chargeableFirstInterestValue, loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment != 0m ? loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment : repaymentSchedule.First().InterestPayment);
 
                         var existingStandingOrders = _standingOrderAppService.FindStandingOrders(customerSavingsAccountDTO.Id, customerLoanAccountDTO.Id, serviceHeader);
 
@@ -656,7 +671,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                 targetStandingOrder.LoanAmount = PV;
                                 targetStandingOrder.PaymentPerPeriod = Pmt;
                                 targetStandingOrder.Principal = loanDisbursementBatchEntryDTO.LoanCaseApprovedPrincipalPayment != 0m ? loanDisbursementBatchEntryDTO.LoanCaseApprovedPrincipalPayment : repaymentSchedule.First().PrincipalPayment;
-                                targetStandingOrder.Interest = Math.Max(chargeableFirstInterestValue, loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment != 0m ? loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment : repaymentSchedule.First().InterestPayment);
+                                targetStandingOrder.Interest = standingOrderInterest;
                                 targetStandingOrder.DurationStartDate = repaymentSchedule.First().DueDate;
                                 targetStandingOrder.DurationEndDate = repaymentSchedule.Last().DueDate;
                                 targetStandingOrder.ScheduleFrequency = loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentFrequencyPerYear;
@@ -675,7 +690,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                     case InterestCalculationMode.StraightLineAmortization:
                                     case InterestCalculationMode.DiminishingBalanceAmortization:
                                         targetStandingOrder.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths;
-                                        targetStandingOrder.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths;
+                                        targetStandingOrder.Interest = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                                            ? 0m
+                                            : repaymentSchedule.Sum(x => x.InterestPayment) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths;
                                         targetStandingOrder.PaymentPerPeriod = (targetStandingOrder.Principal + targetStandingOrder.Interest);
                                         loanDisbursementBatchEntryDTO.LoanCaseMonthlyPaybackAmount = targetStandingOrder.PaymentPerPeriod;
                                         break;
@@ -701,7 +718,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                     PaymentPerPeriod = Pmt,
                                     LoanAmount = PV,
                                     Principal = loanDisbursementBatchEntryDTO.LoanCaseApprovedPrincipalPayment != 0m ? loanDisbursementBatchEntryDTO.LoanCaseApprovedPrincipalPayment : repaymentSchedule.First().PrincipalPayment,
-                                    Interest = Math.Max(chargeableFirstInterestValue, loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment != 0m ? loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment : repaymentSchedule.First().InterestPayment),
+                                    Interest = standingOrderInterest,
                                     DurationStartDate = repaymentSchedule.First().DueDate,
                                     DurationEndDate = repaymentSchedule.Last().DueDate,
                                     ScheduleFrequency = loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentFrequencyPerYear,
@@ -718,7 +735,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                 case InterestCalculationMode.StraightLineAmortization:
                                 case InterestCalculationMode.DiminishingBalanceAmortization:
                                     newStandingOrderDTO.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths;
-                                    newStandingOrderDTO.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths;
+                                    newStandingOrderDTO.Interest = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                                        ? 0m
+                                        : repaymentSchedule.Sum(x => x.InterestPayment) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths;
                                     newStandingOrderDTO.PaymentPerPeriod = (newStandingOrderDTO.Principal + newStandingOrderDTO.Interest);
                                     loanDisbursementBatchEntryDTO.LoanCaseMonthlyPaybackAmount = newStandingOrderDTO.PaymentPerPeriod;
                                     break;
@@ -1368,6 +1387,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             // do we need to reset?
             var chargeableFirstInterestValue = Math.Max(repaymentSchedule.First().InterestPayment, loanProductDTO.LoanRegistrationMinimumInterestAmount);
+            var standingOrderInterest = loanProductDTO.LoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                ? 0m
+                : Math.Max(chargeableFirstInterestValue, repaymentSchedule.First().InterestPayment);
 
             var existingStandingOrders = _standingOrderAppService.FindStandingOrders(customerSavingsAccountDTO.Id, customerLoanAccountDTO.Id, serviceHeader);
 
@@ -1382,7 +1404,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                     targetStandingOrder.LoanAmount = PV;
                     targetStandingOrder.PaymentPerPeriod = Pmt;
                     targetStandingOrder.Principal = repaymentSchedule.First().PrincipalPayment;
-                    targetStandingOrder.Interest = Math.Max(chargeableFirstInterestValue, repaymentSchedule.First().InterestPayment);
+                    targetStandingOrder.Interest = standingOrderInterest;
                     targetStandingOrder.DurationStartDate = repaymentSchedule.First().DueDate;
                     targetStandingOrder.DurationEndDate = repaymentSchedule.Last().DueDate;
                     targetStandingOrder.ScheduleFrequency = loanProductDTO.LoanRegistrationPaymentFrequencyPerYear;
@@ -1399,7 +1421,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         case InterestCalculationMode.StraightLineAmortization:
                         case InterestCalculationMode.DiminishingBalanceAmortization:
                             targetStandingOrder.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / loanProductDTO.LoanRegistrationTermInMonths;
-                            targetStandingOrder.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
+                            targetStandingOrder.Interest = loanProductDTO.LoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                                ? 0m
+                                : repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
                             targetStandingOrder.PaymentPerPeriod = (targetStandingOrder.Principal + targetStandingOrder.Interest);
                             break;
                         default:
@@ -1424,7 +1448,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         PaymentPerPeriod = Pmt,
                         LoanAmount = PV,
                         Principal = repaymentSchedule.First().PrincipalPayment,
-                        Interest = Math.Max(chargeableFirstInterestValue, repaymentSchedule.First().InterestPayment),
+                        Interest = standingOrderInterest,
                         DurationStartDate = repaymentSchedule.First().DueDate,
                         DurationEndDate = repaymentSchedule.Last().DueDate,
                         ScheduleFrequency = loanProductDTO.LoanRegistrationPaymentFrequencyPerYear,
@@ -1439,7 +1463,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                     case InterestCalculationMode.StraightLineAmortization:
                     case InterestCalculationMode.DiminishingBalanceAmortization:
                         newStandingOrderDTO.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / loanProductDTO.LoanRegistrationTermInMonths;
-                        newStandingOrderDTO.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
+                        newStandingOrderDTO.Interest = loanProductDTO.LoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                            ? 0m
+                            : repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
                         newStandingOrderDTO.PaymentPerPeriod = (newStandingOrderDTO.Principal + newStandingOrderDTO.Interest);
                         break;
                     default:
@@ -1918,6 +1944,14 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         case BatchEntryStatus.Pending:
                             persisted.Status = (int)BatchEntryStatus.Posted;
                             result = dbContextScope.SaveChanges(serviceHeader) >= 0;
+                            break;
+                        case BatchEntryStatus.Posted:
+                            // A legacy ordering issue marks the entry Posted before
+                            // account creation starts. Permit a retry only while the
+                            // associated loan case is still Audited; once the case is
+                            // Disbursed, replaying would duplicate financial postings.
+                            var loanCase = _loanCaseRepository.Get(persisted.LoanCaseId, serviceHeader);
+                            result = loanCase != null && loanCase.Status == (int)LoanCaseStatus.Audited;
                             break;
                         default:
                             break;

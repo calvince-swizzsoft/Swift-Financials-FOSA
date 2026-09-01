@@ -223,6 +223,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     data = createdStandingOrder
                 });
             }
+            catch (InvalidOperationException ex)
+            {
+                return ErrorResponse(HttpStatusCode.BadRequest, ex.Message);
+            }
             catch (Exception)
             {
                 throw;
@@ -257,6 +261,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 var updatedStandingOrder = _standingOrderAppService.FindStandingOrder(id, serviceHeader);
                 return ApiResponse(true, "Standing order updated successfully", updatedStandingOrder);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ErrorResponse(HttpStatusCode.BadRequest, ex.Message);
             }
             catch (Exception)
             {

@@ -58,9 +58,9 @@ namespace Application.MainBoundedContext.Services
 
                         double fixedInterestStartingBalance = PV * -1 > 0d ? PV * -1 : PV;
 
-                        double fixedInterestInterestPayment = (fixedInterestStartingBalance * (APR / 100));
+                        double fixedInterestTotalInterest = fixedInterestStartingBalance * (APR / 100) * (termInMonths / 12d);
 
-                        paymentPerPeriod = (fixedInterestStartingBalance + fixedInterestInterestPayment) / NPer;
+                        paymentPerPeriod = (fixedInterestStartingBalance + fixedInterestTotalInterest) / NPer;
 
                         break;
                     default:
@@ -511,15 +511,19 @@ namespace Application.MainBoundedContext.Services
 
             DateTime dueDate = DateTime.Today.AddDays(gracePeriod);
 
-            double Rate = (APR / 100);
-
             double startingBalance = PV * -1 > 0d ? PV * -1 : PV;
 
             double numberOfPeriods = (termInMonths / 12d) * paymentFrequencyPerYear;
 
             double principalPayment = startingBalance / numberOfPeriods;
 
-            double interestPayment = (startingBalance * Rate) / numberOfPeriods;
+            // APR is annual for every interest calculation mode. Prorate the
+            // fixed total interest by the loan term before spreading it over
+            // the repayment periods (for example, one month at 0.4% p.a. on
+            // 100,000 is 33.33 interest, not the full-year 400).
+            double totalInterest = startingBalance * (APR / 100) * (termInMonths / 12d);
+
+            double interestPayment = totalInterest / numberOfPeriods;
 
             for (int i = 0; i < numberOfPeriods; i++)
             {

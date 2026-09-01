@@ -14,6 +14,14 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.RecurringBatchAgg
             return specification;
         }
 
+        public static Specification<RecurringBatch> WithOptionalType(int? type)
+        {
+            if (type.HasValue)
+                return new DirectSpecification<RecurringBatch>(x => x.Type == type.Value);
+
+            return new TrueSpecification<RecurringBatch>();
+        }
+
         public static Specification<RecurringBatch> RecurringBatchesWithStatus(int status, DateTime startDate, DateTime endDate, string text)
         {
             endDate = UberUtil.AdjustTimeSpan(endDate);

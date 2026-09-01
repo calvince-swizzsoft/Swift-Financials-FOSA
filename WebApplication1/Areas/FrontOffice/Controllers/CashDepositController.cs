@@ -302,9 +302,10 @@ namespace WebApplication1.Controllers
                 transactionModel.Reference = string.Format("{0}", SelectedCustomerAccount.CustomerReference1);
             }
 
-            var targetSavingsProduct = _savingsProductAppService.FindSavingsProduct(SelectedCustomerAccount.CustomerAccountTypeTargetProductId, transactionModel.BranchId, serviceHeader);
-            if (targetSavingsProduct == null)
-                return Json(new { success = false, message = "The savings product for the selected account is not configured for the teller's branch.", data = (object)null });
+            string productResolutionError;
+            var targetProduct = ResolveTransactionProduct(SelectedCustomerAccount, transactionModel.BranchId, serviceHeader, out productResolutionError);
+            if (targetProduct == null)
+                return Json(new { success = false, message = productResolutionError, data = (object)null });
            
 
             transactionModel.Teller.Id = SelectedTeller.Id;
@@ -325,7 +326,7 @@ namespace WebApplication1.Controllers
                         transactionModel.DebitCustomerAccount = SelectedCustomerAccount;
                         transactionModel.CreditCustomerAccountId = SelectedCustomerAccount.Id;
                         transactionModel.CreditCustomerAccount = SelectedCustomerAccount;
-                        transactionModel.CreditChartOfAccountId = targetSavingsProduct.ChartOfAccountId;
+                        transactionModel.CreditChartOfAccountId = targetProduct.ChartOfAccountId;
                     }
 
                     break;
@@ -384,7 +385,7 @@ namespace WebApplication1.Controllers
                         transactionModel.CreditCustomerAccountId = SelectedCustomerAccount.Id;
                         transactionModel.CreditCustomerAccount = SelectedCustomerAccount;
                         //transactionModel.DebitChartOfAccountId = SelectedCustomerAccount.CustomerAccountTypeTargetProductChartOfAccountId;
-                        transactionModel.DebitChartOfAccountId = targetSavingsProduct.ChartOfAccountId;
+                        transactionModel.DebitChartOfAccountId = targetProduct.ChartOfAccountId;
                     }
 
                     if (SelectedTeller != null && !SelectedTeller.IsLocked)
@@ -406,7 +407,7 @@ namespace WebApplication1.Controllers
                         // credits the teller cash account.  The payment-voucher path used
                         // to assign the product to CreditChartOfAccountId and immediately
                         // overwrite it with the teller below, leaving the debit G/L empty.
-                        transactionModel.DebitChartOfAccountId = targetSavingsProduct.ChartOfAccountId;
+                        transactionModel.DebitChartOfAccountId = targetProduct.ChartOfAccountId;
                     }
 
                     if (SelectedTeller != null && !SelectedTeller.IsLocked)
@@ -496,7 +497,7 @@ namespace WebApplication1.Controllers
             try
             {
                 // Call the asynchronous method and check its result    
-                var result = await ProcessCustomerTransactionAsync(transactionModel, SelectedTeller, SelectedCustomerAccount, SelectedCustomer, targetSavingsProduct);
+                var result = await ProcessCustomerTransactionAsync(transactionModel, SelectedTeller, SelectedCustomerAccount, SelectedCustomer, targetProduct);
 
                 SelectedCustomerAccount = _customerAccountAppService.FindCustomerAccountDTO(transactionModel.CreditCustomerAccountId, serviceHeader);
         
@@ -729,13 +730,14 @@ namespace WebApplication1.Controllers
                             model.SecondaryDescription = string.Format("B{0}/T{1}/#{2}", selectedBranch.Code, currentTellerDTO.Code, currentTellerDTO.ItemsCount);
                             model.Reference = customerAccount.CustomerReference1;
 
-                            var selectedProduct = _savingsProductAppService.FindSavingsProduct(customerAccount.CustomerAccountTypeTargetProductId, model.BranchId, serviceHeader);
+                            string productResolutionError;
+                            var selectedProduct = ResolveTransactionProduct(customerAccount, model.BranchId, serviceHeader, out productResolutionError);
 
                             if (selectedProduct == null)
-                                return BadRequest("The savings product for this request is no longer configured for the teller's branch.");
+                                return BadRequest(productResolutionError);
 
                             if (selectedProduct.ChartOfAccountId == Guid.Empty)
-                                return BadRequest("The savings product for this request does not have a control G/L account configured.");
+                                return BadRequest("The selected account product does not have a control G/L account configured.");
 
                             model.CreditChartOfAccountId = selectedProduct.ChartOfAccountId;
 
@@ -860,13 +862,14 @@ namespace WebApplication1.Controllers
                             model.SecondaryDescription = string.Format("B{0}/T{1}/#{2}", selectedBranch.Code, currentTellerDTO.Code, currentTellerDTO.ItemsCount);
                             model.Reference = isPaymentVoucherWithdrawal ? cashWithdrawalRequestDTO.PaymentVoucherReference : customerAccount.CustomerReference1;
 
-                            var selectedProduct = _savingsProductAppService.FindSavingsProduct(customerAccount.CustomerAccountTypeTargetProductId, model.BranchId, serviceHeader);
+                            string productResolutionError;
+                            var selectedProduct = ResolveTransactionProduct(customerAccount, model.BranchId, serviceHeader, out productResolutionError);
 
                             if (selectedProduct == null)
-                                return BadRequest("The savings product for this request is no longer configured for the teller's branch.");
+                                return BadRequest(productResolutionError);
 
                             if (selectedProduct.ChartOfAccountId == Guid.Empty)
-                                return BadRequest("The savings product for this request does not have a control G/L account configured.");
+                                return BadRequest("The selected account product does not have a control G/L account configured.");
 
                             model.DebitChartOfAccountId = selectedProduct.ChartOfAccountId;
 
@@ -1001,7 +1004,64 @@ namespace WebApplication1.Controllers
 
       
 
-        private async Task<OperationResult> ProcessCustomerTransactionAsync(CustomerTransactionModel transactionModel, TellerDTO selectedTellerDTO, CustomerAccountDTO customerAccountDTO, CustomerDTO selectedCustomer, SavingsProductDTO targetProduct)
+        private TransactionProduct ResolveTransactionProduct(CustomerAccountDTO account, Guid branchId, ServiceHeader serviceHeader, out string error)
+        {
+            error = null;
+            if (account == null)
+            {
+                error = "Please select a customer account.";
+                return null;
+            }
+
+            switch ((ProductCode)account.CustomerAccountTypeProductCode)
+            {
+                case ProductCode.Savings:
+                    var savings = _savingsProductAppService.FindSavingsProduct(account.CustomerAccountTypeTargetProductId, branchId, serviceHeader);
+                    if (savings == null) { error = "The savings product for the selected account is not configured for the teller's branch."; return null; }
+                    if (savings.IsLocked) { error = "The savings product for the selected account is locked."; return null; }
+                    return new TransactionProduct
+                    {
+                        ProductCode = ProductCode.Savings,
+                        ChartOfAccountId = savings.ChartOfAccountId,
+                        MinimumBalance = savings.MinimumBalance,
+                        MaximumAllowedDeposit = savings.MaximumAllowedDeposit,
+                        MaximumAllowedWithdrawal = savings.MaximumAllowedWithdrawal,
+                        WithdrawalNoticePeriod = savings.WithdrawalNoticePeriod,
+                        IsRefundable = true
+                    };
+
+                case ProductCode.Investment:
+                    var investment = _investmentProductAppService.FindInvestmentProduct(account.CustomerAccountTypeTargetProductId, serviceHeader);
+                    if (investment == null) { error = "The investment product for the selected account could not be found."; return null; }
+                    if (investment.IsLocked) { error = "The investment product for the selected account is locked."; return null; }
+                    return new TransactionProduct
+                    {
+                        ProductCode = ProductCode.Investment,
+                        ChartOfAccountId = investment.ChartOfAccountId,
+                        MinimumBalance = investment.MinimumBalance,
+                        MaximumBalance = investment.MaximumBalance,
+                        IsRefundable = investment.IsRefundable
+                    };
+
+                default:
+                    error = "Only savings and investment accounts support teller deposits or withdrawals.";
+                    return null;
+            }
+        }
+
+        private sealed class TransactionProduct
+        {
+            public ProductCode ProductCode { get; set; }
+            public Guid ChartOfAccountId { get; set; }
+            public decimal MinimumBalance { get; set; }
+            public decimal MaximumBalance { get; set; }
+            public decimal MaximumAllowedDeposit { get; set; }
+            public decimal MaximumAllowedWithdrawal { get; set; }
+            public int WithdrawalNoticePeriod { get; set; }
+            public bool IsRefundable { get; set; }
+        }
+
+        private async Task<OperationResult> ProcessCustomerTransactionAsync(CustomerTransactionModel transactionModel, TellerDTO selectedTellerDTO, CustomerAccountDTO customerAccountDTO, CustomerDTO selectedCustomer, TransactionProduct targetProduct)
         {
             bool IsBusy = false;
             var SelectedCustomerAccount = customerAccountDTO;
@@ -1027,9 +1087,21 @@ namespace WebApplication1.Controllers
                 switch ((FrontOfficeTransactionType)frontOfficeTransactionType)
                 {
                     case FrontOfficeTransactionType.CashDeposit:
+                        if (targetProduct.ProductCode == ProductCode.Investment
+                            && targetProduct.MaximumBalance > 0m
+                            && SelectedCustomerAccount.AvailableBalance + transactionModel.TotalValue > targetProduct.MaximumBalance)
+                        {
+                            return new OperationResult
+                            {
+                                Success = false,
+                                Dialog = false,
+                                Message = $"This deposit would exceed the investment product maximum balance of {targetProduct.MaximumBalance:N2}."
+                            };
+                        }
+
                         var cashDepositCategory = CashDepositCategory.WithinLimits;
 
-                        if (transactionModel.TotalValue > targetProduct.MaximumAllowedDeposit)
+                        if (targetProduct.ProductCode == ProductCode.Savings && transactionModel.TotalValue > targetProduct.MaximumAllowedDeposit)
                         {
                             cashDepositCategory = CashDepositCategory.AboveMaximumAllowed;
                         }
@@ -1265,6 +1337,16 @@ namespace WebApplication1.Controllers
                     case FrontOfficeTransactionType.CashWithdrawal:
                     case FrontOfficeTransactionType.CashWithdrawalPaymentVoucher:
 
+                        if (targetProduct.ProductCode == ProductCode.Investment && !targetProduct.IsRefundable)
+                        {
+                            return new OperationResult
+                            {
+                                Success = false,
+                                Dialog = false,
+                                Message = "This investment product is not refundable and cannot be withdrawn through the teller."
+                            };
+                        }
+
                         if (selectedTellerDTO.BookBalance < transactionModel.TotalValue)
                         {
 
@@ -1286,7 +1368,7 @@ namespace WebApplication1.Controllers
                             {
                                 cashWithdrawalCategory = CashWithdrawalCategory.PaymentVoucher;
                             }
-                            else if (transactionModel.TotalValue > targetProduct.MaximumAllowedWithdrawal)
+                            else if (targetProduct.ProductCode == ProductCode.Savings && transactionModel.TotalValue > targetProduct.MaximumAllowedWithdrawal)
                             {
                                 cashWithdrawalCategory = CashWithdrawalCategory.AboveMaximumAllowed;
                             }

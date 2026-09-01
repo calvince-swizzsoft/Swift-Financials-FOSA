@@ -358,6 +358,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         if (destinationTreasury == null)
                             return "The receiving treasury could not be found.";
 
+                        if (destinationTreasury.Id == activeTreasury.Id)
+                            return "The source and destination treasury must be different.";
+
                         var destinationBalance = _sqlCommandAppService.FindGlAccountBalance(
                             destinationTreasury.ChartOfAccountId,
                             DateTime.Now,

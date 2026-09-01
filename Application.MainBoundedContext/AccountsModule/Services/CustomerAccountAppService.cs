@@ -193,7 +193,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (customerAccountDTO != null && customerAccountDTO.CustomerId != Guid.Empty && customerAccountDTO.BranchId != Guid.Empty)
             {
                 if (customerAccountDTO.CustomerAccountTypeTargetProductId == Guid.Empty)
-                    throw new InvalidOperationException("A savings or investment product is required.");
+                    throw new InvalidOperationException("A savings, investment, or loan product is required.");
 
                 var branch = _branchAppService.FindBranch(customerAccountDTO.BranchId, serviceHeader);
                 if (branch == null)
@@ -225,17 +225,36 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         customerAccountDTO.CustomerAccountTypeTargetProductId,
                         serviceHeader);
 
-                    if (investmentProduct == null)
-                        throw new InvalidOperationException("The selected savings or investment product could not be found.");
-                    if (investmentProduct.IsLocked)
-                        throw new InvalidOperationException("The selected investment product is locked and cannot accept new accounts.");
-                    if (investmentProduct.Code <= 0 || investmentProduct.ChartOfAccountId == Guid.Empty)
-                        throw new InvalidOperationException("The selected investment product is missing its product code or G/L account configuration.");
+                    if (investmentProduct != null)
+                    {
+                        if (investmentProduct.IsLocked)
+                            throw new InvalidOperationException("The selected investment product is locked and cannot accept new accounts.");
+                        if (investmentProduct.Code <= 0 || investmentProduct.ChartOfAccountId == Guid.Empty)
+                            throw new InvalidOperationException("The selected investment product is missing its product code or G/L account configuration.");
 
-                    customerAccountDTO.CustomerAccountTypeProductCode = (int)ProductCode.Investment;
-                    customerAccountDTO.CustomerAccountTypeTargetProductCode = investmentProduct.Code;
-                    customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId = investmentProduct.ChartOfAccountId;
-                    customerAccountDTO.CustomerAccountTypeTargetProductDescription = investmentProduct.Description;
+                        customerAccountDTO.CustomerAccountTypeProductCode = (int)ProductCode.Investment;
+                        customerAccountDTO.CustomerAccountTypeTargetProductCode = investmentProduct.Code;
+                        customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId = investmentProduct.ChartOfAccountId;
+                        customerAccountDTO.CustomerAccountTypeTargetProductDescription = investmentProduct.Description;
+                    }
+                    else
+                    {
+                        var loanProduct = _loanProductAppService.FindLoanProduct(
+                            customerAccountDTO.CustomerAccountTypeTargetProductId,
+                            serviceHeader);
+
+                        if (loanProduct == null)
+                            throw new InvalidOperationException("The selected savings, investment, or loan product could not be found.");
+                        if (loanProduct.IsLocked)
+                            throw new InvalidOperationException("The selected loan product is locked and cannot accept new accounts.");
+                        if (loanProduct.Code <= 0 || loanProduct.ChartOfAccountId == Guid.Empty)
+                            throw new InvalidOperationException("The selected loan product is missing its product code or G/L account configuration.");
+
+                        customerAccountDTO.CustomerAccountTypeProductCode = (int)ProductCode.Loan;
+                        customerAccountDTO.CustomerAccountTypeTargetProductCode = loanProduct.Code;
+                        customerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId = loanProduct.ChartOfAccountId;
+                        customerAccountDTO.CustomerAccountTypeTargetProductDescription = loanProduct.Description;
+                    }
                 }
 
                 var requiresVerification = branch.CompanyEnforceCustomerAccountMakerChecker;

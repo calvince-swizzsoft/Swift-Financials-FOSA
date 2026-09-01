@@ -85,6 +85,35 @@ Mirrors `StandingOrderJob` (the Dispatcher). Runs
 `maximumStandingOrderExecuteAttemptCount` times per order before it's
 considered skipped.
 
+The response data is a structured execution diagnostic rather than a boolean:
+
+```ts
+interface StandingOrderExecutionResult {
+  targetDate: string;
+  targetDateOption: number;
+  totalStandingOrders: number;
+  eligibleCount: number;
+  wrongTriggerCount: number;
+  lockedCount: number;
+  notYetDueCount: number;
+  overdueCount: number;
+  expiredCount: number;
+  recurringBatchId?: string;
+  entryCount: number;
+  queuedCount: number;
+  resultCode: "Queued" | "NoEligibleStandingOrders" | "BatchCreationFailed" | "EntryCreationFailed" | "QueueHandoffFailed";
+  detail: string;
+}
+```
+
+`success: true` means the diagnostic request completed. Only
+`data.queuedCount > 0` proves that entries were handed to the asynchronous
+posting queue. The counts explain why stored orders were not eligible and how
+many eligible orders were already overdue. Run-date comparisons are
+calendar-date based: an order whose selected run date is on or before
+`targetDate` is eligible, provided it is unlocked, uses the Schedule trigger,
+and has not expired.
+
 ```ts
 interface ExecuteStandingOrdersRequest {
   targetDate?: string;                            // ISO date, default: today

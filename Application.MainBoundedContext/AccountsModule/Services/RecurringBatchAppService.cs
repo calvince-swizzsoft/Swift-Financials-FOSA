@@ -323,7 +323,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 recurringBatchEntry.Remarks = tuple.Item1 ? string.Format("Succeeded->{0}{1}", Environment.NewLine, tuple.Item2) : string.Format("Failed->{0}{1}", Environment.NewLine, tuple.Item2);
 
-                recurringBatchEntry.Status = (int)BatchEntryStatus.Posted;
+                recurringBatchEntry.Status = (byte)(tuple.Item1
+                    ? BatchEntryStatus.Posted
+                    : BatchEntryStatus.Rejected);
 
                 return dbContextScope.SaveChanges(serviceHeader) >= 0;
             }
@@ -1146,7 +1148,43 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool ExecuteStandingOrders(DateTime targetDate, int targetDateOption, int priority, int maximumStandingOrderExecuteAttemptCount, int pageSize, ServiceHeader serviceHeader)
         {
+            return ExecuteStandingOrdersDetailed(targetDate, targetDateOption, priority, maximumStandingOrderExecuteAttemptCount, pageSize, serviceHeader).QueuedCount > 0;
+        }
+
+        public PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int? type, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var page = _recurringBatchRepository.AllMatchingPaged(
+                    RecurringBatchSpecifications.WithOptionalType(type), pageIndex, pageSize,
+                    new List<string> { "SequentialId" }, true, serviceHeader);
+
+                if (page == null)
+                    return null;
+
+                var items = page.PageCollection.ProjectedAsCollection<RecurringBatchDTO>();
+                foreach (var item in items ?? new List<RecurringBatchDTO>())
+                {
+                    var entrySpec = RecurringBatchEntrySpecifications.RecurringBatchEntryWithRecurringBatchId(item.Id, null);
+                    var postedSpec = RecurringBatchEntrySpecifications.PostedRecurringBatchEntryWithRecurringBatchId(item.Id);
+                    item.PostedEntries = string.Format("{0}/{1}",
+                        _recurringBatchEntryRepository.AllMatchingCount(postedSpec, serviceHeader),
+                        _recurringBatchEntryRepository.AllMatchingCount(entrySpec, serviceHeader));
+                }
+
+                return new PageCollectionInfo<RecurringBatchDTO>
+                {
+                    PageCollection = items,
+                    ItemsCount = page.ItemsCount
+                };
+            }
+        }
+
+        public StandingOrderExecutionResultDTO ExecuteStandingOrdersDetailed(DateTime targetDate, int targetDateOption, int priority, int maximumStandingOrderExecuteAttemptCount, int pageSize, ServiceHeader serviceHeader)
+        {
             var result = default(bool);
+
+            var executionResult = DiagnoseStandingOrderExecution(targetDate, targetDateOption, serviceHeader);
 
             var standingOrderDTOs = new List<StandingOrderDTO>();
 
@@ -1197,6 +1235,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (recurringBatchDTO != null)
                 {
+                    executionResult.RecurringBatchId = recurringBatchDTO.Id;
                     var holidayDTOs = _holidayAppService.FindHolidaysInCurrentPostingPeriod(serviceHeader);
 
                     var holidays = new List<DateTime>();
@@ -1438,16 +1477,44 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         }
                     }
 
+                    executionResult.EntryCount = recurringBatchEntries.Count;
+
                     result = UpdateRecurringBatchEntries(recurringBatchDTO.Id, recurringBatchEntries, serviceHeader);
 
                     if (result)
                     {
-                        QueueRecurringBatchEntries(recurringBatchDTO, serviceHeader);
+                        executionResult.QueuedCount = QueueRecurringBatchEntries(recurringBatchDTO, serviceHeader);
                     }
                 }
             }
 
-            return result;
+            if (executionResult.EligibleCount == 0)
+            {
+                executionResult.ResultCode = "NoEligibleStandingOrders";
+                executionResult.Detail = "No unlocked Schedule standing order is due on or before the target date within its validity period.";
+            }
+            else if (!executionResult.RecurringBatchId.HasValue)
+            {
+                executionResult.ResultCode = "BatchCreationFailed";
+                executionResult.Detail = "Eligible standing orders were found, but the recurring batch could not be created.";
+            }
+            else if (executionResult.EntryCount == 0)
+            {
+                executionResult.ResultCode = "EntryCreationFailed";
+                executionResult.Detail = "The recurring batch was created, but no standing-order entries were persisted.";
+            }
+            else if (executionResult.QueuedCount == 0)
+            {
+                executionResult.ResultCode = "QueueHandoffFailed";
+                executionResult.Detail = "Recurring-batch entries were created, but none were handed to the posting queue.";
+            }
+            else
+            {
+                executionResult.ResultCode = "Queued";
+                executionResult.Detail = string.Format("{0} standing-order entr{1} queued for asynchronous posting.", executionResult.QueuedCount, executionResult.QueuedCount == 1 ? "y was" : "ies were");
+            }
+
+            return executionResult;
         }
 
         public bool ExecutePayoutStandingOrders(Guid benefactorCustomerAccountId, int month, int priority, ServiceHeader serviceHeader)
@@ -3114,7 +3181,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                     }
                                     else builder.AppendLine("execute fresh recovery");
 
-                                    if ((actualPrincipal + actualPrincipal) > 0m)
+                                    if ((actualPrincipal + actualInterest) > 0m)
                                     {
                                         // Do we need to reset actual values?
                                         if (!(((benefactorAccountAvailableBalance) - (actualPrincipal + actualInterest)) >= 0m))
@@ -3159,7 +3226,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                     }
                                     else builder.AppendLine("execute fresh recovery");
 
-                                    if ((actualPrincipal + actualPrincipal) > 0m)
+                                    if ((actualPrincipal + actualInterest) > 0m)
                                     {
                                         // Do we need to reset actual values?
                                         if (!(((benefactorAccountAvailableBalance) - (actualPrincipal + actualInterest)) >= 0m))
@@ -3215,14 +3282,17 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                     var interestBalance = _sqlCommandAppService.FindCustomerAccountBookBalance(beneficiaryCustomerAccountDTO, 2, DateTime.Now, serviceHeader);
 
-                                    actualPrincipal = Math.Min(((principalBalance * -1 > 0m) ? (principalBalance * -1) : 0m), expectedPrincipal);
+                                    // FindCustomerAccountBookBalance returns an absolute balance. Treating
+                                    // loan balances as negative here made every scheduled recovery resolve
+                                    // to zero and the recurring batch was rejected with "no transactions".
+                                    actualPrincipal = Math.Min(Math.Max(principalBalance, 0m), expectedPrincipal);
 
-                                    actualInterest = Math.Min(((interestBalance * -1 > 0m) ? (interestBalance * -1) : 0m), expectedInterest);
+                                    actualInterest = Math.Min(Math.Max(interestBalance, 0m), expectedInterest);
 
                                     if (loanAccountProduct.LoanRegistrationTrackArrears)
                                     {
-                                        principalArrears = Math.Min(((principalBalance * -1 > 0m) ? (principalBalance * -1) : 0m), beneficiaryCustomerAccountDTO.PrincipalArrearagesBalance * -1 < 0m ? beneficiaryCustomerAccountDTO.PrincipalArrearagesBalance : 0m);
-                                        interestArrears = Math.Min(((interestBalance * -1 > 0m) ? (interestBalance * -1) : 0m), beneficiaryCustomerAccountDTO.InterestArrearagesBalance * -1 < 0m ? beneficiaryCustomerAccountDTO.InterestArrearagesBalance : 0m);
+                                        principalArrears = Math.Min(Math.Max(principalBalance, 0m), Math.Max(beneficiaryCustomerAccountDTO.PrincipalArrearagesBalance, 0m));
+                                        interestArrears = Math.Min(Math.Max(interestBalance, 0m), Math.Max(beneficiaryCustomerAccountDTO.InterestArrearagesBalance, 0m));
                                     }
 
                                     if (CheckRecovery(standingOrderDTO, postingPeriodDTO.Id, recurringBatchEntryDTO.RecurringBatchMonth, serviceHeader))
@@ -3236,7 +3306,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                     }
                                     else builder.AppendLine("execute fresh recovery");
 
-                                    if ((actualPrincipal + actualPrincipal) > 0m)
+                                    if ((actualPrincipal + actualInterest) > 0m)
                                     {
                                         // Do we need to reset actual values?
                                         if (!(((benefactorAccountAvailableBalance) - (actualPrincipal + actualInterest)) >= 0m))
@@ -3265,20 +3335,26 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                             }
                                         }
 
-                                        // Credit LoanProduct.InterestReceivableChartOfAccountId, Debit StandingOrderDTO.BenefactorProductChartOfAccountId
-                                        var interestReceivableJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, benefactorCustomerAccountDTO.BranchId, null, actualInterest, string.Format("{0} (Interest)", primaryDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.StandingOrder, UberUtil.GetLastDayOfMonth(recurringBatchEntryDTO.RecurringBatchMonth, postingPeriodDTO.DurationEndDate.Year, recurringBatchEntryDTO.RecurringBatchEnforceMonthValueDate), serviceHeader);
-                                        _journalEntryPostingService.PerformDoubleEntry(interestReceivableJournal, loanAccountProduct.InterestReceivableChartOfAccountId, benefactorCustomerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, beneficiaryCustomerAccountDTO, benefactorCustomerAccountDTO, serviceHeader);
-                                        journals.Add(interestReceivableJournal);
+                                        if (actualInterest > 0m)
+                                        {
+                                            // Credit LoanProduct.InterestReceivableChartOfAccountId, Debit StandingOrderDTO.BenefactorProductChartOfAccountId
+                                            var interestReceivableJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, benefactorCustomerAccountDTO.BranchId, null, actualInterest, string.Format("{0} (Interest)", primaryDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.StandingOrder, UberUtil.GetLastDayOfMonth(recurringBatchEntryDTO.RecurringBatchMonth, postingPeriodDTO.DurationEndDate.Year, recurringBatchEntryDTO.RecurringBatchEnforceMonthValueDate), serviceHeader);
+                                            _journalEntryPostingService.PerformDoubleEntry(interestReceivableJournal, loanAccountProduct.InterestReceivableChartOfAccountId, benefactorCustomerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, beneficiaryCustomerAccountDTO, benefactorCustomerAccountDTO, serviceHeader);
+                                            journals.Add(interestReceivableJournal);
 
-                                        // Credit LoanProduct.InterestReceivedChartOfAccountId, Debit LoanProduct.InterestChargedChartOfAccountId
-                                        var interestReceivedJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, benefactorCustomerAccountDTO.BranchId, null, actualInterest, string.Format("{0} (Interest)", primaryDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.StandingOrder, UberUtil.GetLastDayOfMonth(recurringBatchEntryDTO.RecurringBatchMonth, postingPeriodDTO.DurationEndDate.Year, recurringBatchEntryDTO.RecurringBatchEnforceMonthValueDate), serviceHeader);
-                                        _journalEntryPostingService.PerformDoubleEntry(interestReceivedJournal, loanAccountProduct.InterestReceivedChartOfAccountId, loanAccountProduct.InterestChargedChartOfAccountId, beneficiaryCustomerAccountDTO, beneficiaryCustomerAccountDTO, serviceHeader);
-                                        journals.Add(interestReceivedJournal);
+                                            // Credit LoanProduct.InterestReceivedChartOfAccountId, Debit LoanProduct.InterestChargedChartOfAccountId
+                                            var interestReceivedJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, benefactorCustomerAccountDTO.BranchId, null, actualInterest, string.Format("{0} (Interest)", primaryDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.StandingOrder, UberUtil.GetLastDayOfMonth(recurringBatchEntryDTO.RecurringBatchMonth, postingPeriodDTO.DurationEndDate.Year, recurringBatchEntryDTO.RecurringBatchEnforceMonthValueDate), serviceHeader);
+                                            _journalEntryPostingService.PerformDoubleEntry(interestReceivedJournal, loanAccountProduct.InterestReceivedChartOfAccountId, loanAccountProduct.InterestChargedChartOfAccountId, beneficiaryCustomerAccountDTO, beneficiaryCustomerAccountDTO, serviceHeader);
+                                            journals.Add(interestReceivedJournal);
+                                        }
 
-                                        // Credit LoanProduct.ChartOfAccountId, Debit StandingOrderDTO.BenefactorProductChartOfAccountId
-                                        var principalJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, benefactorCustomerAccountDTO.BranchId, null, actualPrincipal, string.Format("{0} (Principal)", primaryDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.StandingOrder, UberUtil.GetLastDayOfMonth(recurringBatchEntryDTO.RecurringBatchMonth, postingPeriodDTO.DurationEndDate.Year, recurringBatchEntryDTO.RecurringBatchEnforceMonthValueDate), serviceHeader);
-                                        _journalEntryPostingService.PerformDoubleEntry(principalJournal, loanAccountProduct.ChartOfAccountId, benefactorCustomerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, beneficiaryCustomerAccountDTO, benefactorCustomerAccountDTO, serviceHeader);
-                                        journals.Add(principalJournal);
+                                        if (actualPrincipal > 0m)
+                                        {
+                                            // Credit LoanProduct.ChartOfAccountId, Debit StandingOrderDTO.BenefactorProductChartOfAccountId
+                                            var principalJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, benefactorCustomerAccountDTO.BranchId, null, actualPrincipal, string.Format("{0} (Principal)", primaryDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.StandingOrder, UberUtil.GetLastDayOfMonth(recurringBatchEntryDTO.RecurringBatchMonth, postingPeriodDTO.DurationEndDate.Year, recurringBatchEntryDTO.RecurringBatchEnforceMonthValueDate), serviceHeader);
+                                            _journalEntryPostingService.PerformDoubleEntry(principalJournal, loanAccountProduct.ChartOfAccountId, benefactorCustomerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, beneficiaryCustomerAccountDTO, benefactorCustomerAccountDTO, serviceHeader);
+                                            journals.Add(principalJournal);
+                                        }
 
                                         var loanHistory = StandingOrderHistoryFactory.CreateStandingOrderHistory(standingOrderDTO.Id, postingPeriodDTO.Id, standingOrderDTO.BenefactorCustomerAccountId, standingOrderDTO.BeneficiaryCustomerAccountId, new Duration(standingOrderDTO.DurationStartDate, standingOrderDTO.DurationEndDate), new Schedule(standingOrderDTO.ScheduleFrequency, standingOrderDTO.ScheduleExpectedRunDate, standingOrderDTO.ScheduleActualRunDate, standingOrderDTO.ScheduleExecuteAttemptCount, standingOrderDTO.ScheduleForceExecute), new Charge(standingOrderDTO.ChargeType, standingOrderDTO.ChargePercentage, standingOrderDTO.ChargeFixedAmount), recurringBatchEntryDTO.RecurringBatchMonth, standingOrderDTO.Trigger, standingOrderDTO.Principal, standingOrderDTO.Interest, actualPrincipal, actualInterest, standingOrderDTO.Remarks);
                                         loanHistory.CreatedBy = serviceHeader.ApplicationUserName;
@@ -3304,23 +3380,19 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                 if (standingOrderTariffs != null && standingOrderTariffs.Any())
                                 {
+                                    var availableTariffRecoveryAmount = Math.Max(0m, benefactorAccountAvailableBalance - (actualPrincipal + actualInterest));
+
                                     standingOrderTariffs.ForEach(tariff =>
                                     {
-                                        var actualTariffAmount = tariff.Amount;
+                                        var actualTariffAmount = Math.Min(tariff.Amount, availableTariffRecoveryAmount);
 
-                                        // Do we need to reset expected values?
-                                        if (!(((benefactorAccountAvailableBalance) - (actualPrincipal + actualInterest)) >= 0m))
-                                        {
-                                            // how much is available for recovery?
-                                            var availableRecoveryAmount = (benefactorAccountAvailableBalance) - (actualPrincipal + actualInterest);
-
-                                            // reset expected tariff amount
-                                            actualTariffAmount = Math.Min(actualTariffAmount, availableRecoveryAmount);
-                                        }
+                                        if (actualTariffAmount <= 0m)
+                                            return;
 
                                         var standingOrderTariffJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, benefactorCustomerAccountDTO.BranchId, null, actualTariffAmount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.StandingOrder, UberUtil.GetLastDayOfMonth(recurringBatchEntryDTO.RecurringBatchMonth, postingPeriodDTO.DurationEndDate.Year, recurringBatchEntryDTO.RecurringBatchEnforceMonthValueDate), serviceHeader);
                                         _journalEntryPostingService.PerformDoubleEntry(standingOrderTariffJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, beneficiaryCustomerAccountDTO, benefactorCustomerAccountDTO, serviceHeader);
                                         journals.Add(standingOrderTariffJournal);
+                                        availableTariffRecoveryAmount -= actualTariffAmount;
                                     });
                                 }
                             }
@@ -3331,7 +3403,15 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             {
                                 result = _journalEntryPostingService.BulkSave(serviceHeader, journals, null, standingOrderHistories, customerAccountArrearages);
                             }
-                            else builder.AppendLine("no transactions");
+                            else builder.AppendLine(string.Format(
+                                _nfi,
+                                "no transactions: source available={0:C}, expected principal={1:C}, expected interest={2:C}, recoverable principal={3:C}, recoverable interest={4:C}, beneficiary account={5}",
+                                benefactorAccountAvailableBalance,
+                                expectedPrincipal,
+                                expectedInterest,
+                                actualPrincipal,
+                                actualInterest,
+                                standingOrderDTO.BeneficiaryCustomerAccountId));
 
                             #endregion
                         }
@@ -3339,7 +3419,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     }
                     else builder.AppendLine(string.Format("benefactor account available balance is {0}", string.Format(_nfi, "{0:C}", benefactorAccountAvailableBalance)));
                 }
-                else builder.AppendLine(string.Format("validation of account(s) status has failed: benefactor={0}, beneficiary={1}", benefactorCustomerAccountDTO.StatusDescription, beneficiaryCustomerAccountDTO.StatusDescription));
+                else builder.AppendLine(string.Format("validation of account(s) status has failed: benefactor={0}, beneficiary={1}", benefactorCustomerAccountDTO != null ? benefactorCustomerAccountDTO.StatusDescription : "not found", beneficiaryCustomerAccountDTO != null ? beneficiaryCustomerAccountDTO.StatusDescription : "not found"));
             }
 
             return new Tuple<bool, string>(result, builder.ToString());
@@ -4239,7 +4319,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
         }
 
-        private void QueueRecurringBatchEntries(RecurringBatchDTO recurringBatchDTO, ServiceHeader serviceHeader)
+        private int QueueRecurringBatchEntries(RecurringBatchDTO recurringBatchDTO, ServiceHeader serviceHeader)
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
@@ -4251,16 +4331,79 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (query != null)
                 {
-                    var data = from l in query
+                    var data = (from l in query
                                select new RecurringBatchEntryDTO
                                {
                                    Id = l,
                                    RecurringBatchPriority = recurringBatchDTO.Priority
-                               };
+                               }).ToArray();
 
-                    _brokerService.ProcessRecurringBatchEntries(DMLCommand.Insert, serviceHeader, data.ToArray());
+                    if (data.Any())
+                        _brokerService.ProcessRecurringBatchEntries(DMLCommand.Insert, serviceHeader, data);
+
+                    return data.Length;
+                }
+
+                return 0;
+            }
+        }
+
+        private StandingOrderExecutionResultDTO DiagnoseStandingOrderExecution(DateTime targetDate, int targetDateOption, ServiceHeader serviceHeader)
+        {
+            var diagnostic = new StandingOrderExecutionResultDTO
+            {
+                TargetDate = targetDate,
+                TargetDateOption = targetDateOption,
+            };
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var standingOrders = (_standingOrderRepository.GetAll(serviceHeader) ?? Enumerable.Empty<StandingOrder>()).ToList();
+                diagnostic.TotalStandingOrders = standingOrders.Count;
+
+                foreach (var standingOrder in standingOrders)
+                {
+                    if (standingOrder.Trigger != (int)StandingOrderTrigger.Schedule)
+                    {
+                        diagnostic.WrongTriggerCount++;
+                        continue;
+                    }
+
+                    if (standingOrder.IsLocked)
+                    {
+                        diagnostic.LockedCount++;
+                        continue;
+                    }
+
+                    if (standingOrder.Duration.EndDate < targetDate)
+                    {
+                        diagnostic.ExpiredCount++;
+                        continue;
+                    }
+
+                    if (standingOrder.Schedule.ForceExecute)
+                    {
+                        diagnostic.EligibleCount++;
+                        continue;
+                    }
+
+                    var runDate = targetDateOption == 1
+                        ? standingOrder.Schedule.ExpectedRunDate
+                        : standingOrder.Schedule.ActualRunDate;
+
+                    var comparison = DateTime.Compare(runDate.Date, targetDate.Date);
+                    if (comparison > 0)
+                        diagnostic.NotYetDueCount++;
+                    else
+                    {
+                        diagnostic.EligibleCount++;
+                        if (comparison < 0)
+                            diagnostic.OverdueCount++;
+                    }
                 }
             }
+
+            return diagnostic;
         }
 
         private Tuple<decimal, string> RecoverArrearages(Guid postingPeriodId, CustomerAccountDTO benefactorCustomerAccountDTO, StandingOrderDTO standingOrderDTO, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, ServiceHeader serviceHeader)

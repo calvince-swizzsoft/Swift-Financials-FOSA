@@ -8,9 +8,13 @@ namespace Application.MainBoundedContext.FrontOfficeModule.Services
 {
     public interface IFixedDepositAppService
     {
-        FixedDepositDTO InvokeFixedDeposit(FixedDepositDTO fixedDepositDTO, ServiceHeader serviceHeader);
+        FixedDepositDTO InvokeFixedDeposit(FixedDepositDTO fixedDepositDTO, ServiceHeader serviceHeader, bool suppressBalanceCheck = false);
 
         bool AuditFixedDeposit(FixedDepositDTO fixedDepositDTO, int fixedDepositAuthOption, int moduleNavigationItemCode, ServiceHeader serviceHeader, bool suppressBalanceCheck = false);
+
+        FixedDepositReconciliationEligibilityDTO GetPostingReconciliationEligibility(Guid fixedDepositId, ServiceHeader serviceHeader);
+
+        FixedDepositDTO ReconcileUnpostedFixedDeposit(Guid fixedDepositId, string reason, ServiceHeader serviceHeader);
 
         bool RevokeFixedDeposits(List<FixedDepositDTO> fixedDepositDTOs, int moduleNavigationItemCode, ServiceHeader serviceHeader);
 

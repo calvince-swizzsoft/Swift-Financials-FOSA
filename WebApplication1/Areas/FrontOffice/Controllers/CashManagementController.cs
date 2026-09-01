@@ -73,8 +73,28 @@ namespace WebApplication1.Controllers
         [Route("")]
         public async Task<IHttpActionResult> Create(FiscalCountDTO fiscalCountDTO)
         {
-           // bool IncludeBalance = false;
-            fiscalCountDTO.ValidateAll();
+            if (fiscalCountDTO == null)
+                return BadRequest("A cash-management request body is required.");
+
+            if (fiscalCountDTO.BranchId == Guid.Empty)
+                return BadRequest("The source branch is required.");
+
+            if (fiscalCountDTO.TotalValue <= 0m)
+                return BadRequest("The transaction amount must be greater than zero.");
+
+            if (!string.IsNullOrWhiteSpace(fiscalCountDTO.Reference) && fiscalCountDTO.Reference.Trim().Length > 100)
+                return BadRequest("The reference cannot exceed 100 characters.");
+
+            if (!string.IsNullOrWhiteSpace(fiscalCountDTO.Reference) && fiscalCountDTO.Reference.Any(char.IsControl))
+                return BadRequest("The reference cannot contain control characters.");
+
+            fiscalCountDTO.Reference = (fiscalCountDTO.Reference ?? string.Empty).Trim();
+
+            var denominationError = ValidateDenominations(fiscalCountDTO);
+            if (!string.IsNullOrWhiteSpace(denominationError))
+                return BadRequest(denominationError);
+
+           fiscalCountDTO.ValidateAll();
 
             var serviceHeader = Utils.CreateServiceHeader();
 
@@ -167,6 +187,8 @@ namespace WebApplication1.Controllers
                     switch ((TreasuryTransactionType)treasuryTransactionType)
                     {
                         case TreasuryTransactionType.BankToTreasury:
+                            if (fiscalCountDTO.Id == Guid.Empty)
+                                return BadRequest("The bank linkage is required.");
 
                          
                             BankLinkageDTO matchingBankLinkage;
@@ -181,6 +203,9 @@ namespace WebApplication1.Controllers
                             break;
 
                         case TreasuryTransactionType.TreasuryToTeller:
+                            if (fiscalCountDTO.TellerId == Guid.Empty)
+                                return BadRequest("The destination teller is required.");
+
                             transactionModel.CreditChartOfAccountId = ActiveTreasury.ChartOfAccountId;
 
                             var teller = _tellerAppService.FindTeller(fiscalCountDTO.TellerId, serviceHeader);
@@ -190,6 +215,13 @@ namespace WebApplication1.Controllers
 
                                 return Json(new { success = false, message = "Operation Failed: Teller Not Found" });
                             }
+
+                            if (teller.EmployeeBranchId != ActiveTreasury.BranchId)
+                                return BadRequest("The selected teller does not belong to the source treasury branch.");
+
+                            if (!teller.ChartOfAccountId.HasValue || teller.ChartOfAccountId.Value == Guid.Empty)
+                                return BadRequest("The selected teller has no configured cash G/L account.");
+
                             transactionModel.DebitChartOfAccountId = (Guid)teller.ChartOfAccountId;
                             transactionModel.TransactionCode = (int)SystemTransactionCode.TreasuryToTeller;
 
@@ -204,6 +236,9 @@ namespace WebApplication1.Controllers
                             break;
 
                         case TreasuryTransactionType.TreasuryToBank:
+                            if (fiscalCountDTO.Id == Guid.Empty)
+                                return BadRequest("The bank linkage is required.");
+
                             transactionModel.CreditChartOfAccountId = ActiveTreasury.ChartOfAccountId;
 
                             BankLinkageDTO linkage;
@@ -217,6 +252,9 @@ namespace WebApplication1.Controllers
                             break;
 
                         case TreasuryTransactionType.TreasuryToTreasury:
+                            if (fiscalCountDTO.Id == Guid.Empty)
+                                return BadRequest("The destination treasury is required.");
+
                             transactionModel.CreditChartOfAccountId = ActiveTreasury.ChartOfAccountId;
 
                             var treasury = _treasuryAppService.FindTreasury(fiscalCountDTO.Id, serviceHeader);
@@ -226,6 +264,14 @@ namespace WebApplication1.Controllers
 
                                 return Json(new { success = false, message = "Operation Failed: Receiving treasury not found" });
                             }
+
+                            if (treasury.Id == ActiveTreasury.Id)
+                                return BadRequest("The source and destination treasury must be different.");
+
+                            // Never trust the request's destination branch. It is determined by
+                            // the selected treasury and is used when the destination fiscal count
+                            // is persisted.
+                            fiscalCountDTO.DestinationBranchId = treasury.BranchId;
                             destinationTreasuryId = treasury.Id;
                             transactionModel.DebitChartOfAccountId = treasury.ChartOfAccountId;
                             transactionModel.TransactionCode = (int)SystemTransactionCode.TreasuryToTreasury;
@@ -397,6 +443,34 @@ namespace WebApplication1.Controllers
 
                 return Json(new { success = false, message = "Operation Failed: There are errors in the form" });
             }
+        }
+
+        private static string ValidateDenominations(FiscalCountDTO fiscalCountDTO)
+        {
+            var denominations = new[]
+            {
+                new { Name = "1000", Value = fiscalCountDTO.DenominationOneThousandValue, Unit = 1000m },
+                new { Name = "500", Value = fiscalCountDTO.DenominationFiveHundredValue, Unit = 500m },
+                new { Name = "200", Value = fiscalCountDTO.DenominationTwoHundredValue, Unit = 200m },
+                new { Name = "100", Value = fiscalCountDTO.DenominationOneHundredValue, Unit = 100m },
+                new { Name = "50", Value = fiscalCountDTO.DenominationFiftyValue, Unit = 50m },
+                new { Name = "40", Value = fiscalCountDTO.DenominationFourtyValue, Unit = 40m },
+                new { Name = "20", Value = fiscalCountDTO.DenominationTwentyValue, Unit = 20m },
+                new { Name = "10", Value = fiscalCountDTO.DenominationTenValue, Unit = 10m },
+                new { Name = "5", Value = fiscalCountDTO.DenominationFiveValue, Unit = 5m },
+                new { Name = "1", Value = fiscalCountDTO.DenominationOneValue, Unit = 1m },
+                new { Name = "50c", Value = fiscalCountDTO.DenominationFiftyCentValue, Unit = 0.5m },
+            };
+
+            var negative = denominations.FirstOrDefault(item => item.Value < 0m);
+            if (negative != null)
+                return string.Format("The {0} denomination subtotal cannot be negative.", negative.Name);
+
+            var invalidMultiple = denominations.FirstOrDefault(item => item.Value % item.Unit != 0m);
+            if (invalidMultiple != null)
+                return string.Format("The {0} denomination subtotal must represent a whole number of notes or coins.", invalidMultiple.Name);
+
+            return null;
         }
 
 

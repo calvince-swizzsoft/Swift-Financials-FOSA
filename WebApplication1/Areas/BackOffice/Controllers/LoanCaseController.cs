@@ -190,6 +190,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         private readonly IFileRegisterAppService _fileRegisterAppService;
         private readonly IWorkflowAppService _workflowAppService;
         private readonly IAuthorizationAppService _authorizationAppService;
+        private readonly IBranchAppService _branchAppService;
 
         public LoanCaseController(
             ILoanCaseAppService loanCaseAppService,
@@ -206,7 +207,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             ILoanDisbursementBatchAppService loanDisbursementBatchAppService,
             IFileRegisterAppService fileRegisterAppService,
             IWorkflowAppService workflowAppService,
-            IAuthorizationAppService authorizationAppService)
+            IAuthorizationAppService authorizationAppService,
+            IBranchAppService branchAppService)
         {
             _loanCaseAppService = loanCaseAppService ?? throw new ArgumentNullException(nameof(loanCaseAppService));
             _customerAppService = customerAppService ?? throw new ArgumentNullException(nameof(customerAppService));
@@ -223,6 +225,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             _fileRegisterAppService = fileRegisterAppService ?? throw new ArgumentNullException(nameof(fileRegisterAppService));
             _workflowAppService = workflowAppService ?? throw new ArgumentNullException(nameof(workflowAppService));
             _authorizationAppService = authorizationAppService ?? throw new ArgumentNullException(nameof(authorizationAppService));
+            _branchAppService = branchAppService ?? throw new ArgumentNullException(nameof(branchAppService));
         }
 
         // Mirrors the reference Index grid — status is a real, required
@@ -443,9 +446,36 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             var guarantors = request.Guarantors ?? new List<LoanGuarantorDTO>();
             var collateralDocumentIds = request.CollateralDocumentIds ?? new List<Guid>();
 
+            if (loanCaseDTO.CustomerId == Guid.Empty || loanCaseDTO.LoanProductId == Guid.Empty || loanCaseDTO.BranchId == Guid.Empty)
+                return ErrorResponse("Customer, loan product, and branch are required");
+
+            if (loanCaseDTO.AmountApplied <= 0m)
+                return ErrorResponse("Amount applied must be greater than zero");
+
+            if (loanCaseDTO.ReceivedDate == default(DateTime))
+                return ErrorResponse("Received date is required");
+
+            if (loanCaseDTO.ReceivedDate.Date > DateTime.Today)
+                return ErrorResponse("Received date cannot be in the future");
+
+            if (guarantors.Any(item => item == null))
+                return ErrorResponse("Guarantor entries cannot be null");
+
+            if (guarantors.Select(item => item.GuarantorId).Distinct().Count() != guarantors.Count)
+                return ErrorResponse("The same guarantor cannot be submitted more than once");
+
+            if (collateralDocumentIds.Distinct().Count() != collateralDocumentIds.Count)
+                return ErrorResponse("The same collateral document cannot be submitted more than once");
+
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
+
+                var branch = _branchAppService.FindBranch(loanCaseDTO.BranchId, serviceHeader);
+                if (branch == null)
+                    return ErrorResponse("Branch not found");
+                if (branch.IsLocked)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The selected branch is locked and cannot register new loan applications"));
 
                 var customer = _customerAppService.FindCustomer(loanCaseDTO.CustomerId, serviceHeader);
                 if (customer == null)
@@ -496,12 +526,26 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (registrationPermissionError != null)
                     return Content(HttpStatusCode.Forbidden, ErrorEnvelope(registrationPermissionError));
 
+                // Registration must never create a case that cannot enter its next
+                // stage. Appraisal is workflow-gated, and its endpoint requires the
+                // final assigned WorkflowItemId, so validate the mapping before the
+                // loan case is persisted.
+                var appraisalPermission = GetLoanStagePermission(
+                    loanProduct.LoanRegistrationLoanProductSection,
+                    SystemPermissionType.FrontOfficeLoanAppraisal,
+                    SystemPermissionType.BackOfficeLoanAppraisal);
+                var appraisalWorkflowError = ValidateLoanStageWorkflowConfiguration(appraisalPermission, serviceHeader);
+                if (appraisalWorkflowError != null)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope(appraisalWorkflowError));
+
                 if (loanCaseDTO.SavingsProductId == null || loanCaseDTO.SavingsProductId == Guid.Empty)
                     return ErrorResponse("Savings product is required");
 
                 var savingsProduct = _savingsProductAppService.FindSavingsProduct(loanCaseDTO.SavingsProductId.Value, loanCaseDTO.BranchId, serviceHeader);
                 if (savingsProduct == null)
                     return ErrorResponse("Savings product not found");
+                if (savingsProduct.IsLocked)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The selected savings product is locked"));
 
                 if (loanCaseDTO.LoanPurposeId == null || loanCaseDTO.LoanPurposeId == Guid.Empty)
                     return ErrorResponse("Loan purpose is required");
@@ -509,6 +553,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var loanPurpose = _loanPurposeAppService.FindLoanPurpose(loanCaseDTO.LoanPurposeId.Value, serviceHeader);
                 if (loanPurpose == null)
                     return ErrorResponse("Loan purpose not found");
+                if (loanPurpose.IsLocked)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The selected loan purpose is locked"));
 
                 if (loanCaseDTO.RegistrationRemarkId == Guid.Empty)
                     return ErrorResponse("Registration remark is required");
@@ -516,6 +562,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var loaningRemark = _loaningRemarkAppService.FindLoaningRemark(loanCaseDTO.RegistrationRemarkId, serviceHeader);
                 if (loaningRemark == null)
                     return ErrorResponse("Loaning remark not found");
+                if (loaningRemark.IsLocked)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The selected registration remark is locked"));
 
                 // Membership period gate — reference LoanRegistrationController.Create.
                 var membershipMonths = ((DateTime.Now.Year - customer.CreatedDate.Year) * 12) + DateTime.Now.Month - customer.CreatedDate.Month;
@@ -530,8 +578,16 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 foreach (var documentId in collateralDocumentIds)
                 {
                     var document = _customerDocumentAppService.FindCustomerDocument(documentId, serviceHeader);
-                    if (document != null)
-                        collateralDocuments.Add(document);
+                    if (document == null)
+                        return ErrorResponse($"Collateral document {documentId} not found");
+                    if (document.CustomerId != loanCaseDTO.CustomerId)
+                        return ErrorResponse($"Collateral document {documentId} does not belong to the selected customer");
+                    if (document.Type != (int)CustomerDocumentType.Collateral)
+                        return ErrorResponse($"Customer document {documentId} is not a collateral document");
+                    if (document.CollateralStatus != (byte)CollateralStatus.Released)
+                        return Content(HttpStatusCode.Conflict, ErrorEnvelope($"Collateral document {documentId} is already attached"));
+
+                    collateralDocuments.Add(document);
                 }
 
                 CopyLoanProductSnapshot(loanCaseDTO, loanProduct);
@@ -570,7 +626,6 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     _loanCaseAppService.UpdateLoanGuarantors(created.Id, guarantors, serviceHeader);
                 }
 
-                var appraisalPermission = GetLoanStagePermission(created, SystemPermissionType.FrontOfficeLoanAppraisal, SystemPermissionType.BackOfficeLoanAppraisal);
                 if (!OriginateLoanStageWorkflow(created, appraisalPermission, serviceHeader))
                     throw new InvalidOperationException("The loan case was registered, but its appraisal workflow could not be created");
 
@@ -635,35 +690,32 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var loanProduct = _loanProductAppService.FindLoanProduct(loanCase.LoanProductId, serviceHeader);
                 if (loanProduct == null)
                     return ErrorResponse("Loan product not found");
+                var customer = _customerAppService.FindCustomer(loanCase.CustomerId, serviceHeader);
+                if (customer == null)
+                    return ErrorResponse("Customer not found");
 
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCase.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
 
                 var investmentsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(a => a.BookBalance);
                 var savingsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance);
-                var totalShares = investmentsBalance + savingsBalance;
-
-                var maximumLoan = investmentsBalance * Convert.ToDecimal(loanProduct.LoanRegistrationInvestmentsMultiplier);
-
-                var loaneeFactor = _loanProductAppService.GetLoaneeAppraisalFactor(loanProduct.Id, totalShares, serviceHeader);
-                if (loaneeFactor > 0d)
-                    maximumLoan *= Convert.ToDecimal(loaneeFactor);
-
                 var loanProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(loanCase.CustomerId, loanCase.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
                 var outstandingLoansBalance = loanProductAccounts.Sum(a => Math.Abs(a.BookBalance + a.CarryForwardsBalance));
-
-                var maximumEntitled = loanProduct.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement
-                    ? maximumLoan
-                    : maximumLoan - outstandingLoansBalance;
+                var qualification = _loanProductAppService.CalculateLoanQualification(
+                    loanProduct.Id, investmentsBalance, savingsBalance, outstandingLoansBalance,
+                    loanCase.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal,
+                    loanCase.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement,
+                    loanCase.LoanRegistrationMaximumAmount, serviceHeader);
+                var totalShares = investmentsBalance + savingsBalance;
+                var appraisalBaseBalance = qualification.AppraisalBaseBalance;
+                var maximumLoan = qualification.MaximumLoan;
+                var maximumEntitled = qualification.MaximumEntitled;
+                var systemAppraisedAmount = Math.Min(loanCase.AmountApplied, maximumEntitled);
 
                 var loanPart = loanCase.AmountApplied;
-                var interestPart = loanPart * Convert.ToDecimal((loanCase.LoanInterestAnnualPercentageRate / 100) * (loanCase.LoanRegistrationTermInMonths / 12.0));
-                var loanPlusInterest = loanPart + interestPart;
-
-                var monthlyInterestRate = loanCase.LoanInterestAnnualPercentageRate / (12 * 100);
-                var termInMonths = loanCase.LoanRegistrationTermInMonths;
-                var paymentPerPeriod = termInMonths > 0 && monthlyInterestRate > 0
-                    ? Math.Round((double)loanPart * (monthlyInterestRate * Math.Pow(1 + monthlyInterestRate, termInMonths)) / (Math.Pow(1 + monthlyInterestRate, termInMonths) - 1), 2)
-                    : 0d;
+                var repaymentSchedule = _loanCaseAppService.BuildRepaymentSchedule(id, loanPart, serviceHeader);
+                var interestPart = Math.Round(repaymentSchedule.Sum(item => item.InterestPayment), 2);
+                var loanPlusInterest = Math.Round(repaymentSchedule.Sum(item => item.Payment), 2);
+                var paymentPerPeriod = repaymentSchedule.Any() ? repaymentSchedule.First().Payment : 0m;
 
                 var appraisalFactors = _loanCaseAppService.FindLoanAppraisalFactorsByLoanCaseId(id, serviceHeader) ?? new List<LoanAppraisalFactorDTO>();
                 var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, serviceHeader) ?? new List<LoanGuarantorDTO>();
@@ -676,18 +728,24 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     .ToList();
                 var loanApplications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(loanCase.CustomerId, serviceHeader) ?? new List<LoanCaseDTO>();
                 var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, serviceHeader) ?? new List<AttachedLoanDTO>();
-                var fileRegister = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(loanCase.CustomerId, serviceHeader);
-                var fileReadyForAppraisal = fileRegister?.FileRegister != null && fileRegister.FileRegister.Status == (int)FileMovementStatus.Received;
+                var fileRegister = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(loanCase.CustomerId, loanCase.BranchId, serviceHeader);
+                var fileReadyForAppraisal = fileRegister?.IsReadyForLoanAppraisal == true;
+                var requiresIncomeAppraisal = !loanCase.LoanRegistrationMicrocredit
+                    && loanCase.LoanRegistrationLoanProductSection == (int)LoanProductSection.FOSA;
 
                 return Ok(ApiResponse("", new
                 {
                     loanCase,
+                    customer,
                     totalShares,
+                    appraisalBaseBalance,
                     investmentsBalance,
                     savingsBalance,
                     maximumLoan,
                     outstandingLoansBalance,
                     maximumEntitled,
+                    qualification,
+                    systemAppraisedAmount,
                     loanPart,
                     interestPart,
                     loanPlusInterest,
@@ -700,6 +758,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     standingOrders,
                     loanApplications,
                     attachedLoans,
+                    repaymentSchedule,
+                    requiresIncomeAppraisal,
                     fileRegister,
                     fileReadyForAppraisal
                 }));
@@ -744,6 +804,23 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             if (!Enum.IsDefined(typeof(LoanAppraisalOption), request.Option))
                 return ErrorResponse("Invalid appraisal option");
 
+            if (string.IsNullOrWhiteSpace(request.AppraisalRemarks))
+                return ErrorResponse("Appraisal remarks are required");
+
+            if (request.Option == (int)LoanAppraisalOption.Appraise)
+            {
+                if (request.AppraisedAmount <= 0m)
+                    return ErrorResponse("Appraised amount must be greater than zero");
+                if (request.MonthlyPaybackAmount <= 0m)
+                    return ErrorResponse("Monthly payback amount must be greater than zero");
+                if (request.TotalPaybackAmount <= 0m)
+                    return ErrorResponse("Total payback amount must be greater than zero");
+                if (request.LoanProductLatestIncome < 0m || request.AppraisedNetIncome < 0m || request.AppraisedAbility < 0m || request.TotalLoansBalance < 0m)
+                    return ErrorResponse("Appraisal income, ability, and loan balance values cannot be negative");
+                if (request.IncomeAdjustments != null && request.IncomeAdjustments.Any(f => f.Amount <= 0m))
+                    return ErrorResponse("Every income adjustment amount must be greater than zero");
+            }
+
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
@@ -752,9 +829,14 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (existing == null)
                     return NotFound();
 
-                var customerFile = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(existing.CustomerId, serviceHeader);
-                if (customerFile?.FileRegister == null || customerFile.FileRegister.Status != (int)FileMovementStatus.Received)
-                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The customer's physical file must be received through File Tracking before appraisal"));
+                var requiresIncomeAppraisal = !existing.LoanRegistrationMicrocredit
+                    && existing.LoanRegistrationLoanProductSection == (int)LoanProductSection.FOSA;
+
+                var customerFile = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(existing.CustomerId, existing.BranchId, serviceHeader);
+                if (customerFile?.IsReadyForLoanAppraisal != true)
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope(
+                        customerFile?.LoanAppraisalReadinessMessage
+                        ?? "The customer's physical file must be dispatched and received by the configured loan appraisal department before appraisal"));
 
                 WorkflowItemDTO workflowItem;
                 var appraisalPermission = GetLoanStagePermission(existing, SystemPermissionType.FrontOfficeLoanAppraisal, SystemPermissionType.BackOfficeLoanAppraisal);
@@ -782,25 +864,42 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                         return ErrorResponse("The same income adjustment was submitted more than once");
                 }
 
+                if (request.Option == (int)LoanAppraisalOption.Appraise && requiresIncomeAppraisal)
+                {
+                    var calculatedNetIncome = request.LoanProductLatestIncome;
+                    foreach (var factor in (request.IncomeAdjustments ?? new List<LoanAppraisalFactorDTO>()).Where(factor => factor.IsEnabled))
+                    {
+                        calculatedNetIncome += factor.Type == (int)IncomeAdjustmentType.Deduction
+                            ? -factor.Amount
+                            : factor.Amount;
+                    }
+                    if (calculatedNetIncome < 0m)
+                        return ErrorResponse("Income deductions cannot exceed the latest verified income plus allowances");
+                    request.AppraisedNetIncome = calculatedNetIncome;
+                }
+                else if (request.Option == (int)LoanAppraisalOption.Appraise)
+                {
+                    request.LoanProductLatestIncome = 0m;
+                    request.AppraisedNetIncome = 0m;
+                    request.AppraisedAbility = 0m;
+                    request.IncomeAdjustments = new List<LoanAppraisalFactorDTO>();
+                }
+
                 existing.LoanAppraisalOption = request.Option;
                 existing.LoanProductLatestIncome = request.LoanProductLatestIncome;
                 existing.AppraisedNetIncome = request.AppraisedNetIncome;
                 existing.AppraisedAbility = request.AppraisedAbility;
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(existing.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
                 var investmentsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(a => a.BookBalance);
-                var appraisalBaseBalance = existing.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal
-                    ? accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment || a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance)
-                    : investmentsBalance;
-                var maximumLoan = appraisalBaseBalance * Convert.ToDecimal(existing.LoanRegistrationInvestmentsMultiplier);
-                var loaneeFactor = _loanProductAppService.GetLoaneeAppraisalFactor(existing.LoanProductId, appraisalBaseBalance, serviceHeader);
-                if (loaneeFactor > 0d)
-                    maximumLoan *= Convert.ToDecimal(loaneeFactor);
+                var savingsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance);
                 var sameProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(existing.CustomerId, existing.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
                 var outstandingSameProductBalance = sameProductAccounts.Sum(a => Math.Abs(a.BookBalance + a.CarryForwardsBalance));
-                var maximumEntitled = existing.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement
-                    ? Math.Max(0m, maximumLoan)
-                    : Math.Max(0m, maximumLoan - outstandingSameProductBalance);
-                existing.SystemAppraisedAmount = Math.Min(existing.AmountApplied, maximumEntitled);
+                var qualification = _loanProductAppService.CalculateLoanQualification(
+                    existing.LoanProductId, investmentsBalance, savingsBalance, outstandingSameProductBalance,
+                    existing.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal,
+                    existing.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement,
+                    existing.LoanRegistrationMaximumAmount, serviceHeader);
+                existing.SystemAppraisedAmount = Math.Min(existing.AmountApplied, qualification.MaximumEntitled);
                 existing.SystemAppraisalRemarks = existing.SystemAppraisedAmount >= existing.AmountApplied
                     ? "The applied amount is within the member's investment-based entitlement."
                     : "The applied amount exceeds the member's investment-based entitlement.";
@@ -813,7 +912,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     && request.AppraisedAmount > existing.SystemAppraisedAmount)
                     return Content(HttpStatusCode.Conflict, ErrorEnvelope("This loan product enforces the system appraisal recommendation; the appraised amount cannot exceed the system-appraised amount"));
 
-                if (request.Option == (int)LoanAppraisalOption.Appraise)
+                if (request.Option == (int)LoanAppraisalOption.Appraise && requiresIncomeAppraisal)
                 {
                     var takeHome = request.AppraisedNetIncome - request.MonthlyPaybackAmount;
                     if (existing.TakeHomeType == (int)ChargeType.Percentage)
@@ -929,11 +1028,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 existing.LoanApprovalOption = request.Option;
                 existing.ApprovedAmount = request.ApprovedAmount;
                 existing.ApprovedAmountRemarks = request.ApprovedAmountRemarks;
-                existing.ApprovedPrincipalPayment = request.ApprovedPrincipalPayment;
-                existing.ApprovedInterestPayment = request.ApprovedInterestPayment;
+                // Zero means the audit AppService must use the system-generated
+                // schedule. Approval no longer accepts silent repayment overrides.
+                existing.ApprovedPrincipalPayment = 0m;
+                existing.ApprovedInterestPayment = 0m;
                 var repaymentSchedule = request.Option == (int)LoanApprovalOption.Approve
-                    ? BuildRepaymentSchedule(request.ApprovedAmount, existing.LoanInterestAnnualPercentageRate, existing.LoanRegistrationTermInMonths, existing.InterestCalculationModeDescription)
-                    : new List<RepaymentScheduleEntry>();
+                    ? _loanCaseAppService.BuildRepaymentSchedule(id, request.ApprovedAmount, serviceHeader)
+                    : new List<AmortizationTableEntry>();
                 existing.MonthlyPaybackAmount = repaymentSchedule.Any() ? repaymentSchedule.First().Payment : 0m;
                 existing.TotalPaybackAmount = repaymentSchedule.Sum(item => item.Payment);
                 existing.ApprovalRemarks = request.ApprovalRemarks;
@@ -1121,7 +1222,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, header) ?? new List<LoanCollateralDTO>();
                 var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, header) ?? new List<AttachedLoanDTO>();
                 var scheduleAmount = loanCase.ApprovedAmount > 0 ? loanCase.ApprovedAmount : loanCase.AmountApplied;
-                var repaymentSchedule = BuildRepaymentSchedule(scheduleAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
+                var repaymentSchedule = _loanCaseAppService.BuildRepaymentSchedule(id, scheduleAmount, header);
                 return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule, loanAccounts, standingOrders, payouts, applications }));
             }
             catch (Exception) { throw; }
@@ -1178,14 +1279,44 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     return string.Join("; ", guarantor.ErrorMessages);
             }
 
-            if (!loanProduct.LoanRegistrationMicrocredit && loanProduct.LoanRegistrationSecurityRequired
-                && loanProduct.LoanRegistrationGuarantorSecurityMode == (int)GuarantorSecurityMode.Investments
-                && guarantors.Sum(g => g.AmountGuaranteed) < loanCaseDTO.AmountApplied)
-            {
-                return "The total amount guaranteed does not fully secure the amount applied";
-            }
-
+            // Aggregate security coverage is validated by LoanCaseDTO after collateral
+            // values have been resolved. Do not reject here using guarantors alone;
+            // the domain rule permits guaranteed shares plus collateral.
             return null;
+        }
+
+        [HttpPost]
+        [Route("{id:guid}/ensure-appraisal-workflow")]
+        public IHttpActionResult EnsureAppraisalWorkflow(Guid id)
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            var loanCase = _loanCaseAppService.FindLoanCase(id, serviceHeader);
+            if (loanCase == null)
+                return NotFound();
+
+            if (loanCase.Status != (int)LoanCaseStatus.Registered && loanCase.Status != (int)LoanCaseStatus.Deferred)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("Only Registered or Deferred loan cases can enter appraisal"));
+
+            var registrationPermission = GetLoanStagePermission(
+                loanCase,
+                SystemPermissionType.FrontOfficeLoanRegistration,
+                SystemPermissionType.BackOfficeLoanRegistration);
+            var permissionError = ValidateMappedPermission(registrationPermission, serviceHeader);
+            if (permissionError != null)
+                return Content(HttpStatusCode.Forbidden, ErrorEnvelope(permissionError));
+
+            var appraisalPermission = GetLoanStagePermission(
+                loanCase,
+                SystemPermissionType.FrontOfficeLoanAppraisal,
+                SystemPermissionType.BackOfficeLoanAppraisal);
+            var configurationError = ValidateLoanStageWorkflowConfiguration(appraisalPermission, serviceHeader);
+            if (configurationError != null)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope(configurationError));
+
+            if (!OriginateLoanStageWorkflow(loanCase, appraisalPermission, serviceHeader))
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("The appraisal workflow could not be created"));
+
+            return Ok(ApiResponse("Appraisal workflow is ready. The assigned appraiser can continue from Approval Requests.", loanCase));
         }
 
         private string ValidateAuxiliaryConditions(LoanCaseDTO loanCase, LoanProductDTO loanProduct, List<CustomerAccountDTO> accounts, ServiceHeader serviceHeader)
@@ -1339,7 +1470,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, header) ?? new List<LoanCollateralDTO>();
                 var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, header) ?? new List<AttachedLoanDTO>();
                 var scheduleAmount = loanCase.AppraisedAmount > 0 ? loanCase.AppraisedAmount : loanCase.AmountApplied;
-                var repaymentSchedule = BuildRepaymentSchedule(scheduleAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
+                var repaymentSchedule = _loanCaseAppService.BuildRepaymentSchedule(id, scheduleAmount, header);
                 return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule }));
             }
             catch (Exception) { throw; }
@@ -1365,7 +1496,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, header) ?? new List<LoanGuarantorDTO>();
                 var collaterals = _loanCaseAppService.FindLoanCollateralsByLoanCaseId(id, header) ?? new List<LoanCollateralDTO>();
                 var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, header) ?? new List<AttachedLoanDTO>();
-                var repaymentSchedule = BuildRepaymentSchedule(loanCase.ApprovedAmount, loanCase.LoanInterestAnnualPercentageRate, loanCase.LoanRegistrationTermInMonths, loanCase.InterestCalculationModeDescription);
+                var repaymentSchedule = _loanCaseAppService.BuildRepaymentSchedule(id, loanCase.ApprovedAmount, header);
                 return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule, loanAccounts, standingOrders, payouts, applications }));
             }
             catch (Exception) { throw; }
@@ -1381,16 +1512,38 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             try
             {
                 var header = Utils.CreateServiceHeader();
+                var customer = _customerAppService.FindCustomer(customerId, header);
+                if (customer == null)
+                    return NotFound();
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(customerId, header) ?? new List<CustomerAccountDTO>();
                 var standingOrders = accounts.SelectMany(account => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(account.Id, header) ?? new List<StandingOrderDTO>()).GroupBy(item => item.Id).Select(group => group.First()).ToList();
                 var applications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(customerId, header) ?? new List<LoanCaseDTO>();
                 var payouts = _creditBatchAppService.FindCreditBatchEntriesByCustomerId((int)CreditBatchType.Payout, customerId, header) ?? new List<CreditBatchEntryDTO>();
                 var collaterals = _customerDocumentAppService.FindCustomerDocuments(customerId, 1, header) ?? new List<CustomerDocumentDTO>();
                 var investmentBalance = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(account => account.BookBalance);
-                var selectedProductLoanBalance = loanProductId.HasValue && loanProductId.Value != Guid.Empty
-                    ? (_customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(customerId, loanProductId.Value, header) ?? new List<CustomerAccountDTO>()).Sum(account => account.BookBalance + account.CarryForwardsBalance)
-                    : 0m;
-                return Ok(ApiResponse("", new { accounts, standingOrders, payouts, applications, collaterals, investmentBalance, selectedProductLoanBalance }));
+                var savingsBalance = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(account => account.BookBalance);
+                LoanProductDTO loanProduct = null;
+                var selectedProductLoanBalance = 0m;
+                var appraisalBaseBalance = 0m;
+                var maximumLoan = 0m;
+                var maximumEntitled = 0m;
+                LoanQualificationDTO qualification = null;
+                if (loanProductId.HasValue && loanProductId.Value != Guid.Empty)
+                {
+                    loanProduct = _loanProductAppService.FindLoanProduct(loanProductId.Value, header);
+                    if (loanProduct == null)
+                        return ErrorResponse("Loan product not found");
+                    selectedProductLoanBalance = (_customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(customerId, loanProductId.Value, header) ?? new List<CustomerAccountDTO>()).Sum(account => Math.Abs(account.BookBalance + account.CarryForwardsBalance));
+                    qualification = _loanProductAppService.CalculateLoanQualification(
+                        loanProduct.Id, investmentBalance, savingsBalance, selectedProductLoanBalance,
+                        loanProduct.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal,
+                        loanProduct.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement,
+                        loanProduct.LoanRegistrationMaximumAmount, header);
+                    appraisalBaseBalance = qualification.AppraisalBaseBalance;
+                    maximumLoan = qualification.MaximumLoan;
+                    maximumEntitled = qualification.MaximumEntitled;
+                }
+                return Ok(ApiResponse("", new { customer, loanProduct, accounts, standingOrders, payouts, applications, collaterals, investmentBalance, savingsBalance, selectedProductLoanBalance, appraisalBaseBalance, maximumLoan, maximumEntitled, qualification }));
             }
             catch (Exception) { throw; }
         }
@@ -1445,6 +1598,65 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 : $"The current user does not hold a role mapped to {permissionType}";
         }
 
+        [HttpGet]
+        [Route("{id:guid}/approval-repayment-schedule")]
+        public IHttpActionResult GetApprovalRepaymentSchedule(Guid id, decimal amount)
+        {
+            if (amount <= 0m)
+                return ErrorResponse("Approved amount must be greater than zero");
+
+            var header = Utils.CreateServiceHeader();
+            var loanCase = _loanCaseAppService.FindLoanCase(id, header);
+            if (loanCase == null) return NotFound();
+            if (loanCase.Status != (int)LoanCaseStatus.Appraised)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("Only an Appraised loan case can be reviewed for approval"));
+
+            var repaymentSchedule = _loanCaseAppService.BuildRepaymentSchedule(id, amount, header);
+            return Ok(ApiResponse("", repaymentSchedule));
+        }
+
+        [HttpPost]
+        [Route("{id:guid}/recalculate-repayment-schedule")]
+        public IHttpActionResult RecalculateRepaymentSchedule(Guid id, RecalculateRepaymentScheduleRequest request)
+        {
+            if (request == null)
+                return ErrorResponse("Request body is required");
+
+            var header = Utils.CreateServiceHeader();
+            var loanCase = _loanCaseAppService.FindLoanCase(id, header);
+            if (loanCase == null)
+                return NotFound();
+            if (loanCase.Status != (int)LoanCaseStatus.Approved)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("Only an Approved loan case can have its persisted repayment schedule recalculated"));
+
+            WorkflowItemDTO workflowItem;
+            var auditPermission = GetLoanStagePermission(loanCase, SystemPermissionType.FrontOfficeLoanAudit, SystemPermissionType.BackOfficeLoanAudit);
+            var workflowError = ValidateFinalLoanStageItem(id, request.WorkflowItemId, auditPermission, header, out workflowItem);
+            if (workflowError != null)
+                return Content(HttpStatusCode.Forbidden, ErrorEnvelope(workflowError));
+
+            var refreshed = _loanCaseAppService.RecalculateRepaymentSchedule(id, header);
+            if (refreshed == null)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("The repayment schedule could not be recalculated"));
+
+            var repaymentSchedule = _loanCaseAppService.BuildRepaymentSchedule(id, refreshed.ApprovedAmount, header);
+            return Ok(ApiResponse("Repayment schedule recalculated successfully", new { loanCase = refreshed, repaymentSchedule }));
+        }
+
+        private string ValidateLoanStageWorkflowConfiguration(SystemPermissionType permissionType, ServiceHeader serviceHeader)
+        {
+            var mappedRoles = _authorizationAppService.GetRolesAndApprovalPriorityByPermissionType((int)permissionType, serviceHeader)
+                ?? new List<SystemPermissionTypeInRoleDTO>();
+
+            if (!mappedRoles.Any())
+                return $"Loan registration cannot continue because no roles are mapped to {permissionType}";
+
+            if (!mappedRoles.Any(mapping => mapping.ApprovalPriority > 0 && mapping.RequiredApprovers > 0))
+                return $"Loan registration cannot continue because {permissionType} has no required approvers configured";
+
+            return null;
+        }
+
         private string ValidateFinalLoanStageItem(Guid loanCaseId, Guid workflowItemId, SystemPermissionType permissionType, ServiceHeader serviceHeader, out WorkflowItemDTO workflowItem)
         {
             workflowItem = null;
@@ -1489,59 +1701,6 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 serviceHeader);
         }
 
-        private List<RepaymentScheduleEntry> BuildRepaymentSchedule(decimal amount, double annualRate, int termInMonths, string calculationMode)
-        {
-            var result = new List<RepaymentScheduleEntry>();
-            if (amount <= 0 || termInMonths <= 0) return result;
-            var monthlyRate = Convert.ToDecimal(annualRate / 12d / 100d);
-            var remaining = amount;
-
-            for (var period = 1; period <= termInMonths; period++)
-            {
-                decimal payment;
-                decimal interest;
-                decimal principal;
-                switch (calculationMode ?? string.Empty)
-                {
-                    case "Reducing Balance":
-                    case "Amortization (Diminishing Balance)":
-                        var factor = Convert.ToDecimal(Math.Pow(1d + Convert.ToDouble(monthlyRate), termInMonths));
-                        payment = monthlyRate == 0 ? amount / termInMonths : amount * monthlyRate * factor / (factor - 1m);
-                        interest = remaining * monthlyRate;
-                        principal = payment - interest;
-                        break;
-                    case "Amortization (Straight Line)":
-                        payment = amount / termInMonths + amount * monthlyRate;
-                        interest = remaining * monthlyRate;
-                        principal = payment - interest;
-                        break;
-                    case "Straight Line":
-                    case "Fixed Interest":
-                    default:
-                        interest = amount * Convert.ToDecimal(annualRate / 100d) / termInMonths;
-                        principal = amount / termInMonths;
-                        payment = principal + interest;
-                        break;
-                }
-
-                if (period == termInMonths) principal = remaining;
-                payment = principal + interest;
-                var ending = Math.Max(0m, remaining - principal);
-                result.Add(new RepaymentScheduleEntry
-                {
-                    Period = period,
-                    DueDate = DateTime.Today.AddMonths(period),
-                    StartingBalance = Math.Round(remaining, 2),
-                    Payment = Math.Round(payment, 2),
-                    InterestPayment = Math.Round(interest, 2),
-                    PrincipalPayment = Math.Round(principal, 2),
-                    EndingBalance = Math.Round(ending, 2)
-                });
-                remaining = ending;
-            }
-            return result;
-        }
-
         private object ApiResponse(string message, object data)
         {
             return new { success = true, message, data };
@@ -1556,17 +1715,6 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         {
             return Content(HttpStatusCode.BadRequest, ErrorEnvelope(message));
         }
-    }
-
-    public class RepaymentScheduleEntry
-    {
-        public int Period { get; set; }
-        public DateTime DueDate { get; set; }
-        public decimal StartingBalance { get; set; }
-        public decimal Payment { get; set; }
-        public decimal InterestPayment { get; set; }
-        public decimal PrincipalPayment { get; set; }
-        public decimal EndingBalance { get; set; }
     }
 
     public class CreateLoanCaseRequest
@@ -1616,13 +1764,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         public decimal ApprovedAmount { get; set; }
 
         public string ApprovedAmountRemarks { get; set; }
-        public decimal ApprovedPrincipalPayment { get; set; }
-        public decimal ApprovedInterestPayment { get; set; }
-        public decimal MonthlyPaybackAmount { get; set; }
-        public decimal TotalPaybackAmount { get; set; }
-
         // Required for every option.
         public string ApprovalRemarks { get; set; }
+    }
+
+    public class RecalculateRepaymentScheduleRequest
+    {
+        public Guid WorkflowItemId { get; set; }
     }
 
     public class AuditLoanCaseRequest

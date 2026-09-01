@@ -55,12 +55,11 @@ namespace WebApplication1.Areas.Accounts.Controllers
             {
                 var rows = new List<BranchFinancialStatementRow>();
                 using (var connection = new SqlConnection(_connectionString))
-                using (var command = new SqlCommand("dbo.sp_FinancialStatementBranch", connection))
+                using (var command = new SqlCommand(BranchStatementSql, connection))
                 {
-                    command.CommandType = CommandType.StoredProcedure;
                     command.CommandTimeout = 120;
-                    command.Parameters.Add("@Enddate", SqlDbType.DateTime).Value = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                    command.Parameters.Add("@Branch", SqlDbType.VarChar, 36).Value = branchId.Value.ToString();
+                    command.Parameters.Add("@ExclusiveEndDate", SqlDbType.DateTime).Value = endDate.Value.Date.AddDays(1);
+                    command.Parameters.Add("@Branch", SqlDbType.UniqueIdentifier).Value = branchId.Value;
                     await connection.OpenAsync();
                     using (var reader = await command.ExecuteReaderAsync())
                     {
@@ -79,10 +78,6 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 }
                 return Ok(new { success = true, message = "Branch financial statement retrieved successfully.", data = new { endDate = endDate.Value.Date, branchId, rows } });
             }
-            catch (SqlException ex) when (ex.Number == 2812)
-            {
-                return Content(HttpStatusCode.NotImplemented, new { success = false, message = "dbo.sp_FinancialStatementBranch is not installed in this database. Apply the faithful legacy reporting procedures first." });
-            }
             catch (Exception) { throw; }
         }
 
@@ -95,11 +90,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
             {
                 var rows = new List<FinancialSummaryRow>();
                 using (var connection = new SqlConnection(_connectionString))
-                using (var command = new SqlCommand("dbo.sp_FinancialSummary", connection))
+                using (var command = new SqlCommand(FinancialSummarySql, connection))
                 {
-                    command.CommandType = CommandType.StoredProcedure;
                     command.CommandTimeout = 120;
-                    command.Parameters.Add("@EndDate", SqlDbType.DateTime).Value = endDate.Value.Date;
+                    command.Parameters.Add("@ExclusiveEndDate", SqlDbType.DateTime).Value = endDate.Value.Date.AddDays(1);
                     command.Parameters.Add("@Type", SqlDbType.Int).Value = type;
                     await connection.OpenAsync();
                     using (var reader = await command.ExecuteReaderAsync())
@@ -126,12 +120,109 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 foreach (var row in rows) { totalDebit += row.Debit; totalCredit += row.Credit; }
                 return Ok(new { success = true, message = statementName + " retrieved successfully.", data = new { statementType = type, statementName, endDate = endDate.Value.Date, totalDebit, totalCredit, difference = totalDebit - totalCredit, rows } });
             }
-            catch (SqlException ex) when (ex.Number == 2812)
+            catch (SqlException ex) when (ex.Number == 50001)
             {
-                return Content(HttpStatusCode.NotImplemented, new { success = false, message = "dbo.sp_FinancialSummary is not installed in this database. Apply the faithful legacy reporting procedure first." });
+                return Content(HttpStatusCode.Conflict, new { success = false, message = "Configure the Profit & Loss Appropriation system G/L account before generating the Balance Sheet." });
             }
             catch (Exception) { throw; }
         }
+
+        private const string FinancialSummarySql = @"
+IF @Type = 3 AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.swiftfin_SystemGeneralLedgerAccountMappings
+    WHERE SystemGeneralLedgerAccountCode = '48831'
+      AND ChartOfAccountId IS NOT NULL
+)
+    THROW 50001, 'Profit & Loss Appropriation system G/L account is not configured.', 1;
+
+;WITH AccountBalances AS
+(
+    SELECT coa.Id,
+           coa.AccountCode,
+           coa.AccountName,
+           coa.ParentId,
+           coa.CostCenterId,
+           coa.AccountType,
+           COALESCE(SUM(je.Amount), 0) AS Balance
+    FROM dbo.swiftfin_ChartOfAccounts coa
+    LEFT JOIN dbo.swiftfin_JournalEntries je
+      ON je.ChartOfAccountId = coa.Id
+     AND COALESCE(je.ValueDate, je.CreatedDate) < @ExclusiveEndDate
+    GROUP BY coa.Id, coa.AccountCode, coa.AccountName, coa.ParentId, coa.CostCenterId, coa.AccountType
+),
+StatementBalances AS
+(
+    SELECT ab.Id, ab.AccountCode, ab.AccountName, ab.ParentId, ab.CostCenterId, ab.AccountType, ab.Balance
+    FROM AccountBalances ab
+    WHERE @Type = 1
+       OR (@Type = 2 AND ab.AccountType IN (4000, 5000))
+       OR (@Type = 3 AND ab.AccountType NOT IN (4000, 5000))
+
+    UNION ALL
+
+    SELECT appropriation.Id,
+           appropriation.AccountCode,
+           appropriation.AccountName,
+           appropriation.ParentId,
+           appropriation.CostCenterId,
+           appropriation.AccountType,
+           COALESCE(SUM(je.Amount), 0) AS Balance
+    FROM dbo.swiftfin_SystemGeneralLedgerAccountMappings mapping
+    INNER JOIN dbo.swiftfin_ChartOfAccounts appropriation ON appropriation.Id = mapping.ChartOfAccountId
+    LEFT JOIN dbo.swiftfin_JournalEntries je
+      ON je.ChartOfAccountId IN
+         (SELECT Id FROM dbo.swiftfin_ChartOfAccounts WHERE AccountType IN (4000, 5000))
+     AND COALESCE(je.ValueDate, je.CreatedDate) < @ExclusiveEndDate
+    WHERE @Type = 3
+      AND mapping.SystemGeneralLedgerAccountCode = '48831'
+    GROUP BY appropriation.Id, appropriation.AccountCode, appropriation.AccountName,
+             appropriation.ParentId, appropriation.CostCenterId, appropriation.AccountType
+)
+SELECT sb.AccountCode,
+       sb.AccountName,
+       parent.AccountCode AS ParentCode,
+       parent.AccountName AS ParentName,
+       CASE WHEN SUM(sb.Balance) > 0 THEN SUM(sb.Balance) ELSE 0 END AS Debit,
+       CASE WHEN SUM(sb.Balance) < 0 THEN -SUM(sb.Balance) ELSE 0 END AS Credit,
+       COALESCE(costCenter.Description, 'Back Office') AS CostCenter,
+       LEFT(LTRIM(RTRIM(CONVERT(varchar(32), sb.AccountCode))), 1) AS Type,
+       CASE sb.AccountType
+           WHEN 1000 THEN 'Assets'
+           WHEN 2000 THEN 'Liabilities'
+           WHEN 3000 THEN 'Equity'
+           WHEN 4000 THEN 'Incomes'
+           WHEN 5000 THEN 'Expenses'
+       END AS TypeName
+FROM StatementBalances sb
+LEFT JOIN dbo.swiftfin_ChartOfAccounts parent ON parent.Id = sb.ParentId
+LEFT JOIN dbo.swiftfin_CostCenters costCenter ON costCenter.Id = sb.CostCenterId
+GROUP BY sb.Id, sb.AccountCode, sb.AccountName, parent.AccountCode, parent.AccountName,
+         costCenter.Description, sb.AccountType
+HAVING SUM(sb.Balance) <> 0
+ORDER BY sb.AccountCode;";
+
+        private const string BranchStatementSql = @"
+SELECT coa.AccountType,
+       CASE coa.AccountType
+           WHEN 1000 THEN 'Assets'
+           WHEN 2000 THEN 'Liabilities'
+           WHEN 3000 THEN 'Equity'
+           WHEN 4000 THEN 'Income'
+           WHEN 5000 THEN 'Expenses'
+       END AS AccountTypeCode,
+       LEFT(CONVERT(varchar(32), coa.AccountCode), 3) AS ShortCode,
+       SPACE(COALESCE(coa.Depth, 0) * 4) + LTRIM(RTRIM(CONVERT(varchar(32), coa.AccountCode))) + ' ' + LTRIM(RTRIM(coa.AccountName)) AS Code,
+       COALESCE(SUM(je.Amount), 0) AS Balance
+FROM dbo.swiftfin_ChartOfAccounts coa
+LEFT JOIN dbo.swiftfin_JournalEntries je
+  ON je.ChartOfAccountId = coa.Id
+ AND COALESCE(je.ValueDate, je.CreatedDate) < @ExclusiveEndDate
+ AND EXISTS
+     (SELECT 1 FROM dbo.swiftfin_Journals journal WHERE journal.Id = je.JournalId AND journal.BranchId = @Branch)
+GROUP BY coa.AccountType, coa.AccountCode, coa.AccountName, coa.Depth
+ORDER BY coa.AccountType, coa.AccountCode;";
 
         private static string ReadString(SqlDataReader reader, string name) { var value = reader[name]; return value == DBNull.Value ? null : Convert.ToString(value); }
         private static decimal ReadDecimal(SqlDataReader reader, string name) { var value = reader[name]; return value == DBNull.Value ? 0m : Convert.ToDecimal(value); }

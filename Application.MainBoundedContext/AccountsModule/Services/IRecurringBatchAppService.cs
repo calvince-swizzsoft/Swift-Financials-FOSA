@@ -18,6 +18,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         List<RecurringBatchDTO> FindRecurringBatches(ServiceHeader serviceHeader);
 
+        PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int? type, int pageIndex, int pageSize, ServiceHeader serviceHeader);
+
         PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 
         RecurringBatchDTO FindRecurringBatch(Guid recurringBatchId, ServiceHeader serviceHeader);
@@ -47,6 +49,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         bool ExecuteStandingOrders(RecurringBatchDTO recurringBatchDTO, List<CreditTypeDTO> creditTypeDTOs, List<SavingsProductDTO> savingsProductDTOs, List<LoanProductDTO> loanProductDTOs, List<InvestmentProductDTO> investmentProductDTOs, int standingOrderTrigger, ServiceHeader serviceHeader);
 
         bool ExecuteStandingOrders(DateTime targetDate, int targetDateOption, int priority, int maximumStandingOrderExecuteAttemptCount, int pageSize, ServiceHeader serviceHeader);
+
+        StandingOrderExecutionResultDTO ExecuteStandingOrdersDetailed(DateTime targetDate, int targetDateOption, int priority, int maximumStandingOrderExecuteAttemptCount, int pageSize, ServiceHeader serviceHeader);
 
         bool ExecutePayoutStandingOrders(Guid benefactorCustomerAccountId, int month, int priority, ServiceHeader serviceHeader);
 

@@ -102,14 +102,16 @@ Required on `loanCase`: `customerId`, `loanProductId`, `savingsProductId`,
 loan officer's branch isn't resolved server-side (no Web API controller in
 this repo reads "current user's branch" today, unlike the reference MVC
 app's `ApplicationUserManager` lookup) — send it explicitly.
+`receivedDate` cannot be in the future. Guarantor IDs and collateral document
+IDs must be unique within the request.
 
 What happens server-side, in order (all real, all enforced — see
 `WORKFLOW.md` §14.1 for why this all had to live in the controller rather
 than the app service):
 
 1. Customer must exist and be `RecordStatus.Approved`.
-2. Loan product, savings product, loan purpose, and registration remark
-   (loaning-remark) must each exist.
+2. Branch, loan product, savings product, loan purpose, and registration remark
+   (loaning-remark) must each exist and must not be locked.
 3. Membership-period gate: customer's account age (months since
    `CreatedDate`) must be ≥ the loan product's
    `LoanRegistrationMinimumMembershipPeriod`.
@@ -121,11 +123,13 @@ than the app service):
    `totalShares`/`committedShares`/`appraisalFactor` are computed
    server-side (see §4) — **don't bother sending them, they're
    overwritten**. If the product's guarantor security mode is
-   `Investments`, the sum of `amountGuaranteed` across all guarantors must
-   cover `amountApplied`.
+   `Investments`, guaranteed shares plus resolved collateral value must cover
+   `amountApplied`, matching `LoanCaseDTO.ValidateLoanSecurity` in the domain
+   layer.
 5. Collateral document ids are resolved to real `CustomerDocumentDTO`
-   records; unknown ids are silently dropped (not an error — matches how
-   the reference screen treated a stale picker selection).
+   records. Each must exist, belong to the selected customer, have document
+   type `Collateral`, and still have status `Released`; stale, foreign, or
+   already-attached documents are rejected.
 6. The loan product's ~40 registration-time fields (interest rate/mode,
    term, take-home, standing-order trigger, rounding type, etc.) are
    snapshotted onto the loan case — this is what makes an already-open
@@ -140,13 +144,22 @@ than the app service):
    `CaseNumber` server-generated) after its own duplicate-in-process check
    (§3). Guarantors and collateral are then attached via
    `UpdateLoanGuarantors`/`UpdateLoanCollaterals`.
-9. If roles are mapped to `SystemPermissionType.BackOfficeLoanAppraisal`,
-   registration creates a workflow and its role-priority items for the new
-   case. With no mapped roles, the pipeline retains direct processing.
+9. Before persistence, the selected product section's appraisal permission
+   (`FrontOfficeLoanAppraisal` or `BackOfficeLoanAppraisal`) must have at
+   least one mapped role with a positive approval priority and required-
+   approver count. Registration returns `409` if the next stage is not
+   configured. A successful registration always creates the appraisal
+   workflow and its role-priority items for the new case.
 
 Returns the freshly-fetched `LoanCaseDTO` in `data` on success. `409` if
 `AddNewLoanCase`'s own duplicate-application guard fires (message from
 `ErrorMessageResult`); `400` for every validation failure above.
+
+`POST /{id}/ensure-appraisal-workflow` repairs a pre-existing Registered or
+Deferred case created before next-stage workflow validation was enforced. It
+requires the caller's registration-stage permission, validates the appraisal
+role configuration, and idempotently creates or confirms the appraisal
+workflow.
 
 Branch budget-balance validation
 (`LoanCaseDTO.BranchBudgetBalance`/`BranchCompanyEnforceBudgetControl`) is
@@ -174,47 +187,94 @@ the method's own preceding comment ("Restore original values that were
 overwritten") and were removed — if you were previously seeing a loan
 case's `createdDate` drift on every edit, that's why, and it's fixed now.
 
-## 7. Appraisal worksheet
+## 7. Registration context
+
+`GET /customers/{customerId}/registration-context?loanProductId={loanProductId}`
+
+Returns the canonical customer and selected loan-product records, customer
+accounts, standing orders, payouts, applications and collateral. When a loan
+product is supplied it also returns investment/savings/appraisal balances,
+the same-product balance, maximum loan and maximum entitlement used to
+populate the read-only registration summary.
+
+## 8. Appraisal worksheet
 
 `GET /{id}/appraisal-worksheet`
 
 Read-only. System-computed figures for a `Registered`/`Deferred` case, plus
-the case itself and its current guarantors/collaterals/appraisal factors —
+the case itself, the current customer, and its current
+guarantors/collaterals/appraisal factors —
 gives the appraiser numbers to work from before deciding. `404` if the case
 doesn't exist.
 
 ```json
 {
   "loanCase": { "...": "LoanCaseDTO" },
+  "customer": { "...": "CustomerDTO" },
   "totalShares": 190000.00,
   "investmentsBalance": 40000.00,
   "savingsBalance": 150000.00,
+  "appraisalBaseBalance": 190000.00,
   "maximumLoan": 120000.00,
   "outstandingLoansBalance": 15000.00,
   "maximumEntitled": 105000.00,
+  "qualification": {
+    "InvestmentsBalance": 40000.00,
+    "SavingsBalance": 150000.00,
+    "SavingsIncluded": true,
+    "AppraisalBaseBalance": 190000.00,
+    "EffectiveMultiplier": 1.0,
+    "BalanceBasedMaximum": 190000.00,
+    "ProductMaximumAmount": 120000.00,
+    "MaximumLoan": 120000.00,
+    "OutstandingLoansBalance": 15000.00,
+    "ExistingBalanceExcluded": false,
+    "MaximumEntitled": 105000.00
+  },
+  "systemAppraisedAmount": 100000.00,
+  "requiresIncomeAppraisal": true,
   "loanPart": 100000.00,
   "interestPart": 12000.00,
   "loanPlusInterest": 112000.00,
   "paymentPerPeriod": 9333.33,
   "appraisalFactors": [ "...LoanAppraisalFactorDTO[]" ],
   "guarantors": [ "...LoanGuarantorDTO[]" ],
-  "collaterals": [ "...LoanCollateralDTO[]" ]
+  "collaterals": [ "...LoanCollateralDTO[]" ],
+  "repaymentSchedule": [
+    { "Period": 1, "DueDate": "2026-10-01", "StartingBalance": 100000.00, "Payment": 9333.33, "InterestPayment": 1000.00, "PrincipalPayment": 8333.33, "EndingBalance": 91666.67 }
+  ]
 }
 ```
 
-`maximumLoan` = `investmentsBalance × LoanRegistrationInvestmentsMultiplier`
-(the loan product's own multiplier). `outstandingLoansBalance` = book +
+`appraisalBaseBalance` is non-negative investments only, or investments plus
+non-negative savings when the case's snapshotted appraisal setting enables
+savings. The AppService selects exactly one `effectiveMultiplier`: the matching
+loanee appraisal tier, or the product investments multiplier when no tier
+matches. `balanceBasedMaximum = appraisalBaseBalance × effectiveMultiplier`;
+`maximumLoan` is the lower of that result and the product maximum principal.
+An absent/zero product maximum therefore does not create an unbounded entitlement.
+`outstandingLoansBalance` = book +
 carry-forward balance on the customer's existing account for this specific
-loan product. `maximumEntitled` = `maximumLoan − outstandingLoansBalance`.
+loan product. `maximumEntitled` = `maximumLoan − outstandingLoansBalance`,
+never below zero, unless the product explicitly excludes existing balances
+from entitlement. Monetary results are rounded to two decimal places.
+`systemAppraisedAmount` is the lower of the amount applied and maximum
+entitlement.
+`requiresIncomeAppraisal` follows the legacy domain rule: it is true for a
+non-microcredit FOSA product and false for BOSA or microcredit products.
+Clients must only capture salary, income adjustments and assessed repayment
+capacity when this flag is true.
 `interestPart` is a simple-interest estimate
 (`loanPart × (APR/100) × (termInMonths/12)`), not the amortized figure.
 `paymentPerPeriod` is a standard amortization `PMT` off the loan product's
 monthly rate and term — `0` if the term or rate is `0`.
+`repaymentSchedule` is the server-generated preview for the amount applied,
+using the case's snapshotted rate, term, and interest calculation mode.
 
 `GET /{id}/appraisal-factors` returns just the `appraisalFactors` array
 above, standalone.
 
-## 8. Appraise a loan case
+## 9. Appraise a loan case
 
 `POST /{id}/appraise`
 
@@ -248,7 +308,12 @@ is only applied when `option` is Appraise (a rejection has no appraisal
 figures worth keeping); each entry's `incomeAdjustmentId` must resolve to a
 real `IncomeAdjustmentDTO` (its `description`/`type` are filled in
 server-side, don't bother sending them) and the same id can't appear twice
-in one request. Returns the freshly-fetched `LoanCaseDTO` on success.
+in one request. The server derives `appraisedNetIncome` as latest verified
+income plus enabled allowances minus enabled deductions; a client-supplied
+net-income value is not trusted. Deductions cannot reduce the result below
+zero. For products where `requiresIncomeAppraisal` is false, the server
+clears the income fields and adjustments and does not apply take-home income
+validation. Returns the freshly-fetched `LoanCaseDTO` on success.
 
 When an appraisal workflow exists, `workflowItemId` is required and must
 identify its unlocked, pending, final item assigned to one of the caller's
@@ -268,7 +333,7 @@ in `ApproveLoanCase` (§9) and `AuditLoanCase` (§10) — see those sections.
 `MarkLoanCaseDisbursed` does not share this bug, but had a different one —
 see §10.
 
-## 9. Approve a loan case
+## 10. Approve a loan case
 
 `POST /{id}/approve`
 
@@ -317,7 +382,26 @@ themselves**, same shape as the Appraise fix in §8: the guard clause used
 to force-set `persisted.Status` to `Appraised` before even null-checking
 the fetched entity. Fixed the same way.
 
-## 10. Audit / verify a loan case
+### Recalculate an approved case's repayment schedule
+
+`POST /{id}/recalculate-repayment-schedule`
+
+```json
+{ "workflowItemId": "..." }
+```
+
+Rebuilds the schedule from the approved principal and the loan case's
+snapshotted term, annual rate, payment frequency, grace period, due-date
+rule, and interest calculation mode. It persists `MonthlyPaybackAmount`
+from the first schedule payment and `TotalPaybackAmount` from the sum of
+all schedule payments, then returns `{ loanCase, repaymentSchedule }`.
+
+Only an `Approved` case is eligible. The workflow item must be the pending,
+unlocked, final verification item assigned to the caller; recalculation does
+not complete that workflow item. The operation is idempotent when the saved
+figures are already current.
+
+## 11. Audit / verify a loan case
 
 `POST /{id}/audit`
 
@@ -412,7 +496,7 @@ case never flips to `Disbursed` and its repayment `StandingOrder` never
 gets created. Fixed to match `Audited`. Full detail:
 `batch-procedures-api-spec.md` §6.3.
 
-## 11. Collateral document picker
+## 12. Collateral document picker
 
 `GET api/registry/customerdocuments?customerId={id}&type=1`
 
@@ -432,7 +516,7 @@ Deliberately read-only: document upload
 separate, larger piece of work, not needed just to let a loan case pick an
 already-existing collateral document.
 
-## 12. Update collateral documents
+## 13. Update collateral documents
 
 `PUT /{id}/collaterals` — body: `["documentId1", "documentId2", ...]` (a
 plain array of `CustomerDocumentId`s, same as `collateralDocumentIds` in
@@ -454,7 +538,7 @@ never actually supported (its `AddCollateralController`, despite the
 name, never touches `LoanCollateralDTO` or any real collateral operation
 at all — confirmed dead/mislabeled guarantor-attach code, not ported).
 
-## 13. Cancel a loan case
+## 14. Cancel a loan case
 
 `POST /{id}/cancel`
 

@@ -144,6 +144,25 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             return null;
         }
 
+        public bool HasFixedDepositFixingJournal(Guid fixedDepositId, Guid branchId, Guid customerAccountId, decimal value, string legacyReference, DateTime auditedDate, ServiceHeader serviceHeader)
+        {
+            var marker = "FD:" + fixedDepositId.ToString("N") + "|";
+            var startDate = auditedDate.AddMinutes(-5);
+            var endDate = auditedDate.AddMinutes(5);
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var specification = new DirectSpecification<Journal>(journal =>
+                    journal.TransactionCode == (int)SystemTransactionCode.FixedDeposit
+                    && journal.BranchId == branchId
+                    && journal.TotalValue == value
+                    && journal.CreatedDate >= startDate
+                    && journal.CreatedDate <= endDate
+                    && (journal.Reference.StartsWith(marker) || journal.Reference == legacyReference)
+                    && journal.JournalEntries.Any(entry => entry.CustomerAccountId == customerAccountId));
+                return (_journalRepository.AllMatching(specification, serviceHeader) ?? new List<Journal>()).Any();
+            }
+        }
+
         private void EnforceDesignationTransactionThreshold(decimal amount, int transactionCode, ServiceHeader serviceHeader)
         {
             var validationError = ValidateTransactionAuthority(amount, transactionCode, serviceHeader);

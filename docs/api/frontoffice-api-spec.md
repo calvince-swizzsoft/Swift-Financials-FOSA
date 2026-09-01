@@ -187,14 +187,12 @@ posted, which is what it silently did before this fix), denomination
 breakdown fields (`DenominationOneThousandValue` ... down to 50-cent),
 `TotalValue`.
 
-**Status codes, checked directly against every `return` in `Create`/
-`DoSomething`**: only a missing posting period or treasury returns a real
-`400` (`BadRequest`). Every other failure on this endpoint — insufficient
-book balance on an outgoing transfer (`TreasuryToTeller`/`TreasuryToBank`/
-`TreasuryToTreasury`; `BankToTreasury` has no such check), bank/treasury
-not found, a denomination mismatch, an unhandled exception — returns HTTP
-`200` with `success: false` in the body. **Check `success`, not HTTP
-status, everywhere on this endpoint except that one case.**
+The request boundary returns HTTP `400` for a missing body, empty source
+branch, non-positive total, missing type-specific destination, an invalid
+reference, negative/invalid denomination subtotals, a source/destination
+treasury collision, or a teller that does not belong to the source branch.
+Some older business failures still use HTTP `200` with `success: false`, so
+clients must continue checking the response envelope as well as HTTP status.
 
 The book-balance check reads the resolved treasury's real GL balance —
 `Create` calls `ITreasuryAppService.FetchTreasuryBalances` right after
@@ -208,7 +206,9 @@ denomination field holds that denomination's own monetary subtotal (not a
 raw note/coin piece count — e.g. `DenominationOneThousandValue` is "how
 much was counted in 1000-notes"), and the eleven subtotals must sum to
 exactly `TotalValue` (`Utils.SumDenominationValues`) or the call fails
-(`success: false`, HTTP `200`) before anything is posted. The denomination
+before anything is posted. Every subtotal must be non-negative and an exact
+multiple of its denomination, so it represents a whole number of notes or
+coins. The denomination
 breakdown is then persisted as a separate physical-count audit record
 (`FiscalCountAppService.AddNewFiscalCounts`) alongside the GL journal —
 the `TransactionType` you sent is persisted on that record too (§16.4),
@@ -219,12 +219,13 @@ count's own id on the way in:
 
 | `TransactionType` | What `Id` must be |
 |---|---|
-| `BankToTreasury` / `TreasuryToBank` | The `Bank` id |
+| `BankToTreasury` / `TreasuryToBank` | The `BankLinkage` id for the source branch |
 | `TreasuryToTreasury` | The **destination** `Treasury` id |
 | `TreasuryToTeller` | Unused — send `TellerId` instead |
 
-`DestinationBranchId` is only meaningful for `TreasuryToTreasury` — the
-receiving branch. That call writes **two** `FiscalCount` records in one
+`DestinationBranchId` is not trusted from the request. For
+`TreasuryToTreasury`, the server derives it from the selected destination
+treasury. That call writes **two** `FiscalCount` records in one
 request (source and destination sides), which is also why `TreasuryToTreasury`
 is the one case where two chart-of-account ids matter: the source
 treasury's (credited) and the destination treasury's (debited, resolved
@@ -382,6 +383,11 @@ sum must equal `ClosingBalance` or the call returns a real `400` before
 anything else runs. The teller is always the caller's own (§3) — any
 `TellerId` in the body is overwritten.
 
+`BookBalance` and `TellerCashBalanceStatusValue` are also overwritten. The
+API reloads the teller's current GL balance and derives Balanced/Shortage/
+Excess from that balance and the reconciled physical count. Client values
+cannot change the accounting result.
+
 **`UntransferredChequesValue` in the request body is no longer trusted for
 the "transfer your cheques first" gate** — it's still accepted (and echoed
 into the fiscal count record) but the actual gate now independently queries
@@ -390,14 +396,24 @@ the caller's own teller server-side. Previously a caller could send `0`
 regardless of reality and bypass the precondition entirely; that's fixed.
 No client change needed unless you were relying on the old bypass.
 
-Enforces, in order: malformed input (`400`) → denomination reconciliation
-(`400`) → caller has a linked teller record (`400`) → posting-model
-validation → cheques transferred → EOD not already run today → writes a
-`FiscalCount` record (`TransactionCode = TellerEndOfDay` — this is also
-what `IsEndOfDayExecutedAsync` checks for, so a closed day actually stays
-closed; `TransactionType = TreasuryTransactionType.TellerToTreasury`) →
-posts the close journal (+ suspense entry to
+Enforces, in order: malformed input and denomination validity (`400`) →
+denomination reconciliation (`400`) → caller has an unlocked linked teller,
+employee, branch, posting period, treasury and all required GL accounts
+(`400`) → posting-model validation → cheques transferred → EOD not already
+run today → posts the close journal (+ suspense entry to
 `Teller.ShortageChartOfAccountId`/`ExcessChartOfAccountId` if unbalanced).
+Only after every required journal succeeds does it write the `FiscalCount`
+close marker (`TransactionCode = TellerEndOfDay`, which is what
+`IsEndOfDayExecutedAsync` checks; `TransactionType = TellerToTreasury`). A
+balanced zero-cash till is valid and writes only this marker because there is
+no monetary journal to post.
+
+Before posting, the endpoint explicitly checks the logged-in employee's
+designation threshold for `SystemTransactionCode.TellerEndOfDay`. An amount
+above that threshold returns HTTP `403` with the actionable message (for
+example, `Your designation does not have sufficient authority for Teller
+End-Of-Day amount 35,000.00.`); it is not allowed to escape into the generic
+unexpected-error handler.
 
 **Only the first three checks are real `400`s.** Everything from
 posting-model validation onward — including "you need to transfer your

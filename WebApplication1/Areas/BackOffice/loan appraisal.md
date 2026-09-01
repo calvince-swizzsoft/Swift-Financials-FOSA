@@ -4,10 +4,6 @@ Loan Appraisal
 
 Use this sub-module to appraise loans. This will only be done by authorized loan officers.
 
-## Implementation authority note
-
-The legacy reference project contains more elaborate take-home-pay and repayment-capacity formulas, but those formulas exist only in commented-out code. They are therefore **not active or authoritative business rules** and must not be enabled, ported, or used to calculate the system recommendation without explicit confirmation from the business owners and corresponding approved requirements. The current REST implementation uses only appraisal rules that are active in executable legacy/current code, including the investment-multiplier entitlement calculation. Any future activation of the commented formulas must be treated as a deliberate business-rule change, documented, tested, and approved—not as restoration of missing behavior.
-
 To access this sub module click on:Loan Origination Module -> Navigate -> Operations -> Application - > Appraisal
 
 - - After Registration of the Loan, the next step is loan appraisal.
@@ -33,15 +29,15 @@ Loan Appraisal
     - select the appropriate loan case.
     - The figure below illustrates the appearance of the lookup dialogue box that opens:
 
-Appraisal
+Loan Origination Fig.1 : Loan Appraisal
 
-To be able to find the case, select the appropriate Loan Factor i.e click on the loan number look up icon(circled in red below), to find and select the appropriate loan case.
+To be able to find the case, select the appropriate Loan Factor i.e click on the loan number look up icon(circled in red below), to find and select the appropriate loan case. .
 
-Appraisal
+Loan Origination Fig.2: Loan Appraisal - case lookup
 
 Then Select the correct stage that the file has passed..i.e if the file has been registered then select Registered, so that all files that have already been registered into the system will be displayed from the drop down menu as shown in the next figure below circled in red:
 
-Appraisal
+Loan Origination Fig.3: Loan Appraisal stages/status
 
 NOTE:Once you select the Loan Number, the following fields load automatically; Customer name, Age, Identity Card #, Personal File #, Loan {Product, Load Section, Term, Interest Rate per Period, Interest Calculation Mode, Loan purpose, Amount Applied, Received Date, & finally Interest Charge Mode.
 
@@ -56,7 +52,7 @@ On this window we have the following Buttons (circled in red) for further naviga
 - Loan Qualification
 - Loan Appraisal
 
-Appraisal
+Loan Origination Fig.4: Loan Appraisal - Other buttons
 
 Standing Orders
 
@@ -90,7 +86,7 @@ This option is used to enter some important information that will be used to eva
 
 The figure below shows the Loan Qualification Button when clicked:
 
-Appraisal
+Loan Origination Fig.2: Loan Appraisal - qualification form
 
 How to fill the loan qualification form
 
@@ -110,7 +106,7 @@ This is the final stage before Appraisal can be accomplished. This button shows 
 
 The figure below shows when the Appraisal Button is clicked:
 
-Appraisal
+Loan Origination Fig.5: Loan Appraisal - Appraisal
 
 In the window below other loaning factors are shown which includes all loans attached to this particular loan.
 
@@ -118,7 +114,11 @@ The Loaning officer can also choose the principle and interest to be paid in cas
 
 Note the attached loan will only be deducted if ticked as shown below.
 
-Appraisal
+Loan Origination Fig.6: Loan Appraisal - Attached Loans
+
+A repayment schedule for the loan is also available shown in the window below
+
+Loan Origination Fig.7: Loan Appraisal - Repayment Schedule
 
 Points to note from the figure above:
 
@@ -143,3 +143,7 @@ At this level, the Loans Officer has also a right to give his/her recommendation
 5\. You will receive a confirmation pop up message informing you that the operation completed successfully.
 
 6.A printing pop up will also display which will prompt you to print the appraisal.below is a pop up window for the same.
+
+Loan Origination Fig.7: Loan Appraisal - Printing Appraisal
+
+Created with the

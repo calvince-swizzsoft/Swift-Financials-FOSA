@@ -204,15 +204,22 @@ debit-type/account/product creation (and the welcome SMS) if the branch
 lookup fails, so an invalid/empty `branchId` looks like a successful create
 with nothing attached.
 
-Debit types and savings/investment products the company has configured as
-mandatory (`ICompanyAppService.FindCachedDebitTypes` /
-`FindCachedAttachedProducts`, keyed off the customer's branch's company) are
-resolved and attached **server-side automatically** — the frontend does not
-need to source or send them. `additionalDebitTypes` /
+  The default savings product, all globally mandatory savings/investment
+  products, and products attached to the customer's company are resolved from
+  authoritative server records and attached **server-side automatically**.
+  Registration rejects missing default configuration, unknown IDs, locked
+  products, and products without a valid code or G/L account before the
+  customer is persisted. `additionalDebitTypes` /
 `additionalInvestmentProducts` / `additionalSavingsProducts` are only for
 items the user explicitly wants attached *on top of* the mandatory set (e.g.
 checkboxes the user opted into beyond what's pre-selected); omit them
-entirely for the common case.
+  entirely for the common case.
+
+  Product IDs are deduplicated across the default, global mandatory,
+  company-attached, and additional collections. A post-save account-provisioning
+  failure returns `409` with the created customer in `data` and an explicit
+  instruction not to retry registration; operations staff should repair the
+  missing customer accounts instead.
 
 The registration request can persist the type-specific related collections in
 the same workflow. Partnership registrations use `partnershipMembers` (direct

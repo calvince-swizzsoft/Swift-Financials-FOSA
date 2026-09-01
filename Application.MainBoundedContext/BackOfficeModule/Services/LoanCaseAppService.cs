@@ -600,6 +600,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                         // do we need to reset?
                                         var chargeableFirstInterestValue = Math.Max(repaymentSchedule.First().InterestPayment, persisted.LoanRegistration.MinimumInterestAmount);
+                                        var standingOrderInterest = persisted.LoanInterest.RecoveryMode == (int)InterestRecoveryMode.Upfront
+                                            ? 0m
+                                            : Math.Max(chargeableFirstInterestValue, persisted.ApprovedInterestPayment != 0m ? persisted.ApprovedInterestPayment : repaymentSchedule.First().InterestPayment);
 
                                         var existingStandingOrders = _standingOrderAppService.FindStandingOrders(customerSavingsAccountDTO.Id, customerLoanAccountDTO.Id, serviceHeader);
 
@@ -614,11 +617,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                 targetStandingOrder.LoanAmount = PV;
                                                 targetStandingOrder.PaymentPerPeriod = Pmt;
                                                 targetStandingOrder.Principal = persisted.ApprovedPrincipalPayment != 0m ? persisted.ApprovedPrincipalPayment : repaymentSchedule.First().PrincipalPayment;
-                                                targetStandingOrder.Interest = Math.Max(chargeableFirstInterestValue, persisted.ApprovedInterestPayment != 0m ? persisted.ApprovedInterestPayment : repaymentSchedule.First().InterestPayment);
+                                                targetStandingOrder.Interest = standingOrderInterest;
                                                 targetStandingOrder.DurationStartDate = repaymentSchedule.First().DueDate;
                                                 targetStandingOrder.DurationEndDate = repaymentSchedule.Last().DueDate;
                                                 targetStandingOrder.ScheduleFrequency = persisted.LoanRegistration.PaymentFrequencyPerYear;
-                                                targetStandingOrder.IsLocked = false;
+                                                // Verification prepares the instruction; disbursement activates it.
+                                                targetStandingOrder.IsLocked = true;
                                                 targetStandingOrder.Remarks = string.Empty;
                                                 targetStandingOrder.BeneficiaryProductProductCode = (int)ProductCode.Loan;
                                                 targetStandingOrder.BeneficiaryProductRoundingType = persisted.LoanRegistration.RoundingType;
@@ -633,7 +637,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                     case InterestCalculationMode.StraightLineAmortization:
                                                     case InterestCalculationMode.DiminishingBalanceAmortization:
                                                         targetStandingOrder.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / persisted.LoanRegistration.TermInMonths;
-                                                        targetStandingOrder.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
+                                                        targetStandingOrder.Interest = persisted.LoanInterest.RecoveryMode == (int)InterestRecoveryMode.Upfront
+                                                            ? 0m
+                                                            : repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
                                                         targetStandingOrder.PaymentPerPeriod = (targetStandingOrder.Principal + targetStandingOrder.Interest);
                                                         persisted.MonthlyPaybackAmount = targetStandingOrder.PaymentPerPeriod;
                                                         break;
@@ -642,7 +648,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                 }
 
                                                 targetStandingOrder.CapitalizedInterest = targetStandingOrder.Interest;
-                                                _standingOrderAppService.UpdateStandingOrder(targetStandingOrder, serviceHeader);
+                                                if (!_standingOrderAppService.UpdateStandingOrder(targetStandingOrder, serviceHeader))
+                                                    throw new InvalidOperationException("Loan verification could not prepare the repayment standing order.");
                                             }
                                         }
                                         else
@@ -659,11 +666,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                     PaymentPerPeriod = Pmt,
                                                     LoanAmount = PV,
                                                     Principal = persisted.ApprovedPrincipalPayment != 0m ? persisted.ApprovedPrincipalPayment : repaymentSchedule.First().PrincipalPayment,
-                                                    Interest = Math.Max(chargeableFirstInterestValue, persisted.ApprovedInterestPayment != 0m ? persisted.ApprovedInterestPayment : repaymentSchedule.First().InterestPayment),
+                                                    Interest = standingOrderInterest,
                                                     DurationStartDate = repaymentSchedule.First().DueDate,
                                                     DurationEndDate = repaymentSchedule.Last().DueDate,
                                                     ScheduleFrequency = persisted.LoanRegistration.PaymentFrequencyPerYear,
-                                                    Chargeable = true
+                                                    Chargeable = true,
+                                                    IsLocked = true
                                                 };
 
                                             persisted.MonthlyPaybackAmount = (newStandingOrderDTO.Principal + newStandingOrderDTO.Interest);
@@ -676,7 +684,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                 case InterestCalculationMode.StraightLineAmortization:
                                                 case InterestCalculationMode.DiminishingBalanceAmortization:
                                                     newStandingOrderDTO.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / persisted.LoanRegistration.TermInMonths;
-                                                    newStandingOrderDTO.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
+                                                    newStandingOrderDTO.Interest = persisted.LoanInterest.RecoveryMode == (int)InterestRecoveryMode.Upfront
+                                                        ? 0m
+                                                        : repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
                                                     newStandingOrderDTO.PaymentPerPeriod = (newStandingOrderDTO.Principal + newStandingOrderDTO.Interest);
                                                     persisted.MonthlyPaybackAmount = newStandingOrderDTO.PaymentPerPeriod;
                                                     break;
@@ -685,7 +695,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                             }
 
                                             newStandingOrderDTO.CapitalizedInterest = newStandingOrderDTO.Interest;
-                                            _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
+                                            var createdStandingOrder = _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
+                                            if (createdStandingOrder == null || !string.IsNullOrWhiteSpace(createdStandingOrder.ErrorMessageResult))
+                                                throw new InvalidOperationException(createdStandingOrder?.ErrorMessageResult ?? "Loan verification could not prepare the repayment standing order.");
                                         }
                                     }
 
@@ -822,6 +834,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                         // do we need to reset?
                                         var chargeableFirstInterestValue = Math.Max(repaymentSchedule.First().InterestPayment, persisted.LoanRegistration.MinimumInterestAmount);
+                                        var standingOrderInterest = persisted.LoanInterest.RecoveryMode == (int)InterestRecoveryMode.Upfront
+                                            ? 0m
+                                            : Math.Max(chargeableFirstInterestValue, persisted.ApprovedInterestPayment != 0m ? persisted.ApprovedInterestPayment : repaymentSchedule.First().InterestPayment);
 
                                         var existingStandingOrders = _standingOrderAppService.FindStandingOrders(customerSavingsAccountDTO.Id, customerLoanAccountDTO.Id, serviceHeader);
 
@@ -836,11 +851,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                 targetStandingOrder.LoanAmount = PV;
                                                 targetStandingOrder.PaymentPerPeriod = Pmt;
                                                 targetStandingOrder.Principal = persisted.ApprovedPrincipalPayment != 0m ? persisted.ApprovedPrincipalPayment : repaymentSchedule.First().PrincipalPayment;
-                                                targetStandingOrder.Interest = Math.Max(chargeableFirstInterestValue, persisted.ApprovedInterestPayment != 0m ? persisted.ApprovedInterestPayment : repaymentSchedule.First().InterestPayment);
+                                                targetStandingOrder.Interest = standingOrderInterest;
                                                 targetStandingOrder.DurationStartDate = repaymentSchedule.First().DueDate;
                                                 targetStandingOrder.DurationEndDate = repaymentSchedule.Last().DueDate;
                                                 targetStandingOrder.ScheduleFrequency = persisted.LoanRegistration.PaymentFrequencyPerYear;
-                                                targetStandingOrder.IsLocked = false;
+                                                // Verification prepares the instruction; disbursement activates it.
+                                                targetStandingOrder.IsLocked = true;
                                                 targetStandingOrder.Remarks = string.Empty;
                                                 targetStandingOrder.BeneficiaryProductProductCode = (int)ProductCode.Loan;
                                                 targetStandingOrder.BeneficiaryProductRoundingType = persisted.LoanRegistration.RoundingType;
@@ -855,7 +871,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                     case InterestCalculationMode.StraightLineAmortization:
                                                     case InterestCalculationMode.DiminishingBalanceAmortization:
                                                         targetStandingOrder.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / persisted.LoanRegistration.TermInMonths;
-                                                        targetStandingOrder.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
+                                                        targetStandingOrder.Interest = persisted.LoanInterest.RecoveryMode == (int)InterestRecoveryMode.Upfront
+                                                            ? 0m
+                                                            : repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
                                                         targetStandingOrder.PaymentPerPeriod = (targetStandingOrder.Principal + targetStandingOrder.Interest);
                                                         persisted.MonthlyPaybackAmount = targetStandingOrder.PaymentPerPeriod;
                                                         break;
@@ -864,7 +882,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                 }
 
                                                 targetStandingOrder.CapitalizedInterest = targetStandingOrder.Interest;
-                                                _standingOrderAppService.UpdateStandingOrder(targetStandingOrder, serviceHeader);
+                                                if (!_standingOrderAppService.UpdateStandingOrder(targetStandingOrder, serviceHeader))
+                                                    throw new InvalidOperationException("Loan verification could not prepare the repayment standing order.");
                                             }
                                         }
                                         else
@@ -881,11 +900,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                     PaymentPerPeriod = Pmt,
                                                     LoanAmount = PV,
                                                     Principal = persisted.ApprovedPrincipalPayment != 0m ? persisted.ApprovedPrincipalPayment : repaymentSchedule.First().PrincipalPayment,
-                                                    Interest = Math.Max(chargeableFirstInterestValue, persisted.ApprovedInterestPayment != 0m ? persisted.ApprovedInterestPayment : repaymentSchedule.First().InterestPayment),
+                                                    Interest = standingOrderInterest,
                                                     DurationStartDate = repaymentSchedule.First().DueDate,
                                                     DurationEndDate = repaymentSchedule.Last().DueDate,
                                                     ScheduleFrequency = persisted.LoanRegistration.PaymentFrequencyPerYear,
-                                                    Chargeable = true
+                                                    Chargeable = true,
+                                                    IsLocked = true
                                                 };
 
                                             persisted.MonthlyPaybackAmount = (newStandingOrderDTO.Principal + newStandingOrderDTO.Interest);
@@ -898,7 +918,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                 case InterestCalculationMode.StraightLineAmortization:
                                                 case InterestCalculationMode.DiminishingBalanceAmortization:
                                                     newStandingOrderDTO.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / persisted.LoanRegistration.TermInMonths;
-                                                    newStandingOrderDTO.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
+                                                    newStandingOrderDTO.Interest = persisted.LoanInterest.RecoveryMode == (int)InterestRecoveryMode.Upfront
+                                                        ? 0m
+                                                        : repaymentSchedule.Sum(x => x.InterestPayment) / persisted.LoanRegistration.TermInMonths;
                                                     newStandingOrderDTO.PaymentPerPeriod = (newStandingOrderDTO.Principal + newStandingOrderDTO.Interest);
                                                     persisted.MonthlyPaybackAmount = newStandingOrderDTO.PaymentPerPeriod;
                                                     break;
@@ -907,7 +929,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                             }
 
                                             newStandingOrderDTO.CapitalizedInterest = newStandingOrderDTO.Interest;
-                                            _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
+                                            var createdStandingOrder = _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
+                                            if (createdStandingOrder == null || !string.IsNullOrWhiteSpace(createdStandingOrder.ErrorMessageResult))
+                                                throw new InvalidOperationException(createdStandingOrder?.ErrorMessageResult ?? "Loan verification could not prepare the repayment standing order.");
                                         }
                                     }
 
@@ -1813,6 +1837,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                             // do we need to reset?
                             var chargeableFirstInterestValue = Math.Max(repaymentSchedule.First().InterestPayment, loanProductDTO.LoanRegistrationMinimumInterestAmount);
+                            var standingOrderInterest = loanProductDTO.LoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                                ? 0m
+                                : Math.Max(chargeableFirstInterestValue, repaymentSchedule.First().InterestPayment);
 
                             var existingStandingOrders = _standingOrderAppService.FindStandingOrders(customerSavingsAccountId, customerLoanAccount.Id, serviceHeader);
 
@@ -1826,7 +1853,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                     targetStandingOrder.Trigger = loanProductDTO.LoanRegistrationStandingOrderTrigger;
                                     targetStandingOrder.LoanAmount = customerLoanAccount.PrincipalBalance;
                                     targetStandingOrder.Principal = repaymentSchedule.First().PrincipalPayment;
-                                    targetStandingOrder.Interest = Math.Max(chargeableFirstInterestValue, repaymentSchedule.First().InterestPayment);
+                                    targetStandingOrder.Interest = standingOrderInterest;
                                     targetStandingOrder.DurationStartDate = repaymentSchedule.First().DueDate;
                                     targetStandingOrder.DurationEndDate = repaymentSchedule.Last().DueDate;
                                     targetStandingOrder.ScheduleFrequency = loanProductDTO.LoanRegistrationPaymentFrequencyPerYear;
@@ -1840,7 +1867,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                         case InterestCalculationMode.StraightLineAmortization:
                                         case InterestCalculationMode.DiminishingBalanceAmortization:
                                             targetStandingOrder.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / loanProductDTO.LoanRegistrationTermInMonths;
-                                            targetStandingOrder.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
+                                            targetStandingOrder.Interest = loanProductDTO.LoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                                                ? 0m
+                                                : repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
                                             targetStandingOrder.PaymentPerPeriod = (targetStandingOrder.Principal + targetStandingOrder.Interest);
                                             break;
                                         default:
@@ -1865,7 +1894,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                         BeneficiaryProductRoundingType = loanProductDTO.LoanRegistrationRoundingType,
                                         LoanAmount = customerLoanAccount.PrincipalBalance,
                                         Principal = repaymentSchedule.First().PrincipalPayment,
-                                        Interest = Math.Max(chargeableFirstInterestValue, repaymentSchedule.First().InterestPayment),
+                                        Interest = standingOrderInterest,
                                         DurationStartDate = repaymentSchedule.First().DueDate,
                                         DurationEndDate = repaymentSchedule.Last().DueDate,
                                         ScheduleFrequency = loanProductDTO.LoanRegistrationPaymentFrequencyPerYear,
@@ -1878,7 +1907,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                     case InterestCalculationMode.StraightLineAmortization:
                                     case InterestCalculationMode.DiminishingBalanceAmortization:
                                         newStandingOrderDTO.Principal = repaymentSchedule.Sum(x => x.PrincipalPayment) / loanProductDTO.LoanRegistrationTermInMonths;
-                                        newStandingOrderDTO.Interest = repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
+                                        newStandingOrderDTO.Interest = loanProductDTO.LoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
+                                            ? 0m
+                                            : repaymentSchedule.Sum(x => x.InterestPayment) / loanProductDTO.LoanRegistrationTermInMonths;
                                         newStandingOrderDTO.PaymentPerPeriod = (newStandingOrderDTO.Principal + newStandingOrderDTO.Interest);
                                         break;
                                     default:
@@ -1915,6 +1946,33 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                     switch ((LoanCaseStatus)persistedLoanCase.Status)
                     {
                         case LoanCaseStatus.Audited:
+
+                            if (persistedLoanCase.LoanRegistration.CreateStandingOrderOnLoanAudit)
+                            {
+                                if (!persistedLoanCase.SavingsProductId.HasValue)
+                                    throw new InvalidOperationException("The disbursed loan does not have a repayment savings product configured.");
+
+                                var loanAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(
+                                    persistedLoanCase.CustomerId, persistedLoanCase.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                                var savingsAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(
+                                    persistedLoanCase.CustomerId, persistedLoanCase.SavingsProductId.Value, serviceHeader) ?? new List<CustomerAccountDTO>();
+                                var loanAccount = loanAccounts.FirstOrDefault();
+                                var savingsAccount = savingsAccounts.FirstOrDefault();
+
+                                if (loanAccount == null || savingsAccount == null)
+                                    throw new InvalidOperationException("The repayment accounts prepared during loan verification could not be found.");
+
+                                var standingOrder = (_standingOrderAppService.FindStandingOrders(savingsAccount.Id, loanAccount.Id, serviceHeader)
+                                    ?? new List<StandingOrderDTO>())
+                                    .FirstOrDefault(item => item.Trigger == persistedLoanCase.LoanRegistration.StandingOrderTrigger);
+
+                                if (standingOrder == null)
+                                    throw new InvalidOperationException("The repayment standing order prepared during loan verification could not be found.");
+
+                                standingOrder.IsLocked = false;
+                                if (!_standingOrderAppService.UpdateStandingOrder(standingOrder, serviceHeader))
+                                    throw new InvalidOperationException("The loan was not marked as disbursed because its repayment standing order could not be activated.");
+                            }
 
                             persistedLoanCase.Status = (int)LoanCaseStatus.Disbursed;
                             persistedLoanCase.DisbursedAmount = loanDisbursementBatchEntryDTO.LoanCaseApprovedAmount;
@@ -2110,6 +2168,63 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 }
             }
             else return null;
+        }
+
+        public List<AmortizationTableEntry> BuildRepaymentSchedule(Guid loanCaseId, decimal principal, ServiceHeader serviceHeader)
+        {
+            if (loanCaseId == Guid.Empty || principal <= 0m)
+                return new List<AmortizationTableEntry>();
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var loanCase = _loanCaseRepository.Get(loanCaseId, serviceHeader);
+                if (loanCase == null)
+                    return new List<AmortizationTableEntry>();
+
+                return _financialsService.RepaymentSchedule(
+                    loanCase.LoanRegistration.TermInMonths,
+                    loanCase.LoanRegistration.PaymentFrequencyPerYear,
+                    loanCase.LoanRegistration.GracePeriod,
+                    loanCase.LoanInterest.CalculationMode,
+                    loanCase.LoanInterest.AnnualPercentageRate,
+                    -(double)principal,
+                    0d,
+                    loanCase.LoanRegistration.PaymentDueDate) ?? new List<AmortizationTableEntry>();
+            }
+        }
+
+        public LoanCaseDTO RecalculateRepaymentSchedule(Guid loanCaseId, ServiceHeader serviceHeader)
+        {
+            if (loanCaseId == Guid.Empty)
+                return null;
+
+            using (var dbContextScope = _dbContextScopeFactory.Create())
+            {
+                var loanCase = _loanCaseRepository.Get(loanCaseId, serviceHeader);
+                if (loanCase == null || loanCase.Status != (int)LoanCaseStatus.Approved || loanCase.ApprovedAmount <= 0m)
+                    return null;
+
+                var repaymentSchedule = _financialsService.RepaymentSchedule(
+                    loanCase.LoanRegistration.TermInMonths,
+                    loanCase.LoanRegistration.PaymentFrequencyPerYear,
+                    loanCase.LoanRegistration.GracePeriod,
+                    loanCase.LoanInterest.CalculationMode,
+                    loanCase.LoanInterest.AnnualPercentageRate,
+                    -(double)loanCase.ApprovedAmount,
+                    0d,
+                    loanCase.LoanRegistration.PaymentDueDate) ?? new List<AmortizationTableEntry>();
+
+                if (!repaymentSchedule.Any())
+                    return null;
+
+                loanCase.MonthlyPaybackAmount = repaymentSchedule.First().Payment;
+                loanCase.TotalPaybackAmount = repaymentSchedule.Sum(item => item.Payment);
+
+                // A zero affected-row count is still a successful, idempotent
+                // recalculation when the persisted totals were already correct.
+                dbContextScope.SaveChanges(serviceHeader);
+                return loanCase.ProjectedAs<LoanCaseDTO>();
+            }
         }
 
         public List<LoanCaseDTO> FindLoanCaseByLoanCaseNumber(int caseNumber, ServiceHeader serviceHeader)

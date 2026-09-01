@@ -32,6 +32,8 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
         CustomerFileRegisterLastDepartmentInfo FindFileRegisterAndLastDepartmentByCustomerId(Guid customerId, ServiceHeader serviceHeader);
 
+        CustomerFileRegisterLastDepartmentInfo FindFileRegisterAndLastDepartmentByCustomerId(Guid customerId, Guid policyBranchId, ServiceHeader serviceHeader);
+
         PageCollectionInfo<FileMovementHistoryDTO> FindFileMovementHistoryByFileRegisterId(Guid fileRegisterId, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 
         List<FileMovementHistoryDTO> FindFileMovementHistoryByFileRegisterId(Guid fileRegisterId, ServiceHeader serviceHeader);

@@ -11,6 +11,7 @@ using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Runtime.Remoting.Channels;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -35,8 +36,6 @@ namespace WebApplication1.Controllers
         private readonly IPostingPeriodAppService _postingPeriodAppService;
 
         private readonly ITreasuryAppService _treasuryAppService;
-
-        private readonly ICashTransferRequestAppService _cashTransferRequestAppService;
 
         private readonly IFiscalCountAppService _fiscalCountAppService;
 
@@ -152,9 +151,28 @@ namespace WebApplication1.Controllers
         [Route("")]
         public async Task<IHttpActionResult> Create([FromBody] CashTransferRequestDTO cashTransferRequestDTO)
         {
+            if (cashTransferRequestDTO == null)
+                return BadRequest("An end-of-day request body is required.");
 
-            if (cashTransferRequestDTO.HasErrors)
-                return BadRequest("Some validations failed - make sure all fields are included");
+            if (cashTransferRequestDTO.ClosingBalance < 0m)
+                return BadRequest("The closing balance cannot be negative.");
+
+            if (!string.IsNullOrWhiteSpace(cashTransferRequestDTO.Reference) && cashTransferRequestDTO.Reference.Trim().Length > 100)
+                return BadRequest("The reference cannot exceed 100 characters.");
+
+            if (!string.IsNullOrWhiteSpace(cashTransferRequestDTO.Remarks) && cashTransferRequestDTO.Remarks.Trim().Length > 500)
+                return BadRequest("Remarks cannot exceed 500 characters.");
+
+            if ((!string.IsNullOrWhiteSpace(cashTransferRequestDTO.Reference) && cashTransferRequestDTO.Reference.Any(char.IsControl))
+                || (!string.IsNullOrWhiteSpace(cashTransferRequestDTO.Remarks) && cashTransferRequestDTO.Remarks.Any(char.IsControl)))
+                return BadRequest("Reference and remarks cannot contain control characters.");
+
+            cashTransferRequestDTO.Reference = (cashTransferRequestDTO.Reference ?? string.Empty).Trim();
+            cashTransferRequestDTO.Remarks = (cashTransferRequestDTO.Remarks ?? string.Empty).Trim();
+
+            var denominationError = ValidateDenominations(cashTransferRequestDTO);
+            if (!string.IsNullOrWhiteSpace(denominationError))
+                return BadRequest(denominationError);
 
             var countedTotal = Utils.SumDenominationValues(
                 cashTransferRequestDTO.DenominationOneThousandValue, cashTransferRequestDTO.DenominationFiveHundredValue,
@@ -179,8 +197,24 @@ namespace WebApplication1.Controllers
             if (_selectedTeller == null)
                 return BadRequest("Current user has no linked employee/teller record.");
 
+            if (_selectedTeller.IsLocked)
+                return BadRequest("The current teller is locked and cannot run end of day.");
+
+            if (!SelectedTeller.EmployeeId.HasValue || SelectedTeller.EmployeeId.Value == Guid.Empty)
+                return BadRequest("The current teller has no linked employee record.");
+
+            _tellerAppService.FetchTellerBalances(new List<TellerDTO> { _selectedTeller }, serviceHeader);
+
             cashTransferRequestDTO.TellerId = SelectedTeller.Id;
             cashTransferRequestDTO.EmployeeId = SelectedTeller.EmployeeId;
+            // Book balance and balance status are accounting facts. Never trust values
+            // supplied by the browser for either of them.
+            cashTransferRequestDTO.BookBalance = SelectedTeller.BookBalance;
+            cashTransferRequestDTO.TellerCashBalanceStatusValue = cashTransferRequestDTO.ClosingBalance == SelectedTeller.BookBalance
+                ? (int)TellerCashBalanceStatus.Balanced
+                : cashTransferRequestDTO.ClosingBalance < SelectedTeller.BookBalance
+                    ? (int)TellerCashBalanceStatus.Shortage
+                    : (int)TellerCashBalanceStatus.Excess;
 
             // Independently verified server-side rather than trusting the client-supplied
             // UntransferredChequesValue — a teller could otherwise send 0 and bypass the
@@ -188,14 +222,40 @@ namespace WebApplication1.Controllers
             var untransferredCheques = _externalChequeAppService.FindUnTransferredExternalChequesByTellerId(SelectedTeller.Id, string.Empty, serviceHeader);
             _selectedTeller.TellerTotalCheques = untransferredCheques?.Sum(c => c.Amount) ?? 0m;
 
-            _selectedEmployee = _employeeAppService.FindEmployee((Guid)SelectedTeller.EmployeeId, serviceHeader);
+            _selectedEmployee = _employeeAppService.FindEmployee(SelectedTeller.EmployeeId.Value, serviceHeader);
+
+            if (_selectedEmployee == null)
+                return BadRequest("The teller's linked employee record could not be found.");
 
             _selectedBranch = _branchAppService.FindBranch(SelectedEmployee.BranchId, serviceHeader);
 
+            if (_selectedBranch == null)
+                return BadRequest("The teller's branch could not be found.");
+
             _selectedPostingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
+
+            if (_selectedPostingPeriod == null)
+                return BadRequest("No current posting period is configured.");
 
 
             _selectedTreasury = _treasuryAppService.FindTreasuryByBranchId(SelectedBranch.Id, serviceHeader);
+
+            if (_selectedTreasury == null)
+                return BadRequest("No treasury is configured for the teller's branch.");
+
+            if (!SelectedTeller.ChartOfAccountId.HasValue || SelectedTeller.ChartOfAccountId.Value == Guid.Empty)
+                return BadRequest("The teller has no configured cash G/L account.");
+
+            if (SelectedTreasury.ChartOfAccountId == Guid.Empty)
+                return BadRequest("The branch treasury has no configured cash G/L account.");
+
+            if ((TellerCashBalanceStatus)cashTransferRequestDTO.TellerCashBalanceStatusValue == TellerCashBalanceStatus.Shortage
+                && (!SelectedTeller.ShortageChartOfAccountId.HasValue || SelectedTeller.ShortageChartOfAccountId.Value == Guid.Empty))
+                return BadRequest("The teller has no configured shortage G/L account.");
+
+            if ((TellerCashBalanceStatus)cashTransferRequestDTO.TellerCashBalanceStatusValue == TellerCashBalanceStatus.Excess
+                && (!SelectedTeller.ExcessChartOfAccountId.HasValue || SelectedTeller.ExcessChartOfAccountId.Value == Guid.Empty))
+                return BadRequest("The teller has no configured excess G/L account.");
 
             try
             {
@@ -203,8 +263,6 @@ namespace WebApplication1.Controllers
                 var model = new TransactionModel();
 
                 IsBusy = true;
-
-                var proceedEndOfDayTransaction = default(bool);
 
                 model.TransactionCode = (int)SystemTransactionCode.TellerEndOfDay;
 
@@ -240,6 +298,23 @@ namespace WebApplication1.Controllers
                 }
 
                 model.TotalValue = cashTransferRequestDTO.ClosingBalance;
+
+                var authorityError = _journalAppService.ValidateTransactionAuthority(
+                    model.TotalValue,
+                    model.TransactionCode,
+                    serviceHeader);
+
+                if (!string.IsNullOrWhiteSpace(authorityError))
+                {
+                    IsBusy = false;
+                    return Content(HttpStatusCode.Forbidden, new
+                    {
+                        success = false,
+                        message = authorityError,
+                        data = (object)null
+                    });
+                }
+
                 model.ValidateAll();
 
                 if (model.HasErrors)
@@ -323,20 +398,25 @@ namespace WebApplication1.Controllers
                     // Previously built but never saved — IsEndOfDayExecutedAsync (the
                     // "already closed your day" guard) queries for a FiscalCount row
                     // created today, so without this the guard could never trigger.
-                    else if (!_fiscalCountAppService.AddNewFiscalCounts(new List<FiscalCountDTO> { NewFiscalCount }, serviceHeader))
-                    {
-                        IsBusy = false;
-                        return Json(new { success = false, message = "Operation error: Failed to record the fiscal count." });
-                    }
                     else
                     {
 
-                        proceedEndOfDayTransaction = true;
-
                         #region proceed with End Of Day Transaction?
+                        // A zero-cash balanced till is a valid close. There is no monetary
+                        // journal to post, but the fiscal-count marker is still required to
+                        // prevent the teller from closing the same business date twice.
+                        if (model.TotalValue == 0m)
+                        {
+                            if (!_fiscalCountAppService.AddNewFiscalCounts(new List<FiscalCountDTO> { NewFiscalCount }, serviceHeader))
+                                return Json(new { success = false, message = "Operation error: Failed to record the fiscal count." });
 
-
-
+                            return Json(new
+                            {
+                                success = true,
+                                message = "Operation Success: End of Day completed with a zero cash balance.",
+                                data = (object)null
+                            });
+                        }
 
                         var cashManagementResult = _journalAppService.AddNewJournal(null, NewFiscalCount.BranchId, null, model.TotalValue, model.PrimaryDescription, model.SecondaryDescription, model.Reference, 0, model.TransactionCode, model.ValueDate, model.CreditChartOfAccountId, model.DebitChartOfAccountId, serviceHeader, true);
 
@@ -350,6 +430,9 @@ namespace WebApplication1.Controllers
                                     // The teller-to-treasury journal above is the complete
                                     // posting for a balanced till; no variance journal is
                                     // required. Return that journal as the successful receipt.
+                                    if (!_fiscalCountAppService.AddNewFiscalCounts(new List<FiscalCountDTO> { NewFiscalCount }, serviceHeader))
+                                        return Json(new { success = false, message = "Operation error: Cash was posted, but the fiscal close marker could not be recorded. Do not retry; escalate for reconciliation." });
+
                                     return Json(new
                                     {
                                         success = true,
@@ -383,6 +466,15 @@ namespace WebApplication1.Controllers
 
                                 var resultJournal = _journalAppService.AddNewJournal(null, NewFiscalCount.BranchId, null, model.TotalValue, model.PrimaryDescription, model.SecondaryDescription, model.Reference, 0, model.TransactionCode, model.ValueDate, model.CreditChartOfAccountId, model.DebitChartOfAccountId, serviceHeader, true);
 
+                                if (resultJournal == null)
+                                    return Json(new { success = false, message = "Operation error: Cash was transferred to treasury, but the shortage/excess journal failed. Do not retry; escalate for reconciliation." });
+
+                                // Only mark the teller closed after every required journal has
+                                // posted. The old ordering wrote this marker first, which could
+                                // leave a teller permanently closed despite a failed posting.
+                                if (!_fiscalCountAppService.AddNewFiscalCounts(new List<FiscalCountDTO> { NewFiscalCount }, serviceHeader))
+                                    return Json(new { success = false, message = "Operation error: Journals posted, but the fiscal close marker could not be recorded. Do not retry; escalate for reconciliation." });
+
                         #endregion
                                 // resultJournal carries everything a receipt needs (id, sequential id,
                                 // branch/posting-period/user descriptions, amount, reference, date) — the
@@ -392,7 +484,8 @@ namespace WebApplication1.Controllers
                                 {
                                     success = true,
                                     message = "Operation Success: End of Day Operation Completed Successfully",
-                                    data = resultJournal
+                                    data = cashManagementResult,
+                                    varianceJournal = resultJournal
                                 };
 
                                 return Json(response);
@@ -432,6 +525,34 @@ namespace WebApplication1.Controllers
             var teller = _tellerAppService.FindTellerByEmployeeId(employeeId, serviceHeader);
 
             return teller;
+        }
+
+        private static string ValidateDenominations(CashTransferRequestDTO request)
+        {
+            var denominations = new[]
+            {
+                new { Name = "1000", Value = request.DenominationOneThousandValue, Unit = 1000m },
+                new { Name = "500", Value = request.DenominationFiveHundredValue, Unit = 500m },
+                new { Name = "200", Value = request.DenominationTwoHundredValue, Unit = 200m },
+                new { Name = "100", Value = request.DenominationOneHundredValue, Unit = 100m },
+                new { Name = "50", Value = request.DenominationFiftyValue, Unit = 50m },
+                new { Name = "40", Value = request.DenominationFourtyValue, Unit = 40m },
+                new { Name = "20", Value = request.DenominationTwentyValue, Unit = 20m },
+                new { Name = "10", Value = request.DenominationTenValue, Unit = 10m },
+                new { Name = "5", Value = request.DenominationFiveValue, Unit = 5m },
+                new { Name = "1", Value = request.DenominationOneValue, Unit = 1m },
+                new { Name = "50c", Value = request.DenominationFiftyCentValue, Unit = 0.5m },
+            };
+
+            var negative = denominations.FirstOrDefault(item => item.Value < 0m);
+            if (negative != null)
+                return string.Format("The {0} denomination subtotal cannot be negative.", negative.Name);
+
+            var invalidMultiple = denominations.FirstOrDefault(item => item.Value % item.Unit != 0m);
+            if (invalidMultiple != null)
+                return string.Format("The {0} denomination subtotal must represent a whole number of notes or coins.", invalidMultiple.Name);
+
+            return null;
         }
 
 

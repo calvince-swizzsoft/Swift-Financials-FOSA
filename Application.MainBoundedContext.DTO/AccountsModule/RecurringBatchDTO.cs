@@ -222,5 +222,51 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
        
     }
+
+    [DataContract]
+    public class StandingOrderExecutionResultDTO
+    {
+        [DataMember]
+        public DateTime TargetDate { get; set; }
+
+        [DataMember]
+        public int TargetDateOption { get; set; }
+
+        [DataMember]
+        public int TotalStandingOrders { get; set; }
+
+        [DataMember]
+        public int EligibleCount { get; set; }
+
+        [DataMember]
+        public int WrongTriggerCount { get; set; }
+
+        [DataMember]
+        public int LockedCount { get; set; }
+
+        [DataMember]
+        public int NotYetDueCount { get; set; }
+
+        [DataMember]
+        public int OverdueCount { get; set; }
+
+        [DataMember]
+        public int ExpiredCount { get; set; }
+
+        [DataMember]
+        public Guid? RecurringBatchId { get; set; }
+
+        [DataMember]
+        public int EntryCount { get; set; }
+
+        [DataMember]
+        public int QueuedCount { get; set; }
+
+        [DataMember]
+        public string ResultCode { get; set; }
+
+        [DataMember]
+        public string Detail { get; set; }
+    }
    
 }

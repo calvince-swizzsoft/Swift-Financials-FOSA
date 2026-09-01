@@ -8,5 +8,13 @@ namespace Application.MainBoundedContext.DTO
         public FileRegisterDTO FileRegister { get; set; }
 
         public DepartmentDTO LastDepartment { get; set; }
+
+        public bool IsReadyForLoanAppraisal { get; set; }
+
+        public string LoanAppraisalReadinessMessage { get; set; }
+
+        public string ExpectedLoanAppraisalDepartmentName { get; set; }
+
+        public bool IsLoanAppraisalFileTrackingEnforced { get; set; }
     }
 }

@@ -283,7 +283,7 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
         {
             get
             {
-                return Enum.IsDefined(typeof(FixedDepositMaturityAction), Category) ? EnumHelper.GetDescription((FixedDepositMaturityAction)Category) : string.Empty;
+                return Enum.IsDefined(typeof(FixedDepositMaturityAction), MaturityAction) ? EnumHelper.GetDescription((FixedDepositMaturityAction)MaturityAction) : string.Empty;
             }
         }
 
@@ -401,5 +401,11 @@ namespace Application.MainBoundedContext.DTO.FrontOfficeModule
 
 
 
+    }
+
+    public class FixedDepositReconciliationEligibilityDTO
+    {
+        public bool Eligible { get; set; }
+        public string Reason { get; set; }
     }
 }

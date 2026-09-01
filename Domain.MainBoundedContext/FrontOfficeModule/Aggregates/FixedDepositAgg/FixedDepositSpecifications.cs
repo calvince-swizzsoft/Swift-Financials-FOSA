@@ -177,7 +177,7 @@ namespace Domain.MainBoundedContext.FrontOfficeModule.Aggregates.FixedDepositAgg
 
         public static Specification<FixedDeposit> DueFixedDeposits(DateTime targetDate)
         {
-            Specification<FixedDeposit> specification = new DirectSpecification<FixedDeposit>(x => x.Status == (int)FixedDepositStatus.Running && DateTime.Compare(x.MaturityDate, targetDate) == 0);
+            Specification<FixedDeposit> specification = new DirectSpecification<FixedDeposit>(x => x.Status == (int)FixedDepositStatus.Running && x.MaturityDate <= targetDate);
 
             return specification;
         }

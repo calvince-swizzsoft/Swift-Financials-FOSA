@@ -55,6 +55,8 @@ namespace Application.MainBoundedContext.RegistryModule.Services
         private readonly ICommissionAppService _commissionAppService;
         private readonly IBrokerService _brokerService;
         private readonly ICompanyAppService _companyAppService;
+        private readonly ISavingsProductAppService _savingsProductAppService;
+        private readonly IInvestmentProductAppService _investmentProductAppService;
         private readonly IAppCache _appCache;
         private readonly IWorkflowAppService _workflowAppService;
         private readonly IAuthorizationAppService _authorizationAppService;
@@ -79,6 +81,8 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             ICommissionAppService commissionAppService,
             IBrokerService brokerService,
             ICompanyAppService companyAppService,
+            ISavingsProductAppService savingsProductAppService,
+            IInvestmentProductAppService investmentProductAppService,
             IAppCache appCache,
             IWorkflowAppService workflowAppService,
             IAuthorizationAppService authorizationAppService)
@@ -140,6 +144,12 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             if (companyAppService == null)
                 throw new ArgumentNullException(nameof(companyAppService));
 
+            if (savingsProductAppService == null)
+                throw new ArgumentNullException(nameof(savingsProductAppService));
+
+            if (investmentProductAppService == null)
+                throw new ArgumentNullException(nameof(investmentProductAppService));
+
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
@@ -168,6 +178,8 @@ namespace Application.MainBoundedContext.RegistryModule.Services
             _commissionAppService = commissionAppService;
             _brokerService = brokerService;
             _companyAppService = companyAppService;
+            _savingsProductAppService = savingsProductAppService;
+            _investmentProductAppService = investmentProductAppService;
             _appCache = appCache;
             _workflowAppService = workflowAppService;
             _authorizationAppService = authorizationAppService;
@@ -250,6 +262,58 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                 if (verificationRoles == null || !verificationRoles.Any(x => x.ApprovalPriority > 0))
                     throw new InvalidOperationException("Customer verification has no approver roles configured.");
             }
+
+            // Resolve every product on the server before the customer is persisted. Browser
+            // requests intentionally carry IDs only; product codes, lock state and G/L setup
+            // are server-owned. Registration always includes the default savings product,
+            // globally mandatory products and the products attached to the customer's company.
+            var defaultSavingsProduct = _savingsProductAppService.FindDefaultSavingsProduct(serviceHeader);
+            if (defaultSavingsProduct == null)
+                throw new InvalidOperationException("Customer registration requires exactly one default savings product to be configured.");
+
+            var companyAttachedProducts = _companyAppService.FindAttachedProducts(creationCompany.Id, serviceHeader, false);
+            var savingsProductsToCreate = new List<SavingsProductDTO>();
+            var investmentProductsToCreate = new List<InvestmentProductDTO>();
+
+            savingsProductsToCreate.Add(defaultSavingsProduct);
+            savingsProductsToCreate.AddRange(_savingsProductAppService.FindMandatorySavingsProducts(true, serviceHeader) ?? new List<SavingsProductDTO>());
+            savingsProductsToCreate.AddRange(companyAttachedProducts?.SavingsProductCollection ?? new List<SavingsProductDTO>());
+            investmentProductsToCreate.AddRange(_investmentProductAppService.FindMandatoryInvestmentProducts(true, serviceHeader) ?? new List<InvestmentProductDTO>());
+            investmentProductsToCreate.AddRange(companyAttachedProducts?.InvestmentProductCollection ?? new List<InvestmentProductDTO>());
+
+            foreach (var requestedProduct in savingsProducts ?? new List<SavingsProductDTO>())
+            {
+                if (requestedProduct == null || requestedProduct.Id == Guid.Empty)
+                    throw new InvalidOperationException("Each additional savings product must have a valid ID.");
+
+                var resolvedProduct = _savingsProductAppService.FindSavingsProduct(requestedProduct.Id, creationBranch.Id, serviceHeader);
+                if (resolvedProduct == null)
+                    throw new InvalidOperationException("An additional savings product could not be found.");
+                savingsProductsToCreate.Add(resolvedProduct);
+            }
+
+            foreach (var requestedProduct in investmentProducts ?? new List<InvestmentProductDTO>())
+            {
+                if (requestedProduct == null || requestedProduct.Id == Guid.Empty)
+                    throw new InvalidOperationException("Each additional investment product must have a valid ID.");
+
+                var resolvedProduct = _investmentProductAppService.FindInvestmentProduct(requestedProduct.Id, serviceHeader);
+                if (resolvedProduct == null)
+                    throw new InvalidOperationException("An additional investment product could not be found.");
+                investmentProductsToCreate.Add(resolvedProduct);
+            }
+
+            savingsProductsToCreate = savingsProductsToCreate.Where(product => product != null).GroupBy(product => product.Id).Select(group => group.First()).ToList();
+            investmentProductsToCreate = investmentProductsToCreate.Where(product => product != null).GroupBy(product => product.Id).Select(group => group.First()).ToList();
+
+            if (savingsProductsToCreate.Any(product => product.IsLocked))
+                throw new InvalidOperationException("A default, mandatory, company-attached, or selected savings product is locked.");
+            if (investmentProductsToCreate.Any(product => product.IsLocked))
+                throw new InvalidOperationException("A mandatory, company-attached, or selected investment product is locked.");
+            if (savingsProductsToCreate.Any(product => product.Id == Guid.Empty || product.Code <= 0 || product.ChartOfAccountId == Guid.Empty))
+                throw new InvalidOperationException("A default, mandatory, company-attached, or selected savings product is missing its code or G/L account configuration.");
+            if (investmentProductsToCreate.Any(product => product.Id == Guid.Empty || product.Code <= 0 || product.ChartOfAccountId == Guid.Empty))
+                throw new InvalidOperationException("A mandatory, company-attached, or selected investment product is missing its code or G/L account configuration.");
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
@@ -404,17 +468,20 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                     customerDTO.BranchId = currrentBranch.Id;
                     customerDTO.BranchDescription = currrentBranch.Description;
 
-                    var companyAttachedProducts = _companyAppService.FindCachedAttachedProducts(currrentBranch.CompanyId, serviceHeader);
-
-                    var savingsProductsToCreate = new List<SavingsProductDTO>(companyAttachedProducts?.SavingsProductCollection ?? new List<SavingsProductDTO>());
-                    if (savingsProducts != null)
-                        savingsProductsToCreate.AddRange(savingsProducts.Where(p => !savingsProductsToCreate.Any(existing => existing.Id == p.Id)));
-
-                    var investmentProductsToCreate = new List<InvestmentProductDTO>(companyAttachedProducts?.InvestmentProductCollection ?? new List<InvestmentProductDTO>());
-                    if (investmentProducts != null)
-                        investmentProductsToCreate.AddRange(investmentProducts.Where(p => !investmentProductsToCreate.Any(existing => existing.Id == p.Id)));
-
-                    _customerAccountAppService.AddNewCustomerAccounts(customerDTO, savingsProductsToCreate, investmentProductsToCreate, new List<LoanProductDTO>(), serviceHeader);
+                    try
+                    {
+                        var accountsCreated = _customerAccountAppService.AddNewCustomerAccounts(customerDTO, savingsProductsToCreate, investmentProductsToCreate, new List<LoanProductDTO>(), serviceHeader);
+                        if (!accountsCreated)
+                        {
+                            customerDTO.ErrorMessageResult = "The customer was created, but one or more default or mandatory product accounts could not be created. Do not register the customer again; repair the missing accounts.";
+                            return customerDTO;
+                        }
+                    }
+                    catch (InvalidOperationException exception)
+                    {
+                        customerDTO.ErrorMessageResult = string.Format("The customer was created, but product account provisioning failed: {0} Do not register the customer again; repair the missing accounts.", exception.Message);
+                        return customerDTO;
+                    }
                     #endregion
 
                     #region Effect Mandatory + Additional Debit Types

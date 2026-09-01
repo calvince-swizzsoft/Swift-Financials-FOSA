@@ -64,12 +64,15 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         {
             if (standingOrderDTO != null)
             {
+                ValidateStandingOrder(standingOrderDTO, serviceHeader);
+
                 var existingStandingOrders = FindStandingOrders(standingOrderDTO.BenefactorCustomerAccountId, standingOrderDTO.BeneficiaryCustomerAccountId, standingOrderDTO.Trigger, serviceHeader);
 
                 if (existingStandingOrders != null && existingStandingOrders.Any())
-                    //throw new InvalidOperationException(string.Format("Sorry, but a standing order with trigger '{0}' already exists!", EnumHelper.GetDescription((StandingOrderTrigger)standingOrderDTO.Trigger)));
-
+                {
                     standingOrderDTO.ErrorMessageResult = string.Format("Sorry, but a standing order with trigger '{0}' already exists!", EnumHelper.GetDescription((StandingOrderTrigger)standingOrderDTO.Trigger));
+                    return standingOrderDTO;
+                }
                
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
@@ -133,6 +136,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (standingOrderDTO == null || standingOrderDTO.Id == Guid.Empty)
                 return false;
 
+            ValidateStandingOrder(standingOrderDTO, serviceHeader);
+
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
                 var persisted = _standingOrderRepository.Get(standingOrderDTO.Id, serviceHeader);
@@ -142,7 +147,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     if (standingOrderDTO.Trigger == (int)StandingOrderTrigger.Schedule && persisted.Duration.StartDate != standingOrderDTO.DurationStartDate && standingOrderDTO.DurationStartDate < DateTime.Today)
                         throw new InvalidOperationException("The start date must not be less than today!");
 
-                    if (standingOrderDTO.Trigger == (int)StandingOrderTrigger.Schedule && persisted.Duration.StartDate.Date != standingOrderDTO.DurationStartDate.Date || persisted.Schedule.ExpectedRunDate <= DateTime.Today/*has skipped schedules since last edited*/)
+                    if (standingOrderDTO.Trigger == (int)StandingOrderTrigger.Schedule &&
+                        (persisted.Duration.StartDate.Date != standingOrderDTO.DurationStartDate.Date ||
+                         persisted.Schedule.ExpectedRunDate <= DateTime.Today/*has skipped schedules since last edited*/))
                     {
                         var holidayDTOs = _holidayAppService.FindHolidaysInCurrentPostingPeriod(serviceHeader);
 
@@ -429,6 +436,59 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 }
 
                 return dbContextScope.SaveChanges(serviceHeader) >= 0;
+            }
+        }
+
+        private void ValidateStandingOrder(StandingOrderDTO standingOrderDTO, ServiceHeader serviceHeader)
+        {
+            if (standingOrderDTO.BenefactorCustomerAccountId == Guid.Empty || standingOrderDTO.BeneficiaryCustomerAccountId == Guid.Empty)
+                throw new InvalidOperationException("Both the paying and receiving accounts are required.");
+
+            if (standingOrderDTO.BenefactorCustomerAccountId == standingOrderDTO.BeneficiaryCustomerAccountId)
+                throw new InvalidOperationException("The paying and receiving accounts must be different.");
+
+            if (standingOrderDTO.DurationStartDate == default(DateTime) || standingOrderDTO.DurationEndDate == default(DateTime))
+                throw new InvalidOperationException("Standing-order start and end dates are required.");
+
+            if (standingOrderDTO.DurationEndDate.Date < standingOrderDTO.DurationStartDate.Date)
+                throw new InvalidOperationException("The standing-order end date cannot be before its start date.");
+
+            if (!Enum.IsDefined(typeof(StandingOrderTrigger), standingOrderDTO.Trigger))
+                throw new InvalidOperationException("Select a valid standing-order trigger.");
+
+            if (!Enum.IsDefined(typeof(ScheduleFrequency), standingOrderDTO.ScheduleFrequency))
+                throw new InvalidOperationException("Select a valid standing-order frequency.");
+
+            if (!Enum.IsDefined(typeof(ChargeType), standingOrderDTO.ChargeType))
+                throw new InvalidOperationException("Select a valid transfer amount type.");
+
+            if (standingOrderDTO.LoanAmount < 0m || standingOrderDTO.PaymentPerPeriod < 0m || standingOrderDTO.Principal < 0m || standingOrderDTO.Interest < 0m || standingOrderDTO.CapitalizedInterest < 0m)
+                throw new InvalidOperationException("Standing-order monetary values cannot be negative.");
+
+            var benefactorAccount = _sqlCommandAppService.FindCustomerAccountById(standingOrderDTO.BenefactorCustomerAccountId, serviceHeader);
+            var beneficiaryAccount = _sqlCommandAppService.FindCustomerAccountById(standingOrderDTO.BeneficiaryCustomerAccountId, serviceHeader);
+
+            if (benefactorAccount == null || beneficiaryAccount == null)
+                throw new InvalidOperationException("One or both selected customer accounts no longer exist.");
+
+            if (benefactorAccount.Status == (int)CustomerAccountStatus.Closed || beneficiaryAccount.Status == (int)CustomerAccountStatus.Closed)
+                throw new InvalidOperationException("Closed customer accounts cannot be used in a standing order.");
+
+            standingOrderDTO.BenefactorProductProductCode = benefactorAccount.CustomerAccountTypeProductCode;
+            standingOrderDTO.BeneficiaryProductProductCode = beneficiaryAccount.CustomerAccountTypeProductCode;
+
+            if (beneficiaryAccount.CustomerAccountTypeProductCode == (int)ProductCode.Loan)
+            {
+                if (standingOrderDTO.Principal + standingOrderDTO.Interest <= 0m)
+                    throw new InvalidOperationException("A loan standing order requires a principal or interest recovery amount.");
+            }
+            else if (standingOrderDTO.Trigger != (int)StandingOrderTrigger.Sweep)
+            {
+                if (standingOrderDTO.ChargeType == (int)ChargeType.Percentage && (standingOrderDTO.ChargePercentage <= 0d || standingOrderDTO.ChargePercentage > 100d))
+                    throw new InvalidOperationException("The transfer percentage must be greater than zero and cannot exceed 100%.");
+
+                if (standingOrderDTO.ChargeType == (int)ChargeType.FixedAmount && standingOrderDTO.ChargeFixedAmount <= 0m)
+                    throw new InvalidOperationException("The fixed transfer amount must be greater than zero.");
             }
         }
 

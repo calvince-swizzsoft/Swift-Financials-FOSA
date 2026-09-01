@@ -68,6 +68,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         double GetLoaneeAppraisalFactor(Guid loanProductId, decimal totalValue, ServiceHeader serviceHeader);
 
+        LoanQualificationDTO CalculateLoanQualification(Guid loanProductId, decimal investmentsBalance, decimal savingsBalance, decimal outstandingLoansBalance, bool includeSavings, bool excludeOutstandingLoans, decimal productMaximumAmount, ServiceHeader serviceHeader);
+
         double GetGuarantorAppraisalFactor(Guid loanProductId, decimal totalValue, ServiceHeader serviceHeader);
 
         List<CommissionDTO> FindCommissions(Guid loanProductId, int loanProductKnownChargeType, ServiceHeader serviceHeader);

@@ -94,22 +94,24 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
 
                                     var responseTuple = await PostAsync(payload, queueDTO.BulkTextUrl);
 
-                                    if (responseTuple.Item1.In(HttpStatusCode.OK))
+                                    var responseBody = responseTuple.Item2 ?? string.Empty;
+                                    var isAcceptedHttpResponse = (int)responseTuple.Item1 >= 200 && (int)responseTuple.Item1 < 300;
+
+                                    if (isAcceptedHttpResponse)
                                     {
-                                        string[] response = responseTuple.Item2.Split(':');
-
-                                        string[] responseCode = response[2].Split(',');
-                                        string code = responseCode[0].Trim();
-
-                                        string[] responseMessageId = response[6].Split(',');
-                                        string messageid = responseMessageId[0].Trim();
+                                        string code;
+                                        string messageid;
+                                        TryExtractProviderResponse(responseBody, out code, out messageid);
 
                                         switch (code)
                                         {
                                             case "200":
-                                                smsAlert.TextMessageDLRStatus = (int)DLRStatus.Delivered;
+                                                // A successful API response only confirms that the provider
+                                                // accepted the message. Handset delivery must be confirmed by
+                                                // a later delivery receipt; do not report a false Delivered state.
+                                                smsAlert.TextMessageDLRStatus = (int)DLRStatus.Submitted;
                                                 smsAlert.TextMessageSendRetry += 1;
-                                                smsAlert.TextMessageReference = string.Format("{0}|Successful Request Call", messageid);
+                                                smsAlert.TextMessageReference = string.Format("{0}|Accepted by SMS provider; awaiting delivery receipt", messageid);
                                                 break;
                                             case "1001":
                                                 smsAlert.TextMessageDLRStatus = (int)DLRStatus.Failed;
@@ -181,6 +183,14 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
                                                 smsAlert.TextMessageSendRetry += 1;
                                                 smsAlert.TextMessageReference = string.Format("{0}|Details Not Found", messageid);
                                                 break;
+                                            default:
+                                                // Some provider/proxy versions return a successful HTTP status
+                                                // without the legacy response-code field. That is still an
+                                                // accepted submission, not proof of failure or delivery.
+                                                smsAlert.TextMessageDLRStatus = (int)DLRStatus.Submitted;
+                                                smsAlert.TextMessageSendRetry += 1;
+                                                smsAlert.TextMessageReference = string.Format("{0}|Accepted by SMS provider; unrecognised response code '{1}'", messageid, string.IsNullOrWhiteSpace(code) ? "none" : code);
+                                                break;
                                         }
                                     }
                                     else
@@ -219,6 +229,26 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
 
                 return new Tuple<HttpStatusCode, string>(response.StatusCode, responseMessage);
             }
+        }
+
+        private static void TryExtractProviderResponse(string responseBody, out string code, out string messageId)
+        {
+            code = string.Empty;
+            messageId = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(responseBody))
+                return;
+
+            // Celcom responses use hyphenated JSON keys, which cannot be
+            // represented by the legacy response DTO without custom mapping.
+            // Match by key rather than relying on colon/comma array positions.
+            var codeMatch = Regex.Match(responseBody, @"""(?:response-code|code)""\s*:\s*""?(?<value>\d+)""?", RegexOptions.IgnoreCase);
+            if (codeMatch.Success)
+                code = codeMatch.Groups["value"].Value;
+
+            var messageIdMatch = Regex.Match(responseBody, @"""(?:messageid|message-id|messageId)""\s*:\s*""?(?<value>[^"",}\s]+)", RegexOptions.IgnoreCase);
+            if (messageIdMatch.Success)
+                messageId = messageIdMatch.Groups["value"].Value;
         }
     }
 

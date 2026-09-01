@@ -1139,6 +1139,51 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             return result;
         }
 
+        public LoanQualificationDTO CalculateLoanQualification(Guid loanProductId, decimal investmentsBalance, decimal savingsBalance, decimal outstandingLoansBalance, bool includeSavings, bool excludeOutstandingLoans, decimal productMaximumAmount, ServiceHeader serviceHeader)
+        {
+            investmentsBalance = Math.Max(0m, investmentsBalance);
+            savingsBalance = Math.Max(0m, savingsBalance);
+            outstandingLoansBalance = Math.Max(0m, outstandingLoansBalance);
+            productMaximumAmount = Math.Max(0m, productMaximumAmount);
+
+            var appraisalBaseBalance = investmentsBalance + (includeSavings ? savingsBalance : 0m);
+            var effectiveMultiplier = GetLoaneeAppraisalFactor(loanProductId, appraisalBaseBalance, serviceHeader);
+            if (double.IsNaN(effectiveMultiplier) || double.IsInfinity(effectiveMultiplier) || effectiveMultiplier < 0d)
+                effectiveMultiplier = 0d;
+
+            decimal balanceBasedMaximum;
+            try
+            {
+                balanceBasedMaximum = Math.Round(appraisalBaseBalance * Convert.ToDecimal(effectiveMultiplier), 2, MidpointRounding.AwayFromZero);
+            }
+            catch (OverflowException)
+            {
+                throw new InvalidOperationException("The loan qualification calculation exceeded the supported monetary range.");
+            }
+
+            var maximumLoan = productMaximumAmount > 0m
+                ? Math.Min(balanceBasedMaximum, productMaximumAmount)
+                : 0m;
+            var maximumEntitled = excludeOutstandingLoans
+                ? maximumLoan
+                : Math.Max(0m, maximumLoan - outstandingLoansBalance);
+
+            return new LoanQualificationDTO
+            {
+                InvestmentsBalance = investmentsBalance,
+                SavingsBalance = savingsBalance,
+                SavingsIncluded = includeSavings,
+                AppraisalBaseBalance = appraisalBaseBalance,
+                EffectiveMultiplier = effectiveMultiplier,
+                BalanceBasedMaximum = balanceBasedMaximum,
+                ProductMaximumAmount = productMaximumAmount,
+                MaximumLoan = maximumLoan,
+                OutstandingLoansBalance = outstandingLoansBalance,
+                ExistingBalanceExcluded = excludeOutstandingLoans,
+                MaximumEntitled = Math.Round(maximumEntitled, 2, MidpointRounding.AwayFromZero)
+            };
+        }
+
         public double GetGuarantorAppraisalFactor(Guid loanProductId, decimal totalValue, ServiceHeader serviceHeader)
         {
             double result = default(double);

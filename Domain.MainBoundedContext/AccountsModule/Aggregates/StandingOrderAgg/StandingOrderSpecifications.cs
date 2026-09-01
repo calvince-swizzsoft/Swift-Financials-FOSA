@@ -436,16 +436,19 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.StandingOrderAgg
 
         public static Specification<StandingOrder> DueStandingOrders(DateTime targetDate, int targetDateOption, string text, int customerAccountFilter, int customerFilter)
         {
-            Specification<StandingOrder> specification = new DirectSpecification<StandingOrder>(c => c.Trigger == (int)StandingOrderTrigger.Schedule && c.Duration.EndDate >= targetDate && !c.IsLocked);
+            var targetDateStart = targetDate.Date;
+            var targetDateEndExclusive = targetDateStart.AddDays(1);
+
+            Specification<StandingOrder> specification = new DirectSpecification<StandingOrder>(c => c.Trigger == (int)StandingOrderTrigger.Schedule && c.Duration.EndDate >= targetDateStart && !c.IsLocked);
 
             switch (targetDateOption)
             {
                 case 1:
-                    specification &= new DirectSpecification<StandingOrder>(c => DateTime.Compare(c.Schedule.ExpectedRunDate, targetDate) == 0);
+                    specification &= new DirectSpecification<StandingOrder>(c => c.Schedule.ExpectedRunDate < targetDateEndExclusive);
                     break;
                 case 0:
                 default:
-                    specification &= new DirectSpecification<StandingOrder>(c => DateTime.Compare(c.Schedule.ActualRunDate, targetDate) == 0);
+                    specification &= new DirectSpecification<StandingOrder>(c => c.Schedule.ActualRunDate < targetDateEndExclusive);
                     break;
             }
 
