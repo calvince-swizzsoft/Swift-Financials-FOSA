@@ -14,12 +14,17 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.RecurringBatchAgg
             return specification;
         }
 
-        public static Specification<RecurringBatch> WithOptionalType(int? type)
+        public static Specification<RecurringBatch> WithOptionalTypeAndStatus(int? type, int? status)
         {
-            if (type.HasValue)
-                return new DirectSpecification<RecurringBatch>(x => x.Type == type.Value);
+            Specification<RecurringBatch> specification = new TrueSpecification<RecurringBatch>();
 
-            return new TrueSpecification<RecurringBatch>();
+            if (type.HasValue)
+                specification &= new DirectSpecification<RecurringBatch>(x => x.Type == type.Value);
+
+            if (status.HasValue)
+                specification &= new DirectSpecification<RecurringBatch>(x => x.Status == status.Value);
+
+            return specification;
         }
 
         public static Specification<RecurringBatch> RecurringBatchesWithStatus(int status, DateTime startDate, DateTime endDate, string text)

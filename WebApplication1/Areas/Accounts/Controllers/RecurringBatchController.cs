@@ -28,7 +28,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
         }
 
         [HttpGet, Route("")]
-        public IHttpActionResult Get([FromUri] int? type = null, [FromUri] int pageIndex = 0, [FromUri] int pageSize = 20)
+        public IHttpActionResult Get([FromUri] int? type = null, [FromUri] int? status = null, [FromUri] int pageIndex = 0, [FromUri] int pageSize = 20)
         {
             if (pageIndex < 0 || pageSize < 1 || pageSize > 200)
                 return ErrorResponse(HttpStatusCode.BadRequest, "pageIndex must be zero or greater and pageSize must be between 1 and 200");
@@ -36,7 +36,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
             if (type.HasValue && !Enum.IsDefined(typeof(Infrastructure.Crosscutting.Framework.Utils.RecurringBatchType), type.Value))
                 return ErrorResponse(HttpStatusCode.BadRequest, "Select a valid recurring batch type");
 
-            var page = _recurringBatchAppService.FindRecurringBatches(type, pageIndex, pageSize, Utils.CreateServiceHeader());
+            if (status.HasValue && !Enum.IsDefined(typeof(Infrastructure.Crosscutting.Framework.Utils.BatchStatus), status.Value))
+                return ErrorResponse(HttpStatusCode.BadRequest, "Select a valid recurring batch status");
+
+            var page = _recurringBatchAppService.FindRecurringBatches(type, status, pageIndex, pageSize, Utils.CreateServiceHeader());
             return ApiResponse("Recurring batches retrieved successfully", page);
         }
 

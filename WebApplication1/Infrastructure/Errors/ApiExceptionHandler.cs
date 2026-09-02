@@ -1,3 +1,4 @@
+using Application.Seedwork;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http.ExceptionHandling;
@@ -14,6 +15,13 @@ namespace WebApplication1.ApiErrors
 
         public static HttpResponseMessage CreateResponse(HttpRequestMessage request, System.Exception exception)
         {
+            var makerCheckerViolation = exception as MakerCheckerViolationException;
+            if (makerCheckerViolation != null)
+            {
+                return ApiErrorResponses.Create(request, HttpStatusCode.Conflict,
+                    ErrorCodes.MakerCheckerViolation, makerCheckerViolation.Message);
+            }
+
             var apiException = exception as ApiException;
 
             if (apiException != null)

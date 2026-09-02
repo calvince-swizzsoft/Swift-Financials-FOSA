@@ -261,6 +261,13 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
             //StandingOrder => StandingOrderDTO
             CreateMap<StandingOrder, StandingOrderDTO>()
+                .ForMember(dest => dest.DurationStartDate, opt => opt.MapFrom(src => src.Duration.StartDate))
+                .ForMember(dest => dest.DurationEndDate, opt => opt.MapFrom(src => src.Duration.EndDate))
+                .ForMember(dest => dest.ScheduleFrequency, opt => opt.MapFrom(src => src.Schedule.Frequency))
+                .ForMember(dest => dest.ScheduleExpectedRunDate, opt => opt.MapFrom(src => src.Schedule.ExpectedRunDate))
+                .ForMember(dest => dest.ScheduleActualRunDate, opt => opt.MapFrom(src => src.Schedule.ActualRunDate))
+                .ForMember(dest => dest.ScheduleExecuteAttemptCount, opt => opt.MapFrom(src => src.Schedule.ExecuteAttemptCount))
+                .ForMember(dest => dest.ScheduleForceExecute, opt => opt.MapFrom(src => src.Schedule.ForceExecute))
                 .ForMember(dest => dest.TriggerDescription, opt => opt.Ignore())
                 .ForMember(dest => dest.ScheduleFrequencyDescription, opt => opt.Ignore())
                 .ForMember(dest => dest.BenefactorFullAccountNumber, opt => opt.Ignore())

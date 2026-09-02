@@ -144,6 +144,16 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (persisted != null)
                 {
+                    // Legacy DTO projections could lose the nested Schedule dates and send
+                    // DateTime.MinValue back during activation. Rebuild a valid initial run
+                    // date from the order's duration before applying frequency adjustments.
+                    if (standingOrderDTO.ScheduleExpectedRunDate == default(DateTime))
+                        standingOrderDTO.ScheduleExpectedRunDate = standingOrderDTO.DurationStartDate.Date >= DateTime.Today
+                            ? standingOrderDTO.DurationStartDate.Date
+                            : DateTime.Today;
+                    if (standingOrderDTO.ScheduleActualRunDate == default(DateTime))
+                        standingOrderDTO.ScheduleActualRunDate = standingOrderDTO.ScheduleExpectedRunDate;
+
                     if (standingOrderDTO.Trigger == (int)StandingOrderTrigger.Schedule && persisted.Duration.StartDate != standingOrderDTO.DurationStartDate && standingOrderDTO.DurationStartDate < DateTime.Today)
                         throw new InvalidOperationException("The start date must not be less than today!");
 

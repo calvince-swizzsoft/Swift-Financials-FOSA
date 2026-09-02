@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BindingModelBase.cs" />
+    <Compile Include="MakerCheckerViolationException.cs" />
     <Compile Include="ProjectionsExtensionMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropertyValidation.cs" />

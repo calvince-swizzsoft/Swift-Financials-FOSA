@@ -696,8 +696,13 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                             newStandingOrderDTO.CapitalizedInterest = newStandingOrderDTO.Interest;
                                             var createdStandingOrder = _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
-                                            if (createdStandingOrder == null || !string.IsNullOrWhiteSpace(createdStandingOrder.ErrorMessageResult))
-                                                throw new InvalidOperationException(createdStandingOrder?.ErrorMessageResult ?? "Loan verification could not prepare the repayment standing order.");
+                                            // AddNewStandingOrder joins this method's ambient DbContextScope.
+                                            // Its nested SaveChanges therefore returns 0 (and the method returns
+                                            // null) while the new entity remains pending for our outer commit.
+                                            // A returned DTO with ErrorMessageResult is a real domain failure;
+                                            // persistence failures are raised by the outer SaveChanges below.
+                                            if (!string.IsNullOrWhiteSpace(createdStandingOrder?.ErrorMessageResult))
+                                                throw new InvalidOperationException(createdStandingOrder.ErrorMessageResult);
                                         }
                                     }
 
@@ -930,8 +935,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                             newStandingOrderDTO.CapitalizedInterest = newStandingOrderDTO.Interest;
                                             var createdStandingOrder = _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
-                                            if (createdStandingOrder == null || !string.IsNullOrWhiteSpace(createdStandingOrder.ErrorMessageResult))
-                                                throw new InvalidOperationException(createdStandingOrder?.ErrorMessageResult ?? "Loan verification could not prepare the repayment standing order.");
+                                            // The nested standing-order scope joins this ambient scope, so a null
+                                            // return can mean the entity is pending for this method's outer commit.
+                                            // Preserve explicit standing-order validation failures and let the
+                                            // outer SaveChanges surface persistence failures.
+                                            if (!string.IsNullOrWhiteSpace(createdStandingOrder?.ErrorMessageResult))
+                                                throw new InvalidOperationException(createdStandingOrder.ErrorMessageResult);
                                         }
                                     }
 

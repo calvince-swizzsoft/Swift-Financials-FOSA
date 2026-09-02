@@ -1,3 +1,4 @@
+using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Logging;
 using System.Net;
 using System.Web.Http;
@@ -10,6 +11,7 @@ namespace WebApplication1.ApiErrors
         public override void Log(ExceptionLoggerContext context)
         {
             if (context == null || context.Exception == null) return;
+            if (context.Exception is MakerCheckerViolationException) return;
 
             var apiException = context.Exception as ApiException;
             if (apiException != null && apiException.StatusCode != HttpStatusCode.ServiceUnavailable &&

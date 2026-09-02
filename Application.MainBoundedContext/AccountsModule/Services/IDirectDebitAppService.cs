@@ -12,6 +12,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         bool UpdateDirectDebit(DirectDebitDTO directDebitDTO, ServiceHeader serviceHeader);
 
+        List<string> ValidateDirectDebit(DirectDebitDTO directDebitDTO, ServiceHeader serviceHeader);
+
         List<DirectDebitDTO> FindDirectDebits(ServiceHeader serviceHeader);
 
         PageCollectionInfo<DirectDebitDTO> FindDirectDebits(int pageIndex, int pageSize, ServiceHeader serviceHeader);

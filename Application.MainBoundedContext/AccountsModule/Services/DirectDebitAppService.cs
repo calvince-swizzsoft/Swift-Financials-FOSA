@@ -89,6 +89,50 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             else return null;
         }
 
+        public List<string> ValidateDirectDebit(DirectDebitDTO directDebitDTO, ServiceHeader serviceHeader)
+        {
+            var errors = new List<string>();
+            if (directDebitDTO == null)
+            {
+                errors.Add("Direct debit data is required.");
+                return errors;
+            }
+
+            if (string.IsNullOrWhiteSpace(directDebitDTO.Description))
+                errors.Add("Name is required.");
+            if (!Enum.IsDefined(typeof(ProductCode), directDebitDTO.CustomerAccountTypeProductCode))
+                errors.Add("Select a valid product code.");
+            if (directDebitDTO.CustomerAccountTypeTargetProductId == Guid.Empty)
+                errors.Add("Select a product.");
+            if (!Enum.IsDefined(typeof(ChargeType), directDebitDTO.ChargeType))
+                errors.Add("Select a valid charge type.");
+            else if ((ChargeType)directDebitDTO.ChargeType == ChargeType.Percentage && (directDebitDTO.ChargePercentage <= 0 || directDebitDTO.ChargePercentage > 100))
+                errors.Add("Percentage must be greater than 0 and no more than 100.");
+            else if ((ChargeType)directDebitDTO.ChargeType == ChargeType.FixedAmount && directDebitDTO.ChargeFixedAmount <= 0)
+                errors.Add("Fixed amount must be greater than 0.");
+
+            if (directDebitDTO.CustomerAccountTypeTargetProductId != Guid.Empty && Enum.IsDefined(typeof(ProductCode), directDebitDTO.CustomerAccountTypeProductCode))
+            {
+                object product = null;
+                switch ((ProductCode)directDebitDTO.CustomerAccountTypeProductCode)
+                {
+                    case ProductCode.Savings:
+                        product = _savingsProductAppService.FindSavingsProduct(directDebitDTO.CustomerAccountTypeTargetProductId, Guid.Empty, serviceHeader);
+                        break;
+                    case ProductCode.Loan:
+                        product = _loanProductAppService.FindLoanProduct(directDebitDTO.CustomerAccountTypeTargetProductId, serviceHeader);
+                        break;
+                    case ProductCode.Investment:
+                        product = _investmentProductAppService.FindInvestmentProduct(directDebitDTO.CustomerAccountTypeTargetProductId, serviceHeader);
+                        break;
+                }
+                if (product == null)
+                    errors.Add("The selected product does not exist for that product code.");
+            }
+
+            return errors;
+        }
+
         public bool UpdateDirectDebit(DirectDebitDTO directDebitDTO, ServiceHeader serviceHeader)
         {
             if (directDebitDTO == null || directDebitDTO.Id == Guid.Empty)

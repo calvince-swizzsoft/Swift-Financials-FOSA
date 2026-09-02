@@ -133,12 +133,10 @@ yet; returns `{ success: true, message: "Workflow was already matched..." }`
 harmlessly if it's already matched. Works for any permission type on the
 generic engine, not just this one.
 
-**Known temporary state**: `WorkflowAppService.ApproveWorkflowItem`'s
-same-user maker-checker guard ("the initiator and approver of a sequential
-process must be distinct") is currently commented out for testing — the
-first bullet in §3 does not actually apply right now. It's marked
-`TODO(maker-checker)` in source and must be re-enabled before relying on
-that control.
+The same-user maker-checker guard is enforced. If the initiator or latest
+approver attempts the next sequential approval, the API returns HTTP `409`
+with error code `MAKER_CHECKER_VIOLATION` and a safe message directing the
+user to have a different authorized user complete the step.
 
 ## 4. `RecordStatus` reference
 

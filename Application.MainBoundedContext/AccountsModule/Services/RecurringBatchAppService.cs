@@ -184,7 +184,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     recurringBatch.BatchNumber = _recurringBatchRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(BatchNumber),0) + 1 AS Expr1 FROM {0}RecurringBatches", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
                     recurringBatch.EnforceMonthValueDate = recurringBatchDTO.EnforceMonthValueDate;
-                    recurringBatch.Status = (int)BatchStatus.Posted;
+                    recurringBatch.Status = (int)BatchStatus.Pending;
                     recurringBatch.CreatedBy = serviceHeader.ApplicationUserName;
 
                     _recurringBatchRepository.Add(recurringBatch, serviceHeader);
@@ -203,12 +203,19 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             if (recurringBatchId != null && recurringBatchEntries != null)
             {
-                using (_dbContextScopeFactory.CreateReadOnly())
+                using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     var persisted = _recurringBatchRepository.Get(recurringBatchId, serviceHeader);
 
                     if (persisted != null)
                     {
+                        if (!recurringBatchEntries.Any())
+                        {
+                            persisted.Status = (int)BatchStatus.Rejected;
+                            dbContextScope.SaveChanges(serviceHeader);
+                            return false;
+                        }
+
                         if (recurringBatchEntries.Any())
                         {
                             List<RecurringBatchEntry> batchEntries = new List<RecurringBatchEntry>();
@@ -326,6 +333,35 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 recurringBatchEntry.Status = (byte)(tuple.Item1
                     ? BatchEntryStatus.Posted
                     : BatchEntryStatus.Rejected);
+
+                var recurringBatch = _recurringBatchRepository.Get(recurringBatchEntry.RecurringBatchId, serviceHeader);
+                if (recurringBatch != null)
+                {
+                    var pendingCount = _recurringBatchEntryRepository.AllMatchingCount(
+                        RecurringBatchEntrySpecifications.RecurringBatchEntriesWithStatus(recurringBatch.Id, (int)BatchEntryStatus.Pending), serviceHeader);
+                    var postedCount = _recurringBatchEntryRepository.AllMatchingCount(
+                        RecurringBatchEntrySpecifications.RecurringBatchEntriesWithStatus(recurringBatch.Id, (int)BatchEntryStatus.Posted), serviceHeader);
+                    var rejectedCount = _recurringBatchEntryRepository.AllMatchingCount(
+                        RecurringBatchEntrySpecifications.RecurringBatchEntriesWithStatus(recurringBatch.Id, (int)BatchEntryStatus.Rejected), serviceHeader);
+
+                    // The count queries read the database before this entry's new status is
+                    // persisted, so fold the tracked Pending -> final-status transition into
+                    // the counts. This keeps the entry and parent batch in one atomic commit.
+                    pendingCount--;
+                    if (tuple.Item1)
+                        postedCount++;
+                    else
+                        rejectedCount++;
+
+                    if (pendingCount > 0)
+                        recurringBatch.Status = (int)BatchStatus.Pending;
+                    else if (rejectedCount > 0)
+                        recurringBatch.Status = (int)BatchStatus.Rejected;
+                    else if (postedCount > 0)
+                        recurringBatch.Status = (int)BatchStatus.Posted;
+                    else
+                        recurringBatch.Status = (int)BatchStatus.Rejected;
+                }
 
                 return dbContextScope.SaveChanges(serviceHeader) >= 0;
             }
@@ -1151,12 +1187,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             return ExecuteStandingOrdersDetailed(targetDate, targetDateOption, priority, maximumStandingOrderExecuteAttemptCount, pageSize, serviceHeader).QueuedCount > 0;
         }
 
-        public PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int? type, int pageIndex, int pageSize, ServiceHeader serviceHeader)
+        public PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int? type, int? status, int pageIndex, int pageSize, ServiceHeader serviceHeader)
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
                 var page = _recurringBatchRepository.AllMatchingPaged(
-                    RecurringBatchSpecifications.WithOptionalType(type), pageIndex, pageSize,
+                    RecurringBatchSpecifications.WithOptionalTypeAndStatus(type, status), pageIndex, pageSize,
                     new List<string> { "SequentialId" }, true, serviceHeader);
 
                 if (page == null)

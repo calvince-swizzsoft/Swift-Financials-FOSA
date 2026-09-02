@@ -140,6 +140,14 @@ drift out of sync with the actual code.
   `IChequeTypeAppService`; reference controller's session-staged
   charges/products wizard collapsed into one `CreateChequeTypeRequest` body —
   see `docs/api/cheque-type-api-spec.md`)
+- `Areas/Accounts/Controllers/CreditTypeController.cs` (existing
+  `ICreditTypeAppService` and CreditType domain aggregate; full list/create/edit
+  plus commissions, direct debits, attached loan/investment/savings products,
+  and concession-exempt loan products) — see `docs/api/credit-type-api-spec.md`.
+- `Areas/Accounts/Controllers/DirectDebitController.cs` (existing
+  `IDirectDebitAppService` and DirectDebit domain aggregate; list/create/edit
+  with AppService-owned product/charge validation) — see
+  `docs/api/direct-debit-api-spec.md`.
 - `Areas/Accounts/Controllers/ChequeBookController.cs` (existing
   `IChequeBookAppService` — was fully built with no controller anywhere,
   only reachable via the legacy `ChequeBookService.svc.cs` WCF passthrough;

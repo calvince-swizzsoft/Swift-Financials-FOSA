@@ -18,7 +18,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         List<RecurringBatchDTO> FindRecurringBatches(ServiceHeader serviceHeader);
 
-        PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int? type, int pageIndex, int pageSize, ServiceHeader serviceHeader);
+        PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int? type, int? status, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 
         PageCollectionInfo<RecurringBatchDTO> FindRecurringBatches(int status, DateTime startDate, DateTime endDate, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader);
 

@@ -364,6 +364,8 @@
     <Compile Include="Areas\Accounts\Controllers\LevyController.cs" />
     <Compile Include="Areas\Accounts\Controllers\UnPayReasonController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CreditBatchController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\CreditTypeController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\DirectDebitController.cs" />
     <Compile Include="Areas\Accounts\Controllers\CreditBatchImportController.cs" />
     <Compile Include="Areas\Accounts\Controllers\DebitBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\WireTransferBatchController.cs" />

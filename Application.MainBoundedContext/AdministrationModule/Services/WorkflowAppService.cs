@@ -433,7 +433,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             // action this compares against the workflow item's creator; for
             // later actions it compares against the latest recorded approver.
             if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemDTO.Id, serviceHeader.ApplicationUserName, serviceHeader))
-                throw new InvalidOperationException("Maker-checker failure: the initiator and approver of a sequential process must be distinct!");
+                throw new MakerCheckerViolationException();
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {

@@ -197,6 +197,12 @@ product is supplied it also returns investment/savings/appraisal balances,
 the same-product balance, maximum loan and maximum entitlement used to
 populate the read-only registration summary.
 
+Standing orders are enriched before serialization, so
+`benefactorProductDescription` and `beneficiaryProductDescription` are
+populated. Payout entries are likewise enriched through
+`productDescription`; clients should not infer a product from the formatted
+account number.
+
 ## 8. Appraisal worksheet
 
 `GET /{id}/appraisal-worksheet`

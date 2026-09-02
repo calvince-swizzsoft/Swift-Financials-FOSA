@@ -80,9 +80,19 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.RecurringBatchEntr
             return specification;
         }
 
+        public static Specification<RecurringBatchEntry> RecurringBatchEntriesWithStatus(Guid recurringBatchId, int status)
+        {
+            return new DirectSpecification<RecurringBatchEntry>(x => x.RecurringBatchId == recurringBatchId && x.Status == status);
+        }
+
         public static Specification<RecurringBatchEntry> QueableRecurringBatchEntries()
         {
-            Specification<RecurringBatchEntry> specification = new DirectSpecification<RecurringBatchEntry>(c => c.Status == (int)BatchEntryStatus.Pending && c.RecurringBatch.Status == (int)BatchStatus.Posted);
+            // Pending is the real processing state. Posted is retained here so
+            // entries belonging to legacy batches created under the old lifecycle
+            // are not stranded during deployment.
+            Specification<RecurringBatchEntry> specification = new DirectSpecification<RecurringBatchEntry>(c =>
+                c.Status == (int)BatchEntryStatus.Pending &&
+                (c.RecurringBatch.Status == (int)BatchStatus.Pending || c.RecurringBatch.Status == (int)BatchStatus.Posted));
             
             return specification;
         }

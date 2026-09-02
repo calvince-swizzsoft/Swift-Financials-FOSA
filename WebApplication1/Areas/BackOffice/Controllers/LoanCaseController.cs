@@ -726,6 +726,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     .GroupBy(s => s.Id)
                     .Select(g => g.First())
                     .ToList();
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(standingOrders, serviceHeader);
                 var loanApplications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(loanCase.CustomerId, serviceHeader) ?? new List<LoanCaseDTO>();
                 var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, serviceHeader) ?? new List<AttachedLoanDTO>();
                 var fileRegister = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(loanCase.CustomerId, loanCase.BranchId, serviceHeader);
@@ -1140,6 +1141,10 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse(message, refreshed));
             }
+            catch (InvalidOperationException ex)
+            {
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope(ex.Message));
+            }
             catch (Exception)
             {
                 throw;
@@ -1216,6 +1221,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCase.CustomerId, header) ?? new List<CustomerAccountDTO>();
                 var loanAccounts = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Loan).ToList();
                 var standingOrders = accounts.SelectMany(account => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(account.Id, header) ?? new List<StandingOrderDTO>()).GroupBy(item => item.Id).Select(group => group.First()).ToList();
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(standingOrders, header);
                 var payouts = _loanDisbursementBatchAppService.FindLoanDisbursementBatchEntriesByCustomerId((int)BatchStatus.Posted, loanCase.CustomerId, header) ?? new List<LoanDisbursementBatchEntryDTO>();
                 var applications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(loanCase.CustomerId, header) ?? new List<LoanCaseDTO>();
                 var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, header) ?? new List<LoanGuarantorDTO>();
@@ -1491,6 +1497,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCase.CustomerId, header) ?? new List<CustomerAccountDTO>();
                 var loanAccounts = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Loan).ToList();
                 var standingOrders = accounts.SelectMany(account => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(account.Id, header) ?? new List<StandingOrderDTO>()).GroupBy(item => item.Id).Select(group => group.First()).ToList();
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(standingOrders, header);
                 var payouts = _loanDisbursementBatchAppService.FindLoanDisbursementBatchEntriesByCustomerId((int)BatchStatus.Posted, loanCase.CustomerId, header) ?? new List<LoanDisbursementBatchEntryDTO>();
                 var applications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(loanCase.CustomerId, header) ?? new List<LoanCaseDTO>();
                 var guarantors = _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, header) ?? new List<LoanGuarantorDTO>();
@@ -1517,8 +1524,10 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     return NotFound();
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(customerId, header) ?? new List<CustomerAccountDTO>();
                 var standingOrders = accounts.SelectMany(account => _standingOrderAppService.FindStandingOrdersByBeneficiaryCustomerAccountId(account.Id, header) ?? new List<StandingOrderDTO>()).GroupBy(item => item.Id).Select(group => group.First()).ToList();
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(standingOrders, header);
                 var applications = _loanCaseAppService.FindLoanCasesByCustomerIdInProcess(customerId, header) ?? new List<LoanCaseDTO>();
                 var payouts = _creditBatchAppService.FindCreditBatchEntriesByCustomerId((int)CreditBatchType.Payout, customerId, header) ?? new List<CreditBatchEntryDTO>();
+                _customerAccountAppService.FetchCustomerAccountsProductDescription(payouts, header);
                 var collaterals = _customerDocumentAppService.FindCustomerDocuments(customerId, 1, header) ?? new List<CustomerDocumentDTO>();
                 var investmentBalance = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(account => account.BookBalance);
                 var savingsBalance = accounts.Where(account => account.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(account => account.BookBalance);

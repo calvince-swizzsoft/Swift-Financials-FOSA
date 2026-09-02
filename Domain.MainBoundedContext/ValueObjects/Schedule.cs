@@ -21,7 +21,7 @@ namespace Domain.MainBoundedContext.ValueObjects
             this.ActualRunDate = actualRunDate;
             this.ExpectedRunDate = expectedRunDate;
             this.ExecuteAttemptCount = (byte)executeAttemptCount;
-            this.ForceExecute = ForceExecute;
+            this.ForceExecute = forceExecute;
         }
 
         private Schedule()

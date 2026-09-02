@@ -278,6 +278,11 @@ namespace WebApplication1.Controllers
                             break;
                     }
 
+                    // FiscalCount has its own persisted TransactionCode column. The
+                    // journal code was previously assigned only to TransactionModel,
+                    // leaving every Cash Management fiscal count at the default 0 and
+                    // therefore displaying as "Unclassified".
+                    fiscalCountDTO.TransactionCode = transactionModel.TransactionCode;
                     transactionModel.fiscalCountDTO = fiscalCountDTO;
 
                     var balanceLimitError = _treasuryAppService.ValidateCashMovement(
@@ -302,6 +307,9 @@ namespace WebApplication1.Controllers
                             //var bankToTreasuryJournal = await _channelService.AddCashManagementJournalAsync(transactionModel.fiscalCountDTO, transactionModel, GetServiceHeader());
                            var bankToTreasuryJournal = DoSomething(transactionModel, transactionModel.fiscalCountDTO, serviceHeader, _branchAppService, _journalAppService);
 
+                            if (bankToTreasuryJournal == null)
+                                return Json(new { success = false, message = "The Bank-to-Treasury journal could not be created. Verify the posting period and the bank and treasury G/L configuration." });
+
 
 
 
@@ -322,7 +330,7 @@ namespace WebApplication1.Controllers
 
                             }
 
-                            break;
+                            return Json(new { success = false, message = "The Bank-to-Treasury journal was created, but the bank G/L account could not be refreshed." });
 
                         case TreasuryTransactionType.TreasuryToTeller:
 
@@ -433,9 +441,30 @@ namespace WebApplication1.Controllers
                     return Json(new { success = true, message = "Operation Success: Transaction processed successfully!" });
 
                 }
-                catch (Exception)
+                catch (InvalidOperationException exception)
                 {
-                    throw;
+                    // Configuration and business-rule failures are actionable for
+                    // the operator. Keep them in the standard response envelope so
+                    // the client can display the AppService/domain explanation.
+                    return Content(System.Net.HttpStatusCode.Conflict, new
+                    {
+                        success = false,
+                        message = exception.Message,
+                        data = (object)null
+                    });
+                }
+                catch (Exception exception)
+                {
+                    // Preserve the originating error instead of allowing the global
+                    // exception handler to replace it with "An error occurred".
+                    // GetBaseException exposes the useful persistence/posting reason
+                    // when an infrastructure exception has been wrapped.
+                    return Content(System.Net.HttpStatusCode.InternalServerError, new
+                    {
+                        success = false,
+                        message = exception.GetBaseException().Message,
+                        data = (object)null
+                    });
                 }
             }
             else

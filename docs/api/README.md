@@ -97,6 +97,8 @@ not as proof that asynchronous processing succeeded.
 | Banks (+ bank branches) | `api/administration/banks` | [`bank-api-spec.md`](bank-api-spec.md) |
 | Bank linkages (branch ↔ external bank ↔ G/L account) | `api/accounts/banklinkages` | [`bank-linkage-api-spec.md`](bank-linkage-api-spec.md) |
 | Cheque types (master data) | `api/accounts/chequetypes` | [`cheque-type-api-spec.md`](cheque-type-api-spec.md) |
+| Credit types (charges, direct debits, and attached products) | `api/accounts/credittypes` | [`credit-type-api-spec.md`](credit-type-api-spec.md) |
+| Direct debits (credit-batch deduction definitions) | `api/accounts/directdebits` | [`direct-debit-api-spec.md`](direct-debit-api-spec.md) |
 | Cheque books (issuance + payment vouchers) | `api/accounts/chequebooks` | [`chequebook-api-spec.md`](chequebook-api-spec.md) |
 | Commissions (+ graduated scales/splits/levies) | `api/accounts/commissions` | [`commission-api-spec.md`](commission-api-spec.md) |
 | Levies (+ splits) | `api/accounts/levies` | [`levy-api-spec.md`](levy-api-spec.md) |

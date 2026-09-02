@@ -1,5 +1,6 @@
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO.AdministrationModule;
+using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
@@ -372,6 +373,10 @@ namespace WebApplication1.Areas.Workflows.Controllers
                 return Ok(result);
             }
 
+            catch (MakerCheckerViolationException ex)
+            {
+                return Error(HttpStatusCode.Conflict, ErrorCodes.MakerCheckerViolation, ex.Message);
+            }
             catch (InvalidOperationException)
             {
                 return Error(HttpStatusCode.Conflict, ErrorCodes.WorkflowInvalidState,

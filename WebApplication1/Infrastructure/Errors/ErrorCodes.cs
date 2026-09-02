@@ -30,5 +30,6 @@ namespace WebApplication1.ApiErrors
         public const string WorkflowInvalidState = "WORKFLOW_INVALID_STATE";
         public const string WorkflowNotFinal = "WORKFLOW_NOT_FINAL";
         public const string WorkflowItemRequiresDetailedScreen = "WORKFLOW_ITEM_REQUIRES_DETAILED_SCREEN";
+        public const string MakerCheckerViolation = "MAKER_CHECKER_VIOLATION";
     }
 }
