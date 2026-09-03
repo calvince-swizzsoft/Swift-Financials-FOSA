@@ -134,6 +134,45 @@ namespace WebApplication1.Areas.Roles
                 (int)selectedType, requestBody.PermissionTypeInRoles, serviceHeader));
         }
 
+        [HttpGet]
+        [Route("GetBranchesForPermissionType")]
+        public IHttpActionResult GetBranchesForPermissionType(string permissionType)
+        {
+            SystemPermissionType selectedType;
+            if (!Enum.TryParse(permissionType, true, out selectedType))
+                return InvalidPermissionType();
+
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            return Ok(_authorizationAppService.GetBranchesForSystemPermissionType(
+                (int)selectedType, serviceHeader) ?? new List<BranchDTO>());
+        }
+
+        [HttpPost]
+        [Route("addPermissionTypeToBranches")]
+        public IHttpActionResult AddPermissionTypeToBranches(PermissionBranchRequest requestBody)
+        {
+            SystemPermissionType selectedType;
+            if (!TryValidatePermissionBranchRequest(requestBody, out selectedType))
+                return InvalidPermissionBranchRequest();
+
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            return Ok(_authorizationAppService.AddSystemPermissionTypeToBranches(
+                (int)selectedType, requestBody.Branches, serviceHeader));
+        }
+
+        [HttpPost]
+        [Route("RemoveBranchesFromPermissionType")]
+        public IHttpActionResult RemoveBranchesFromPermissionType(PermissionBranchRequest requestBody)
+        {
+            SystemPermissionType selectedType;
+            if (!TryValidatePermissionBranchRequest(requestBody, out selectedType))
+                return InvalidPermissionBranchRequest();
+
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            return Ok(_authorizationAppService.RemoveSystemPermissionTypeFromBranches(
+                (int)selectedType, requestBody.Branches, serviceHeader));
+        }
+
         private static bool IsValidRoleRequest(AddUserToRolesRequest request)
         {
             return request != null && !string.IsNullOrWhiteSpace(request.UserName) &&
@@ -150,6 +189,15 @@ namespace WebApplication1.Areas.Roles
                 request.PermissionTypeInRoles.All(item => item != null && !string.IsNullOrWhiteSpace(item.RoleName));
         }
 
+        private static bool TryValidatePermissionBranchRequest(PermissionBranchRequest request,
+            out SystemPermissionType selectedType)
+        {
+            selectedType = default(SystemPermissionType);
+            return request != null &&
+                Enum.TryParse(request.SystemPermissionType, true, out selectedType) &&
+                request.Branches != null && request.Branches.Any(item => item != null && item.Id != Guid.Empty);
+        }
+
         private IHttpActionResult InvalidRoleRequest()
         {
             return Error(HttpStatusCode.BadRequest, ErrorCodes.ValidationFailed,
@@ -160,6 +208,12 @@ namespace WebApplication1.Areas.Roles
         {
             return Error(HttpStatusCode.BadRequest, ErrorCodes.InvalidPermissionType,
                 "A valid system permission type and role list are required.");
+        }
+
+        private IHttpActionResult InvalidPermissionBranchRequest()
+        {
+            return Error(HttpStatusCode.BadRequest, ErrorCodes.ValidationFailed,
+                "A valid system permission type and at least one branch are required.");
         }
 
         private IHttpActionResult Error(HttpStatusCode statusCode, string code, string message)
@@ -185,6 +239,12 @@ namespace WebApplication1.Areas.Roles
             // Preserve the existing JSON property used by the frontend.
             [Newtonsoft.Json.JsonProperty("permissionTypeinRoles")]
             public List<SystemPermissionTypeInRoleDTO> PermissionTypeInRoles { get; set; }
+        }
+
+        public class PermissionBranchRequest
+        {
+            public string SystemPermissionType { get; set; }
+            public BranchDTO[] Branches { get; set; }
         }
     }
 }
