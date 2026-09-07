@@ -4,7 +4,7 @@ namespace Domain.MainBoundedContext.InventoryModule.Aggregates.AssetTypeAgg
 {
     public static class AssetTypeFactory
     {
-        public static AssetType CreateAssetType(string name, int depreciationMethod, int usefulLife, bool isTangible)
+        public static AssetType CreateAssetType(string name, int depreciationMethod, int usefulLife, bool isTangible, System.Guid depreciationExpenseAccountId = default(System.Guid), System.Guid accumulatedDepreciationAccountId = default(System.Guid))
         {
             var assetType = new AssetType();
 
@@ -16,7 +16,9 @@ namespace Domain.MainBoundedContext.InventoryModule.Aggregates.AssetTypeAgg
 
             assetType.UsefulLife = usefulLife;
 
-            assetType.IsTangible = isTangible;
+           assetType.IsTangible = isTangible;
+            assetType.DepreciationExpenseAccountId = depreciationExpenseAccountId;
+            assetType.AccumulatedDepreciationAccountId = accumulatedDepreciationAccountId;
 
             assetType.CreatedDate = DateTime.Now;
 

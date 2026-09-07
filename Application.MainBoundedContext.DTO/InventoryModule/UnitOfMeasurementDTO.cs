@@ -26,5 +26,8 @@ namespace Application.MainBoundedContext.DTO.InventoryModule
 
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }
+
+        [Display(Name = "Created By")]
+        public string CreatedBy { get; set; }
     }
 }

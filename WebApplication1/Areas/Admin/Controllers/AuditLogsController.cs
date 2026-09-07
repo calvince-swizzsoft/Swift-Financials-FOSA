@@ -30,6 +30,15 @@ namespace WebApplication1.Areas.Admin.Controllers
             return Ok(auditTrails);
         }
 
+        [HttpGet, Route("entries")]
+        public IHttpActionResult Entries()
+        {
+            var serviceHeader = WebApplication1.Helpers.Utils.CreateServiceHeader();
+            var auditEntries = _auditLogAppService.FindAuditTrails(serviceHeader);
+
+            return Ok(auditEntries);
+        }
+
 
 
     }

@@ -266,6 +266,21 @@ namespace Application.MainBoundedContext.Services
             }
         }
 
+        public List<AuditTrailDTO> FindAuditTrails(ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var auditTrails = _auditTrailRepository.GetAll(serviceHeader);
+
+                if (auditTrails != null && auditTrails.Any())
+                {
+                    return auditTrails.ProjectedAsCollection<AuditTrailDTO>();
+                }
+
+                return null;
+            }
+        }
+
         public async Task<PageCollectionInfo<AuditTrailDTO>> FindAuditTrailsByDateRangeAndFilterAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string text, ServiceHeader serviceHeader)
         {
             using (_dbContextScopeFactory.CreateReadOnly())

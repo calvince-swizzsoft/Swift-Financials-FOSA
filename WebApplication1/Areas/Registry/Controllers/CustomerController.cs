@@ -347,6 +347,44 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpPut, Route("{id:guid}/partnership-members")]
+        public async Task<IHttpActionResult> UpdatePartnershipMembers(Guid id, [FromBody] List<PartnershipMemberDTO> members)
+        {
+            var serviceHeader = Utils.CreateServiceHeader();
+            var customer = await _customerAppService.FindCustomerAsync(id, serviceHeader);
+            if (customer == null)
+                return ErrorResponse(HttpStatusCode.NotFound, "Customer not found");
+            if (customer.Type != (byte)CustomerType.Partnership)
+                return ErrorResponse(HttpStatusCode.BadRequest, "Partnership members can only be maintained for a partnership customer.");
+            if (!CanEditCustomer(serviceHeader))
+                return ErrorResponse(HttpStatusCode.Forbidden, "Customer Editing permission is required.");
+
+            var requestedMembers = members ?? new List<PartnershipMemberDTO>();
+            if (!requestedMembers.Any())
+                return ErrorResponse(HttpStatusCode.BadRequest, "A partnership must have at least one member.");
+
+            for (var index = 0; index < requestedMembers.Count; index++)
+            {
+                var member = requestedMembers[index];
+                var row = index + 1;
+                if (member == null || string.IsNullOrWhiteSpace(member.FirstName) || string.IsNullOrWhiteSpace(member.LastName))
+                    return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Partnership member {0} requires a first name and last name.", row));
+                if (string.IsNullOrWhiteSpace(member.IdentityCardNumber))
+                    return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Partnership member {0} requires an identity number.", row));
+                if (!string.IsNullOrWhiteSpace(member.AddressEmail) && !System.Text.RegularExpressions.Regex.IsMatch(member.AddressEmail, @"^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$"))
+                    return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Partnership member {0} has an invalid email address.", row));
+                if (!string.IsNullOrWhiteSpace(member.AddressMobileLine) && !System.Text.RegularExpressions.Regex.IsMatch(member.AddressMobileLine, @"^\+[0-9]{7,15}$"))
+                    return ErrorResponse(HttpStatusCode.BadRequest, string.Format("Partnership member {0} mobile number must start with + and contain 7 to 15 digits.", row));
+            }
+
+            var updated = await _customerAppService.UpdatePartnershipMemberCollectionAsync(id, requestedMembers, serviceHeader);
+            if (!updated)
+                return ErrorResponse(HttpStatusCode.InternalServerError, "The partnership member changes could not be saved.");
+
+            var refreshed = await _customerAppService.FindPartnershipMemberCollectionAsync(id, serviceHeader);
+            return ApiResponse(true, "Partnership members updated successfully", refreshed);
+        }
+
         [HttpGet, Route("{id:guid}/corporation-members")]
         public async Task<IHttpActionResult> GetCorporationMembers(Guid id)
         {

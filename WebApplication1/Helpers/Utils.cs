@@ -1,6 +1,7 @@
 ﻿using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Security.Claims;
 using System.Web;
@@ -12,7 +13,9 @@ namespace WebApplication1.Helpers
 
         public static ServiceHeader CreateServiceHeader()
         {
-
+            var applicationDomain = ConfigurationManager.AppSettings["ApplicationDomainName"];
+            if (string.IsNullOrWhiteSpace(applicationDomain) || ConfigurationManager.ConnectionStrings[applicationDomain] == null)
+                throw new ConfigurationErrorsException("ApplicationDomainName must identify a configured database connection.");
             var principal = HttpContext.Current?.User as ClaimsPrincipal;
 
             var applicationUserName = principal?.Identity?.Name ?? "System";
@@ -25,23 +28,30 @@ namespace WebApplication1.Helpers
             Guid applicationUserEmployeeId;
             var employeeClaim = principal?.FindFirst("EmployeeId")?.Value;
             var hasApplicationUserEmployee = Guid.TryParse(employeeClaim, out applicationUserEmployeeId);
+            var request = HttpContext.Current?.Request;
+            var clientIPAddress = request?.UserHostAddress ?? "";
 
             return new ServiceHeader
             {
-                ApplicationDomainName = "SwiftApis",
+                ApplicationDomainName = applicationDomain,
                 ApplicationUserName = applicationUserName,   // was hardcoded — now pulled from the validated JWT
                 ApplicationUserRoles = applicationUserRoles,
                 ApplicationUserBranchId = hasApplicationUserBranch ? (Guid?)applicationUserBranchId : null,
                 ApplicationUserEmployeeId = hasApplicationUserEmployee ? (Guid?)applicationUserEmployeeId : null,
                 EnforceTransactionThresholds = principal?.Identity?.IsAuthenticated == true,
-                EnvironmentDomainName = "SwiftApis",
+                EnvironmentDomainName = applicationDomain,
                 EnvironmentIPAddress = HttpContext.Current?.Request?.UserHostAddress ?? "",
                 EnvironmentMACAddress = "",
                 EnvironmentMachineName = Environment.MachineName,
                 EnvironmentMotherboardSerialNumber = "",
                 EnvironmentOSVersion = Environment.OSVersion.ToString(),
                 EnvironmentProcessorId = "",
-                EnvironmentUserName = Environment.UserName
+                EnvironmentUserName = Environment.UserName,
+                ClientIPAddress = clientIPAddress,
+                ClientDeviceId = request?.Headers["X-Client-Device-Id"] ?? "",
+                ClientUserAgent = request?.UserAgent ?? "",
+                ServerMachineName = Environment.MachineName,
+                ServerOSVersion = Environment.OSVersion.ToString()
             };
         }
 

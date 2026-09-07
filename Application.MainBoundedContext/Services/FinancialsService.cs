@@ -154,7 +154,7 @@ namespace Application.MainBoundedContext.Services
 
         public double VDB(double initialCost, double residualValue, double usefulLife, double period, double factor)
         {
-            return Financial.DDB(initialCost, residualValue, usefulLife, period, factor);
+            double value = initialCost; double depreciation = 0; for (int p = 1; p <= period && value > residualValue; p++) { double declining = value * factor / usefulLife; double straightLine = (value - residualValue) / Math.Max(1, usefulLife - p + 1); depreciation = Math.Min(value - residualValue, Math.Max(declining, straightLine)); value -= depreciation; } return depreciation;
         }
 
         public List<AmortizationTableEntry> RepaymentSchedule(int termInMonths, int paymentFrequencyPerYear, int gracePeriod, int interestCalculationMode, double APR, double PV, double FV = 0, int Due = 0)

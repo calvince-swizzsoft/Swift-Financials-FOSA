@@ -326,7 +326,6 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                 var customer = CustomerFactory.CreateCustomer(customerDTO.Type, customerDTO.PersonalIdentificationNumber, individual, nonIndividual, address, customerDTO.StationId, customerDTO.Reference1, customerDTO.Reference2, customerDTO.Reference3, customerDTO.Remarks, customerDTO.RegistrationDate, customerDTO.RecruitedBy, customerDTO.AdministrativeDivisionId, customerDTO.BankName, customerDTO.BranchName);
 
                 customer.SerialNumber = _customerRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(SerialNumber),0) + 1 AS Expr1 FROM {0}Customers", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
-                customer.Reference2 =( _customerRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(Reference2),0) + 1 AS Expr1 FROM {0}Customers", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault()).ToString() ;
                 customer.PassportImageId = IdentityGenerator.NewSequentialGuid();
                 customer.SignatureImageId = IdentityGenerator.NewSequentialGuid();
                 customer.IdentityCardBackSideImageId = IdentityGenerator.NewSequentialGuid();
@@ -413,57 +412,6 @@ namespace Application.MainBoundedContext.RegistryModule.Services
 
                     #endregion
 
-                    #region Send Text Notification
-                    if (currrentBranch.CompanyApplicationMembershipTextAlertsEnabled && !string.IsNullOrWhiteSpace(customerDTO.AddressMobileLine) && Regex.IsMatch(customerDTO.AddressMobileLine, @"^\+(?:[0-9]??){6,14}[0-9]$") && customerDTO.AddressMobileLine.Length >= 13)
-                    {
-                        var smsBody = new StringBuilder();
-                        smsBody.AppendFormat("Dear {0},\nWelcome to {1}.", customerDTO.FullName, currrentBranch.CompanyDescription);
-                        smsBody.Append(!string.IsNullOrWhiteSpace(customerDTO.Reference2) ? $"\nYour membership number is {customerDTO.Reference2}." : $"\nYour serial number is {customerDTO.PaddedSerialNumber}.");
-                        var textAlertDTO = new TextAlertDTO
-                        {
-                            BranchId = currrentBranch.Id,
-                            TextMessageOrigin = (int)MessageOrigin.Within,
-                            TextMessageRecipient = customerDTO.AddressMobileLine,
-                            TextMessageBody = smsBody.ToString(),
-                            MessageCategory = (int)MessageCategory.SMSAlert,
-                            AppendSignature = false,
-                            TextMessagePriority = (int)QueuePriority.Highest,
-                        };
-                        _textAlertAppService.AddNewTextAlert(textAlertDTO, serviceHeader);
-                    }
-                    #endregion
-
-                    #region Send Email Notification
-                    // Mirrors the text notification immediately above — same
-                    // direct AddNewEmailAlert call (no queue/broker
-                    // indirection), added 2026-08-18 since this method had no
-                    // email counterpart to the existing SMS welcome message.
-                    // No CompanyApplicationMembershipEmailAlertsEnabled-style
-                    // flag exists on BranchDTO to gate this the way the text
-                    // block is gated, so this only checks for a valid address.
-                    if (!string.IsNullOrWhiteSpace(customerDTO.AddressEmail) && Regex.IsMatch(customerDTO.AddressEmail, @"\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"))
-                    {
-                        var emailBody = new StringBuilder();
-                        emailBody.AppendFormat("<p>Dear {0},</p><p>Welcome to {1}.</p>", customerDTO.FullName, currrentBranch.CompanyDescription);
-                        emailBody.Append(!string.IsNullOrWhiteSpace(customerDTO.Reference2)
-                            ? $"<p>Your membership number is {customerDTO.Reference2}.</p>"
-                            : $"<p>Your serial number is {customerDTO.PaddedSerialNumber}.</p>");
-
-                        var emailAlertDTO = new EmailAlertDTO
-                        {
-                            BranchId = currrentBranch.Id,
-                            MailMessageFrom = currrentBranch.CompanyAddressEmail,
-                            MailMessageTo = customerDTO.AddressEmail,
-                            MailMessageSubject = string.Format("Welcome to {0}", currrentBranch.CompanyDescription),
-                            MailMessageBody = emailBody.ToString(),
-                            MailMessageIsBodyHtml = true,
-                            MailMessageOrigin = (int)MessageOrigin.Within,
-                            MailMessagePriority = (int)QueuePriority.Highest,
-                        };
-                        _emailAlertAppService.AddNewEmailAlert(emailAlertDTO, serviceHeader);
-                    }
-                    #endregion
-
                     #region Auto-Create Mandatory + Additional Accounts
                     customerDTO.BranchId = currrentBranch.Id;
                     customerDTO.BranchDescription = currrentBranch.Description;
@@ -515,6 +463,44 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                                 _journalAppService.AddNewJournal(currrentBranch.Id, null, tariff.Amount, tariff.Description, item.Description, string.Format("{0}", customerDTO.SerialNumber).PadLeft(6, '0'), moduleNavigationItemCode, 0, null, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
                             }
                         }
+                    }
+                    #endregion
+
+                    #region Send Text Notification
+                    if (currrentBranch.CompanyApplicationMembershipTextAlertsEnabled && !string.IsNullOrWhiteSpace(customerDTO.AddressMobileLine) && Regex.IsMatch(customerDTO.AddressMobileLine, @"^\+(?:[0-9]??){6,14}[0-9]$") && customerDTO.AddressMobileLine.Length >= 13)
+                    {
+                        var textAlertDTO = new TextAlertDTO
+                        {
+                            BranchId = currrentBranch.Id,
+                            TextMessageOrigin = (int)MessageOrigin.Within,
+                            TextMessageRecipient = customerDTO.AddressMobileLine,
+                            TextMessageBody = CustomerRegistrationNotification.TextBody(customerDTO, currrentBranch),
+                            MessageCategory = (int)MessageCategory.SMSAlert,
+                            AppendSignature = false,
+                            TextMessagePriority = (int)QueuePriority.Highest,
+                        };
+                        _textAlertAppService.AddNewTextAlert(textAlertDTO, serviceHeader);
+                    }
+                    #endregion
+
+                    #region Send Email Notification
+                    // Queue the welcome email only after account provisioning and registration charges complete.
+                    if (!string.IsNullOrWhiteSpace(customerDTO.AddressEmail) && Regex.IsMatch(customerDTO.AddressEmail, @"\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"))
+                    {
+                        var registeredAccounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(customerDTO.Id, serviceHeader);
+
+                        var emailAlertDTO = new EmailAlertDTO
+                        {
+                            BranchId = currrentBranch.Id,
+                            MailMessageFrom = currrentBranch.CompanyAddressEmail,
+                            MailMessageTo = customerDTO.AddressEmail,
+                            MailMessageSubject = string.Format("Welcome to {0}", currrentBranch.CompanyDescription),
+                            MailMessageBody = CustomerRegistrationNotification.EmailBody(customerDTO, currrentBranch, registeredAccounts),
+                            MailMessageIsBodyHtml = true,
+                            MailMessageOrigin = (int)MessageOrigin.Within,
+                            MailMessagePriority = (int)QueuePriority.Highest,
+                        };
+                        _emailAlertAppService.AddNewEmailAlert(emailAlertDTO, serviceHeader);
                     }
                     #endregion
                 }

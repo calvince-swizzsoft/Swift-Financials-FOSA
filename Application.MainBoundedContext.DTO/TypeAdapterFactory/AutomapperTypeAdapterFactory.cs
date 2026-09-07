@@ -3,6 +3,7 @@ using Application.MainBoundedContext.DTO.AdministrationModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
 using Application.MainBoundedContext.DTO.HumanResourcesModule;
+using Application.MainBoundedContext.DTO.InventoryModule;
 using Application.MainBoundedContext.DTO.MessagingModule;
 using Application.MainBoundedContext.DTO.MicroCreditModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
@@ -25,6 +26,7 @@ namespace Application.MainBoundedContext.DTO.TypeAdapterFactory
                 cfg.AddProfile<BackOfficeModuleProfile>();
                 cfg.AddProfile<FrontOfficeModuleProfile>();
                 cfg.AddProfile<HumanResourcesModuleProfile>();
+                cfg.AddProfile<InventoryModuleProfile>();
                 cfg.AddProfile<MessagingModuleProfile>();
                 cfg.AddProfile<MicroCreditModuleProfile>();
                 cfg.AddProfile<MicroCreditModuleProfile>();

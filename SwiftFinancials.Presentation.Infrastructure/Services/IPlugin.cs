@@ -7,6 +7,11 @@ using System.Threading.Tasks;
 
 namespace SwiftFinancials.Presentation.Infrastructure.Services
 {
+    public interface IPluginStartupValidation
+    {
+        void ValidateStartup();
+    }
+
     public interface IPlugin
     {
         Guid Id { get; }

@@ -103,20 +103,7 @@ namespace WebApplication1.Controllers
             try
             {
 
-                var serviceHeader = new ServiceHeader
-                {
-                    ApplicationDomainName = "SwiftApis",
-                    ApplicationUserName = "Admin",
-                    EnvironmentDomainName = "SwiftApis",
-                    //EnvironmentIPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    EnvironmentIPAddress = "",
-                    EnvironmentMACAddress = "",
-                    EnvironmentMachineName = Environment.MachineName,
-                    EnvironmentMotherboardSerialNumber = "",
-                    EnvironmentOSVersion = Environment.OSVersion.ToString(),
-                    EnvironmentProcessorId = "",
-                    EnvironmentUserName = Environment.UserName
-                };
+                var serviceHeader = Utils.CreateServiceHeader();
 
                 employeeTypeDTO.Id = id;
                 var validationError = _employeeTypeAppService.ValidateEmployeeType(employeeTypeDTO, id, serviceHeader);

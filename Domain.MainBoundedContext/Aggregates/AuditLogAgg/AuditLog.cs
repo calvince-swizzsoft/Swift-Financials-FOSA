@@ -29,5 +29,11 @@ namespace Domain.MainBoundedContext.Aggregates.AuditLogAgg
         public string EnvironmentProcessorId { get; set; }
 
         public string EnvironmentIPAddress { get; set; }
+
+        public string ClientIPAddress { get; set; }
+        public string ClientDeviceId { get; set; }
+        public string ClientUserAgent { get; set; }
+        public string ServerMachineName { get; set; }
+        public string ServerOSVersion { get; set; }
     }
 }

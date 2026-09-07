@@ -52,6 +52,23 @@ namespace SwiftFinancials.WindowsService
             }
         }
 
+        public void ValidatePlugins()
+        {
+            var errors = new List<Exception>();
+            foreach (var item in _plugins)
+            {
+                try
+                {
+                    var plugin = item.Value;
+                    var validation = plugin as IPluginStartupValidation;
+                    validation?.ValidateStartup();
+                    _logger.LogInfo("Plugin validated: {0}", plugin.Description);
+                }
+                catch (Exception ex) { errors.Add(ex); }
+            }
+            if (errors.Count != 0) throw new AggregateException("Service plugin activation failed.", errors);
+        }
+
         public void SignalDoWork(IScheduler scheduler, params string[] args)
         {
             foreach (Lazy<IPlugin> item in _plugins)
@@ -62,13 +79,12 @@ namespace SwiftFinancials.WindowsService
 
                     _logger.LogInfo("{0}->DoWork...", plugin.Description);
 
-                    // fire and forget!
-                    ThreadPool.QueueUserWorkItem(o => plugin.DoWork(scheduler, args));
+                    plugin.DoWork(scheduler, args);
                 }
                 catch (Exception ex)
                 {
-                    // A single plugin with an unsatisfied import must not prevent the remaining plugins from starting.
                     _logger.LogError("Plugin activation failed during DoWork signaling...", ex);
+                    throw;
                 }
             }
         }
@@ -83,8 +99,7 @@ namespace SwiftFinancials.WindowsService
 
                     _logger.LogInfo("{0}->Exit...", plugin.Description);
 
-                    // fire and forget!
-                    ThreadPool.QueueUserWorkItem(o => plugin.Exit());
+                    plugin.Exit();
                 }
                 catch (Exception ex)
                 {

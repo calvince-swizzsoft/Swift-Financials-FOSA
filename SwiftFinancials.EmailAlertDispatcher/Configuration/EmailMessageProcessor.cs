@@ -33,12 +33,14 @@ namespace SwiftFinancials.EmailAlertDispatcher.Configuration
 
         protected override async Task Process(QueueDTO queueDTO, int appSpecific)
         {
+            var matched = false;
             foreach (var settingsItem in _emailDispatcherConfigSection.EmailDispatcherSettingsItems)
             {
                 var emailDispatcherSettingsElement = (EmailDispatcherSettingsElement)settingsItem;
 
                 if (emailDispatcherSettingsElement.UniqueId == queueDTO.AppDomainName)
                 {
+                    matched = true;
                     queueDTO.SmtpHost = emailDispatcherSettingsElement.SmtpHost;
                     queueDTO.SmtpPort = emailDispatcherSettingsElement.SmtpPort;
                     if (emailDispatcherSettingsElement.SmtpEnableSsl == 0)
@@ -60,7 +62,8 @@ namespace SwiftFinancials.EmailAlertDispatcher.Configuration
 
                             var emailAlertDTO = Container.Current.Resolve<IEmailAlertAppService>().FindEmailAlert(queueDTO.RecordId, serviceHeader);
 
-                            if (emailAlertDTO == null) return;
+                            if (emailAlertDTO == null)
+                                throw new InvalidOperationException("Queued email " + queueDTO.RecordId + " was not found in domain '" + queueDTO.AppDomainName + "'. Check the service database configuration.");
 
                             switch ((DLRStatus)emailAlertDTO.MailMessageDLRStatus)
                             {
@@ -108,6 +111,8 @@ namespace SwiftFinancials.EmailAlertDispatcher.Configuration
                     }
                 }
             }
+            if (!matched)
+                throw new InvalidOperationException("No email dispatcher configuration matches queued domain '" + queueDTO.AppDomainName + "'. The queue transaction will be rolled back.");
         }
     }
 }

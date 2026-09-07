@@ -417,3 +417,20 @@ here only as guidance for client-side form validation.
    duplicate partnership/corporation registration numbers.
 3. Account provisioning, mandatory product/debit-type attachment, and welcome
    notifications are performed server-side after the base customer is saved.
+
+4. Registration no longer generates `reference2` (membership number) with
+   `MAX(Reference2) + 1`. Existing references are preserved; the welcome message
+   does not use `reference2` or treat `reference1` as a provisioned account.
+5. Welcome email/SMS are queued only after mandatory/additional accounts and
+   debit-type processing complete successfully. A provisioning failure returns
+   the existing repair-required error without queuing a success notification.
+6. The email includes the persisted, seven-digit customer serial number,
+   branch, verification status, supplied payroll number(s) for individuals or
+   organisation registration number for non-individuals, and personal file
+   number when present. Payroll numbers are employer-supplied, not generated.
+   Each saved account is listed with its product name and canonical
+   `FullAccountNumber` (branch-customer-product-target product, retaining zeros).
+   Accounts are re-read via `ICustomerAccountAppService` after provisioning,
+   including any created by debit-type processing. Optional empty identifiers
+   are omitted, and dynamic email values are HTML-encoded. SMS quotes the same
+   customer number and indicates pending verification where applicable.

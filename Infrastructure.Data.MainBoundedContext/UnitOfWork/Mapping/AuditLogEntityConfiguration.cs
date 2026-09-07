@@ -27,6 +27,11 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping
             Property(x => x.EnvironmentMotherboardSerialNumber).HasMaxLength(256);
             Property(x => x.EnvironmentProcessorId).HasMaxLength(256);
             Property(x => x.EnvironmentIPAddress).HasMaxLength(256);
+            Property(x => x.ClientIPAddress).HasMaxLength(256);
+            Property(x => x.ClientDeviceId).HasMaxLength(256);
+            Property(x => x.ClientUserAgent).HasMaxLength(1024);
+            Property(x => x.ServerMachineName).HasMaxLength(256);
+            Property(x => x.ServerOSVersion).HasMaxLength(256);
 
             Property(t => t.CreatedDate).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute("IX_AuditLog_CreatedDate")));
 

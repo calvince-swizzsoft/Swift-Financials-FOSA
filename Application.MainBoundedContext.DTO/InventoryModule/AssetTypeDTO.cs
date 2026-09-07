@@ -22,7 +22,9 @@ namespace Application.MainBoundedContext.DTO.InventoryModule
         public int UsefulLife { get; set; }
 
         [Display(Name = "Is Tangible")]
-        public bool IsTangible { get; set; }
+       public bool IsTangible { get; set; }
+        public Guid DepreciationExpenseAccountId { get; set; }
+        public Guid AccumulatedDepreciationAccountId { get; set; }
 
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }

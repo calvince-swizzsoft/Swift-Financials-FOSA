@@ -17,7 +17,9 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.InventoryMod
 
             Property(x => x.Name).HasMaxLength(256);
 
-            ToTable(string.Format("{0}AssetTypes", DefaultSettings.Instance.TablePrefix));
+           ToTable(string.Format("{0}AssetTypes", DefaultSettings.Instance.TablePrefix));
+            Property(x => x.DepreciationExpenseAccountId).IsRequired();
+            Property(x => x.AccumulatedDepreciationAccountId).IsRequired();
         }
     }
 }

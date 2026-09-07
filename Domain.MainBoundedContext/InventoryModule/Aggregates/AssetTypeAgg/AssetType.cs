@@ -13,6 +13,8 @@ namespace Domain.MainBoundedContext.InventoryModule.Aggregates.AssetTypeAgg
 
         public int UsefulLife { get; set; }
 
-        public bool IsTangible { get; set; }
+       public bool IsTangible { get; set; }
+        public System.Guid DepreciationExpenseAccountId { get; set; }
+        public System.Guid AccumulatedDepreciationAccountId { get; set; }
     }
 }

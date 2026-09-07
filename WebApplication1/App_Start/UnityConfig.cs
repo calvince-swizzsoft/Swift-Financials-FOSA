@@ -176,7 +176,9 @@ namespace WebApplication1
             Current.RegisterType<ICustomerDocumentAppService, CustomerDocumentAppService>();
             Current.RegisterType<INextOfKinAppService, NextOfKinAppService>();
             Current.RegisterType<ISupplierAppService, SupplierAppService>();
+            Current.RegisterType<ICategoryAppService, CategoryAppService>();
             Current.RegisterType<IAssetTypeAppService, AssetTypeAppService>();
+            Current.RegisterType<IAssetAppService, AssetAppService>();
             Current.RegisterType<IPackageTypeAppService, PackageTypeAppService>();
             Current.RegisterType<IUnitOfMeasurementAppService, UnitOfMeasurementAppService>();
             Current.RegisterType<IFileRegisterAppService, FileRegisterAppService>();

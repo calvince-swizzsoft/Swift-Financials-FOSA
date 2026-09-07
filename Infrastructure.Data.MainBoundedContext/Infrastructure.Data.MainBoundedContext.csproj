@@ -322,6 +322,8 @@
     <Compile Include="UnitOfWork\Mapping\InventoryModule\SupplierEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\InventoryModule\AssetTypeEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\InventoryModule\PackageTypeEntityConfiguration.cs" />
+   <Compile Include="UnitOfWork\Mapping\InventoryModule\CategoryEntityConfiguration.cs" />
+    <Compile Include="UnitOfWork\Mapping\InventoryModule\AssetEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\InventoryModule\UnitOfMeasurementEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\MessagingModule\CustomerMessageHistoryEntityConfiguration.cs" />
     <Compile Include="UnitOfWork\Mapping\MessagingModule\EmailAlertEntityConfiguration.cs" />

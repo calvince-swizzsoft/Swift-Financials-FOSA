@@ -349,6 +349,8 @@
     <Compile Include="Areas\Accounts\Controllers\BankLinkageController.cs" />
     <Compile Include="Areas\Channels\Controllers\CanonicalAccountsController.cs" />
     <Compile Include="Areas\Control\Controllers\SupplierController.cs" />
+   <Compile Include="Areas\Control\Controllers\InventoryCategoryController.cs" />
+    <Compile Include="Areas\Control\Controllers\AssetCatalogueController.cs" />
     <Compile Include="Areas\Control\Controllers\AssetTypesController.cs" />
     <Compile Include="Areas\Control\Controllers\PackageTypeController.cs" />
     <Compile Include="Areas\Control\Controllers\UnitOfMeasurementController.cs" />
@@ -544,6 +546,10 @@
     <ProjectReference Include="..\Domain.Seedwork\Domain.Seedwork.csproj">
       <Project>{C477E3AE-850C-4681-B6C4-1A9928679CD4}</Project>
       <Name>Domain.Seedwork</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj">
+      <Project>{79FB572D-3BD9-4FED-99A3-56B42E22430B}</Project>
+      <Name>Domain.MainBoundedContext</Name>
     </ProjectReference>
     <ProjectReference Include="..\EntityFramework.Implementation\EntityFramework.Implementation.csproj">
       <Project>{E8E97372-82E1-417A-9E23-11106AD1CA16}</Project>

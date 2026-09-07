@@ -9,6 +9,8 @@ namespace Domain.MainBoundedContext.InventoryModule.Aggregates.CategoryAgg
     {
         public string Description { get; set; }
 
+        public string Remarks { get; set; }
+
         public bool IsLocked { get; private set; }
 
         public void Lock()

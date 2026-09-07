@@ -107,9 +107,9 @@ namespace WebApplication1.Areas.Control.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = created });
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return Content(HttpStatusCode.BadRequest, new { success = false, message = "The request could not be completed.", data = (object)null });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {
@@ -147,9 +147,9 @@ namespace WebApplication1.Areas.Control.Controllers
 
                 return Ok(new { success = true, message = "Operation Success", data = refreshed });
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                return Content(HttpStatusCode.BadRequest, new { success = false, message = "The request could not be completed.", data = (object)null });
+                return Content(HttpStatusCode.BadRequest, new { success = false, message = ex.Message, data = (object)null });
             }
             catch (Exception)
             {

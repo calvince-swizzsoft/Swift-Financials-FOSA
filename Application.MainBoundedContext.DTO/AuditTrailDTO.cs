@@ -47,6 +47,21 @@ namespace Application.MainBoundedContext.DTO
         [Display(Name = "Env. IP Address")]
         public string EnvironmentIPAddress { get; set; }
 
+        [Display(Name = "Client IP Address")]
+        public string ClientIPAddress { get; set; }
+
+        [Display(Name = "Client Device Id")]
+        public string ClientDeviceId { get; set; }
+
+        [Display(Name = "Client User Agent")]
+        public string ClientUserAgent { get; set; }
+
+        [Display(Name = "Server Machine Name")]
+        public string ServerMachineName { get; set; }
+
+        [Display(Name = "Server OS Version")]
+        public string ServerOSVersion { get; set; }
+
         [Display(Name = "Created By")]
         public string CreatedBy { get; set; }
 

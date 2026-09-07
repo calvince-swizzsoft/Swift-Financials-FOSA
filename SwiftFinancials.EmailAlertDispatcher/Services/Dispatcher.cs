@@ -1,4 +1,5 @@
 ﻿using Application.MainBoundedContext.Services;
+using Application.MainBoundedContext.MessagingModule.Services;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Quartz;
 using System;
@@ -12,7 +13,7 @@ using Unity;
 namespace SwiftFinancials.EmailAlertDispatcher.Services
 {
     [Export(typeof(IPlugin))]
-    public class Dispatcher : IPlugin
+    public class Dispatcher : IPlugin, IPluginStartupValidation
     {
         private EmailMessageProcessor _messageProcessor;
 
@@ -36,10 +37,20 @@ namespace SwiftFinancials.EmailAlertDispatcher.Services
             get { return "E-MAIL DISPATCHER"; }
         }
 
+        public void ValidateStartup()
+        {
+            if (ConfigurationManager.GetSection("emailDispatcherConfiguration") == null)
+                throw new ConfigurationErrorsException("emailDispatcherConfiguration is missing.");
+            // Resolve dependencies only; no database operation or SMTP send is performed.
+            Container.Current.Resolve<ISmtpService>();
+            Container.Current.Resolve<IEmailAlertAppService>();
+        }
+
         public void DoWork(IScheduler scheduler, params string[] args)
         {
             try
             {
+                ValidateStartup();
                 var emailDispatcherConfigSection = (EmailDispatcherConfigSection)ConfigurationManager.GetSection("emailDispatcherConfiguration");
 
                 if (emailDispatcherConfigSection != null)
@@ -54,6 +65,7 @@ namespace SwiftFinancials.EmailAlertDispatcher.Services
             catch (Exception ex)
             {
                 _logger.LogError("{0}->DoWork...", ex, Description);
+                throw;
             }
         }
 

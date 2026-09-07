@@ -23,6 +23,11 @@ namespace Application.MainBoundedContext.DTO.InventoryModule
         public string Description { get; set; }
 
         [DataMember]
+        [Display(Name = "Remarks")]
+        [Required]
+        public string Remarks { get; set; }
+
+        [DataMember]
         [Display(Name = "Is Locked?")]
         public bool IsLocked { get; set; }
 

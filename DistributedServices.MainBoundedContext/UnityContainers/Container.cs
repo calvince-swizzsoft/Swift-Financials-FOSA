@@ -4,6 +4,7 @@ using Application.MainBoundedContext.BackOfficeModule.Services;
 using Application.MainBoundedContext.DTO.TypeAdapterFactory;
 using Application.MainBoundedContext.FrontOfficeModule.Services;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
+using Application.MainBoundedContext.InventoryModule.Services;
 using Application.MainBoundedContext.MessagingModule.Services;
 using Application.MainBoundedContext.MicroCreditModule.Services;
 using Application.MainBoundedContext.RegistryModule.Services;
@@ -76,6 +77,8 @@ namespace DistributedServices.MainBoundedContext.UnityContainers
 
             //-> Adapters
             Current.RegisterType<ITypeAdapterFactory, AutomapperTypeAdapterFactory>(new ContainerControlledLifetimeManager());
+            Current.RegisterType<ICategoryAppService, CategoryAppService>();
+            Current.RegisterType<IUnitOfMeasurementAppService, UnitOfMeasurementAppService>();
             Current.RegisterType<ILoggerFactory, SerilogLoggerFactory>(new ContainerControlledLifetimeManager());
 
             //-> Repositories	

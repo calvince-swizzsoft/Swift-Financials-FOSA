@@ -33,7 +33,11 @@ namespace Application.MainBoundedContext.DTO.InventoryModule
 
         [DataMember]
         [Display(Name = "Is Tangible")]
-        public bool IsTangible { get; set; }
+       public bool IsTangible { get; set; }
+        [Required]
+        public Guid DepreciationExpenseAccountId { get; set; }
+        [Required]
+        public Guid AccumulatedDepreciationAccountId { get; set; }
 
         [DataMember]
         [Display(Name = "Created Date")]

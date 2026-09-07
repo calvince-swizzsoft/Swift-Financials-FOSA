@@ -178,3 +178,13 @@ At minimum, monitor:
 - SMTP exceptions and authentication failures;
 - alerts marked `Delivered` per time period;
 - attachment staging-folder access failures.
+
+## 2026-09-06 service reliability update
+
+The host now fails startup on dependency, plugin-activation and email configuration
+errors and provides `--check-startup` with a nonzero failure exit code. Independent
+startup logs do not require Unity or Serilog. See
+[service deployment and recovery](../tools/deployment/WINDOWS-SERVICE-DEPLOYMENT.md).
+Email domain mismatches and missing email records now fail processing, allowing
+the transactional receiver to abort rather than silently consume the reference.
+This does not add a bounded retry/dead-letter policy or guarantee exactly-once SMTP.

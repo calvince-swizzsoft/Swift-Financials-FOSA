@@ -20,8 +20,9 @@ namespace Domain.MainBoundedContext.InventoryModule.Aggregates.CategoryAgg
             if (!String.IsNullOrWhiteSpace(text))
             {
                 var descriptionSpec = new DirectSpecification<Category>(c => c.Description.Contains(text));
+                var remarksSpec = new DirectSpecification<Category>(c => c.Remarks.Contains(text));
 
-                specification &= (descriptionSpec);
+                specification &= (descriptionSpec | remarksSpec);
             }
 
             return specification;

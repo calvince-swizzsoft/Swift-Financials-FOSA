@@ -11,7 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Application.MainBoundedContext.UnderwritingModule.Services
+namespace Application.MainBoundedContext.InventoryModule.Services
 {
     public class CategoryAppService : ICategoryAppService
     {
@@ -34,7 +34,9 @@ namespace Application.MainBoundedContext.UnderwritingModule.Services
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
-                var category = CategoryFactory.CreateCategory(categoryDTO.Description);
+                var category = CategoryFactory.CreateCategory(categoryDTO.Description, categoryDTO.Remarks);
+
+                if (categoryDTO.IsLocked) category.Lock();
 
                 _categoryRepository.Add(category, serviceHeader);
 
@@ -56,9 +58,11 @@ namespace Application.MainBoundedContext.UnderwritingModule.Services
 
                 if (persisted != null)
                 {
-                    var current = CategoryFactory.CreateCategory(categoryDTO.Description);
+                    var current = CategoryFactory.CreateCategory(categoryDTO.Description, categoryDTO.Remarks);
 
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+
+                    if (categoryDTO.IsLocked) current.Lock();
 
                     _categoryRepository.Merge(persisted, current, serviceHeader);
                 }
@@ -83,7 +87,7 @@ namespace Application.MainBoundedContext.UnderwritingModule.Services
 
                 ISpecification<Category> spec = filter;
 
-                var sortFields = new List<string> { "ClusterId" };
+                var sortFields = new List<string> { "SequentialId" };
 
                 return await _categoryRepository.AllMatchingAsync<CategoryDTO>(spec, serviceHeader);
             }
@@ -97,7 +101,7 @@ namespace Application.MainBoundedContext.UnderwritingModule.Services
 
                 ISpecification<Category> spec = filter;
 
-                var sortFields = new List<string> { "ClusterId" };
+                var sortFields = new List<string> { "SequentialId" };
 
                 return await _categoryRepository.AllMatchingPagedAsync<CategoryDTO>(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
             }
@@ -111,7 +115,7 @@ namespace Application.MainBoundedContext.UnderwritingModule.Services
 
                 ISpecification<Category> spec = filter;
 
-                var sortFields = new List<string> { "ClusterId" };
+                var sortFields = new List<string> { "SequentialId" };
 
                 return await _categoryRepository.AllMatchingPagedAsync<CategoryDTO>(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
             }

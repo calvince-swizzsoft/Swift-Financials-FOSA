@@ -37,6 +37,12 @@ namespace Domain.MainBoundedContext.Aggregates.AuditLogAgg
 
             auditLog.EnvironmentIPAddress = serviceHeader.EnvironmentIPAddress;
 
+            auditLog.ClientIPAddress = serviceHeader.ClientIPAddress;
+            auditLog.ClientDeviceId = serviceHeader.ClientDeviceId;
+            auditLog.ClientUserAgent = serviceHeader.ClientUserAgent;
+            auditLog.ServerMachineName = serviceHeader.ServerMachineName;
+            auditLog.ServerOSVersion = serviceHeader.ServerOSVersion;
+
             auditLog.CreatedBy = serviceHeader.ApplicationUserName;
 
             auditLog.CreatedDate = DateTime.Now;

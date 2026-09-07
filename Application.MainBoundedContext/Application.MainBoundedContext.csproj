@@ -343,6 +343,8 @@
     <Compile Include="HumanResourcesModule\Services\SalaryPeriodAppService.cs" />
     <Compile Include="HumanResourcesModule\Services\TrainingPeriodAppService.cs" />
     <Compile Include="InventoryModule\Services\CategoryAppService.cs" />
+    <Compile Include="InventoryModule\Services\AssetAppService.cs" />
+    <Compile Include="InventoryModule\Services\IAssetAppService.cs" />
     <Compile Include="InventoryModule\Services\ICategoryAppService.cs" />
     <Compile Include="InventoryModule\Services\IInventoryAppService.cs" />
     <Compile Include="InventoryModule\Services\InventoryAppService.cs" />
@@ -375,6 +377,7 @@
     <Compile Include="RegistryModule\Services\CommissionExemptionAppService.cs" />
     <Compile Include="RegistryModule\Services\ConditionalLendingAppService.cs" />
     <Compile Include="RegistryModule\Services\CustomerAppService.cs" />
+    <Compile Include="RegistryModule\Services\CustomerRegistrationNotification.cs" />
     <Compile Include="RegistryModule\Services\CustomerDocumentAppService.cs" />
     <Compile Include="RegistryModule\Services\NextOfKinAppService.cs" />
     <Compile Include="RegistryModule\Services\DelegateAppService.cs" />

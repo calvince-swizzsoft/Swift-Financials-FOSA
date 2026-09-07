@@ -39,6 +39,12 @@ namespace Domain.MainBoundedContext.Aggregates.AuditTrailAgg
 
             auditTrail.EnvironmentIPAddress = environmentIPAddress ?? serviceHeader.EnvironmentIPAddress;
 
+            auditTrail.ClientIPAddress = serviceHeader.ClientIPAddress;
+            auditTrail.ClientDeviceId = serviceHeader.ClientDeviceId;
+            auditTrail.ClientUserAgent = serviceHeader.ClientUserAgent;
+            auditTrail.ServerMachineName = serviceHeader.ServerMachineName;
+            auditTrail.ServerOSVersion = serviceHeader.ServerOSVersion;
+
             auditTrail.CreatedBy = applicationUserName ?? serviceHeader.ApplicationUserName;
 
             auditTrail.CreatedDate = DateTime.Now;

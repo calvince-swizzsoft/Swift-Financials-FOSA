@@ -652,6 +652,9 @@
     <Compile Include="HumanResourcesModule\Aggregates\TransactionThresholdAgg\TransactionThresholdFactory.cs" />
     <Compile Include="HumanResourcesModule\Aggregates\TransactionThresholdAgg\TransactionThresholdSpecifications.cs" />
     <Compile Include="InventoryModule\Aggregates\CategoryAgg\Category.cs" />
+    <Compile Include="InventoryModule\Aggregates\AssetAgg\Asset.cs" />
+    <Compile Include="InventoryModule\Aggregates\AssetAgg\AssetFactory.cs" />
+    <Compile Include="InventoryModule\Aggregates\AssetAgg\AssetSpecifications.cs" />
     <Compile Include="InventoryModule\Aggregates\CategoryAgg\CategoryFactory.cs" />
     <Compile Include="InventoryModule\Aggregates\CategoryAgg\CategorySpecifications.cs" />
     <Compile Include="InventoryModule\Aggregates\InventoryAgg\Inventory.cs" />

@@ -32,6 +32,8 @@ namespace Application.MainBoundedContext.Services
 
         AuditTrailDTO AddNewAuditTrail(AuditTrailDTO auditTrailDTO, ServiceHeader serviceHeader);
 
+        List<AuditTrailDTO> FindAuditTrails(ServiceHeader serviceHeader);
+
         Task<PageCollectionInfo<AuditTrailDTO>> FindAuditTrailsByDateRangeAndFilterAsync(int pageIndex, int pageSize, DateTime startDate, DateTime endDate, string text, ServiceHeader serviceHeader);
 
         #endregion

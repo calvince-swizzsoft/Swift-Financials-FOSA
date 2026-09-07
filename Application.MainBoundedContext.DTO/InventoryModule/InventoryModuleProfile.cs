@@ -7,6 +7,7 @@ using Domain.MainBoundedContext.InventoryModule.Aggregates.SupplierAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.AssetTypeAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.PackageTypeAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.UnitOfMeasurementAgg;
+using Domain.MainBoundedContext.InventoryModule.Aggregates.AssetAgg;
 using Application.MainBoundedContext.DTO;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.SalesOrderEntryAgg;
 using Domain.MainBoundedContext.InventoryModule.Aggregates.PurchaseOrderEntryAgg;
@@ -85,6 +86,7 @@ namespace Application.MainBoundedContext.DTO.InventoryModule
 
             //UnitOfMeasurementDTO => UnitOfMeasurementBindingModel
             CreateMap<UnitOfMeasurementDTO, UnitOfMeasurementBindingModel>();
+            CreateMap<Asset, AssetDTO>();
 
         }
     }

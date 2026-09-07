@@ -26,6 +26,7 @@ namespace Application.MainBoundedContext.InventoryModule.Services
 
         public async Task<UnitOfMeasurementDTO> AddNewUnitOfMeasurementAsync(UnitOfMeasurementDTO unitOfMeasurementDTO, ServiceHeader serviceHeader)
         {
+            ValidateComposition(unitOfMeasurementDTO);
             var bindingModel = unitOfMeasurementDTO.ProjectedAs<UnitOfMeasurementBindingModel>();
 
             bindingModel.ValidateAll();
@@ -46,6 +47,7 @@ namespace Application.MainBoundedContext.InventoryModule.Services
 
         public async Task<bool> UpdateUnitOfMeasurementAsync(UnitOfMeasurementDTO unitOfMeasurementDTO, ServiceHeader serviceHeader)
         {
+            ValidateComposition(unitOfMeasurementDTO);
             var bindingModel = unitOfMeasurementDTO.ProjectedAs<UnitOfMeasurementBindingModel>();
 
             bindingModel.ValidateAll();
@@ -153,6 +155,17 @@ namespace Application.MainBoundedContext.InventoryModule.Services
             }
 
             return units;
+        }
+
+        private static void ValidateComposition(UnitOfMeasurementDTO unit)
+        {
+            if (unit == null) throw new InvalidOperationException("Unit of measure data is required.");
+            if (unit.BaseUnitId.HasValue && unit.BaseUnitId.Value == unit.Id)
+                throw new InvalidOperationException("A unit of measure cannot use itself as its base unit.");
+            if (unit.BaseUnitId.HasValue != unit.Contains.HasValue)
+                throw new InvalidOperationException("Contains and Of Base Units must either both be supplied or both be left blank.");
+            if (unit.Contains.HasValue && unit.Contains.Value <= 0)
+                throw new InvalidOperationException("Contains must be greater than zero.");
         }
     }
 }

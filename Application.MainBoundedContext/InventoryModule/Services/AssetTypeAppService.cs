@@ -29,11 +29,11 @@ namespace Application.MainBoundedContext.InventoryModule.Services
 
             assetTypeBindingModel.ValidateAll();
 
-            if (assetTypeBindingModel.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, assetTypeBindingModel.ErrorMessages));
+            if (assetTypeBindingModel.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, assetTypeBindingModel.ErrorMessages)); if (assetTypeDTO.DepreciationExpenseAccountId == Guid.Empty || assetTypeDTO.AccumulatedDepreciationAccountId == Guid.Empty) throw new InvalidOperationException("Both depreciation G/L accounts are required."); if (assetTypeDTO.DepreciationExpenseAccountId == assetTypeDTO.AccumulatedDepreciationAccountId) throw new InvalidOperationException("Depreciation G/L accounts must differ."); if (!Enum.IsDefined(typeof(DepreciationMethod), assetTypeDTO.DepreciationMethod) || assetTypeDTO.UsefulLife < 1) throw new InvalidOperationException("Select a valid depreciation method and useful life.");
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
-                var assetType = AssetTypeFactory.CreateAssetType(assetTypeDTO.Name, assetTypeDTO.DepreciationMethod, assetTypeDTO.UsefulLife, assetTypeDTO.IsTangible);
+                var assetType = AssetTypeFactory.CreateAssetType(assetTypeDTO.Name, assetTypeDTO.DepreciationMethod, assetTypeDTO.UsefulLife, assetTypeDTO.IsTangible, assetTypeDTO.DepreciationExpenseAccountId, assetTypeDTO.AccumulatedDepreciationAccountId);
 
                 _assetTypeRepository.Add(assetType, serviceHeader);
 
@@ -47,7 +47,7 @@ namespace Application.MainBoundedContext.InventoryModule.Services
 
             assetTypeBindingModel.ValidateAll();
 
-            if (assetTypeBindingModel.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, assetTypeBindingModel.ErrorMessages));
+            if (assetTypeBindingModel.HasErrors) throw new InvalidOperationException(string.Join(Environment.NewLine, assetTypeBindingModel.ErrorMessages)); if (assetTypeDTO.DepreciationExpenseAccountId == Guid.Empty || assetTypeDTO.AccumulatedDepreciationAccountId == Guid.Empty) throw new InvalidOperationException("Both depreciation G/L accounts are required."); if (assetTypeDTO.DepreciationExpenseAccountId == assetTypeDTO.AccumulatedDepreciationAccountId) throw new InvalidOperationException("Depreciation G/L accounts must differ."); if (!Enum.IsDefined(typeof(DepreciationMethod), assetTypeDTO.DepreciationMethod) || assetTypeDTO.UsefulLife < 1) throw new InvalidOperationException("Select a valid depreciation method and useful life.");
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
@@ -55,7 +55,7 @@ namespace Application.MainBoundedContext.InventoryModule.Services
 
                 if (persisted == null) return false;
 
-                var current = AssetTypeFactory.CreateAssetType(assetTypeDTO.Name, assetTypeDTO.DepreciationMethod, assetTypeDTO.UsefulLife, assetTypeDTO.IsTangible);
+                var current = AssetTypeFactory.CreateAssetType(assetTypeDTO.Name, assetTypeDTO.DepreciationMethod, assetTypeDTO.UsefulLife, assetTypeDTO.IsTangible, assetTypeDTO.DepreciationExpenseAccountId, assetTypeDTO.AccumulatedDepreciationAccountId);
 
                 current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
 
