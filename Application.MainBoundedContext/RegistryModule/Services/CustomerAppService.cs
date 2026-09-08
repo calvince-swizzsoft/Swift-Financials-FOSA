@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
@@ -460,7 +460,7 @@ namespace Application.MainBoundedContext.RegistryModule.Services
                             var debitTypeTariffs = _commissionAppService.ComputeTariffsByDebitType(item.Id, 0m, 1d, customerAccountDTO, serviceHeader);
                             foreach (var tariff in debitTypeTariffs)
                             {
-                                _journalAppService.AddNewJournal(currrentBranch.Id, null, tariff.Amount, tariff.Description, item.Description, string.Format("{0}", customerDTO.SerialNumber).PadLeft(6, '0'), moduleNavigationItemCode, 0, null, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
+                                _journalAppService.AddNewJournal(currrentBranch.Id, null, tariff.Amount, tariff.Description, item.Description, string.Format("{0}", customerDTO.SerialNumber).PadLeft(6, '0'), moduleNavigationItemCode, (int)SystemTransactionCode.MembershipApproval, null, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerAccountDTO, customerAccountDTO, serviceHeader);
                             }
                         }
                     }

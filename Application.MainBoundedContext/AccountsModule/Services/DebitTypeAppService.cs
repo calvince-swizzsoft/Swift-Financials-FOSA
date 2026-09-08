@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -19,6 +19,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<DebitType> _debitTypeRepository;
         private readonly IRepository<DebitTypeCommission> _debitTypeCommissionRepository;
+        private readonly ICommissionAppService _commissionAppService;
         private readonly ISavingsProductAppService _savingsProductAppService;
         private readonly IInvestmentProductAppService _investmentProductAppService;
         private readonly ILoanProductAppService _loanProductAppService;
@@ -29,7 +30,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
            IRepository<DebitTypeCommission> debitTypeCommissionRepository,
            ISavingsProductAppService savingsProductAppService,
            IInvestmentProductAppService investmentProductAppService,
-           ILoanProductAppService loanProductAppService)
+           ILoanProductAppService loanProductAppService,
+           ICommissionAppService commissionAppService)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -49,12 +51,71 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if (loanProductAppService == null)
                 throw new ArgumentNullException(nameof(loanProductAppService));
 
+            _commissionAppService = commissionAppService ?? throw new ArgumentNullException(nameof(commissionAppService));
             _dbContextScopeFactory = dbContextScopeFactory;
             _debitTypeRepository = debitTypeRepository;
             _debitTypeCommissionRepository = debitTypeCommissionRepository;
             _savingsProductAppService = savingsProductAppService;
             _investmentProductAppService = investmentProductAppService;
             _loanProductAppService = loanProductAppService;
+        }
+
+        // One scope owns header and commission replacement: validation failures
+        // cannot leave a partially configured debit type behind.
+        public DebitTypeDTO SaveConfiguredDebitType(DebitTypeDTO dto, List<CommissionDTO> commissions, ServiceHeader header)
+        {
+            if (dto == null) throw new ArgumentException("Debit type data is required.");
+            dto.Description = (dto.Description ?? string.Empty).Trim();
+            dto.ValidateAll();
+            if (dto.HasErrors) throw new ArgumentException(string.Join("; ", dto.ErrorMessages));
+            if (dto.CustomerAccountTypeTargetProductId == Guid.Empty)
+                throw new ArgumentException("Select a target product.");
+            switch ((ProductCode)dto.CustomerAccountTypeProductCode)
+            {
+                case ProductCode.Savings:
+                    var savings = _savingsProductAppService.FindSavingsProduct(dto.CustomerAccountTypeTargetProductId, Guid.Empty, header);
+                    if (savings == null) throw new ArgumentException("Savings product not found.");
+                    dto.CustomerAccountTypeTargetProductCode = savings.Code;
+                    break;
+                case ProductCode.Loan:
+                    var loan = _loanProductAppService.FindLoanProduct(dto.CustomerAccountTypeTargetProductId, header);
+                    if (loan == null) throw new ArgumentException("Loan product not found.");
+                    dto.CustomerAccountTypeTargetProductCode = loan.Code;
+                    break;
+                case ProductCode.Investment:
+                    var investment = _investmentProductAppService.FindInvestmentProduct(dto.CustomerAccountTypeTargetProductId, header);
+                    if (investment == null) throw new ArgumentException("Investment product not found.");
+                    dto.CustomerAccountTypeTargetProductCode = investment.Code;
+                    break;
+                default: throw new ArgumentException("Select Savings, Loan or Investment as the product type.");
+            }
+            if (commissions == null || commissions.Any(item => item == null || item.Id == Guid.Empty))
+                throw new ArgumentException("Supply the complete commissions array; every commission must have an Id.");
+            if (commissions.Select(item => item.Id).Distinct().Count() != commissions.Count)
+                throw new ArgumentException("A commission may be selected only once.");
+            foreach (var commission in commissions)
+                if (_commissionAppService.FindCommission(commission.Id, header) == null)
+                    throw new ArgumentException("Selected commission not found.");
+            using (var scope = _dbContextScopeFactory.Create())
+            {
+                var duplicates = _debitTypeRepository.AllMatching(DebitTypeSpecifications.DebitTypeDescription(dto.Description), header);
+                if (duplicates != null && duplicates.Any(item => item.Id != dto.Id))
+                    throw new ArgumentException("A debit type with this name already exists.");
+                var id = dto.Id;
+                if (id == Guid.Empty)
+                {
+                    var created = AddNewDebitType(dto, header);
+                    if (created == null || created.Id == Guid.Empty || !string.IsNullOrWhiteSpace(created.ErrorMessageResult))
+                        throw new InvalidOperationException("Debit type could not be created.");
+                    id = created.Id;
+                }
+                else if (!UpdateDebitType(dto, header))
+                    throw new InvalidOperationException("Debit type could not be updated.");
+                if (!UpdateCommissions(id, commissions, header))
+                    throw new InvalidOperationException("Debit type commissions could not be saved.");
+                scope.SaveChanges(header);
+                return FindDebitType(id, header);
+            }
         }
 
         public DebitTypeDTO AddNewDebitType(DebitTypeDTO debitTypeDTO, ServiceHeader serviceHeader)
@@ -297,9 +358,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         {
             if (debitTypes != null && debitTypes.Any())
             {
-                var loanProducts = _loanProductAppService.FindLoanProducts(serviceHeader);
-                var investmentProducts = _investmentProductAppService.FindInvestmentProducts(serviceHeader);
-                var savingsProducts = _savingsProductAppService.FindSavingsProducts(serviceHeader);
+                var loanProducts = _loanProductAppService.FindLoanProducts(serviceHeader) ?? new List<LoanProductDTO>();
+                var investmentProducts = _investmentProductAppService.FindInvestmentProducts(serviceHeader) ?? new List<InvestmentProductDTO>();
+                var savingsProducts = _savingsProductAppService.FindSavingsProducts(serviceHeader) ?? new List<SavingsProductDTO>();
 
                 debitTypes.ForEach(item =>
                 {

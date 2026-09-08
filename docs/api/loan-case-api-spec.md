@@ -1,4 +1,4 @@
-# Loan Case API
+﻿# Loan Case API
 
 Base path: `api/backoffice/loancases`. Controller:
 `WebApplication1/Areas/BackOffice/Controllers/LoanCaseController.cs`.
@@ -25,6 +25,34 @@ separately" at the end.
 Standard envelope (`{ success, message, data }`), standard paging shape,
 standard status codes — see `docs/api/README.md`. All endpoints require a
 bearer JWT.
+
+## Investment contribution maturity
+
+Investment balances supplied through the customer-account AppService for loan
+registration, appraisal/approval worksheets and guarantor share checks respect
+each investment product's `MaturityPeriod` (days). This also applies to the
+eligible appraisal-products balance calculation.
+
+- `0`: all posted contributions through the calculation time count immediately.
+- Positive days: each credit counts once its journal-entry `CreatedDate` is at
+  least that many days before the calculation time (the exact boundary counts).
+- Future entries are excluded. Posting time, not backdated `ValueDate` or account
+  opening date, starts the waiting period.
+- Debits, withdrawals and reversal debits reduce eligible funds immediately.
+  Eligibility is floored at zero; an overdrawn investment account cannot become
+  positive security through an absolute-value conversion.
+- Only the investment product's control G/L contributes; unrelated G/L entries
+  and uncleared-cheque accounts do not count as mature investment contributions.
+
+Example at 2026-04-01 00:00: a 20,000 credit posted on 2026-01-01 00:00
+and a 10,000 credit posted on 2026-02-01 00:00 give 20,000 eligible with
+90 days, or 30,000 with zero days, before any debits or other loan rules.
+
+The shared SQL AppService executes the maturity calculation directly for
+investment book-balance requests with the maturity flag enabled (sync and async),
+so this API fix does not require replacing a deployed legacy stored procedure.
+Other balance requests retain their existing stored-procedure behaviour.
+This is a qualification balance rule, not an interest-accrual or refund schedule.
 
 ## 1. List loan cases
 
@@ -71,6 +99,7 @@ already committed elsewhere, computed the same way `Create` computes it
   "totalShares": 150000.00,
   "committedShares": 40000.00,
   "appraisalFactor": 3.0,
+  "securityMode": 1,
   "availableToGuarantee": 410000.00
 }
 ```
@@ -79,11 +108,13 @@ already committed elsewhere, computed the same way `Create` computes it
 balances. `committedShares` = sum of `AmountGuaranteed` across every other
 loan they currently guarantee. `appraisalFactor` comes from
 `ILoanProductAppService.GetGuarantorAppraisalFactor`. `availableToGuarantee`
-= `(totalShares × appraisalFactor) − committedShares` — the real ceiling
-`LoanGuarantorDTO`'s own validator enforces on `Create` (see §5).
+= `max(0, (totalShares × appraisalFactor) − committedShares)` for Investments.
+The shared registration AppService enforces this ceiling on submission. For
+Income (`securityMode: 0`), `availableToGuarantee` is null and share figures are
+zero placeholders; they do not represent an income-based capacity assessment.
 
-`404` if the guarantor customer doesn't exist; `400` if the loan product
-doesn't.
+`400` if the member is missing, locked, unapproved, or inhibited from guaranteeing,
+or if the loan product is missing or locked.
 
 ## 5. Register a loan case
 
@@ -105,9 +136,8 @@ app's `ApplicationUserManager` lookup) — send it explicitly.
 `receivedDate` cannot be in the future. Guarantor IDs and collateral document
 IDs must be unique within the request.
 
-What happens server-side, in order (all real, all enforced — see
-`WORKFLOW.md` §14.1 for why this all had to live in the controller rather
-than the app service):
+Registration checks (guarantor business rules are owned by the AppService;
+collateral values are resolved before final guarantor coverage validation):
 
 1. Customer must exist and be `RecordStatus.Approved`.
 2. Branch, loan product, savings product, loan purpose, and registration remark
@@ -115,17 +145,14 @@ than the app service):
 3. Membership-period gate: customer's account age (months since
    `CreatedDate`) must be ≥ the loan product's
    `LoanRegistrationMinimumMembershipPeriod`.
-4. Guarantor count checked against the loan product's
-   `LoanRegistrationMinimumGuarantors`/`MaximumGuarantees` (skipped
-   entirely for microcredit products or when `LoanRegistrationSecurityRequired`
-   is false). Self-guarantee rejected unless
-   `LoanRegistrationAllowSelfGuarantee` is set. Each guarantor's
-   `totalShares`/`committedShares`/`appraisalFactor` are computed
-   server-side (see §4) — **don't bother sending them, they're
-   overwritten**. If the product's guarantor security mode is
-   `Investments`, guaranteed shares plus resolved collateral value must cover
-   `amountApplied`, matching `LoanCaseDTO.ValidateLoanSecurity` in the domain
-   layer.
+4. Guarantor count must meet the product's minimum and maximum, including for
+   microcredit and when Security Required is off. Members must be approved,
+   unlocked and permitted to guarantee. Every pledge must be positive with at
+   most two decimal places. Self-guarantee permission and percentage limits apply.
+   Investment capacity is recalculated server-side, replacing client values.
+   When Security Required is enabled for Investments, guarantees plus resolved
+   collateral must cover the loan, including microcredit. Income mode does not
+   apply a shares ceiling.
 5. Collateral document ids are resolved to real `CustomerDocumentDTO`
    records. Each must exist, belong to the selected customer, have document
    type `Collateral`, and still have status `Released`; stale, foreign, or
@@ -574,3 +601,62 @@ entity.
 - Restructuring a disbursed loan — `loan-restructuring-api-spec.md`.
 - Loan request intake (the pre-case stage upstream of this whole doc) —
   `loan-request-api-spec.md`.
+
+
+## Registration guarantor validation (2026-09-08)
+
+The registration API delegates guarantor eligibility, enrichment, count, amount,
+and security-coverage validation to ILoanCaseAppService. Both lookup and final
+submission reject locked, unapproved, and InhibitGuaranteeing members. Submission
+recalculates capacity and never trusts client-supplied shares or appraisal factors.
+
+Minimum and maximum guarantor counts apply to every product, including Microcredit,
+regardless of Security Required. Every pledge must be positive with at most two
+fractional digits. Duplicate members and prohibited/excessive self-guarantees fail.
+
+Investment mode enforces (shares × appraisal factor) minus existing commitments.
+When Security Required is enabled, guarantees plus collateral must cover the loan,
+including for Microcredit. Income mode does not use a shares-based capacity limit;
+income/affordability assessment remains part of appraisal, not an invented lookup formula.
+
+GET guarantors/lookup adds securityMode (0 Income, 1 Investments).
+availableToGuarantee is nullable: null for Income, nonnegative capacity for Investments.
+Clients must only apply the capacity ceiling to Investments. Existing identity fields
+remain unchanged. Ineligible member lookups return a validation error.
+
+Regression checks: build/run tools/tests/GuarantorRegistration.Tests/GuarantorRegistration.Tests.csproj.
+
+
+### Edit guarantors on an existing registered case
+
+`PUT /api/backoffice/loancases/{id}/guarantors` accepts the complete array of
+`{ GuarantorId, AmountGuaranteed }`. Requires the case section's loan-registration
+permission. Only Registered cases can be edited (409 for later stages; 404 if
+missing). AppService revalidates member eligibility, product counts, self-guarantee
+limits, amounts, capacity and collateral coverage before replacing the records.
+Missing or invalid entries return 400 without changing the guarantees. Empty arrays
+are allowed only when product rules permit them. Returns the persisted guarantors.
+
+`GET /api/backoffice/loancases/guarantors/lookup` also accepts optional `loanCaseId`.
+It must identify a Registered case for the supplied product. Capacity excludes that
+case's existing commitments, because saving replaces them. Other loans and
+unassigned commitments continue to reduce capacity.
+
+
+Guarantee capacity counts only `LoanGuarantorStatus.Attached` (0) commitments.
+`Released` (1) records retain their historical guaranteed amounts but no longer
+reduce available capacity. This filter is shared by eligibility lookup and
+registration/existing-case save validation. Attached commitments without a case
+still count; when editing, attached commitments on the same case are excluded.
+
+
+For BOSA loan products using Investments guarantor security, TotalShares includes
+only investment accounts whose target product appears in the loan product's
+appraisal-products `InvestmentProductCollection` (InvestmentsQualification).
+Savings and unselected investments are excluded. Account balances retain their
+investment maturity adjustment. Missing/empty designation returns a configuration
+validation error; a guarantor without a designated account has zero eligible shares.
+This applies to lookup, registration and existing-case guarantor save validation.
+FOSA and Income security calculations are unchanged. Configure designated deposit
+products through `PUT /api/accounts/loanproducts/{id}/appraisal-products`, preserving
+the other collections in that full-replacement resource.

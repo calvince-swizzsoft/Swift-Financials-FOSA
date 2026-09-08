@@ -1121,6 +1121,101 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             }
         }
 
+        public Tuple<CustomerDTO, LoanGuarantorDTO> GetRegistrationGuarantorEligibility(Guid guarantorId, Guid loanProductId, ServiceHeader serviceHeader, Guid? loanCaseId = null)
+        {
+            if (loanCaseId.HasValue)
+            {
+                var loan = FindLoanCase(loanCaseId.Value, serviceHeader);
+                var error = GuarantorRegistrationRules.ValidateEditableCase(loan);
+                if (error != null) throw new InvalidOperationException(error);
+                if (loan.LoanProductId != loanProductId) throw new InvalidOperationException("Loan product does not match the loan case.");
+            }
+            var product = _loanProductAppService.FindLoanProduct(loanProductId, serviceHeader);
+            if (product == null || product.IsLocked)
+                throw new InvalidOperationException("Select an active loan product.");
+            return GetRegistrationGuarantorEligibility(guarantorId, product, serviceHeader, loanCaseId);
+        }
+
+        private Tuple<CustomerDTO, LoanGuarantorDTO> GetRegistrationGuarantorEligibility(Guid guarantorId, LoanProductDTO product, ServiceHeader serviceHeader, Guid? excludedLoanCaseId = null)
+        {
+            var customer = _customerAppService.FindCustomer(guarantorId, serviceHeader);
+            var error = GuarantorRegistrationRules.ValidateCustomer(customer);
+            if (error != null) throw new InvalidOperationException(error);
+            var result = new LoanGuarantorDTO { GuarantorId = guarantorId, CustomerId = guarantorId,
+                LoanProductLoanRegistrationGuarantorSecurityMode = product.LoanRegistrationGuarantorSecurityMode };
+            if (product.LoanRegistrationGuarantorSecurityMode == (int)GuarantorSecurityMode.Investments)
+            {
+                var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(guarantorId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                var designatedProducts = product.LoanRegistrationLoanProductSection == (int)LoanProductSection.BOSA
+                    ? _loanProductAppService.FindAppraisalProducts(product.Id, serviceHeader)?.InvestmentProductCollection
+                    : null;
+                result.TotalShares = GuarantorRegistrationRules.EligibleShares(product, accounts,
+                    designatedProducts == null ? Enumerable.Empty<Guid>() : designatedProducts.Select(item => item.Id));
+                var guarantees = FindLoanGuarantorsByCustomerId(guarantorId, serviceHeader) ?? new List<LoanGuarantorDTO>();
+                result.CommittedShares = GuarantorRegistrationRules.CommittedShares(guarantees, excludedLoanCaseId);
+                result.AppraisalFactor = _loanProductAppService.GetGuarantorAppraisalFactor(product.Id, result.TotalShares, serviceHeader);
+            }
+            return Tuple.Create(customer, result);
+        }
+
+        public string ValidateRegistrationGuarantors(LoanCaseDTO loan, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader)
+        {
+            return ValidateRegistrationGuarantors(loan, guarantors, serviceHeader, null);
+        }
+
+        private string ValidateRegistrationGuarantors(LoanCaseDTO loan, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader, Guid? excludedLoanCaseId)
+        {
+            if (loan == null) return "Loan application is required.";
+            var product = _loanProductAppService.FindLoanProduct(loan.LoanProductId, serviceHeader);
+            var error = GuarantorRegistrationRules.ValidateCount(product, guarantors);
+            if (error != null) return error;
+            foreach (var guarantor in guarantors)
+            {
+                LoanGuarantorDTO eligibility;
+                try { eligibility = GetRegistrationGuarantorEligibility(guarantor.GuarantorId, product, serviceHeader, excludedLoanCaseId).Item2; }
+                catch (InvalidOperationException exception) { return exception.Message; }
+                guarantor.CustomerId = guarantor.GuarantorId;
+                guarantor.LoaneeCustomerId = loan.CustomerId;
+                guarantor.LoanProductId = product.Id;
+                guarantor.LoanProductLoanRegistrationGuarantorSecurityMode = product.LoanRegistrationGuarantorSecurityMode;
+                guarantor.LoanProductLoanRegistrationMicrocredit = product.LoanRegistrationMicrocredit;
+                guarantor.MaximumGuarantees = product.LoanRegistrationMaximumGuarantees;
+                guarantor.CurrentGuarantees = guarantors.Count;
+                guarantor.CreatedBy = serviceHeader.ApplicationUserName;
+                // Always replace client-supplied balances and factors before validation.
+                guarantor.TotalShares = eligibility.TotalShares;
+                guarantor.CommittedShares = eligibility.CommittedShares;
+                guarantor.AppraisalFactor = eligibility.AppraisalFactor;
+                error = GuarantorRegistrationRules.ValidateAmount(product, loan, guarantor);
+                if (error != null) return error;
+            }
+            return GuarantorRegistrationRules.ValidateCoverage(product, loan, guarantors);
+        }
+
+        public string ReplaceRegisteredLoanGuarantors(Guid loanCaseId, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader)
+        {
+            using (var scope = _dbContextScopeFactory.Create())
+            {
+                var loan = FindLoanCase(loanCaseId, serviceHeader);
+                var error = GuarantorRegistrationRules.ValidateEditableCase(loan);
+                if (error != null) return error;
+                loan.TotalCollateralAmount = (FindLoanCollateralsByLoanCaseId(loanCaseId, serviceHeader) ?? new List<LoanCollateralDTO>()).Sum(item => item.Value);
+                // Validate the entire replacement using fresh eligibility; existing
+                // commitments on this case are replaced, not counted twice.
+                error = ValidateRegistrationGuarantors(loan, guarantors, serviceHeader, loanCaseId);
+                if (error != null) return error;
+                var clean = guarantors.Select(item => new LoanGuarantorDTO {
+                    CustomerId = item.CustomerId, LoaneeCustomerId = loan.CustomerId,
+                    LoanProductId = loan.LoanProductId, AmountGuaranteed = item.AmountGuaranteed,
+                    TotalShares = item.TotalShares, CommittedShares = item.CommittedShares,
+                    AppraisalFactor = item.AppraisalFactor
+                }).ToList();
+                UpdateLoanGuarantors(loanCaseId, clean, serviceHeader);
+                scope.SaveChanges(serviceHeader);
+                return null;
+            }
+        }
+
         public bool UpdateLoanGuarantors(Guid loanCaseId, List<LoanGuarantorDTO> loanGuarantors, ServiceHeader serviceHeader)
         {
             if (loanCaseId != null && loanGuarantors != null)

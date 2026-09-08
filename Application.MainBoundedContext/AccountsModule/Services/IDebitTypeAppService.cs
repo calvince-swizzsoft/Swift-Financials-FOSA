@@ -8,6 +8,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 {
     public interface IDebitTypeAppService
     {
+        DebitTypeDTO SaveConfiguredDebitType(DebitTypeDTO debitType, List<CommissionDTO> commissions, ServiceHeader serviceHeader);
+
         DebitTypeDTO AddNewDebitType(DebitTypeDTO debitTypeDTO, ServiceHeader serviceHeader);
 
         bool UpdateDebitType(DebitTypeDTO debitTypeDTO, ServiceHeader serviceHeader);

@@ -272,6 +272,7 @@
     <Compile Include="BackOfficeModule\Services\IncomeAdjustmentAppService.cs" />
     <Compile Include="BackOfficeModule\Services\InterestCalculationsService.cs" />
     <Compile Include="BackOfficeModule\Services\LoanCaseAppService.cs" />
+    <Compile Include="BackOfficeModule\Services\GuarantorRegistrationRules.cs" />
     <Compile Include="BackOfficeModule\Services\LoanDisbursementBatchAppService.cs" />
     <Compile Include="BackOfficeModule\Services\LoaningRemarkAppService.cs" />
     <Compile Include="BackOfficeModule\Services\LoanPurposeAppService.cs" />

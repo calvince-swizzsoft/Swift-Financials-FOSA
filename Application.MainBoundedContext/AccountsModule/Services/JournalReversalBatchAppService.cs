@@ -80,68 +80,54 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             else return null;
         }
 
-        public bool UpdateJournalReversalBatch(JournalReversalBatchDTO journalReversalBatchDTO, ServiceHeader serviceHeader)
+        public bool UpdateJournalReversalBatch(JournalReversalBatchDTO dto, ServiceHeader header)
         {
-            if (journalReversalBatchDTO == null || journalReversalBatchDTO.Id == Guid.Empty)
-                return false;
-
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            if (dto == null || dto.Id == Guid.Empty) return false;
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
-                var persisted = _journalReversalBatchRepository.Get(journalReversalBatchDTO.Id, serviceHeader);
-
-                if (persisted != null)
-                {
-                    persisted.Remarks = journalReversalBatchDTO.Remarks;
-                    persisted.Priority = (byte)journalReversalBatchDTO.Priority;
-
-                    return dbContextScope.SaveChanges(serviceHeader) >= 0;
-
-                }
-                else throw new InvalidOperationException("Sorry, but the persisted entity could not be identified!");
+                var batch = _journalReversalBatchRepository.Get(dto.Id, header);
+                if (batch == null || batch.Status != (int)BatchStatus.Pending) return false;
+                batch.Remarks = dto.Remarks;
+                batch.Priority = (byte)dto.Priority;
+                return scope.SaveChanges(header) >= 0;
             }
         }
 
-        public JournalReversalBatchEntryDTO AddNewJournalReversalBatchEntry(JournalReversalBatchEntryDTO journalReversalBatchEntryDTO, ServiceHeader serviceHeader)
+        public JournalReversalBatchEntryDTO AddNewJournalReversalBatchEntry(JournalReversalBatchEntryDTO dto, ServiceHeader header)
         {
-            if (journalReversalBatchEntryDTO != null)
+            if (dto == null || dto.JournalId == Guid.Empty) return null;
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
-                {
-                    var journalReversalBatchEntry = JournalReversalBatchEntryFactory.CreateJournalReversalBatchEntry(journalReversalBatchEntryDTO.JournalReversalBatchId, journalReversalBatchEntryDTO.JournalId, journalReversalBatchEntryDTO.Remarks);
-
-                    journalReversalBatchEntry.CreatedBy = serviceHeader.ApplicationUserName;
-
-                    _journalReversalBatchEntryRepository.Add(journalReversalBatchEntry, serviceHeader);
-
-                    dbContextScope.SaveChanges(serviceHeader);
-
-                    return journalReversalBatchEntry.ProjectedAs<JournalReversalBatchEntryDTO>();
-                }
+                var batch = _journalReversalBatchRepository.Get(dto.JournalReversalBatchId, header);
+                if (batch == null || batch.Status != (int)BatchStatus.Pending) return null;
+                var journal = _journalAppService.FindJournal(dto.JournalId, header);
+                if (journal == null || journal.IsLocked) return null;
+                var existing = FindJournalReversalBatchEntriesByJournalReversalBatchId(batch.Id, header);
+                if (existing != null && existing.Any(item => item.JournalId == dto.JournalId)) return null;
+                var entry = JournalReversalBatchEntryFactory.CreateJournalReversalBatchEntry(batch.Id, dto.JournalId, dto.Remarks);
+                entry.Status = (int)BatchEntryStatus.Pending;
+                entry.CreatedBy = header.ApplicationUserName;
+                _journalReversalBatchEntryRepository.Add(entry, header);
+                scope.SaveChanges(header);
+                return entry.ProjectedAs<JournalReversalBatchEntryDTO>();
             }
-            else return null;
         }
 
-        public bool RemoveJournalReversalBatchEntries(List<JournalReversalBatchEntryDTO> journalReversalBatchEntryDTOs, ServiceHeader serviceHeader)
+        public bool RemoveJournalReversalBatchEntries(List<JournalReversalBatchEntryDTO> dtos, ServiceHeader header)
         {
-            if (journalReversalBatchEntryDTOs == null)
-                return false;
-
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            if (dtos == null || dtos.Any(item => item == null || item.Id == Guid.Empty)) return false;
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
-                foreach (var item in journalReversalBatchEntryDTOs)
+                var entries = dtos.Select(item => item.Id).Distinct().OrderBy(id => id)
+                    .Select(id => _journalReversalBatchEntryRepository.Get(id, header)).ToList();
+                if (entries.Any(item => item == null || item.Status != (int)BatchEntryStatus.Pending)) return false;
+                foreach (var id in entries.Select(item => item.JournalReversalBatchId).Distinct().OrderBy(id => id))
                 {
-                    if (item.Id != null && item.Id != Guid.Empty)
-                    {
-                        var persisted = _journalReversalBatchEntryRepository.Get(item.Id, serviceHeader);
-
-                        if (persisted != null)
-                        {
-                            _journalReversalBatchEntryRepository.Remove(persisted, serviceHeader);
-                        }
-                    }
+                    var batch = _journalReversalBatchRepository.Get(id, header);
+                    if (batch == null || batch.Status != (int)BatchStatus.Pending) return false;
                 }
-
-                return dbContextScope.SaveChanges(serviceHeader) >= 0;
+                entries.ForEach(item => _journalReversalBatchEntryRepository.Remove(item, header));
+                return scope.SaveChanges(header) >= 0;
             }
         }
 
@@ -418,97 +404,30 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             else return null;
         }
 
-        public bool UpdateJournalReversalBatchEntries(Guid journalReversalBatchId, List<JournalReversalBatchEntryDTO> journalReversalBatchEntries, ServiceHeader serviceHeader)
+        public bool UpdateJournalReversalBatchEntries(Guid batchId, List<JournalReversalBatchEntryDTO> dtos, ServiceHeader header)
         {
-            var result = default(bool);
-
-            var existingJournalReversalBatchEntries = FindJournalReversalBatchEntriesByJournalReversalBatchId(journalReversalBatchId, serviceHeader);
-
-            List<JournalReversalBatchEntry> batchEntries = new List<JournalReversalBatchEntry>();
-
-            if (existingJournalReversalBatchEntries != null && existingJournalReversalBatchEntries.Any())
+            if (dtos == null || dtos.Any(item => item == null || item.JournalId == Guid.Empty)) return false;
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
-                var oldSet = from c in existingJournalReversalBatchEntries ?? new List<JournalReversalBatchEntryDTO> { } select c;
-
-                var newSet = from c in journalReversalBatchEntries ?? new List<JournalReversalBatchEntryDTO> { } select c;
-
-                var commonSet = oldSet.Intersect(newSet, new JournalReversalBatchEntryDTOEqualityComparer());
-
-                var insertSet = newSet.Except(commonSet, new JournalReversalBatchEntryDTOEqualityComparer());
-
-                var deleteSet = oldSet.Except(commonSet, new JournalReversalBatchEntryDTOEqualityComparer());
-
-                if (insertSet != null && insertSet.Any())
+                var batch = _journalReversalBatchRepository.Get(batchId, header);
+                if (batch == null || batch.Status != (int)BatchStatus.Pending) return false;
+                var existing = FindJournalReversalBatchEntriesByJournalReversalBatchId(batchId, header) ?? new List<JournalReversalBatchEntryDTO>();
+                var additions = dtos.GroupBy(item => item.JournalId).Select(group => group.First())
+                    .Where(item => !existing.Any(current => current.JournalId == item.JournalId)).ToList();
+                foreach (var dto in additions)
                 {
-                    List<JournalReversalBatchEntry> insertSetBatchEntries = new List<JournalReversalBatchEntry>();
-
-                    foreach (var item in insertSet)
-                    {
-                        if (!insertSetBatchEntries.Any(x => x.JournalId == item.JournalId))
-                        {
-                            var journalReversalBatchEntry = JournalReversalBatchEntryFactory.CreateJournalReversalBatchEntry(journalReversalBatchId, item.JournalId, item.Remarks);
-
-                            journalReversalBatchEntry.Status = (int)BatchEntryStatus.Pending;
-                            journalReversalBatchEntry.CreatedBy = serviceHeader.ApplicationUserName;
-
-                            insertSetBatchEntries.Add(journalReversalBatchEntry);
-                        }
-                    }
-
-                    if (insertSetBatchEntries.Any())
-                    {
-                        batchEntries.AddRange(insertSetBatchEntries);
-                    }
+                    var journal = _journalAppService.FindJournal(dto.JournalId, header);
+                    if (journal == null || journal.IsLocked) return false;
                 }
-            }
-            else
-            {
-                List<JournalReversalBatchEntry> freshBatchEntries = new List<JournalReversalBatchEntry>();
-
-                foreach (var item in journalReversalBatchEntries)
+                foreach (var dto in additions)
                 {
-                    if (!freshBatchEntries.Any(x => x.JournalId == item.JournalId))
-                    {
-                        var journalReversalBatchEntry = JournalReversalBatchEntryFactory.CreateJournalReversalBatchEntry(journalReversalBatchId, item.JournalId, item.Remarks);
-
-                        journalReversalBatchEntry.Status = (int)BatchEntryStatus.Pending;
-                        journalReversalBatchEntry.CreatedBy = serviceHeader.ApplicationUserName;
-
-                        freshBatchEntries.Add(journalReversalBatchEntry);
-                    }
+                    var entry = JournalReversalBatchEntryFactory.CreateJournalReversalBatchEntry(batchId, dto.JournalId, dto.Remarks);
+                    entry.Status = (int)BatchEntryStatus.Pending;
+                    entry.CreatedBy = header.ApplicationUserName;
+                    _journalReversalBatchEntryRepository.Add(entry, header);
                 }
-
-                if (freshBatchEntries.Any())
-                {
-                    batchEntries.AddRange(freshBatchEntries);
-                }
+                return scope.SaveChanges(header) >= 0;
             }
-
-            if (batchEntries.Any())
-            {
-                var bcpBatchEntries = new List<JournalReversalBatchEntryBulkCopyDTO>();
-
-                batchEntries.ForEach(c =>
-                {
-                    JournalReversalBatchEntryBulkCopyDTO bcpc =
-                        new JournalReversalBatchEntryBulkCopyDTO
-                        {
-                            Id = c.Id,
-                            JournalReversalBatchId = c.JournalReversalBatchId,
-                            JournalId = c.JournalId,
-                            Remarks = c.Remarks,
-                            Status = c.Status,
-                            CreatedBy = c.CreatedBy,
-                            CreatedDate = c.CreatedDate,
-                        };
-
-                    bcpBatchEntries.Add(bcpc);
-                });
-
-                result = _sqlCommandAppService.BulkInsert(string.Format("{0}{1}", DefaultSettings.Instance.TablePrefix, _journalReversalBatchEntryRepository.Pluralize()), bcpBatchEntries, serviceHeader);
-            }
-
-            return result;
         }
 
         public PageCollectionInfo<JournalReversalBatchEntryDTO> FindQueableJournalReversalBatchEntries(int pageIndex, int pageSize, ServiceHeader serviceHeader)
@@ -537,56 +456,31 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool PostJournalReversalBatchEntry(Guid journalReversalBatchEntryId, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
-            var result = default(bool);
-
-            if (journalReversalBatchEntryId == null || journalReversalBatchEntryId == Guid.Empty)
-                return result;
-
-            if (MarkJournalReversalBatchEntryPosted(journalReversalBatchEntryId, serviceHeader))
+            if (journalReversalBatchEntryId == Guid.Empty) return false;
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
-                var journalReversalBatchEntryDTO = FindJournalReversalBatchEntry(journalReversalBatchEntryId, serviceHeader);
-
-                if (journalReversalBatchEntryDTO != null)
+                var entry = _journalReversalBatchEntryRepository.Get(journalReversalBatchEntryId, serviceHeader);
+                if (entry == null) return false;
+                var batch = _journalReversalBatchRepository.Get(entry.JournalReversalBatchId, serviceHeader);
+                if (batch == null || batch.Status != (int)BatchStatus.Posted) return false;
+                // Duplicate delivery after a successful commit is an acknowledged
+                // no-op. A failed attempt leaves Pending and is safe to retry.
+                if (entry.Status == (int)BatchEntryStatus.Posted) return true;
+                if (entry.Status != (int)BatchEntryStatus.Pending || !entry.JournalId.HasValue) return false;
+                var journal = _journalAppService.FindJournal(entry.JournalId.Value, serviceHeader);
+                if (journal == null || journal.IsLocked) return false;
+                var previousUser = serviceHeader.ApplicationUserName;
+                try
                 {
-                    serviceHeader.ApplicationUserName = journalReversalBatchEntryDTO.JournalReversalBatchAuthorizedBy ?? serviceHeader.ApplicationUserName;
-
-                    var journalDTO = _journalAppService.FindJournal(journalReversalBatchEntryDTO.JournalId, serviceHeader);
-
-                    if (journalDTO != null)
-                    {
-                        var description = string.Format("B#{0}~{1}", journalReversalBatchEntryDTO.PaddedJournalReversalBatchNumber, journalReversalBatchEntryDTO.JournalReversalBatchRemarks);
-
-                        result = _journalAppService.ReverseJournals(new List<JournalDTO> { journalDTO }, description, moduleNavigationItemCode, serviceHeader);
-                    }
+                    serviceHeader.ApplicationUserName = batch.AuthorizedBy ?? previousUser;
+                    var description = string.Format("B#{0}~{1}", batch.BatchNumber.ToString().PadLeft(7, '0'), batch.Remarks);
+                    if (!_journalAppService.ReverseJournals(new List<JournalDTO> { journal }, description, moduleNavigationItemCode, serviceHeader))
+                        return false;
+                    entry.Status = (int)BatchEntryStatus.Posted;
+                    return scope.SaveChanges(serviceHeader) >= 0;
                 }
+                finally { serviceHeader.ApplicationUserName = previousUser; }
             }
-
-            return result;
-        }
-
-        private bool MarkJournalReversalBatchEntryPosted(Guid journalReversalBatchEntryId, ServiceHeader serviceHeader)
-        {
-            var result = default(bool);
-
-            using (var dbContextScope = _dbContextScopeFactory.Create())
-            {
-                var persisted = _journalReversalBatchEntryRepository.Get(journalReversalBatchEntryId, serviceHeader);
-
-                if (persisted != null)
-                {
-                    switch ((BatchEntryStatus)persisted.Status)
-                    {
-                        case BatchEntryStatus.Pending:
-                            persisted.Status = (int)BatchEntryStatus.Posted;
-                            result = dbContextScope.SaveChanges(serviceHeader) > 0;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-
-            return result;
         }
     }
 }

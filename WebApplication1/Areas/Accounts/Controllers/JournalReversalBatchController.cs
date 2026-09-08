@@ -1,4 +1,4 @@
-using Application.MainBoundedContext.AccountsModule.Services;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -366,7 +366,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var posted = _journalReversalBatchAppService.PostJournalReversalBatchEntry(entryId, request?.ModuleNavigationItemCode ?? 0, serviceHeader);
 
                 if (!posted)
-                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Entry could not be posted (already posted, or its referenced journal could not be resolved)"));
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Entry could not be reversed. Confirm its batch is authorized and its journal exists and is not locked."));
 
                 var refreshed = _journalReversalBatchAppService.FindJournalReversalBatchEntry(entryId, serviceHeader);
 

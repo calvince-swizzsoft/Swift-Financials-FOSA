@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
 using Application.MainBoundedContext.DTO.FrontOfficeModule;
@@ -545,13 +545,38 @@ namespace Application.MainBoundedContext.Services
             }
         }
 
+        // Credits are negative in the investment control account. Age each posted
+        // credit independently, but apply debits immediately so withdrawn/reversed
+        // funds cannot support borrowing. A debit balance is never eligible security.
+        // Keep this query in the AppService: deployed legacy balance procedures may
+        // accept the maturity flag without implementing it.
+        private const string InvestmentMaturityBalanceSql = @"
+SELECT CAST(CASE WHEN balance.Amount < 0 THEN -balance.Amount ELSE 0 END AS decimal(18, 2))
+FROM (
+    SELECT COALESCE(SUM(entry.Amount), 0) AS Amount
+    FROM dbo.swiftfin_JournalEntries AS entry
+    INNER JOIN dbo.swiftfin_CustomerAccounts AS account ON account.Id = entry.CustomerAccountId
+    INNER JOIN dbo.swiftfin_InvestmentProducts AS product
+        ON product.Id = account.CustomerAccountType_TargetProductId
+        AND product.ChartOfAccountId = entry.ChartOfAccountId
+    WHERE account.Id = @CustomerAccountID
+        AND account.CustomerAccountType_ProductCode = @CustomerAccountType_ProductCode
+        AND product.Id = @CustomerAccountType_TargetProductId
+        AND entry.CreatedDate <= @CutoffDate
+        AND (entry.Amount >= 0 OR product.MaturityPeriod = 0
+            OR entry.CreatedDate <= DATEADD(day, -CONVERT(int, product.MaturityPeriod), @CutoffDate))
+) AS balance";
+
         public decimal FindCustomerAccountBookBalance(CustomerAccountDTO customerAccountDTO, int type, DateTime cutOffDate, ServiceHeader serviceHeader, bool considerMaturityPeriodForInvestmentAccounts)
         {
+            var useInvestmentMaturity = considerMaturityPeriodForInvestmentAccounts && type == 1
+                && customerAccountDTO.CustomerAccountTypeProductCode == (int)ProductCode.Investment;
+
             decimal balance = 0m;
 
             using (_dbContextScopeFactory.CreateReadOnly())
             {
-                var query = _repository.DatabaseSqlQuery<decimal>("EXEC sp_CustomerAccountBalance @CustomerAccountID, @Type, @considerMaturityPeriodForInvestmentAccounts, @CutoffDate, @CustomerAccountType_TargetProductId, @CustomerAccountType_ProductCode", serviceHeader,
+                var query = _repository.DatabaseSqlQuery<decimal>(useInvestmentMaturity ? InvestmentMaturityBalanceSql : "EXEC sp_CustomerAccountBalance @CustomerAccountID, @Type, @considerMaturityPeriodForInvestmentAccounts, @CutoffDate, @CustomerAccountType_TargetProductId, @CustomerAccountType_ProductCode", serviceHeader,
                     new SqlParameter("CustomerAccountID", customerAccountDTO.Id),
                     new SqlParameter("Type", type),
                     new SqlParameter("considerMaturityPeriodForInvestmentAccounts", considerMaturityPeriodForInvestmentAccounts),
@@ -1353,11 +1378,14 @@ namespace Application.MainBoundedContext.Services
 
         public async Task<decimal> FindCustomerAccountBookBalanceAsync(CustomerAccountDTO customerAccountDTO, int type, DateTime cutOffDate, ServiceHeader serviceHeader, bool considerMaturityPeriodForInvestmentAccounts = false)
         {
+            var useInvestmentMaturity = considerMaturityPeriodForInvestmentAccounts && type == 1
+                && customerAccountDTO.CustomerAccountTypeProductCode == (int)ProductCode.Investment;
+
             using (_dbContextScopeFactory.CreateReadOnly())
             {
                 var result = 0m;
 
-                var query = await _repository.DatabaseSqlQueryAsync<decimal>("EXEC sp_CustomerAccountBalance @CustomerAccountID, @Type, @considerMaturityPeriodForInvestmentAccounts, @CutoffDate, @CustomerAccountType_TargetProductId, @CustomerAccountType_ProductCode", serviceHeader,
+                var query = await _repository.DatabaseSqlQueryAsync<decimal>(useInvestmentMaturity ? InvestmentMaturityBalanceSql : "EXEC sp_CustomerAccountBalance @CustomerAccountID, @Type, @considerMaturityPeriodForInvestmentAccounts, @CutoffDate, @CustomerAccountType_TargetProductId, @CustomerAccountType_ProductCode", serviceHeader,
                     new SqlParameter("CustomerAccountID", customerAccountDTO.Id),
                     new SqlParameter("Type", type),
                     new SqlParameter("considerMaturityPeriodForInvestmentAccounts", considerMaturityPeriodForInvestmentAccounts),

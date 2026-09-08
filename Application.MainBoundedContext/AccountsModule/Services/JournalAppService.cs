@@ -571,87 +571,42 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public bool ReverseJournals(List<JournalDTO> journalDTOs, string description, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
-            var result = default(bool);
-
-            if (journalDTOs != null && journalDTOs.Any())
+            if (journalDTOs == null || journalDTOs.Count == 0
+                || journalDTOs.Any(item => item == null || item.Id == Guid.Empty)
+                || journalDTOs.Select(item => item.Id).Distinct().Count() != journalDTOs.Count)
+                return false;
+            using (var scope = _dbContextScopeFactory.Create())
             {
-                var journals = new List<Journal>();
-
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                // Read persisted state; callers may hold stale DTOs. Validate the
+                // whole request before staging changes to any original journal.
+                var originals = journalDTOs.OrderBy(item => item.Id)
+                    .Select(item => _journalRepository.Get(item.Id, serviceHeader)).ToList();
+                if (originals.Any(item => item == null || item.IsLocked)) return false;
+                var reversals = new List<Journal>();
+                foreach (var original in originals)
                 {
-                    foreach (var journalDTO in journalDTOs)
-                    {
-                        if (journalDTO.IsLocked) continue;
-
-                        EnforceDesignationTransactionThreshold(journalDTO.TotalValue, journalDTO.TransactionCode, serviceHeader);
-
-                        var primaryDescription = string.Format("{0}~{1}", description ?? "Reversal", journalDTO.PrimaryDescription);
-                        var secondaryDescription = journalDTO.SecondaryDescription;
-                        var reference = journalDTO.Reference;
-
-                        var reversalJournal = JournalFactory.CreateJournal(null, journalDTO.PostingPeriodId, journalDTO.BranchId, journalDTO.AlternateChannelLogId, journalDTO.TotalValue, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, journalDTO.TransactionCode, null, serviceHeader);
-
-                        #region  mark reversal journal locked
-
-                        reversalJournal.Lock();
-
-                        #endregion
-
-                        var journalEntries = FindJournalEntries(serviceHeader, journalDTO.Id);
-
-                        if (journalEntries != null && journalEntries.Any())
-                        {
-                            foreach (var journalEntry in journalEntries)
-                            {
-                                if (journalEntry.Amount * -1 > 0m)
-                                {
-                                    #region DR
-
-                                    var reverseDebitJournalEntry = JournalEntryFactory.CreateJournalEntry(reversalJournal.Id, journalEntry.ChartOfAccountId, journalEntry.ContraChartOfAccountId, journalEntry.CustomerAccountId, journalEntry.Amount * -1, null, serviceHeader);
-
-                                    reversalJournal.JournalEntries.Add(reverseDebitJournalEntry);
-
-                                    #endregion
-                                }
-                                else
-                                {
-                                    #region CR
-
-                                    var reverseCreditJournalEntry = JournalEntryFactory.CreateJournalEntry(reversalJournal.Id, journalEntry.ChartOfAccountId, journalEntry.ContraChartOfAccountId, journalEntry.CustomerAccountId, journalEntry.Amount * -1, null, serviceHeader);
-
-                                    reversalJournal.JournalEntries.Add(reverseCreditJournalEntry);
-
-                                    #endregion
-                                }
-                            }
-                        }
-
-                        journals.Add(reversalJournal);
-
-                        #region mark original journal locked
-
-                        var persisted = _journalRepository.Get(journalDTO.Id, serviceHeader);
-                        persisted.Lock();
-
-                        #endregion
-                    }
-
-                    #region commit lock flags
-
-                    result = dbContextScope.SaveChanges(serviceHeader) >= 0;
-
-                    #endregion
+                    EnforceDesignationTransactionThreshold(original.TotalValue, original.TransactionCode, serviceHeader);
+                    var entries = original.JournalEntries.ToList();
+                    if (entries.Count == 0 || entries.Sum(item => item.Amount) != 0m) return false;
+                    var primaryDescription = string.Format("{0}~{1}", description ?? "Reversal", original.PrimaryDescription);
+                    if (primaryDescription.Length > 256) primaryDescription = primaryDescription.Substring(0, 256);
+                    var reversal = JournalFactory.CreateJournal(null, original.PostingPeriodId, original.BranchId,
+                        original.AlternateChannelLogId, original.TotalValue, primaryDescription, original.SecondaryDescription,
+                        original.Reference, moduleNavigationItemCode, original.TransactionCode, null, serviceHeader);
+                    reversal.Lock();
+                    foreach (var entry in entries)
+                        reversal.JournalEntries.Add(JournalEntryFactory.CreateJournalEntry(reversal.Id, entry.ChartOfAccountId,
+                            entry.ContraChartOfAccountId, entry.CustomerAccountId, -entry.Amount, null, serviceHeader));
+                    reversals.Add(reversal);
                 }
-
-                if (result && journals.Any())
-                {
-                    result = _journalEntryPostingService.BulkSave(serviceHeader, journals);
-                }
+                // BulkSave joins this scope; it must not commit separately from
+                // the lock updates (or from the calling batch entry's status).
+                if (!_journalEntryPostingService.BulkSave(serviceHeader, reversals))
+                    throw new InvalidOperationException("Reversal journals could not be saved.");
+                originals.ForEach(item => item.Lock());
+                return scope.SaveChanges(serviceHeader) >= 0;
             }
-
-            return result;
         }
-
 
         public JournalDTO FindJournal(Guid journalId, ServiceHeader serviceHeader)
         {

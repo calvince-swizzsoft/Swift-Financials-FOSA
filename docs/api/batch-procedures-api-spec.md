@@ -313,7 +313,7 @@ journal's own amount.
 | `/{id}/entries` | POST | Pick a single `Journal` to reverse and attach it to this batch |
 | `/{id}/entries/bulk` | POST | `List<JournalReversalBatchEntryDTO>` — bulk-add convenience. **Insert-only**: diffs the list against the batch's existing entries by `journalId` and inserts whatever's new; entries missing from the list are *not* removed despite the underlying method's name (`UpdateJournalReversalBatchEntries`) suggesting a full replace |
 | `/entries/remove` | POST | Batch-remove entries (`List<JournalReversalBatchEntryDTO>`) |
-| `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — reverses the entry's referenced journal via the existing `IJournalAppService.ReverseJournals`; no balance checks, no partial processing, no rejection path — it either reverses cleanly or the call fails |
+| `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — reverses the entry's referenced journal via the existing `IJournalAppService.ReverseJournals`; requires an authorized batch and an unlocked, valid journal; commits reversal and entry status together; completed-entry retries are no-ops |
 
 No CSV import exists for this type at all (`ParseJournalReversalBatchImport`
 isn't on the interface, unlike Credit/Debit/Wire Transfer) — nothing was
@@ -733,3 +733,33 @@ every entry's `AddNewJournal` call as transfer-fee tariffs. Entries already
 `Posted` from a prior partial run are silently skipped on a retry (checked
 via `Status == Pending`), making a re-`Authorize` call reasonably safe to
 retry after a partial failure.
+
+
+### Reversal posting hardening
+
+Journal reversal now stages the new opposite entries and original lock in one
+DbContext scope. Batch posting joins this work into a serializable transaction and
+marks the entry Posted only after staging a successful reversal. An exception rolls
+back the journal, original lock and entry status together. Only an authorized batch
+(stored BatchStatus.Posted) may process entries. Repeated delivery of an already
+Posted entry is a successful no-op. Missing or locked journals leave entries Pending.
+The original journal is reloaded, so stale client lock flags/amounts are not trusted.
+Empty/unbalanced journals and duplicate journal IDs in one request are rejected.
+EF concurrency tokens on original IsLocked and entry Status prevent conflicting
+updates from committing duplicate reversals. These are mapping-only changes to
+existing columns; no schema addition is required.
+
+BatchStatus.Posted represents authorization/queueing, not completion of every
+entry. The reversal UI labels it Authorized; each entry's Posted status is displayed
+as Reversed. Processing failures leave Pending entries for retry. Historical records
+mis-marked by the former implementation are not automatically repaired: review
+their actual journals before resetting status or lock flags.
+
+Batch headers and entries may only be edited while Pending. Single and bulk add
+validate referenced journals; bulk insertion uses the same transactional repository
+scope instead of a separate bulk-copy connection. Removal validates all affected
+batches before deleting any entries. Existing insert-only bulk semantics remain.
+
+Regression runner: tools/tests/JournalReversal.Tests/JournalReversal.Tests.csproj.
+It exercises real AppService methods with simulated posting/commit failures and
+scope rollback. Live concurrent SQL processing was not exercised by this runner.

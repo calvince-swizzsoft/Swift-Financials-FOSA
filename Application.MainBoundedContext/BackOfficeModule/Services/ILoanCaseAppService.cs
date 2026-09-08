@@ -33,6 +33,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         bool UpdateLoanAppraisalFactors(Guid loanCaseId, List<LoanAppraisalFactorDTO> loanAppraisalFactors, ServiceHeader serviceHeader);
 
+        Tuple<CustomerDTO, LoanGuarantorDTO> GetRegistrationGuarantorEligibility(Guid guarantorId, Guid loanProductId, ServiceHeader serviceHeader, Guid? loanCaseId = null);
+
+        string ReplaceRegisteredLoanGuarantors(Guid loanCaseId, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader);
+
+        string ValidateRegistrationGuarantors(LoanCaseDTO loan, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader);
+
         bool UpdateLoanGuarantors(Guid loanCaseId, List<LoanGuarantorDTO> loanGuarantors, ServiceHeader serviceHeader);
 
         bool UpdateLoanCollaterals(Guid loanCaseId, List<CustomerDocumentDTO> customerDocuments, ServiceHeader serviceHeader);

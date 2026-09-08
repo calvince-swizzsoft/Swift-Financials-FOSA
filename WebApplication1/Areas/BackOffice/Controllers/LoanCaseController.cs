@@ -1,4 +1,4 @@
-using Application.MainBoundedContext.AccountsModule.Services;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.BackOfficeModule.Services;
 using Application.MainBoundedContext.DTO;
@@ -383,32 +383,45 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        [HttpPut]
+        [Route("{id:guid}/guarantors")]
+        public IHttpActionResult UpdateRegisteredGuarantors(Guid id, List<LoanGuarantorDTO> guarantors)
+        {
+            var header = Utils.CreateServiceHeader();
+            var loan = _loanCaseAppService.FindLoanCase(id, header);
+            if (loan == null) return NotFound();
+            var permission = GetLoanStagePermission(loan, SystemPermissionType.FrontOfficeLoanRegistration, SystemPermissionType.BackOfficeLoanRegistration);
+            var permissionError = ValidateMappedPermission(permission, header);
+            if (permissionError != null) return Content(HttpStatusCode.Forbidden, ErrorEnvelope(permissionError));
+            if (loan.Status != (int)LoanCaseStatus.Registered)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("Guarantors can only be edited while the loan case is Registered."));
+            var error = _loanCaseAppService.ReplaceRegisteredLoanGuarantors(id, guarantors, header);
+            if (error != null) return ErrorResponse(error);
+            return Ok(ApiResponse("Guarantors updated successfully", _loanCaseAppService.FindLoanGuarantorsByLoanCaseId(id, header)));
+        }
+
         // Mirrors reference LoanGuarantorLookUp — resolves a prospective
         // guarantor's real share balance, what they've already committed to
         // other loans, and the loan product's appraisal factor, so the
         // registration screen can show/validate an amount-guaranteed figure
         // before the guarantor is actually attached. Values here are
         // computed the same way Create computes them (see
-        // EnrichAndValidateGuarantors) — not just decorative.
+        // the registration guarantor AppService) — not just decorative.
         [HttpGet]
         [Route("guarantors/lookup")]
-        public IHttpActionResult GuarantorLookup(Guid guarantorId, Guid loanProductId)
+        public IHttpActionResult GuarantorLookup(Guid guarantorId, Guid loanProductId, Guid? loanCaseId = null)
         {
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
 
-                var guarantor = _customerAppService.FindCustomer(guarantorId, serviceHeader);
-                if (guarantor == null)
-                    return NotFound();
-
-                var loanProduct = _loanProductAppService.FindLoanProduct(loanProductId, serviceHeader);
-                if (loanProduct == null)
-                    return ErrorResponse("Loan product not found");
-
-                var totalShares = ComputeTotalShares(guarantorId, serviceHeader);
-                var committedShares = ComputeCommittedShares(guarantorId, serviceHeader);
-                var appraisalFactor = _loanProductAppService.GetGuarantorAppraisalFactor(loanProductId, totalShares, serviceHeader);
+                var eligibility = _loanCaseAppService.GetRegistrationGuarantorEligibility(guarantorId, loanProductId, serviceHeader, loanCaseId);
+                var guarantor = eligibility.Item1;
+                var details = eligibility.Item2;
+                var totalShares = details.TotalShares;
+                var committedShares = details.CommittedShares;
+                var appraisalFactor = details.AppraisalFactor;
+                var securityMode = details.LoanProductLoanRegistrationGuarantorSecurityMode;
 
                 return Ok(ApiResponse("", new
                 {
@@ -422,8 +435,15 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     totalShares,
                     committedShares,
                     appraisalFactor,
-                    availableToGuarantee = (totalShares * Convert.ToDecimal(appraisalFactor)) - committedShares
+                    securityMode,
+                    availableToGuarantee = securityMode == (int)GuarantorSecurityMode.Investments
+                        ? (decimal?)Math.Max(0m, (totalShares * Convert.ToDecimal(appraisalFactor)) - committedShares)
+                        : null
                 }));
+            }
+            catch (InvalidOperationException exception)
+            {
+                return ErrorResponse(exception.Message);
             }
             catch (Exception)
             {
@@ -570,9 +590,6 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (membershipMonths < loanProduct.LoanRegistrationMinimumMembershipPeriod)
                     return ErrorResponse($"The selected customer's membership period is less than the minimum of {loanProduct.LoanRegistrationMinimumMembershipPeriod} months required for the selected loan product");
 
-                var guarantorError = EnrichAndValidateGuarantors(guarantors, loanCaseDTO, loanProduct, serviceHeader);
-                if (guarantorError != null)
-                    return ErrorResponse(guarantorError);
 
                 var collateralDocuments = new List<CustomerDocumentDTO>();
                 foreach (var documentId in collateralDocumentIds)
@@ -602,6 +619,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 loanCaseDTO.Status = (int)LoanCaseStatus.Registered;
                 loanCaseDTO.CreatedBy = serviceHeader.ApplicationUserName;
+
+                var guarantorError = _loanCaseAppService.ValidateRegistrationGuarantors(loanCaseDTO, guarantors, serviceHeader);
+                if (guarantorError != null) return ErrorResponse(guarantorError);
 
                 loanCaseDTO.ValidateAll();
                 if (loanCaseDTO.HasErrors)
@@ -1232,63 +1252,6 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 return Ok(ApiResponse("", new { loanCase, guarantors, collaterals, attachedLoans, repaymentSchedule, loanAccounts, standingOrders, payouts, applications }));
             }
             catch (Exception) { throw; }
-        }
-
-        // Returns an error message on failure, null on success. Mutates each
-        // guarantor with server-computed share data — see class comment.
-        private string EnrichAndValidateGuarantors(List<LoanGuarantorDTO> guarantors, LoanCaseDTO loanCaseDTO, LoanProductDTO loanProduct, ServiceHeader serviceHeader)
-        {
-            if (!loanProduct.LoanRegistrationMicrocredit && loanProduct.LoanRegistrationSecurityRequired)
-            {
-                if (guarantors.Count < loanProduct.LoanRegistrationMinimumGuarantors)
-                    return $"The selected loan product requires a minimum of {loanProduct.LoanRegistrationMinimumGuarantors} guarantors and a maximum of {loanProduct.LoanRegistrationMaximumGuarantees}";
-
-                if (guarantors.Count > loanProduct.LoanRegistrationMaximumGuarantees)
-                    return "The number of maximum guarantees must not be exceeded";
-            }
-
-            foreach (var guarantor in guarantors)
-            {
-                if (guarantor.GuarantorId == Guid.Empty)
-                    return "Every guarantor entry requires a GuarantorId";
-
-                var guarantorCustomer = _customerAppService.FindCustomer(guarantor.GuarantorId, serviceHeader);
-                if (guarantorCustomer == null)
-                    return $"Guarantor {guarantor.GuarantorId} not found";
-
-                if (guarantor.GuarantorId == loanCaseDTO.CustomerId && !loanProduct.LoanRegistrationAllowSelfGuarantee)
-                    return "The selected loan product does not allow self-guarantee";
-
-                if (guarantor.GuarantorId == loanCaseDTO.CustomerId && loanProduct.LoanRegistrationAllowSelfGuarantee)
-                {
-                    var maximumSelfGuarantee = loanCaseDTO.AmountApplied * Convert.ToDecimal(loanProduct.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage / 100d);
-                    if (guarantor.AmountGuaranteed > maximumSelfGuarantee)
-                        return $"Self-guarantee cannot exceed {loanProduct.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage}% of the amount applied";
-                }
-
-                guarantor.CustomerId = guarantor.GuarantorId;
-                guarantor.LoaneeCustomerId = loanCaseDTO.CustomerId;
-                guarantor.LoanProductId = loanCaseDTO.LoanProductId;
-                guarantor.LoanProductLoanRegistrationGuarantorSecurityMode = loanProduct.LoanRegistrationGuarantorSecurityMode;
-                guarantor.LoanProductLoanRegistrationMicrocredit = loanProduct.LoanRegistrationMicrocredit;
-                guarantor.MaximumGuarantees = loanProduct.LoanRegistrationMaximumGuarantees;
-                guarantor.CurrentGuarantees = guarantors.Count;
-                guarantor.CreatedBy = serviceHeader.ApplicationUserName;
-
-                // Recomputed server-side, not trusted from the request — see class comment.
-                guarantor.TotalShares = ComputeTotalShares(guarantor.GuarantorId, serviceHeader);
-                guarantor.CommittedShares = ComputeCommittedShares(guarantor.GuarantorId, serviceHeader);
-                guarantor.AppraisalFactor = _loanProductAppService.GetGuarantorAppraisalFactor(loanCaseDTO.LoanProductId, guarantor.TotalShares, serviceHeader);
-
-                guarantor.ValidateAll();
-                if (guarantor.HasErrors)
-                    return string.Join("; ", guarantor.ErrorMessages);
-            }
-
-            // Aggregate security coverage is validated by LoanCaseDTO after collateral
-            // values have been resolved. Do not reject here using guarantors alone;
-            // the domain rule permits guaranteed shares plus collateral.
-            return null;
         }
 
         [HttpPost]

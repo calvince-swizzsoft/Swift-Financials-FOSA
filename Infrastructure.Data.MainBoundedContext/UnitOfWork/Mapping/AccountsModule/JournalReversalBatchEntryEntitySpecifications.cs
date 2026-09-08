@@ -12,6 +12,8 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.AccountsModu
         {
             HasKey(x => x.Id);
 
+            Property(x => x.Status).IsConcurrencyToken();
+
             Property(t => t.SequentialId).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsClustered = true, IsUnique = true }));
 
             Property(x => x.CreatedBy).HasMaxLength(256);

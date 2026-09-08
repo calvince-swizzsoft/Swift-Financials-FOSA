@@ -12,6 +12,9 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.AccountsModu
         {
             HasKey(x => x.Id);
 
+            // Competing reversals must not both change the original from unlocked to locked.
+            Property(x => x.IsLocked).IsConcurrencyToken();
+
             Property(t => t.SequentialId).HasDatabaseGeneratedOption(DatabaseGeneratedOption.None).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsClustered = true, IsUnique = true }));
 
             Property(x => x.CreatedBy).HasMaxLength(256);
