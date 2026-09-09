@@ -129,7 +129,7 @@ and posts to the matching product:
 
 - `sLoan` / `sShare` / `wCont` / `sInvest` / `sRisk` / `wLoan` — resolves the
   customer's account for the row's target product (matched by `Column2`
-  payroll number against the product implied by the picked account),
+  payroll number (Customer.IndividualPayrollNumbers, not Reference3) against the product implied by the picked account),
   confirms the picked account is really that one match, then records a
   `Pending` `CreditBatchEntry` against it.
 - `sLoanInterest` — the interesting one: recomputes the loan account's real
@@ -763,3 +763,45 @@ batches before deleting any entries. Existing insert-only bulk semantics remain.
 Regression runner: tools/tests/JournalReversal.Tests/JournalReversal.Tests.csproj.
 It exercises real AppService methods with simulated posting/commit failures and
 scope rollback. Live concurrent SQL processing was not exercised by this runner.
+
+Check-Off payroll matching and regression verification: see [checkoff-payroll-matching.md](checkoff-payroll-matching.md).
+
+### Reversal target lookup
+
+The authenticated reversal controller now exposes `GET lookup-options` (TransactionTypes
+and SearchFields, each with Value/Label) and `GET reversible-journals`.
+The latter requires systemTransactionCode, startDate and endDate; optional text,
+journalFilter (default 5, Reference), pageIndex (0) and pageSize (20, maximum 100).
+It returns the standard envelope containing PageCollection/ItemsCount of JournalDTO.
+Dates filter transaction CreatedDate, including the entire end date.
+The existing IJournalAppService.FindReversibleJournals owns eligibility: locked
+journals and the requesting user's own transactions are excluded. Search is paged
+on the server. The UI selects multiple journals and submits the existing insert-only
+entries/bulk endpoint; adding entries does not reverse funds or bypass verification
+and authorization. Reference: WebApplication1/Areas/Accounts/Reversal.md.
+
+### Inter-account transfer manual alignment
+
+Reference: WebApplication1/Areas/Accounts/Inter Account Transfer.md.
+GET `api/accounts/interaccounttransferbatches/accounts/{accountId}/balances` returns
+a CustomerAccountDTO with current balances (including loan interest), fetched by
+the transfer AppService through CustomerAccountAppService. Its SQL balance service
+returns absolute balances, used as the loan limits. Investment BookBalance is
+not a withdrawable/available-balance promise.
+Entry add, full replacement, and authorization now validate non-negative amounts,
+positive row totals, distinct source/target accounts belonging to the same customer,
+and aggregate principal/interest allocations per loan against current outstanding
+balances. G/L apportionments require a G/L id. Authorization rechecks loan balances.
+This does not add a source-funds/fees reservation or change the existing posting
+direction: this batch still has a customer account as its source. The UI selects a
+customer through the shared paged lookup and then that customer's accounts.
+
+Transfer validation failures now return HTTP 400 with the specific application-service validation message. Loan limit messages include the account number, aggregate requested amount, and current outstanding amount. Unexpected exceptions remain sanitized.
+
+InterAccountTransferBatchEntryDTO.ApportionTo and ApportionToDescription now have DataMember annotations. The inherited DataContract makes serialization opt-in: previously JSON ApportionTo was ignored on input and omitted on output, leaving type 0 even when the user selected Customer Account (1) or G/L Account (2).
+
+Designation authority failures from journal posting are classified as TransactionAuthorityException and returned as HTTP 403, code TRANSACTION_AUTHORITY_DENIED, with the specific safe authority message. This includes insufficient designation thresholds and missing employee/designation linkage. Unexpected exceptions remain HTTP 500 with sanitized text; no authority rules are relaxed.
+
+The inter-account transfer controller returns classified authority failures directly as HTTP 403, preserving the authority reason and correlation reference without relying on the global exception path.
+
+PUT generalledgers/{id}/entries/{entryId} updates a single entry in place through IGeneralLedgerAppService.UpdateGeneralLedgerEntry. Only the batch creator may update pending entries in a pending ledger. The route preserves the entry ID, creation metadata, branch, status, and other batch rows. Supply the same entry fields as add (including value date); route IDs are authoritative. Client balance checks use the complete server TotalApportioned, subtract the edited row's original amount when projecting the new total, and require exact balance before verification/authorization. Rejection remains available for an unbalanced ledger.

@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.Services;
 using Application.Seedwork;
@@ -159,6 +159,32 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 }
             }
             else return null;
+        }
+
+        public bool UpdateGeneralLedgerEntry(GeneralLedgerEntryDTO dto, ServiceHeader serviceHeader)
+        {
+            if (dto == null || dto.Id == Guid.Empty || dto.GeneralLedgerId == Guid.Empty || dto.Amount == 0m ||
+                dto.ChartOfAccountId == Guid.Empty || dto.ContraChartOfAccountId == Guid.Empty ||
+                !dto.ValueDate.HasValue || string.IsNullOrWhiteSpace(dto.PrimaryDescription) ||
+                string.IsNullOrWhiteSpace(dto.SecondaryDescription) || string.IsNullOrWhiteSpace(dto.Reference)) return false;
+            using (var scope = _dbContextScopeFactory.Create())
+            {
+                var batch = _generalLedgerRepository.Get(dto.GeneralLedgerId, serviceHeader);
+                var entry = _generalLedgerEntryRepository.Get(dto.Id, serviceHeader);
+                if (batch == null || entry == null || entry.GeneralLedgerId != batch.Id ||
+                    batch.Status != (int)GeneralLedgerStatus.Pending || entry.Status != (int)GeneralLedgerEntryStatus.Pending ||
+                    !string.Equals(batch.CreatedBy, serviceHeader.ApplicationUserName, StringComparison.OrdinalIgnoreCase)) return false;
+                entry.ChartOfAccountId = dto.ChartOfAccountId;
+                entry.ContraChartOfAccountId = dto.ContraChartOfAccountId;
+                entry.CustomerAccountId = dto.CustomerAccountId;
+                entry.ContraCustomerAccountId = dto.ContraCustomerAccountId;
+                entry.Amount = dto.Amount;
+                entry.ValueDate = dto.ValueDate;
+                entry.PrimaryDescription = dto.PrimaryDescription.Trim();
+                entry.SecondaryDescription = dto.SecondaryDescription.Trim();
+                entry.Reference = dto.Reference.Trim();
+                return scope.SaveChanges(serviceHeader) >= 0;
+            }
         }
 
         public bool RemoveGeneralLedgerEntries(List<GeneralLedgerEntryDTO> generalLedgerEntryDTOs, ServiceHeader serviceHeader)

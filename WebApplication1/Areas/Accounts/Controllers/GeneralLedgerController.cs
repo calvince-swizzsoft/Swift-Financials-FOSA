@@ -312,6 +312,21 @@ namespace WebApplication1.Areas.Accounts.Controllers
             }
         }
 
+        [HttpPut]
+        [Route("{id:guid}/entries/{entryId:guid}")]
+        public IHttpActionResult UpdateEntry(Guid id, Guid entryId, GeneralLedgerEntryDTO dto)
+        {
+            if (dto == null) return ErrorResponse("Entry details are required.");
+            dto.Id = entryId;
+            dto.GeneralLedgerId = id;
+            dto.ValidateAll();
+            if (dto.HasErrors) return ErrorResponse(string.Join("; ", dto.ErrorMessages));
+            var updated = _generalLedgerAppService.UpdateGeneralLedgerEntry(dto, Utils.CreateServiceHeader());
+            if (!updated) return Content(HttpStatusCode.Conflict, new { success = false,
+                message = "The entry could not be updated. Only the creator can edit a pending ledger entry; refresh the batch and check the entry details." });
+            return Ok(ApiResponse("Entry updated successfully", new { Id = entryId }));
+        }
+
         [HttpPost]
         [Route("entries/remove")]
         public IHttpActionResult RemoveEntries(List<GeneralLedgerEntryDTO> entries)

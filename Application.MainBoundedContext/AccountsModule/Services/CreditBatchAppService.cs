@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AdministrationModule.Services;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.BackOfficeModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
@@ -549,6 +549,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                         break;
                                     case CreditBatchType.CheckOff:
 
+                                        if (string.IsNullOrWhiteSpace(creditBatchDiscrepancyDTO.Column2))
+                                            throw new InvalidOperationException("Payroll number is required for check-off matching.");
+
                                         var contributionAmount = default(decimal);
 
                                         var productBalance = default(decimal);
@@ -565,7 +568,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                                         #region sLoan
 
-                                                        var customerLoanPrincipalAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
+                                                        var customerLoanPrincipalAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
 
                                                         if (customerLoanPrincipalAccounts.Any())
                                                         {
@@ -607,7 +610,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                                         #region sInterest
 
-                                                        var customerLoanInterestAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
+                                                        var customerLoanInterestAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
 
                                                         if (customerLoanInterestAccounts.Any())
                                                         {
@@ -653,7 +656,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                                         #region sShare/wCont/sInvest/sRisk/wLoan
 
-                                                        var customerInvestmentAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
+                                                        var customerInvestmentAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
 
                                                         if (customerInvestmentAccounts.Any())
                                                         {
@@ -695,7 +698,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                                         #region sLoanInterest
 
-                                                        var customerLoanAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
+                                                        var customerLoanAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(customerAccountDTO.CustomerAccountTypeTargetProductId, creditBatchDiscrepancyDTO.Column2, serviceHeader);
 
                                                         if (customerLoanAccounts.Any())
                                                         {
@@ -1217,16 +1220,14 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                     #endregion
 
                                     break;
-                                //we will use savings not investments
-                                case ProductCode.Savings:
+                                case ProductCode.Investment:
 
                                     #region Investment Check-Off
 
-                                    //var targetInvestmentProduct = _investmentProductAppService.FindCachedInvestmentProduct(checkOffCustomerAccount.CustomerAccountTypeTargetProductId, serviceHeader);
-                                    var targetInvestmentProduct = _savingsProductAppService.FindCachedSavingsProduct(checkOffCustomerAccount.CustomerAccountTypeTargetProductId, checkOffCustomerAccount.BranchId, serviceHeader);
+                                    var targetInvestmentProduct = _investmentProductAppService.FindCachedInvestmentProduct(checkOffCustomerAccount.CustomerAccountTypeTargetProductId, serviceHeader);
                                     secondaryDescription = string.Format("{0} ({1})", secondaryDescription, targetInvestmentProduct.Description);
 
-                                    // Investment Check-Off Journal: Credit InvestmentProduct.ChartOfAccountId, Debit SystemGeneralLedgerAccountCode.CommonControl
+                                    // Credit the investment product ledger and debit the batch credit-type control ledger.
                                     var investmentJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, transactionOwnershipBranchId, null, creditBatchEntryDTO.Principal + creditBatchEntryDTO.Interest, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.CreditBatchCheckOff, UberUtil.GetLastDayOfMonth(creditBatchEntryDTO.CreditBatchMonth, creditBatchEntryDTO.CreditBatchPostingPeriodDurationEndDate.Year, creditBatchEntryDTO.CreditBatchEnforceMonthValueDate, creditBatchEntryDTO.CreditBatchValueDate), serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(investmentJournal, targetInvestmentProduct.ChartOfAccountId, creditBatchDTO.CreditTypeChartOfAccountId, checkOffCustomerAccount, checkOffCustomerAccount, serviceHeader);
                                     journals.Add(investmentJournal);
@@ -1991,6 +1992,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             importEntries.ForEach(item =>
             {
+                if (string.IsNullOrWhiteSpace(item.Column2))
+                {
+                    item.Remarks = "Payroll number is required for check-off matching.";
+                    result.MismatchedCollection.Add(item);
+                    return;
+                }
+
                 var contributionAmount = default(decimal);
 
                 var productBalance = default(decimal);
@@ -2013,7 +2021,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 {
                                     var targetLoanPrincipalProduct = sLoan_MatchedLoanProducts.First();
 
-                                    var customerLoanPrincipalAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(targetLoanPrincipalProduct.Id, item.Column2, serviceHeader);
+                                    var customerLoanPrincipalAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(targetLoanPrincipalProduct.Id, item.Column2, serviceHeader);
 
                                     if (customerLoanPrincipalAccounts.Any())
                                     {
@@ -2071,14 +2079,14 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                         }
                                         else
                                         {
-                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by personal file number {2}", count, customerLoanPrincipalAccounts.Count(), item.Column2);
+                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by payroll number {2}", count, customerLoanPrincipalAccounts.Count(), item.Column2);
 
                                             result.MismatchedCollection.Add(item);
                                         }
                                     }
                                     else
                                     {
-                                        item.Remarks = string.Format("Record #{0} ~ no match for loan product customer account by personal file number {1}", count, item.Column2);
+                                        item.Remarks = string.Format("Record #{0} ~ no match for loan product customer account by payroll number {1}", count, item.Column2);
 
                                         result.MismatchedCollection.Add(item);
                                     }
@@ -2104,7 +2112,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 {
                                     var targetLoanInterestProduct = sInterest_MatchedLoanProducts.First();
 
-                                    var customerLoanInterestAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(targetLoanInterestProduct.Id, item.Column2, serviceHeader);
+                                    var customerLoanInterestAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(targetLoanInterestProduct.Id, item.Column2, serviceHeader);
 
                                     if (customerLoanInterestAccounts.Any())
                                     {
@@ -2152,14 +2160,14 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                         }
                                         else
                                         {
-                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by personal file number {2}", count, customerLoanInterestAccounts.Count(), item.Column2);
+                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by payroll number {2}", count, customerLoanInterestAccounts.Count(), item.Column2);
 
                                             result.MismatchedCollection.Add(item);
                                         }
                                     }
                                     else
                                     {
-                                        item.Remarks = string.Format("Record #{0} ~ no match for loan product customer account by personal file number {1}", count, item.Column2);
+                                        item.Remarks = string.Format("Record #{0} ~ no match for loan product customer account by payroll number {1}", count, item.Column2);
 
                                         result.MismatchedCollection.Add(item);
                                     }
@@ -2189,7 +2197,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 {
                                     var targetInvestmentProduct = matchedInvestmentProducts.First();
 
-                                    var customerInvestmentAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(targetInvestmentProduct.Id, item.Column2, serviceHeader);
+                                    var customerInvestmentAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(targetInvestmentProduct.Id, item.Column2, serviceHeader);
 
                                     if (customerInvestmentAccounts.Any())
                                     {
@@ -2216,14 +2224,14 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                         }
                                         else
                                         {
-                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by personal file number {2}", count, customerInvestmentAccounts.Count(), item.Column2);
+                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by payroll number {2}", count, customerInvestmentAccounts.Count(), item.Column2);
 
                                             result.MismatchedCollection.Add(item);
                                         }
                                     }
                                     else
                                     {
-                                        item.Remarks = string.Format("Record #{0} ~ no match for investment product customer account by personal file number {1}", count, item.Column2);
+                                        item.Remarks = string.Format("Record #{0} ~ no match for investment product customer account by payroll number {1}", count, item.Column2);
 
                                         result.MismatchedCollection.Add(item);
                                     }
@@ -2249,7 +2257,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                 {
                                     var targetLoanProduct = matchedLoanProducts.First();
 
-                                    var customerLoanAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndReference3(targetLoanProduct.Id, item.Column2, serviceHeader);
+                                    var customerLoanAccounts = _sqlCommandAppService.FindCustomerAccountsByTargetProductIdAndPayrollNumber(targetLoanProduct.Id, item.Column2, serviceHeader);
 
                                     if (customerLoanAccounts.Any())
                                     {
@@ -2404,14 +2412,14 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                                         }
                                         else
                                         {
-                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by personal file number {2}", count, customerLoanAccounts.Count(), item.Column2);
+                                            item.Remarks = string.Format("Record #{0} ~ found {1} customer account matches by payroll number {2}", count, customerLoanAccounts.Count(), item.Column2);
 
                                             result.MismatchedCollection.Add(item);
                                         }
                                     }
                                     else
                                     {
-                                        item.Remarks = string.Format("Record #{0} ~ no match for loan product customer account by personal file number {1}", count, item.Column2);
+                                        item.Remarks = string.Format("Record #{0} ~ no match for loan product customer account by payroll number {1}", count, item.Column2);
 
                                         result.MismatchedCollection.Add(item);
                                     }
@@ -2469,13 +2477,20 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             importEntries.ForEach(item =>
             {
+                if (string.IsNullOrWhiteSpace(item.Column2))
+                {
+                    item.Remarks = "Payroll number is required for check-off matching.";
+                    result.MismatchedCollection.Add(item);
+                    return;
+                }
+
                 var contributionAmount = default(decimal);
 
                 var productBalance = default(decimal);
 
                 if (decimal.TryParse(item.Column3, NumberStyles.Any, CultureInfo.InvariantCulture, out contributionAmount) && decimal.TryParse(item.Column4, NumberStyles.Any, CultureInfo.InvariantCulture, out productBalance))
                 {
-                    var standingOrderDTOs = _sqlCommandAppService.FindStandingOrdersByCustomerRerence3AndTrigger(item.Column2, (int)StandingOrderTrigger.CheckOff, serviceHeader);
+                    var standingOrderDTOs = FindCheckOffStandingOrdersByPayrollNumber(item.Column2, serviceHeader);
 
                     if (standingOrderDTOs != null && standingOrderDTOs.Any())
                     {
@@ -4265,6 +4280,29 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
 
             return new Tuple<decimal, decimal>(totalRecoveryDeductions, availableBalance);
+        }
+
+        // Check-off CSV Column2 is the payroll number, not Customer.Reference3
+        // (Personal File Number). Fuzzy allocation searches the recipient's orders.
+        private List<StandingOrderDTO> FindCheckOffStandingOrdersByPayrollNumber(string payrollNumber, ServiceHeader serviceHeader)
+        {
+            if (string.IsNullOrWhiteSpace(payrollNumber))
+                return new List<StandingOrderDTO>();
+
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var customers = _sqlCommandAppService.FindCustomersByPayrollNumber(payrollNumber, serviceHeader);
+                // Never spread a deduction across different members sharing a payroll match.
+                if (customers == null || customers.Count != 1)
+                    return new List<StandingOrderDTO>();
+
+                var customerId = customers[0].Id;
+                var trigger = (int)StandingOrderTrigger.CheckOff;
+                var spec = new DirectSpecification<StandingOrder>(x =>
+                    x.BeneficiaryCustomerAccount.CustomerId == customerId && x.Trigger == trigger);
+                var orders = _standingOrderRepository.AllMatching(spec, serviceHeader);
+                return orders == null ? new List<StandingOrderDTO>() : orders.ProjectedAsCollection<StandingOrderDTO>();
+            }
         }
 
         private List<StandingOrderDTO> FindStandingOrdersByBeneficiaryCustomerAccountId(Guid beneficiaryCustomerAccountId, int trigger, ServiceHeader serviceHeader)

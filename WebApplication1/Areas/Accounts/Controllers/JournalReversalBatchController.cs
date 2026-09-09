@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -54,11 +54,43 @@ namespace WebApplication1.Areas.Accounts.Controllers
     [RoutePrefix("api/accounts/journalreversalbatches")]
     public class JournalReversalBatchController : ApiController
     {
+        private readonly IJournalAppService _journalAppService;
         private readonly IJournalReversalBatchAppService _journalReversalBatchAppService;
 
-        public JournalReversalBatchController(IJournalReversalBatchAppService journalReversalBatchAppService)
+        public JournalReversalBatchController(IJournalReversalBatchAppService journalReversalBatchAppService, IJournalAppService journalAppService)
         {
+            _journalAppService = journalAppService ?? throw new ArgumentNullException(nameof(journalAppService));
             _journalReversalBatchAppService = journalReversalBatchAppService ?? throw new ArgumentNullException(nameof(journalReversalBatchAppService));
+        }
+
+        // Read-only lookup used by Batch Origination's target-journal picker.
+        [HttpGet]
+        [Route("lookup-options")]
+        public IHttpActionResult LookupOptions()
+        {
+            return Ok(ApiResponse("", new {
+                TransactionTypes = Enum.GetValues(typeof(SystemTransactionCode)).Cast<SystemTransactionCode>()
+                    .Select(value => new { Value = (int)value, Label = EnumHelper.GetDescription(value) }),
+                SearchFields = Enum.GetValues(typeof(JournalFilter)).Cast<JournalFilter>()
+                    .Select(value => new { Value = (int)value, Label = EnumHelper.GetDescription(value) })
+            }));
+        }
+
+        [HttpGet]
+        [Route("reversible-journals")]
+        public IHttpActionResult ReversibleJournals(int systemTransactionCode, DateTime startDate, DateTime endDate,
+            string text = "", int journalFilter = 5, int pageIndex = 0, int pageSize = 20)
+        {
+            if (!Enum.IsDefined(typeof(SystemTransactionCode), systemTransactionCode) ||
+                !Enum.IsDefined(typeof(JournalFilter), journalFilter))
+                return ErrorResponse("Select a valid transaction type and search field.");
+            if (startDate.Date > endDate.Date || startDate.Year < 1753 || endDate.Year >= 9999)
+                return ErrorResponse("Select a valid transaction date range.");
+            if (pageIndex < 0 || pageSize < 1 || pageSize > 100)
+                return ErrorResponse("Page index must be non-negative and page size must be between 1 and 100.");
+            var page = _journalAppService.FindReversibleJournals(pageIndex, pageSize, systemTransactionCode,
+                startDate.Date, endDate.Date, text ?? "", journalFilter, Utils.CreateServiceHeader());
+            return Ok(ApiResponse("", page));
         }
 
         [HttpGet]

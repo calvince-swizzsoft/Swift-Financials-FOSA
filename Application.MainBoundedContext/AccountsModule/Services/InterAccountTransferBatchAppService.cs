@@ -1,4 +1,5 @@
-﻿using Application.MainBoundedContext.DTO;
+using System.ComponentModel.DataAnnotations;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -59,6 +60,51 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _customerAccountAppService = customerAccountAppService;
             _journalAppService = journalAppService;
             _appCache = appCache;
+        }
+
+        public CustomerAccountDTO FindTransferAccount(Guid accountId, ServiceHeader serviceHeader)
+        {
+            var account = _customerAccountAppService.FindCustomerAccounts(accountId, serviceHeader);
+            if (account == null) return null;
+            _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { account }, serviceHeader);
+            _customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { account }, serviceHeader, true, false);
+            return account;
+        }
+
+        // Validate the entire allocation, including repeated rows for the same loan.
+        private bool ValidTransferEntries(Guid sourceId, List<InterAccountTransferBatchEntryDTO> entries, ServiceHeader header)
+        {
+            var source = FindTransferAccount(sourceId, header);
+            if (source == null) throw new ValidationException("The source account could not be found. Reopen the batch and select a valid source account.");
+            if (entries == null) throw new ValidationException("No transfer entries were supplied.");
+            foreach (var entry in entries)
+            {
+                if (entry == null || entry.Principal < 0m || entry.Interest < 0m || entry.Principal + entry.Interest <= 0m)
+                    throw new ValidationException("Each transfer entry must have non-negative principal and interest, with a total greater than zero.");
+                if (entry.ApportionTo == (int)ApportionTo.GeneralLedgerAccount)
+                {
+                    if (!entry.ChartOfAccountId.HasValue || entry.ChartOfAccountId.Value == Guid.Empty) throw new ValidationException("Select a destination G/L account.");
+                }
+                else if (entry.ApportionTo != (int)ApportionTo.CustomerAccount || !entry.CustomerAccountId.HasValue || entry.CustomerAccountId.Value == Guid.Empty)
+                    throw new ValidationException("Select a valid apportionment type and destination customer account.");
+            }
+            foreach (var group in entries.Where(e => e.ApportionTo == (int)ApportionTo.CustomerAccount).GroupBy(e => e.CustomerAccountId.Value))
+            {
+                var target = FindTransferAccount(group.Key, header);
+                if (target == null) throw new ValidationException("The destination customer account could not be found. Select it again.");
+                if (target.Id == source.Id) throw new ValidationException("The source and destination accounts must be different.");
+                if (target.CustomerId != source.CustomerId) throw new ValidationException("The destination account must belong to the same customer as the source account.");
+                if (target.CustomerAccountTypeProductCode == (int)ProductCode.Loan)
+                {
+                    var principal = group.Sum(e => e.Principal);
+                    var interest = group.Sum(e => e.Interest);
+                    if (principal > Math.Abs(target.PrincipalBalance))
+                        throw new ValidationException(string.Format("Loan {0}: total principal allocated in this batch is {1:N2}, but outstanding principal is {2:N2}. Reduce the principal amount or remove an existing allocation to this loan.", target.FullAccountNumber, principal, Math.Abs(target.PrincipalBalance)));
+                    if (interest > Math.Abs(target.InterestBalance))
+                        throw new ValidationException(string.Format("Loan {0}: total interest allocated in this batch is {1:N2}, but outstanding interest is {2:N2}. Reduce the interest amount or remove an existing allocation to this loan.", target.FullAccountNumber, interest, Math.Abs(target.InterestBalance)));
+                }
+            }
+            return true;
         }
 
         public InterAccountTransferBatchDTO AddNewInterAccountTransferBatch(InterAccountTransferBatchDTO interAccountTransferBatchDTO, ServiceHeader serviceHeader)
@@ -147,6 +193,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
+                    var batch = _interAccountTransferBatchRepository.Get(interAccountTransferBatchEntryDTO.InterAccountTransferBatchId, serviceHeader);
+                    if (batch == null) throw new ValidationException("This transfer batch no longer exists. Refresh the batch list.");
+                    if (batch.Status != (int)BatchStatus.Pending) throw new ValidationException("Entries can only be added to a pending transfer batch. This batch has already moved to another stage; refresh the batch list.");
+                    var allocation = FindInterAccountTransferBatchEntriesByInterAccountTransferBatchId(batch.Id, serviceHeader) ?? new List<InterAccountTransferBatchEntryDTO>();
+                    allocation.Add(interAccountTransferBatchEntryDTO);
+                    if (!ValidTransferEntries(batch.CustomerAccountId, allocation, serviceHeader)) return null;
+
                     var interAccountTransferBatchEntry = InterAccountTransferBatchEntryFactory.CreateInterAccountTransferBatchEntry(interAccountTransferBatchEntryDTO.InterAccountTransferBatchId, interAccountTransferBatchEntryDTO.ApportionTo, interAccountTransferBatchEntryDTO.CustomerAccountId, interAccountTransferBatchEntryDTO.ChartOfAccountId, interAccountTransferBatchEntryDTO.Principal, interAccountTransferBatchEntryDTO.Interest, interAccountTransferBatchEntryDTO.PrimaryDescription, interAccountTransferBatchEntryDTO.SecondaryDescription, interAccountTransferBatchEntryDTO.Reference);
 
                     interAccountTransferBatchEntry.Status = (int)BatchEntryStatus.Pending;
@@ -258,6 +311,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                         if (interAccountTransferBatchEntries != null && interAccountTransferBatchEntries.Any())
                         {
+                            if (!ValidTransferEntries(persisted.CustomerAccountId, interAccountTransferBatchEntries.Where(e => e.Status == (int)BatchEntryStatus.Pending).ToList(), serviceHeader)) return false;
+
                             var sourceCustomerAccount = _customerAccountAppService.FindCustomerAccountDTO(persisted.CustomerAccountId, serviceHeader);
 
                             _customerAccountAppService.FetchCustomerAccountsProductDescription(new List<CustomerAccountDTO> { sourceCustomerAccount }, serviceHeader);
@@ -360,6 +415,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     if (persisted != null)
                     {
+                        if (persisted.Status != (int)BatchStatus.Pending || !ValidTransferEntries(persisted.CustomerAccountId, interAccountTransferBatchEntryCollection, serviceHeader)) return false;
+
                         var existing = FindInterAccountTransferBatchEntriesByInterAccountTransferBatchId(persisted.Id, serviceHeader);
 
                         if (existing != null && existing.Any())

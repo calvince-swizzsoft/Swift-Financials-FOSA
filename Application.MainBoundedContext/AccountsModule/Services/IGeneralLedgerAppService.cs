@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -13,6 +13,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         bool UpdateGeneralLedger(GeneralLedgerDTO generalLedgerDTO, ServiceHeader serviceHeader);
 
         GeneralLedgerEntryDTO AddNewGeneralLedgerEntry(GeneralLedgerEntryDTO generalLedgerEntryDTO, ServiceHeader serviceHeader);
+
+        bool UpdateGeneralLedgerEntry(GeneralLedgerEntryDTO entry, ServiceHeader serviceHeader);
 
         bool RemoveGeneralLedgerEntries(List<GeneralLedgerEntryDTO> generalLedgerEntryDTOs, ServiceHeader serviceHeader);
 

@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.Services;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
@@ -167,7 +167,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         {
             var validationError = ValidateTransactionAuthority(amount, transactionCode, serviceHeader);
             if (!string.IsNullOrWhiteSpace(validationError))
-                throw new InvalidOperationException(validationError);
+                throw new TransactionAuthorityException(validationError);
         }
 
         public JournalDTO AddNewJournal(Guid? parentJournalId, Guid branchId, Guid? alternateChannelLogId, decimal totalValue, string primaryDescription, string secondaryDescription, string reference, int moduleNavigationItemCode, int transactionCode, DateTime? valueDate, Guid creditChartOfAccountId, Guid debitChartOfAccountId, ServiceHeader serviceHeader, bool useCache)

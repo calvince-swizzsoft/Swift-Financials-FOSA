@@ -15,6 +15,13 @@ namespace WebApplication1.ApiErrors
 
         public static HttpResponseMessage CreateResponse(HttpRequestMessage request, System.Exception exception)
         {
+            var authorityFailure = exception as TransactionAuthorityException;
+            if (authorityFailure != null)
+            {
+                return ApiErrorResponses.Create(request, HttpStatusCode.Forbidden,
+                    "TRANSACTION_AUTHORITY_DENIED", authorityFailure.Message);
+            }
+
             var makerCheckerViolation = exception as MakerCheckerViolationException;
             if (makerCheckerViolation != null)
             {

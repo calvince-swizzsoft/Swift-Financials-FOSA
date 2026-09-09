@@ -1,4 +1,4 @@
-﻿using Application.Seedwork;
+using Application.Seedwork;
 
 using Infrastructure.Crosscutting.Framework.Attributes;
 using Infrastructure.Crosscutting.Framework.Extensions;
@@ -54,9 +54,11 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         [Display(Name = "Batch Reference")]
         public string InterAccountTransferBatchReference { get; set; }
 
+        [DataMember]
         [Display(Name = "Apportion To")]
         public int ApportionTo { get; set; }
 
+        [DataMember]
         [Display(Name = "Apportion To")]
         public string ApportionToDescription
         {

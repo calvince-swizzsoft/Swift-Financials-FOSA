@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -8,6 +8,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 {
     public interface IInterAccountTransferBatchAppService
     {
+        CustomerAccountDTO FindTransferAccount(Guid accountId, ServiceHeader serviceHeader);
+
         InterAccountTransferBatchDTO AddNewInterAccountTransferBatch(InterAccountTransferBatchDTO interAccountTransferBatchDTO, ServiceHeader serviceHeader);
 
         bool UpdateInterAccountTransferBatch(InterAccountTransferBatchDTO interAccountTransferBatchDTO, ServiceHeader serviceHeader);

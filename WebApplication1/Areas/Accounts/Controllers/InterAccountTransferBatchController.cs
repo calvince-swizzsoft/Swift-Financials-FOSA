@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -76,6 +77,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
         }
 
         [HttpGet]
+        [Route("accounts/{accountId:guid}/balances")]
+        public IHttpActionResult AccountBalances(Guid accountId)
+        {
+            var account = _interAccountTransferBatchAppService.FindTransferAccount(accountId, Utils.CreateServiceHeader());
+            if (account == null) return NotFound();
+            return Ok(ApiResponse("", account));
+        }
+
+        [HttpGet]
         [Route("all")]
         public IHttpActionResult GetAll()
         {
@@ -86,6 +96,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var batches = _interAccountTransferBatchAppService.FindInterAccountTransferBatches(serviceHeader);
 
                 return Ok(ApiResponse("", batches ?? new List<InterAccountTransferBatchDTO>()));
+            }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
             }
             catch (Exception)
             {
@@ -112,6 +131,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
+            }
             catch (Exception)
             {
                 throw;
@@ -132,6 +160,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return NotFound();
 
                 return Ok(ApiResponse("", batch));
+            }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
             }
             catch (Exception)
             {
@@ -165,6 +202,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Inter account transfer batch created successfully", created));
             }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
+            }
             catch (Exception)
             {
                 throw;
@@ -194,6 +240,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _interAccountTransferBatchAppService.FindInterAccountTransferBatch(id, serviceHeader);
 
                 return Ok(ApiResponse("Operation success", refreshed));
+            }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
             }
             catch (Exception)
             {
@@ -232,6 +287,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("", page));
             }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
+            }
             catch (Exception)
             {
                 throw;
@@ -257,6 +321,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
                     return ErrorResponse("Failed to add the inter account transfer batch entry");
 
                 return Ok(ApiResponse("Entry added successfully", created));
+            }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
             }
             catch (Exception)
             {
@@ -284,6 +357,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entries replaced successfully", refreshed ?? new List<InterAccountTransferBatchEntryDTO>()));
             }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
+            }
             catch (Exception)
             {
                 throw;
@@ -308,6 +390,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entries removed successfully", null));
             }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
+            }
             catch (Exception)
             {
                 throw;
@@ -327,6 +418,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var charges = _interAccountTransferBatchAppService.FindDynamicCharges(id, serviceHeader);
 
                 return Ok(ApiResponse("", charges ?? new List<DynamicChargeDTO>()));
+            }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
             }
             catch (Exception)
             {
@@ -351,6 +451,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var refreshed = _interAccountTransferBatchAppService.FindDynamicCharges(id, serviceHeader);
 
                 return Ok(ApiResponse("Dynamic charges replaced successfully", refreshed ?? new List<DynamicChargeDTO>()));
+            }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
             }
             catch (Exception)
             {
@@ -380,6 +489,15 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var updated = _interAccountTransferBatchAppService.FindInterAccountTransferBatch(id, serviceHeader);
 
                 return Ok(ApiResponse("Operation success", updated));
+            }
+            catch (Application.Seedwork.TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
+            catch (ValidationException ex)
+            {
+                return ErrorResponse(ex.Message);
             }
             catch (Exception)
             {
