@@ -1,5 +1,6 @@
 using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.Collections.Generic;
@@ -22,9 +23,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
     //   Credit — checked on Update/Audit/Authorize.
     // - Authorize strictly requires the batch to already be Audited, same as
     //   Debit (Credit's equivalent guard is commented out in source).
-    // - Authorize queues every entry for async posting with no type carve-out,
-    //   same as Debit (WireTransferBatchType — MPESA B2C/B2B/EFT — exists but
-    //   isn't used to filter the dispatch).
+    // - Authorize posts every entry through PostWireTransferBatchEntry. Unlike
+    //   Debit, this is synchronous because this solution has no Wire Transfer
+    //   posting-service plugin to consume the configured MSMQ queue.
     // - Entries DO carry a real, trustworthy Amount (unlike Debit) — no
     //   tariff-basis computation needed to know what an entry is worth before
     //   it posts.
@@ -125,6 +126,12 @@ namespace WebApplication1.Areas.Accounts.Controllers
             wireTransferBatchDTO.ValidateAll();
             if (wireTransferBatchDTO.HasErrors)
                 return ErrorResponse(string.Join("; ", wireTransferBatchDTO.ErrorMessages));
+            if (!Enum.IsDefined(typeof(WireTransferBatchType), wireTransferBatchDTO.Type))
+                return ErrorResponse("A valid batch type is required");
+            if (!Enum.IsDefined(typeof(QueuePriority), wireTransferBatchDTO.Priority))
+                return ErrorResponse("A valid priority is required");
+            if (wireTransferBatchDTO.TotalValue <= 0m)
+                return ErrorResponse("Total value must be greater than zero");
 
             try
             {
@@ -149,6 +156,12 @@ namespace WebApplication1.Areas.Accounts.Controllers
         {
             if (wireTransferBatchDTO == null)
                 return ErrorResponse("Request body is required");
+            if (string.IsNullOrWhiteSpace(wireTransferBatchDTO.Reference))
+                return ErrorResponse("Reference is required");
+            if (wireTransferBatchDTO.TotalValue <= 0m)
+                return ErrorResponse("Total value must be greater than zero");
+            if (!Enum.IsDefined(typeof(QueuePriority), wireTransferBatchDTO.Priority))
+                return ErrorResponse("A valid priority is required");
 
             try
             {
@@ -177,17 +190,47 @@ namespace WebApplication1.Areas.Accounts.Controllers
         [Route("{id:guid}/audit")]
         public IHttpActionResult Audit(Guid id, [FromBody] WireTransferBatchActionRequest request)
         {
+            var precondition = ValidateAuditRequest(id, request);
+            if (precondition != null) return precondition;
             return RunTransition(id, request, (dto, option, header) => _wireTransferBatchAppService.AuditWireTransferBatch(dto, option, header));
         }
 
         // Authorize an Audited batch. BatchAuthOption: 1=Post (-> Posted; every
-        // entry is queued for async posting — see class-level comment), 2=Reject.
+        // entry is posted synchronously — see class-level comment), 2=Reject.
         // Refuses outright if the batch isn't already Audited.
         [HttpPost]
         [Route("{id:guid}/authorize")]
         public IHttpActionResult Authorize(Guid id, [FromBody] WireTransferBatchActionRequest request)
         {
+            var precondition = ValidateAuthorizationRequest(id, request);
+            if (precondition != null) return precondition;
             return RunTransition(id, request, (dto, option, header) => _wireTransferBatchAppService.AuthorizeWireTransferBatch(dto, option, request?.ModuleNavigationItemCode ?? 0, header));
+        }
+
+        private IHttpActionResult ValidateAuditRequest(Guid id, WireTransferBatchActionRequest request)
+        {
+            if (request == null || !Enum.IsDefined(typeof(BatchAuthOption), request.Option))
+                return ErrorResponse("Select a valid verification action: Post or Reject.");
+
+            var header = Utils.CreateServiceHeader();
+            var batch = _wireTransferBatchAppService.FindWireTransferBatch(id, header);
+            if (batch == null) return NotFound();
+            if (batch.Status != (int)BatchStatus.Pending)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope(string.Format("This batch cannot be verified because its current status is {0}; only Pending batches can be verified.", batch.StatusDescription)));
+            return null;
+        }
+
+        private IHttpActionResult ValidateAuthorizationRequest(Guid id, WireTransferBatchActionRequest request)
+        {
+            if (request == null || !Enum.IsDefined(typeof(BatchAuthOption), request.Option))
+                return ErrorResponse("Select a valid authorization action: Post or Reject.");
+
+            var header = Utils.CreateServiceHeader();
+            var batch = _wireTransferBatchAppService.FindWireTransferBatch(id, header);
+            if (batch == null) return NotFound();
+            if (batch.Status != (int)BatchStatus.Audited)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope(string.Format("This batch cannot be authorized because its current status is {0}; it must be verified and Audited first.", batch.StatusDescription)));
+            return null;
         }
 
         [HttpGet]
@@ -258,13 +301,18 @@ namespace WebApplication1.Areas.Accounts.Controllers
             try
             {
                 entryDTO.WireTransferBatchId = id;
+                entryDTO.ValidateAll();
+                if (entryDTO.HasErrors)
+                    return ErrorResponse(string.Join("; ", entryDTO.ErrorMessages));
+                if (entryDTO.Amount <= 0m)
+                    return ErrorResponse("Amount must be greater than zero");
 
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 var created = _wireTransferBatchAppService.AddNewWireTransferBatchEntry(entryDTO, serviceHeader);
 
                 if (created == null)
-                    return ErrorResponse("Failed to add the wire transfer batch entry");
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Entry could not be added. The batch must be Pending and owned by the current maker, and the entry must not exceed the batch total."));
 
                 return Ok(ApiResponse("Entry added successfully", created));
             }
@@ -349,6 +397,11 @@ namespace WebApplication1.Areas.Accounts.Controllers
 
                 return Ok(ApiResponse("Entry posted successfully", refreshed));
             }
+            catch (TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(
+                    Request, HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
+            }
             catch (Exception)
             {
                 throw;
@@ -372,11 +425,16 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 var result = transition(existing, request?.Option ?? 0, serviceHeader);
 
                 if (!result)
-                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("Batch is not in the right state for this action, or the action option is invalid"));
+                    return Content(HttpStatusCode.Conflict, ErrorEnvelope("The batch could not advance. When posting, it must contain at least one entry and the entries total must not exceed the batch total value."));
 
                 var updated = _wireTransferBatchAppService.FindWireTransferBatch(id, serviceHeader);
 
                 return Ok(ApiResponse("Operation success", updated));
+            }
+            catch (TransactionAuthorityException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(
+                    Request, HttpStatusCode.Forbidden, "TRANSACTION_AUTHORITY_DENIED", ex.Message));
             }
             catch (Exception)
             {

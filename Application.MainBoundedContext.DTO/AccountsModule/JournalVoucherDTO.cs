@@ -246,6 +246,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Principal Amount")]
+        [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ErrorMessage = "Principal amount must be greater than zero.")]
         public decimal TotalValue { get; set; }
 
         [DataMember]
@@ -258,6 +259,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Reference")]
+        [Required]
         public string Reference { get; set; }
 
         [DataMember]
@@ -267,6 +269,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Value Date")]
+        [Required]
         public DateTime? ValueDate { get; set; }
 
         [DataMember]

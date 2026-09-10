@@ -117,7 +117,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             {
                 var persisted = _wireTransferBatchRepository.Get(wireTransferBatchDTO.Id, serviceHeader);
 
-                if (persisted != null)
+                if (persisted != null && persisted.Status == (int)BatchStatus.Pending &&
+                    string.Equals(persisted.CreatedBy, serviceHeader.ApplicationUserName, StringComparison.OrdinalIgnoreCase))
                 {
                     persisted.TotalValue = wireTransferBatchDTO.TotalValue;
                     persisted.Reference = wireTransferBatchDTO.Reference;
@@ -129,7 +130,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     return persisted.TotalValue >= persistedEntriesTotal;
                 }
-                else throw new InvalidOperationException("Sorry, but the persisted entity could not be identified!");
+                else return false;
             }
         }
 
@@ -150,6 +151,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     case BatchAuthOption.Post:
 
                         var entriesTotal = _sqlCommandAppService.FindWireTransferBatchEntriesTotal(persisted.Id, serviceHeader);
+
+                        if (entriesTotal <= 0m || persisted.TotalValue < entriesTotal)
+                            return false;
 
                         if (persisted.TotalValue >= entriesTotal)
                         {
@@ -179,6 +183,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         public bool AuthorizeWireTransferBatch(WireTransferBatchDTO wireTransferBatchDTO, int batchAuthOption, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
             var result = default(bool);
+            var entryIdsToPost = new List<Guid>();
 
             if (wireTransferBatchDTO == null || !Enum.IsDefined(typeof(BatchAuthOption), batchAuthOption))
                 return result;
@@ -195,6 +200,20 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     case BatchAuthOption.Post:
 
                         var entriesTotal = _sqlCommandAppService.FindWireTransferBatchEntriesTotal(persisted.Id, serviceHeader);
+
+                        if (entriesTotal <= 0m || persisted.TotalValue < entriesTotal)
+                            return false;
+
+                        // Validate the authorizer before changing the batch or any entry
+                        // to Posted. AddNewJournal also enforces this rule, but reaching
+                        // it later would leave a misleading Posted batch when the user's
+                        // designation has insufficient authority.
+                        var authorityError = _journalAppService.ValidateTransactionAuthority(
+                            entriesTotal,
+                            (int)SystemTransactionCode.WireTransferBatch,
+                            serviceHeader);
+                        if (!string.IsNullOrWhiteSpace(authorityError))
+                            throw new TransactionAuthorityException(authorityError);
 
                         if (persisted.TotalValue >= entriesTotal)
                         {
@@ -228,17 +247,21 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             new SqlParameter("WireTransferBatchId", wireTransferBatchDTO.Id));
 
                     if (query != null)
-                    {
-                        var data = from l in query
-                                   select new WireTransferBatchEntryDTO
-                                   {
-                                       Id = l,
-                                       WireTransferBatchPriority = wireTransferBatchDTO.Priority
-                                   };
-
-                        _brokerService.ProcessWireTransferBatchEntries(DMLCommand.None, serviceHeader, data.ToArray());
-                    }
+                        // Materialize the query while its data scope is still active. The
+                        // per-entry posting operation opens its own scope, so enumerating
+                        // this query during posting would leave a DataReader open on the
+                        // same connection.
+                        entryIdsToPost = query.ToList();
                 }
+            }
+
+            if (result && batchAuthOption == (int)BatchAuthOption.Post)
+            {
+                // No WireTransferBatchPosting Windows-service plugin exists in this
+                // solution. Execute the canonical per-entry posting operation directly,
+                // after closing the authorization scope and its DataReader.
+                foreach (var entryId in entryIdsToPost)
+                    PostWireTransferBatchEntry(entryId, moduleNavigationItemCode, serviceHeader);
             }
 
             return result;
@@ -246,10 +269,19 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
         public WireTransferBatchEntryDTO AddNewWireTransferBatchEntry(WireTransferBatchEntryDTO wireTransferBatchEntryDTO, ServiceHeader serviceHeader)
         {
-            if (wireTransferBatchEntryDTO != null)
+            if (wireTransferBatchEntryDTO != null && wireTransferBatchEntryDTO.Amount > 0m)
             {
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
+                    var batch = _wireTransferBatchRepository.Get(wireTransferBatchEntryDTO.WireTransferBatchId, serviceHeader);
+                    if (batch == null || batch.Status != (int)BatchStatus.Pending ||
+                        !string.Equals(batch.CreatedBy, serviceHeader.ApplicationUserName, StringComparison.OrdinalIgnoreCase))
+                        return null;
+
+                    var entriesTotal = _sqlCommandAppService.FindWireTransferBatchEntriesTotal(batch.Id, serviceHeader);
+                    if (entriesTotal + wireTransferBatchEntryDTO.Amount > batch.TotalValue)
+                        return null;
+
                     var wireTransferBatchEntry = WireTransferBatchEntryFactory.CreateWireTransferBatchEntry(wireTransferBatchEntryDTO.WireTransferBatchId, wireTransferBatchEntryDTO.CustomerAccountId, wireTransferBatchEntryDTO.Amount, wireTransferBatchEntryDTO.Payee, wireTransferBatchEntryDTO.AccountNumber, wireTransferBatchEntryDTO.Reference);
 
                     wireTransferBatchEntry.Status = (int)BatchEntryStatus.Pending;
@@ -280,6 +312,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                         if (persisted != null)
                         {
+                            var batch = _wireTransferBatchRepository.Get(persisted.WireTransferBatchId, serviceHeader);
+                            if (batch == null || batch.Status != (int)BatchStatus.Pending ||
+                                !string.Equals(batch.CreatedBy, serviceHeader.ApplicationUserName, StringComparison.OrdinalIgnoreCase))
+                                return false;
+
                             _wireTransferBatchEntryRepository.Remove(persisted, serviceHeader);
                         }
                     }

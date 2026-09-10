@@ -25,7 +25,8 @@ public class EmailProcessingTests
         {
             var call = (IMethodCallMessage)message;
             object result;
-            if (call.MethodName == "FindEmailAlert") { Finds++; result = Record; }
+            if (call.MethodName == "GetType") result = typeof(IEmailAlertAppService);
+            else if (call.MethodName == "FindEmailAlert") { Finds++; result = Record; }
             else if (call.MethodName == "UpdateEmailAlert") { Updates++; Record = (EmailAlertDTO)call.Args[0]; result = true; }
             else throw new Exception("Unexpected application operation: " + call.MethodName);
             return new ReturnMessage(result, null, 0, call.LogicalCallContext, call);
@@ -38,6 +39,7 @@ public class EmailProcessingTests
         public override IMessage Invoke(IMessage message)
         {
             var call = (IMethodCallMessage)message;
+            if (call.MethodName == "GetType") return new ReturnMessage(typeof(ISmtpService), null, 0, call.LogicalCallContext, call);
             if (call.MethodName != "SendEmail") throw new Exception("Unexpected SMTP operation.");
             Sends++;
             return new ReturnMessage(null, null, 0, call.LogicalCallContext, call);

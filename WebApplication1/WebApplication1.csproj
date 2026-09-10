@@ -373,6 +373,7 @@
     <Compile Include="Areas\Accounts\Controllers\CreditBatchImportController.cs" />
     <Compile Include="Areas\Accounts\Controllers\DebitBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\WireTransferBatchController.cs" />
+    <Compile Include="Areas\Accounts\Controllers\WireTransferTypeController.cs" />
     <Compile Include="Areas\Accounts\Controllers\JournalReversalBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\OverDeductionBatchController.cs" />
     <Compile Include="Areas\Accounts\Controllers\LoanDisbursementBatchController.cs" />

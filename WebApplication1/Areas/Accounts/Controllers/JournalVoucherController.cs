@@ -245,10 +245,13 @@ namespace WebApplication1.Areas.Accounts.Controllers
             if (entryDTO == null)
                 return ErrorResponse("Request body is required");
 
+            entryDTO.JournalVoucherId = id;
+            entryDTO.ValidateAll();
+            if (entryDTO.HasErrors)
+                return ErrorResponse(string.Join("; ", entryDTO.ErrorMessages));
+
             try
             {
-                entryDTO.JournalVoucherId = id;
-
                 var serviceHeader = Utils.CreateServiceHeader();
 
                 var created = _journalVoucherAppService.AddNewJournalVoucherEntry(entryDTO, serviceHeader);

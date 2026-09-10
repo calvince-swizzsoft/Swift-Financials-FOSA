@@ -26,6 +26,12 @@ tool (Bash mangles `/p:` switches into path expansions):
 & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" "<Project>\<Project>.csproj" /p:Configuration=Debug /nologo /v:minimal /t:Build
 ```
 
+Debug/development is the mandatory default for compilation, testing,
+debugging, and routine verification. Never build Release or create/refresh
+production deployment artifacts unless the user expressly requests it for the
+current task. Keep local development configuration separate from production
+package configuration.
+
 ## The two goals driving current work
 
 1. **Expose the solution as a proper Web API.** `WebApplication1` is a new

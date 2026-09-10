@@ -35,14 +35,9 @@ namespace WebApplication1.Areas.Accounts.Controllers
     //   customerAccount), and is capped against the customer's available balance
     //   unless BranchCompanyAllowDebitBatchToOverdrawAccount is set. There is no
     //   "amount" to show a client before an entry actually posts.
-    // - Authorizing a batch with option 1 (Post) enqueues every one of its entries
-    //   onto an async message queue (BrokerService.ProcessDebitBatchEntries ->
-    //   DebitBatchPostingQueuePath) for background processing — GL posting is
-    //   NOT synchronous with this call, and unlike CreditBatch's equivalent
-    //   dispatch (which only fires for Payout/CheckOff types), every Debit batch
-    //   gets queued since Debit has no sub-type to filter on. PostEntry below is
-    //   what that background consumer calls per entry; it's also exposed here as
-    //   a manual retry path for any entry that didn't post.
+    // - Authorizing a batch with option 1 (Post) posts each entry synchronously.
+    //   The original MSMQ dispatch could report success while the Windows Service
+    //   was stopped or misconfigured, leaving every entry Pending.
     //
     // Deliberately not exposed, consistent with CreditBatchController: CSV import
     // (ParseDebitBatchImport — no file-upload pattern in this project yet).
@@ -184,7 +179,7 @@ namespace WebApplication1.Areas.Accounts.Controllers
         }
 
         // Authorize an Audited batch. BatchAuthOption: 1=Post (-> Posted; every
-        // entry is queued for async background posting — see class-level comment),
+        // entry is posted synchronously — see class-level comment),
         // 2=Reject. Unlike CreditBatch, this refuses outright if the batch isn't
         // already Audited.
         [HttpPost]

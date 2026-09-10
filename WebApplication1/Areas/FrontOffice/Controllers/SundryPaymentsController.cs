@@ -12,17 +12,14 @@ namespace WebApplication1.Controllers
 {
     // Adapted from the reference MVC SundryPaymentsController — a single-line
     // general GL voucher posted against the current teller's own cash account
-    // (cash payment/receipt, cheque receipt, credit-batch cash pickup, account
-    // closure payout). No dedicated app service exists for this — same as the
+    // (cash payment/receipt, cheque receipt, credit-batch cash pickup/sundry
+    // payment, account closure payout). No dedicated app service exists for this — same as the
     // reference controller, it posts straight through IJournalAppService.
     //
-    // Not reproduced: the reference controller's Create screen pulled full
-    // AccountClosureRequest / CreditBatchEntry / ExternalCheque sub-objects from
-    // the server to compute TotalValue and ChartOfAccountId for those three
-    // transaction types. Here the client resolves those via the already-documented
-    // account-closure/credit-batch/cheque endpoints and passes the resolved
-    // chartOfAccountId + amount directly — consistent with a decoupled client
-    // rather than a server-rendered form.
+    // Credit-batch payments are resolved again from the persisted entry here.
+    // The request's amount/account are never trusted for those two transaction
+    // types: Cash Pickup debits the batch Credit Type clearing account, while a
+    // Sundry Payment debits the G/L account captured on the individual entry.
     [Authorize]
     [RoutePrefix("api/frontoffice/sundrypayments")]
     public class SundryPaymentsController : ApiController
@@ -54,9 +51,6 @@ namespace WebApplication1.Controllers
             if (request == null)
                 return BadRequest("Request body is required");
 
-            if (request.ChartOfAccountId == Guid.Empty || request.TotalValue <= 0)
-                return BadRequest("chartOfAccountId and a positive totalValue are required");
-
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
@@ -70,6 +64,39 @@ namespace WebApplication1.Controllers
                 var postingPeriod = _postingPeriodAppService.FindCurrentPostingPeriod(serviceHeader);
 
                 var transactionType = (GeneralTransactionType)request.TransactionType;
+
+                CreditBatchEntryDTO creditBatchEntry = null;
+                if (transactionType == GeneralTransactionType.CashPickup ||
+                    transactionType == GeneralTransactionType.SundryPayment)
+                {
+                    if (request.CreditBatchEntryId == Guid.Empty)
+                        return BadRequest("creditBatchEntryId is required for a credit-batch teller payment");
+
+                    creditBatchEntry = _creditBatchAppService.FindCreditBatchEntry(request.CreditBatchEntryId, serviceHeader);
+                    if (creditBatchEntry == null)
+                        return BadRequest("The selected credit-batch entry no longer exists.");
+
+                    var expectedBatchType = transactionType == GeneralTransactionType.CashPickup
+                        ? CreditBatchType.CashPickup
+                        : CreditBatchType.SundryPayments;
+
+                    if (creditBatchEntry.CreditBatchType != (int)expectedBatchType)
+                        return BadRequest("The selected entry does not belong to the requested credit-batch payment type.");
+
+                    if (creditBatchEntry.CreditBatchStatus != (int)BatchStatus.Posted)
+                        return BadRequest("The selected entry's batch has not been authorized for teller payment.");
+
+                    if (creditBatchEntry.Status != (int)BatchEntryStatus.Pending)
+                        return BadRequest("The selected entry has already been paid or is no longer pending.");
+
+                    request.TotalValue = creditBatchEntry.Principal + creditBatchEntry.Interest;
+                    request.ChartOfAccountId = transactionType == GeneralTransactionType.CashPickup
+                        ? creditBatchEntry.CreditBatchCreditTypeChartOfAccountId
+                        : creditBatchEntry.ChartOfAccountId ?? Guid.Empty;
+                }
+
+                if (request.ChartOfAccountId == Guid.Empty || request.TotalValue <= 0)
+                    return BadRequest("A postable G/L account and a positive payment amount are required.");
 
                 Guid creditChartOfAccountId, debitChartOfAccountId;
                 int transactionCode;
@@ -95,9 +122,13 @@ namespace WebApplication1.Controllers
                         break;
 
                     case GeneralTransactionType.CashPickup:
-                        if (request.CreditBatchEntryId == Guid.Empty)
-                            return BadRequest("creditBatchEntryId is required for a Cash Pickup payment");
                         transactionCode = (int)SystemTransactionCode.CreditBatchCashPickup;
+                        debitChartOfAccountId = request.ChartOfAccountId;
+                        creditChartOfAccountId = teller.ChartOfAccountId ?? Guid.Empty;
+                        break;
+
+                    case GeneralTransactionType.SundryPayment:
+                        transactionCode = (int)SystemTransactionCode.CreditBatchSundryPayment;
                         debitChartOfAccountId = request.ChartOfAccountId;
                         creditChartOfAccountId = teller.ChartOfAccountId ?? Guid.Empty;
                         break;
@@ -144,11 +175,12 @@ namespace WebApplication1.Controllers
                 if (journal == null)
                     return BadRequest("Failed to post the sundry payment");
 
-                if (transactionType == GeneralTransactionType.CashPickup)
+                if (transactionType == GeneralTransactionType.CashPickup ||
+                    transactionType == GeneralTransactionType.SundryPayment)
                 {
-                    // Flip the picked entry to Posted so it can't be paid out again
-                    // from the picker (api/accounts/creditbatches/entries/type/8).
-                    _creditBatchAppService.PostCreditBatchEntry(request.CreditBatchEntryId, request.ModuleNavigationItemCode, serviceHeader);
+                    // Flip the paid entry to Posted so it cannot be selected again.
+                    if (!_creditBatchAppService.PostCreditBatchEntry(request.CreditBatchEntryId, request.ModuleNavigationItemCode, serviceHeader))
+                        return BadRequest("The journal posted, but the credit-batch entry could not be marked as paid. Do not retry this payment; contact an administrator with the journal reference.");
                 }
 
                 return Ok(new { success = true, message = "Operation success", data = journal });
@@ -173,7 +205,7 @@ namespace WebApplication1.Controllers
     public class SundryPaymentRequest
     {
         // GeneralTransactionType: CashReceipt=1, ChequeReceipt=2, CashPayment=4,
-        // CashPickup=8, CashPaymentAccountClosure=32.
+        // CashPickup=8, SundryPayment=16, CashPaymentAccountClosure=32.
         public int TransactionType { get; set; }
 
         public Guid ChartOfAccountId { get; set; }
@@ -186,10 +218,8 @@ namespace WebApplication1.Controllers
 
         public int ModuleNavigationItemCode { get; set; }
 
-        // Required when TransactionType is CashPickup (8) — the CreditBatchEntry
-        // (CreditBatchType.CashPickup) the teller picked from
-        // GET api/accounts/creditbatches/entries/type/8. Ignored for every other
-        // transaction type.
+        // Required for CashPickup (8) and SundryPayment (16). The server reloads
+        // this entry and derives the real amount and debit G/L account from it.
         public Guid CreditBatchEntryId { get; set; }
     }
 }

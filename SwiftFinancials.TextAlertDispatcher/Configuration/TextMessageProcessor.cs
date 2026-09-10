@@ -43,12 +43,14 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
 
         protected override async Task Process(QueueDTO queueDTO, int appSpecific)
         {
+            var matched = false;
             foreach (var settingsItem in _textDispatcherConfigSection.TextDispatcherSettingsItems)
             {
                 var textDispatcherSettingsElement = (TextDispatcherSettingsElement)settingsItem;
 
-                if (textDispatcherSettingsElement.UniqueId == queueDTO.AppDomainName)
+                if (textDispatcherSettingsElement.Enabled == 1 && string.Equals(textDispatcherSettingsElement.UniqueId, queueDTO.AppDomainName, StringComparison.OrdinalIgnoreCase))
                 {
+                    matched = true;
                     queueDTO.BulkTextUrl = textDispatcherSettingsElement.BulkTextUrl;
                    
                     queueDTO.BulkTextSenderId = textDispatcherSettingsElement.BulkTextSenderId;
@@ -65,26 +67,43 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
 
                             var smsAlert = Container.Current.Resolve<ITextAlertAppService>().FindTextAlert(queueDTO.RecordId, serviceHeader);
 
-                            if (smsAlert == null) return;
+                            if (smsAlert == null)
+                                throw new InvalidOperationException("Queued text alert " + queueDTO.RecordId + " was not found in domain '" + queueDTO.AppDomainName + "'. Check the service database configuration.");
 
                             switch ((DLRStatus)smsAlert.TextMessageDLRStatus)
                             {
                                 case DLRStatus.UnKnown:
                                 case DLRStatus.Pending:
 
-                                    if (string.IsNullOrWhiteSpace(smsAlert.TextMessageRecipient) || string.IsNullOrWhiteSpace(smsAlert.TextMessageBody) || smsAlert.TextMessageSendRetry != 0) return;
+                                    if (smsAlert.TextMessageSendRetry != 0) return;
+
+                                    if (string.IsNullOrWhiteSpace(smsAlert.TextMessageRecipient) || string.IsNullOrWhiteSpace(smsAlert.TextMessageBody))
+                                    {
+                                        smsAlert.TextMessageDLRStatus = (int)DLRStatus.Failed;
+                                        smsAlert.TextMessageSendRetry += 1;
+                                        smsAlert.TextMessageReference = "SMS recipient and message body are required.";
+                                        Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader);
+                                        return;
+                                    }
 
                                     var msisdn = smsAlert.TextMessageRecipient.Trim();
 
                                     var textMessage = smsAlert.TextMessageBody.Trim();
 
-                                    if (!Regex.IsMatch(msisdn, @"^\+(?:[0-9]??){6,14}[0-9]$")) return;
+                                    if (!Regex.IsMatch(msisdn, @"^\+[0-9]{7,15}$"))
+                                    {
+                                        smsAlert.TextMessageDLRStatus = (int)DLRStatus.Failed;
+                                        smsAlert.TextMessageSendRetry += 1;
+                                        smsAlert.TextMessageReference = "Invalid mobile number. Use international format beginning with +.";
+                                        Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader);
+                                        return;
+                                    }
 
                                     var request = new request
                                     {
-                                        PhoneNumber = msisdn.Replace("+", string.Empty),
+                                        Phonenumber = msisdn.Replace("+", string.Empty),
                                         OrgCode = queueDTO.BulkTextSenderId,
-                                        message = textMessage
+                                        Message = textMessage
 
                                     };
 
@@ -215,6 +234,8 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
                     }
                 }
             }
+            if (!matched)
+                throw new InvalidOperationException("No enabled text dispatcher configuration matches queued domain '" + queueDTO.AppDomainName + "'. The queue transaction will be rolled back.");
         }
 
         private async Task<Tuple<HttpStatusCode, string>> PostAsync(string payload, string requestUriString)
@@ -256,12 +277,12 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
     {
         public string apikey { get; set; }
         public string partnerID { get; set; }
-        public string message { get; set; }
+        public string Message { get; set; }
         public string shortcode { get; set; }
         public string mobile { get; set; }
         public string timeToSend { get; set; }
         public string OrgCode { get; set; }
-        public string PhoneNumber { get; set; }
+        public string Phonenumber { get; set; }
     }
 
     public class response

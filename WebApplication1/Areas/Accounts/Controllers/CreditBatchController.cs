@@ -44,19 +44,25 @@ namespace WebApplication1.Areas.Accounts.Controllers
     // projection always leaves it at 0 (this is a preexisting gap in the domain
     // model, not something introduced here). Use Principal + Interest as the pay
     // amount instead (Interest is 0 for CashPickup/SundryPayments batches, so in
-    // practice that's just Principal), and CreditBatchCreditTypeChartOfAccountId
-    // as the GL account — see docs/api/frontoffice-api-spec.md §13.2.
+    // practice that's just Principal). Cash Pickup uses the batch Credit Type
+    // G/L account; Sundry Payments uses the G/L account on each entry — see
+    // docs/api/frontoffice-api-spec.md §13.2.
     [Authorize]
     [RoutePrefix("api/accounts/creditbatches")]
     public class CreditBatchController : ApiController
     {
         private readonly ICreditBatchAppService _creditBatchAppService;
         private readonly ICustomerAccountAppService _customerAccountAppService;
+        private readonly IChartOfAccountAppService _chartOfAccountAppService;
 
-        public CreditBatchController(ICreditBatchAppService creditBatchAppService, ICustomerAccountAppService customerAccountAppService)
+        public CreditBatchController(
+            ICreditBatchAppService creditBatchAppService,
+            ICustomerAccountAppService customerAccountAppService,
+            IChartOfAccountAppService chartOfAccountAppService)
         {
             _creditBatchAppService = creditBatchAppService ?? throw new ArgumentNullException(nameof(creditBatchAppService));
             _customerAccountAppService = customerAccountAppService ?? throw new ArgumentNullException(nameof(customerAccountAppService));
+            _chartOfAccountAppService = chartOfAccountAppService ?? throw new ArgumentNullException(nameof(chartOfAccountAppService));
         }
 
         [HttpGet]
@@ -217,9 +223,10 @@ namespace WebApplication1.Areas.Accounts.Controllers
         }
 
         // The Cash Pickup (and Sundry Payments batch) picker: browse entries for a
-        // given CreditBatchType. Not filtered by entry status server-side — the
-        // underlying spec only filters by date range/type/text — so the client must
-        // filter for status == 1 (Pending) to show only entries not yet paid out.
+        // given CreditBatchType. Cash Pickup and Sundry Payments are restricted
+        // server-side to Pending entries belonging to an authorized (Posted)
+        // batch, so historical payments cannot crowd payable entries out of the
+        // first result page.
         [HttpGet]
         [Route("entries/type/{creditBatchType:int}")]
         public IHttpActionResult GetByType(int creditBatchType, DateTime? startDate = null, DateTime? endDate = null, string text = "", int filter = 0, int pageIndex = 0, int pageSize = 20)
@@ -297,6 +304,45 @@ namespace WebApplication1.Areas.Accounts.Controllers
                 entryDTO.CreditBatchId = id;
 
                 var serviceHeader = Utils.CreateServiceHeader();
+                var batch = _creditBatchAppService.FindCreditBatch(id, serviceHeader);
+
+                if (batch == null)
+                    return NotFound();
+
+                if (entryDTO.Principal <= 0m)
+                    return ErrorResponse("The entry principal must be greater than zero");
+
+                if (batch.Type == (int)CreditBatchType.CashPickup)
+                {
+                    if (string.IsNullOrWhiteSpace(entryDTO.Beneficiary))
+                        return ErrorResponse("The cash pickup beneficiary name is required");
+
+                    // Cash Pickup is a payable instruction for a named person,
+                    // not a credit into a member account.
+                    entryDTO.CustomerAccountId = null;
+                    entryDTO.Interest = 0m;
+                }
+                else if (batch.Type == (int)CreditBatchType.SundryPayments)
+                {
+                    if (!entryDTO.ChartOfAccountId.HasValue || entryDTO.ChartOfAccountId.Value == Guid.Empty)
+                        return ErrorResponse("A postable G/L account is required for a Sundry Payment entry");
+
+                    var chartOfAccount = _chartOfAccountAppService.FindChartOfAccount(entryDTO.ChartOfAccountId.Value, serviceHeader);
+                    if (chartOfAccount == null)
+                        return ErrorResponse("The selected G/L account does not exist");
+                    if (chartOfAccount.AccountCategory != (int)ChartOfAccountCategory.DetailAccount)
+                        return ErrorResponse("The selected G/L account is a non-postable header account");
+
+                    // Sundry Payment entries are teller-paid against their own
+                    // expense/payable G/L account, not a member account.
+                    entryDTO.CustomerAccountId = null;
+                    entryDTO.Interest = 0m;
+                }
+                else if ((batch.Type == (int)CreditBatchType.Payout || batch.Type == (int)CreditBatchType.CheckOff) &&
+                    (!entryDTO.CustomerAccountId.HasValue || entryDTO.CustomerAccountId.Value == Guid.Empty))
+                {
+                    return ErrorResponse("A customer account is required for Payout and Check-Off entries");
+                }
 
                 var created = _creditBatchAppService.AddNewCreditBatchEntry(entryDTO, serviceHeader);
 

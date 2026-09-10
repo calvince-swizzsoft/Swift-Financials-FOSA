@@ -232,6 +232,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Amount")]
+        [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ErrorMessage = "Principal amount must be greater than zero.")]
         public decimal Amount { get; set; }
 
         [DataMember]

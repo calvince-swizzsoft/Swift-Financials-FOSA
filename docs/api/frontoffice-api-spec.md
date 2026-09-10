@@ -523,7 +523,7 @@ moduleNavigationItemCode }`. Sundry payments additionally take
 `2`=ChequeReceipt, `4`=CashPayment, `8`=CashPickup, `16`=SundryPayment,
 `32`=CashPaymentAccountClosure — direction of the debit/credit against the
 teller account is derived from this), plus `creditBatchEntryId`, which is
-**required when `transactionType: 8`** (ignored otherwise). Response `data`
+**required when `transactionType` is `8` or `16`** (ignored otherwise). Response `data`
 is the posted `JournalDTO`.
 
 For `transactionType: 32` (account closure payout — §10), resolve
@@ -538,10 +538,10 @@ API; fixed, now restores the reference app's original behavior (which also
 treated account-closure payout as an ordinary sundry payment, not something
 `/settle` did automatically).
 
-For `transactionType: 8` (Cash Pickup), resolve `chartOfAccountId`/
-`totalValue`/`creditBatchEntryId` from a picked credit-batch entry first —
+For `transactionType: 8` (Cash Pickup) or `16` (Sundry Payment), select a
+credit-batch entry first —
 full picker flow, field mapping, and the `entry.amount`-is-always-0 gotcha
-are in §13.3. Omitting `creditBatchEntryId` on a `transactionType: 8`
+are in §13.3. Omitting `creditBatchEntryId` on either transaction type
 request returns `400`. On success, this endpoint calls
 `POST /api/accounts/creditbatches/entries/{creditBatchEntryId}/post`
 itself — the client does not post the entry separately, it only has to pick
@@ -566,7 +566,7 @@ different input shapes. Business intent for each, from product:
 | Cash Pickup | `8` | Pays non-account holders (casual laborers); their pay is captured up front in Accounts under Credit Batch | **Picks only**: selects an entry from an already-captured list (§13.3); teller fills in *no* details at all |
 | Cash Receipt | `1` | Receive income/cash not tied to a customer account (e.g. rent, penalties/fines) | **Types everything**: picks a GL account, enters an amount |
 | Cheque Receipt | `2` | Receive a cheque into a GL account (e.g. a salary cheque) | **Types everything**: picks a GL account, enters an amount |
-| Sundry Payment | `16` | Pay for goods/services rendered to the Sacco — payee may or may not be an account holder | Not yet implemented server-side — see gap below |
+| Sundry Payment | `16` | Pay a pre-approved goods/services expense captured in a Sundry Payments credit batch | **Picks only**: selects an authorized batch entry; its debit G/L account and amount were captured during batch origination |
 
 So there are really only two screen shapes, and the client should pick the
 right one per `transactionType` rather than always rendering a generic
@@ -577,11 +577,11 @@ right one per `transactionType` rather than always rendering a generic
   `GET /api/accounts/chartofaccounts`, `ChartOfAccountController.cs` — no
   standalone doc for it yet) + amount + reference + description. The teller
   free-types the GL account and amount; POST them straight through.
-- **Pick-list only** (Cash Payment (Account Closure) `32`, Cash Pickup `8`):
+- **Pick-list only** (Cash Payment (Account Closure) `32`, Cash Pickup `8`, Sundry Payment `16`):
   the teller never types an account or amount — they browse a queue of
   pre-existing records and the client reads `chartOfAccountId`/`totalValue`
   off whichever row was selected. See §13.1 above for the account-closure
-  resolution, and §13.3 below for Cash Pickup.
+  resolution, and §13.3 below for credit-batch payments.
 
 **Cheque Receipt caveat**: today this only posts the GL journal from a
 manually-typed chart of account + amount. It does **not** capture the
@@ -595,39 +595,17 @@ separate backend change, not something the client can work around by itself.
 For now, put cheque number/drawer/bank in the free-text `reference`/
 `primaryDescription` fields if the teller needs to record them.
 
-**Sundry Payment (`16`) — not implemented**: `SundryPaymentsController`'s
-switch has no case for it; a request with `transactionType: 16` returns
-`400 "Unsupported transaction type"`. This isn't a regression — the
-reference MVC controller never handled it either, and its own Create view
-had the "Sundry Payment" tab commented out. Per business, this type can pay
-*either* an account holder or a non-account holder for goods/services
-rendered to the Sacco, which means it doesn't cleanly fit either of the two
-shapes above:
-- If the payee is an account holder, the screen likely needs a **customer/
-  customer-account picker** (existing: `Areas/Registry/Controllers/
-  CustomerController.cs`, `CustomerAccountsController.cs`) with the GL
-  account resolved from that account's product mapping — not a bare
-  chart-of-account typeahead.
-- If the payee is not an account holder, it's presumably the **manual
-  entry** shape, same as Cash Payment, but posted under its own transaction
-  code rather than `SystemTransactionCode.GeneralCashPayment` (candidates in
-  `Enumerations.cs`: `CreditBatchSundryPayment = 43`, tagged "Sundry Payment
-  Batch" — but that code is currently wired to the *separate*
-  `CreditBatchType.SundryPayments` bulk-import feature in
-  `CreditBatchAppService`, not to this single-line screen, so reusing it
-  here needs confirming with whoever owns the GL chart of accounts/reports
-  that key off transaction codes).
+Sundry Payment is intentionally a batch-controlled G/L payment, not a second
+free-form Cash Payment screen. Each entry must have a postable
+`chartOfAccountId`; authorization exposes it to the teller queue, and teller
+payment posts transaction code `CreditBatchSundryPayment` (`43`).
 
-Don't build a Sundry Payment tab against this controller yet — the request
-shape, the account-holder-vs-not branching, and the transaction code all
-need a product/backend decision first. Everything else in this table is
-safe to build against today.
-
-### 13.3 Cash Pickup picker — `api/accounts/creditbatches`
+### 13.3 Cash Pickup and Sundry Payment pickers — `api/accounts/creditbatches`
 
 Controller: `CreditBatchController.cs`. Exposes `ICreditBatchAppService`
 (batch header CRUD/audit/authorize, plus entry CRUD/browse/post). Full list
-below; the two rows that matter for the Cash Pickup tab are `entries/type/8`
+below; the rows that matter are `entries/type/56028` for Cash Pickup and
+`entries/type/56029` for Sundry Payment
 (browse) and `entries/{entryId}/post` (consume).
 
 | Route | Method | Purpose |
@@ -638,9 +616,9 @@ below; the two rows that matter for the Cash Pickup tab are `entries/type/8`
 | `/` | POST | Create batch → `Pending` |
 | `/{id}` | PUT | Update batch's own fields (TotalValue, concession, recovery flags, reference, priority, value date) — does not touch entries |
 | `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`, only if entries total ≤ batch `TotalValue`), `2`=Reject. Only accepts `Pending` |
-| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; for `Payout`/`CheckOff` batches this also posts every entry's GL journal inline), `2`=Reject |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; for `Payout`/`CheckOff` batches this queues entry posting), `2`=Reject; requires an `Audited` batch |
 | `/{id}/entries?text=&filter=&pageIndex=&pageSize=` | GET | Entries within one batch |
-| `/entries/type/{creditBatchType}?startDate=&endDate=&text=&filter=&pageIndex=&pageSize=` | GET | Entries across all batches of a `CreditBatchType` — **this is the Cash Pickup picker**: `creditBatchType=8` |
+| `/entries/type/{creditBatchType}?startDate=&endDate=&text=&filter=&pageIndex=&pageSize=` | GET | Authorized, Pending teller entries: `56028` = Cash Pickup, `56029` = Sundry Payments |
 | `/entries/customer/{customerId}?creditBatchType=` | GET | Entries for one customer (used by `Payout`/`CheckOff`, not Cash Pickup — entries there aren't tied to a customer account) |
 | `/entries/{entryId}` | GET | Single entry |
 | `/{id}/entries` | POST | Add an entry to a batch |
@@ -648,11 +626,11 @@ below; the two rows that matter for the Cash Pickup tab are `entries/type/8`
 | `/entries/remove` | POST | Batch-remove entries (`List<CreditBatchEntryDTO>`) |
 | `/entries/{entryId}/post` | POST | `{ moduleNavigationItemCode }` — marks one entry `Posted`. For `CashPickup`/`SundryPayments` batches this **only** flips status; it does not post a GL journal (see below) |
 
-**Building the Cash Pickup tab:**
-1. `GET /api/accounts/creditbatches/entries/type/8` (`8` = `CreditBatchType.CashPickup`). This is **not** filtered by entry status server-side — the underlying query only filters by date range/type/text — so filter the response client-side for `status === 1` (`BatchEntryStatus.Pending`) to show only entries not yet paid.
-2. The teller picks a row. Read the payout details off it: `chartOfAccountId = entry.creditBatchCreditTypeChartOfAccountId`, `totalValue = entry.principal + entry.interest` (Interest is always 0 for Cash Pickup, so in practice this is just `principal`). **Do not use `entry.amount`** — `CreditBatchEntry` has no `Amount` column on the domain entity, so that field is never populated by the AutoMapper projection and is always `0`. This is a preexisting gap in the domain model (also present in the reference app), not something new.
-3. `POST /api/frontoffice/sundrypayments` with `transactionType: 8`, the resolved `chartOfAccountId`/`totalValue`, and `creditBatchEntryId` set to the picked entry's `id`. `creditBatchEntryId` is required for this transaction type — the request is rejected otherwise.
-4. On success, `SundryPaymentsController` itself calls `POST /api/accounts/creditbatches/entries/{entryId}/post` to flip the entry to `Posted`, so it drops out of step 1's list and can't be paid twice. The client doesn't need to call this separately — but note the call is best-effort: if it fails after the journal already posted, the entry stays `Pending` and could show up again. There's currently no automatic detection/repair for that case, so if it's a concern, cross-check `GET /entries/{entryId}` before re-showing an already-picked entry.
+**Building either tab:**
+1. GET the matching enum value above. The API filters in SQL to entries whose batch is `Posted` and whose entry status is `Pending`.
+2. Display `principal + interest` (never `entry.amount`). Cash Pickup displays the batch Credit Type G/L; Sundry Payment displays the entry's own G/L.
+3. POST `/api/frontoffice/sundrypayments` with transaction type `8` or `16` and the selected `creditBatchEntryId`. The server reloads the entry and derives the authoritative amount/account; client-supplied values cannot override them.
+4. A successful journal is followed by marking the entry `Posted`, removing it from the queue. If that status update fails after journal creation, the endpoint returns a specific warning instructing the teller not to retry and to report the journal reference.
 
 Entries for a batch only become eligible for pickup once the batch itself
 reaches `Posted` (`/{id}/authorize` with `option: 1`) — a batch stuck at

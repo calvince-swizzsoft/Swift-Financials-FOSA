@@ -2,6 +2,8 @@ param(
     [Parameter(Mandatory=$true)][string]$BaseDeploymentPath,
     [Parameter(Mandatory=$true)][string]$OutputPath,
     [string]$MSBuildPath = 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe',
+    [string]$ApplicationDomainName = 'SwiftApis',
+    [string]$SourceDomainName = 'SwiftFin_Dev',
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'
@@ -61,6 +63,16 @@ foreach ($projectPath in $buildProjects) {
     Copy-Runtime (Join-Path (Split-Path $projectPath) 'bin\Release')
 }
 
+# Account-alert dispatchers compile Razor templates at runtime. They are data
+# files rather than assemblies, so copy them explicitly into the deployed path.
+$templatesSource = Join-Path $repository 'DistributedServices.MainBoundedContext\App_Data\AccountAlertTemplates'
+$templatesDestination = Join-Path $destination 'App_Data\AccountAlertTemplates'
+if (-not (Test-Path -LiteralPath $templatesSource)) { throw 'Account-alert templates source directory is missing.' }
+[void](New-Item -ItemType Directory -Path $templatesDestination -Force)
+Get-ChildItem -LiteralPath $templatesSource -Force | Copy-Item -Destination $templatesDestination -Recurse -Force
+$textTemplateCount = @(Get-ChildItem -LiteralPath $templatesDestination -Filter '*_TextTemplate.cshtml').Count
+if ($textTemplateCount -eq 0) { throw 'No text-alert templates were copied into the service package.' }
+
 # Canonical host references override stale/transitive Unity meta-package binaries.
 [xml]$hostXml = Get-Content -LiteralPath $hostProject
 foreach ($reference in $hostXml.SelectNodes("//*[local-name()='Reference'][*[local-name()='HintPath']]")) {
@@ -78,6 +90,39 @@ foreach ($reference in $hostXml.SelectNodes("//*[local-name()='Reference'][*[loc
 $config = New-Object System.Xml.XmlDocument
 $config.PreserveWhitespace = $true
 $config.Load((Join-Path $baseService 'SwiftFinancials.WindowsService.exe.config'))
+
+# API-originated queues identify their database/domain by ApplicationDomainName.
+# Clone the selected environment's known-good settings so the service resolves
+# the same database and provider credentials without hard-coding live secrets.
+$sourceConnection = $config.SelectSingleNode("/configuration/connectionStrings/add[@name='$SourceDomainName']")
+$targetConnection = $config.SelectSingleNode("/configuration/connectionStrings/add[@name='$ApplicationDomainName']")
+if ($null -eq $targetConnection) {
+    if ($null -eq $sourceConnection) { throw "Base deployment has no '$SourceDomainName' connection to clone for '$ApplicationDomainName'." }
+    $targetConnection = $sourceConnection.CloneNode($true)
+    $targetConnection.SetAttribute('name', $ApplicationDomainName)
+    [void]$sourceConnection.ParentNode.AppendChild($targetConnection)
+}
+function Ensure-DomainSetting([string]$settingsXPath) {
+    $settings = $config.SelectSingleNode($settingsXPath)
+    if ($null -eq $settings) { throw "Missing dispatcher settings: $settingsXPath" }
+    $existing = $settings.SelectSingleNode("add[@uniqueId='$ApplicationDomainName']")
+    if ($null -eq $existing) {
+        $source = $settings.SelectSingleNode("add[@uniqueId='$SourceDomainName']")
+        if ($null -eq $source) { throw "No '$SourceDomainName' dispatcher setting to clone under $settingsXPath." }
+        $existing = $source.CloneNode($true)
+        $existing.SetAttribute('uniqueId', $ApplicationDomainName)
+        [void]$settings.AppendChild($existing)
+    }
+    $existing.SetAttribute('enabled', '1')
+}
+Ensure-DomainSetting '/configuration/textDispatcherConfiguration/textDispatcherSettings'
+Ensure-DomainSetting '/configuration/accountAlertDispatcherConfiguration/accountAlertDispatcherSettings'
+$textSettings = $config.SelectSingleNode('/configuration/textDispatcherConfiguration/textDispatcherSettings')
+$textSettings.SetAttribute('logEnabled', '1')
+$installedTemplatesPath = 'C:\swiftfin\windows-service\App_Data\AccountAlertTemplates'
+foreach ($accountSetting in $config.SelectNodes('/configuration/accountAlertDispatcherConfiguration/accountAlertDispatcherSettings/add')) {
+    $accountSetting.SetAttribute('templatesPath', $installedTemplatesPath)
+}
 [xml]$built = Get-Content -LiteralPath (Join-Path $repository 'SwiftFinancials.WindowsService\bin\Release\SwiftFinancials.WindowsService.exe.config')
 $runtime = $config.ImportNode($built.configuration.runtime, $true)
 $oldRuntime = $config.SelectSingleNode('/configuration/runtime')

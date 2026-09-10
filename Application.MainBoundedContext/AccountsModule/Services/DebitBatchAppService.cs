@@ -177,6 +177,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         public bool AuthorizeDebitBatch(DebitBatchDTO debitBatchDTO, int batchAuthOption, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
             var result = default(bool);
+            var entryIdsToPost = new List<Guid>();
 
             if (debitBatchDTO == null || !Enum.IsDefined(typeof(BatchAuthOption), batchAuthOption))
                 return result;
@@ -222,17 +223,20 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                             new SqlParameter("DebitBatchId", debitBatchDTO.Id));
 
                     if (query != null)
-                    {
-                        var data = from l in query
-                                   select new DebitBatchEntryDTO
-                                   {
-                                       Id = l,
-                                       DebitBatchPriority = debitBatchDTO.Priority
-                                   };
-
-                        _brokerService.ProcessDebitBatchEntries(DMLCommand.None, serviceHeader, data.ToArray());
-                    }
+                        // Fully consume the query before leaving this scope. Posting an
+                        // entry opens its own data scopes and must not run while this
+                        // command still owns a DataReader.
+                        entryIdsToPost = query.ToList();
                 }
+            }
+
+            if (result && batchAuthOption == (int)BatchAuthOption.Post)
+            {
+                // Posting through MSMQ made authorization report success even when the
+                // Windows Service was unavailable. Post directly so the debit journals
+                // are created as part of the user-initiated operation.
+                foreach (var entryId in entryIdsToPost)
+                    PostDebitBatchEntry(entryId, moduleNavigationItemCode, serviceHeader);
             }
 
             return result;

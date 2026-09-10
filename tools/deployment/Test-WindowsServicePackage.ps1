@@ -7,6 +7,15 @@ Copy-Item -LiteralPath $source -Destination $fixture -Recurse
 $exe = Join-Path $fixture 'SwiftFinancials.WindowsService.exe'
 $configPath = $exe + '.config'
 $originalConfig = [IO.File]::ReadAllText($configPath)
+[xml]$packageConfig = $originalConfig
+if ($null -eq $packageConfig.SelectSingleNode("/configuration/connectionStrings/add[@name='SwiftApis']")) { throw 'Package is missing the SwiftApis database connection.' }
+if ($null -eq $packageConfig.SelectSingleNode("/configuration/textDispatcherConfiguration/textDispatcherSettings/add[@uniqueId='SwiftApis' and @enabled='1']")) { throw 'Package is missing the enabled SwiftApis text dispatcher setting.' }
+if ($null -eq $packageConfig.SelectSingleNode("/configuration/accountAlertDispatcherConfiguration/accountAlertDispatcherSettings/add[@uniqueId='SwiftApis' and @enabled='1']")) { throw 'Package is missing the enabled SwiftApis account-alert dispatcher setting.' }
+if ($packageConfig.SelectSingleNode("/configuration/accountAlertDispatcherConfiguration/accountAlertDispatcherSettings/add[@uniqueId='SwiftApis']").GetAttribute('templatesPath') -ne 'C:\swiftfin\windows-service\App_Data\AccountAlertTemplates') { throw 'SwiftApis account-alert templatesPath does not target the installed service directory.' }
+if ($packageConfig.SelectSingleNode('/configuration/textDispatcherConfiguration/textDispatcherSettings').GetAttribute('logEnabled') -ne '1') { throw 'SMS provider logging is not enabled in the package.' }
+$templates = Join-Path $source 'App_Data\AccountAlertTemplates'
+if (@(Get-ChildItem -LiteralPath $templates -Filter '*_TextTemplate.cshtml' -ErrorAction SilentlyContinue).Count -eq 0) { throw 'Package contains no text-alert templates.' }
+Write-Host 'PASS: SwiftApis dispatcher settings and text-alert templates are packaged.'
 
 function Run-Check([string]$path, [string]$arguments) {
     $info = New-Object Diagnostics.ProcessStartInfo

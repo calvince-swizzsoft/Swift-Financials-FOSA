@@ -210,6 +210,19 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.CreditBatchEntryAg
 
             Specification<CreditBatchEntry> specification = new DirectSpecification<CreditBatchEntry>(c => c.CreatedDate >= startDate && c.CreatedDate <= endDate && c.CreditBatch.Type == creditBatchType);
 
+            // Cash Pickup and Sundry Payment entries are teller-payable work
+            // items, not background-posting history. Return only entries whose
+            // batch has been authorized and which have not yet been paid. This
+            // must be filtered in SQL; filtering a single page in the browser can
+            // hide new pickups behind older Posted entries.
+            if (creditBatchType == (int)CreditBatchType.CashPickup ||
+                creditBatchType == (int)CreditBatchType.SundryPayments)
+            {
+                specification &= new DirectSpecification<CreditBatchEntry>(c =>
+                    c.Status == (int)BatchEntryStatus.Pending &&
+                    c.CreditBatch.Status == (int)BatchStatus.Posted);
+            }
+
             if (!String.IsNullOrWhiteSpace(text))
             {
                 text = text.SanitizePatIndexInput();

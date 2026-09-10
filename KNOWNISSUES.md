@@ -114,3 +114,22 @@ FILESTREAM access with Windows authentication and grant the relevant service
 identities access to the FILESTREAM share/container. After that is verified,
 remove any orphaned staging images from `WebApplication1/App_Data` through a
 separate, deliberate cleanup.
+
+## Check-off credit batches are not scoped to an employer
+
+**Status:** open design issue — operators may create one check-off batch per
+employer, but the data model does not record or enforce that convention.
+
+`CreditBatch` has no direct `EmployerId`. An entry's employer can only be
+derived through Customer Account → Customer → Station → Zone → Division →
+Employer. Consequently, a single check-off batch can contain customers from
+different employers, and payroll-number matching is not restricted to the
+employer that supplied the remittance.
+
+The intended future design is to add an explicit employer relationship to
+check-off batches, restrict payroll-number matching to customers belonging to
+the selected employer, and validate that every batch entry resolves to that
+employer. It should also reconcile the employer's remitted batch total against
+allocated member contributions while preserving discrepancy handling for
+missing or ambiguous matches. Migration and backward-compatibility behavior
+for existing batches must be defined before implementation.

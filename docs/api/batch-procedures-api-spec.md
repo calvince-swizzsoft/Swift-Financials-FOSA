@@ -43,7 +43,7 @@ Controller: `CreditBatchController.cs`, existing `ICreditBatchAppService`.
 | `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`, only if entries total ≤ batch `TotalValue`), `2`=Reject. Only accepts `Pending` |
 | `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; for `Payout`/`CheckOff` batches this also queues every entry for async GL posting — see §1.2), `2`=Reject. Requires the batch to already be `Audited` — this guard used to be commented out in source (would authorize a still-`Pending` batch), found and fixed — see §1.1 |
 | `/{id}/entries?text=&filter=&pageIndex=&pageSize=` | GET | Entries within one batch |
-| `/entries/type/{creditBatchType}?startDate=&endDate=&text=&filter=&pageIndex=&pageSize=` | GET | Entries across all batches of a `CreditBatchType` — the Cash Pickup picker uses `creditBatchType=8`, see `frontoffice-api-spec.md` §13.3 |
+| `/entries/type/{creditBatchType}?startDate=&endDate=&text=&filter=&pageIndex=&pageSize=` | GET | Entries across batches; teller queues use `56028` (Cash Pickup) and `56029` (Sundry Payments), filtered to Pending entries in Posted batches |
 | `/entries/customer/{customerId}?creditBatchType=` | GET | Entries for one customer (`Payout`/`CheckOff` — entries there are tied to a customer account, unlike Cash Pickup) |
 | `/entries/{entryId}` | GET | Single entry |
 | `/{id}/entries` | POST | Add an entry to a batch |
@@ -245,7 +245,7 @@ server-side, just a label.
 | `/` | POST | Create batch → `Pending` |
 | `/{id}` | PUT | Update batch's own fields (`totalValue`, `reference`, `priority`) |
 | `/{id}/audit` | POST | `{ option, remarks }` — `BatchAuthOption`: `1`=Post (→ `Audited`, only if entries total ≤ `TotalValue`), `2`=Reject. Only accepts `Pending` |
-| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; queues every entry for async posting — see §3.1), `2`=Reject. **Refuses outright if the batch isn't already `Audited`** |
+| `/{id}/authorize` | POST | `{ option, remarks, moduleNavigationItemCode }` — `1`=Post (→ `Posted`; processes every entry synchronously — see §3.1), `2`=Reject. **Refuses outright if the batch isn't already `Audited`** |
 | `/{id}/entries?text=&pageIndex=&pageSize=` | GET | Entries within one batch (no `filter` param) |
 | `/entries/queueable?pageIndex=&pageSize=` | GET | Entries ready to post, across all batches — no type restriction |
 | `/entries/{entryId}` | GET | Single entry |
@@ -258,12 +258,13 @@ No customer-scoped entry browse (`.../entries/customer/{customerId}`)
 exists for this type, unlike Credit/Debit — `IWireTransferBatchAppService`
 doesn't expose one.
 
-### 3.1 Posting timing — always async, no type filter
+### 3.1 Posting timing — synchronous, no type filter
 
-Same shape as Debit: `Authorize` with `option: 1` queues **every** entry
-onto an async message queue (`BrokerService.ProcessWireTransferBatchEntries`
-→ `WireTransferBatchPostingQueuePath`) regardless of `WireTransferBatchType`.
-Don't assume `Posted` immediately after `Authorize` succeeds.
+`Authorize` with `option: 1` processes **every** entry synchronously through
+`PostWireTransferBatchEntry`, regardless of `WireTransferBatchType`. The API
+previously sent entries to `WireTransferBatchPostingQueuePath`, but this
+solution has no Wire Transfer posting-service plugin to consume that queue;
+entries therefore remained Pending until the MSMQ messages expired.
 
 ### 3.2 What posting an entry actually does — and doesn't do
 
