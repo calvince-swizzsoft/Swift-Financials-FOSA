@@ -103,6 +103,7 @@ namespace WebApplication1
             Current.RegisterType<IBrokerService, BrokerService>();
 
             Current.RegisterType<IChartOfAccountAppService, ChartOfAccountAppService>();
+            Current.RegisterType<ICashFlowAppService, CashFlowAppService>();
             Current.RegisterType<ICostCenterAppService, CostCenterAppService>();
             Current.RegisterType<ITellerAppService, TellerAppService>();
             Current.RegisterType<IPostingPeriodAppService, PostingPeriodAppService>();

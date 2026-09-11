@@ -478,4 +478,5 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup><Compile Include="AccountsModule\CashFlowModels.cs" /></ItemGroup>
 </Project>

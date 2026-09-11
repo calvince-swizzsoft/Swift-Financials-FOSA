@@ -566,6 +566,15 @@ No `PostEntry`, no queueable browse, no single-entry lookup — a voucher
 posts as one atomic unit on `Authorize`; there is nothing to post or browse
 individually.
 
+Posting direction and contra accounts: debit voucher types (0, 2) post positive
+amounts to the primary account and negative amounts to the entry accounts;
+credit types (1, 3) reverse those signs. Each allocation creates two matching
+journal lines with reciprocal contra accounts. A voucher with N allocations
+therefore has 2N lines on the same journal, with the primary account's lines
+summing to the voucher total. This corrects the former inverted directions
+and primary-account self-contra. Existing posted journals are not rewritten.
+Descriptions and reference remain shared at journal level.
+
 ### 7.1 `Update`'s return value means "balanced", not "succeeded"
 
 Same pattern as Refund (§5.1): `UpdateJournalVoucher`'s boolean return is
@@ -776,7 +785,8 @@ journalFilter (default 5, Reference), pageIndex (0) and pageSize (20, maximum 10
 It returns the standard envelope containing PageCollection/ItemsCount of JournalDTO.
 Dates filter transaction CreatedDate, including the entire end date.
 The existing IJournalAppService.FindReversibleJournals owns eligibility: locked
-journals and the requesting user's own transactions are excluded. Search is paged
+journals are excluded. The same-user exclusion is temporarily disabled, so users can
+select their own postings. Transaction type and date filters still apply. Search is paged
 on the server. The UI selects multiple journals and submits the existing insert-only
 entries/bulk endpoint; adding entries does not reverse funds or bypass verification
 and authorization. Reference: WebApplication1/Areas/Accounts/Reversal.md.

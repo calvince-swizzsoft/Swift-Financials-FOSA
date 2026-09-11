@@ -1,4 +1,4 @@
-﻿using Domain.Seedwork.Specification;
+using Domain.Seedwork.Specification;
 using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -98,8 +98,8 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.JournalAgg
             Specification<Journal> specification = new DirectSpecification<Journal>(x =>
                 x.CreatedDate >= startDate && x.CreatedDate <= endDate &&
                 x.TransactionCode == systemTransactionCode &&
-                !x.IsLocked /*locked entries cannot be reversed*/ &&
-                x.ApplicationUserName != serviceHeader.ApplicationUserName /*user cannot reverse own tx*/);
+                !x.IsLocked /*locked entries cannot be reversed*/);
+            // Temporarily allow the requesting user to select their own postings.
 
             if (!String.IsNullOrWhiteSpace(text))
             {

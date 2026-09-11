@@ -388,4 +388,5 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup><Compile Include="UnitOfWork\Mapping\AccountsModule\CashFlowMappingEntityConfiguration.cs" /></ItemGroup>
 </Project>

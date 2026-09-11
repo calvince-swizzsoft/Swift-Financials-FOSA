@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.Services;
 using Application.Seedwork;
@@ -294,52 +294,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             var primaryJournal = JournalFactory.CreateJournal(null, journalVoucherDTO.PostingPeriodId, journalVoucherDTO.BranchId, null, journalVoucherDTO.TotalValue, journalVoucherDTO.PrimaryDescription, journalVoucherDTO.SecondaryDescription, string.Format("{0}~JV#{1}", journalVoucherDTO.Reference, journalVoucherDTO.PaddedVoucherNumber), moduleNavigationItemCode, (int)SystemTransactionCode.JournalVoucher, journalVoucherDTO.ValueDate, serviceHeader);
 
-                            switch ((JournalVoucherType)journalVoucherDTO.Type)
-                            {
-                                case JournalVoucherType.DebitGLAccount:
-                                    _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.TotalValue * -1, serviceHeader);
-                                    break;
-                                case JournalVoucherType.CreditGLAccount:
-                                    _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.TotalValue, serviceHeader);
-                                    break;
-                                case JournalVoucherType.DebitCustomerAccount:
-                                    _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.CustomerAccountId.Value, journalVoucherDTO.TotalValue * -1, serviceHeader);
-                                    break;
-                                case JournalVoucherType.CreditCustomerAccount:
-                                    _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherDTO.CustomerAccountId.Value, journalVoucherDTO.TotalValue, serviceHeader);
-                                    break;
-                                default:
-                                    break;
-                            }
+                            PostVoucherEntries(primaryJournal, journalVoucherDTO, journalVoucherEntries, _journalEntryPostingService, serviceHeader);
 
                             foreach (var journalVoucherEntryDTO in journalVoucherEntries)
                             {
-                                switch ((JournalVoucherType)journalVoucherDTO.Type)
-                                {
-                                    case JournalVoucherType.DebitGLAccount:
-                                        if (journalVoucherEntryDTO.CustomerAccountId.HasValue)
-                                            _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.CustomerAccountId.Value, journalVoucherEntryDTO.Amount, serviceHeader);
-                                        else _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.Amount, serviceHeader);
-                                        break;
-                                    case JournalVoucherType.CreditGLAccount:
-                                        if (journalVoucherEntryDTO.CustomerAccountId.HasValue)
-                                            _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.CustomerAccountId.Value, journalVoucherEntryDTO.Amount * -1, serviceHeader);
-                                        else _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.Amount * -1, serviceHeader);
-                                        break;
-                                    case JournalVoucherType.DebitCustomerAccount:
-                                        if (journalVoucherEntryDTO.CustomerAccountId.HasValue)
-                                            _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.CustomerAccountId.Value, journalVoucherEntryDTO.Amount, serviceHeader);
-                                        else _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.Amount, serviceHeader);
-                                        break;
-                                    case JournalVoucherType.CreditCustomerAccount:
-                                        if (journalVoucherEntryDTO.CustomerAccountId.HasValue)
-                                            _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.CustomerAccountId.Value, journalVoucherEntryDTO.Amount * -1, serviceHeader);
-                                        else _journalEntryPostingService.PerformSingleEntry(primaryJournal, journalVoucherEntryDTO.ChartOfAccountId, journalVoucherDTO.ChartOfAccountId, journalVoucherEntryDTO.Amount * -1, serviceHeader);
-                                        break;
-                                    default:
-                                        break;
-                                }
-
                                 var persistedJournalVoucherEntry = _journalVoucherEntryRepository.Get(journalVoucherEntryDTO.Id, serviceHeader);
 
                                 if (persistedJournalVoucherEntry != null)
@@ -397,6 +355,54 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
 
             return result;
+        }
+
+        // The ledger stores debits as positive amounts and credits as negative amounts.
+        // Split the primary account into one leg per allocation so every contra is exact.
+        internal static void PostVoucherEntries(Journal journal, JournalVoucherDTO voucher,
+            List<JournalVoucherEntryDTO> entries, IJournalEntryPostingService postingService, ServiceHeader serviceHeader)
+        {
+            decimal direction;
+            switch ((JournalVoucherType)voucher.Type)
+            {
+                case JournalVoucherType.DebitGLAccount:
+                case JournalVoucherType.DebitCustomerAccount:
+                    direction = 1m;
+                    break;
+                case JournalVoucherType.CreditGLAccount:
+                case JournalVoucherType.CreditCustomerAccount:
+                    direction = -1m;
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid journal voucher type.");
+            }
+
+            if (entries == null || entries.Count == 0 || entries.Any(e => e.Amount <= 0m)
+                || entries.Sum(e => e.Amount) != voucher.TotalValue)
+                throw new InvalidOperationException("Journal voucher entries must be positive and balance to the total value.");
+
+            var usesCustomerAccount = voucher.Type == (int)JournalVoucherType.DebitCustomerAccount
+                || voucher.Type == (int)JournalVoucherType.CreditCustomerAccount;
+            if (usesCustomerAccount && (!voucher.CustomerAccountId.HasValue || voucher.CustomerAccountId == Guid.Empty))
+                throw new InvalidOperationException("A customer account is required for this journal voucher type.");
+
+            foreach (var entry in entries)
+            {
+                var primaryAmount = direction * entry.Amount;
+                if (usesCustomerAccount)
+                    postingService.PerformSingleEntry(journal, voucher.ChartOfAccountId, entry.ChartOfAccountId,
+                        voucher.CustomerAccountId.Value, primaryAmount, serviceHeader);
+                else
+                    postingService.PerformSingleEntry(journal, voucher.ChartOfAccountId, entry.ChartOfAccountId,
+                        primaryAmount, serviceHeader);
+
+                if (entry.CustomerAccountId.HasValue)
+                    postingService.PerformSingleEntry(journal, entry.ChartOfAccountId, voucher.ChartOfAccountId,
+                        entry.CustomerAccountId.Value, -primaryAmount, serviceHeader);
+                else
+                    postingService.PerformSingleEntry(journal, entry.ChartOfAccountId, voucher.ChartOfAccountId,
+                        -primaryAmount, serviceHeader);
+            }
         }
 
         public bool UpdateJournalVoucherEntryCollection(Guid journalVoucherId, List<JournalVoucherEntryDTO> journalVoucherEntryCollection, ServiceHeader serviceHeader)

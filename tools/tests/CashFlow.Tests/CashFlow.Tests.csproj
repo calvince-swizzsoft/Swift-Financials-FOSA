@@ -1,0 +1,22 @@
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration><OutputType>Exe</OutputType><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion><AssemblyName>CashFlow.Tests</AssemblyName><OutputPath>bin\$(Configuration)\</OutputPath><AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects></PropertyGroup>
+  <ItemGroup><Reference Include="System"/><Reference Include="System.Core"/><Compile Include="Program.cs"/></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Application.MainBoundedContext\Application.MainBoundedContext.csproj"><Name>Application.MainBoundedContext</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj"><Name>Application.MainBoundedContext.DTO</Name></ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets"/>
+  <ItemGroup>
+    <Compile Include="DomainChecks.cs" />
+    <Reference Include="System.Xml" /><Reference Include="System.Xml.Linq" /><Reference Include="System.Data" />
+    <Reference Include="EntityFramework"><HintPath>..\..\..\packages\EntityFramework.6.5.2\lib\net45\EntityFramework.dll</HintPath></Reference>
+    <ProjectReference Include="..\..\..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj"><Name>Domain.MainBoundedContext</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Domain.Seedwork\Domain.Seedwork.csproj"><Name>Domain.Seedwork</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Infrastructure.Data.MainBoundedContext\Infrastructure.Data.MainBoundedContext.csproj"><Name>Infrastructure.Data.MainBoundedContext</Name></ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="RepositoryChecks.cs" />
+    <ProjectReference Include="..\..\..\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj"><Name>Infrastructure.Crosscutting.Framework</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj"><Name>EntityFramework.Interfaces</Name></ProjectReference>
+  </ItemGroup>
+</Project>

@@ -15,7 +15,7 @@ class Program
 {
     static int checks;
     static void Check(bool value, string message) { if (!value) throw new Exception(message); checks++; }
-    static int Main() { try { JournalChecks(); BatchChecks(); Console.WriteLine(checks + " reversal failure, retry and lifecycle checks passed."); return 0; } catch(Exception e) { Console.Error.WriteLine(e); return 1; } }
+    static int Main() { try { LookupChecks(); JournalChecks(); BatchChecks(); Console.WriteLine(checks + " reversal failure, retry and lifecycle checks passed."); return 0; } catch(Exception e) { Console.Error.WriteLine(e); return 1; } }
     static T Build<T>(Func<ParameterInfo, IMethodCallMessage, object> invoke) {
         var constructor = typeof(T).GetConstructors().Single();
         return (T)constructor.Invoke(constructor.GetParameters().Select(p => new Stub(p.ParameterType, c => invoke(p,c)).GetTransparentProxy()).ToArray());
@@ -26,6 +26,25 @@ class Program
             if (c.MethodName == "Dispose") { dispose(); return null; }
             throw new Exception("Unexpected scope call " + c.MethodName);
         }).GetTransparentProxy();
+    }
+    static void LookupChecks() {
+        var date = DateTime.Today.AddDays(-1);
+        var filter = JournalSpecifications.ReversibleJournalWithDateRangeAndFullText(
+            5, date, date, "", 5, new ServiceHeader { ApplicationUserName = "authorizer" }).SatisfiedBy().Compile();
+        var journal = new Journal { TransactionCode = 5, CreatedDate = date.AddHours(12), ApplicationUserName = "authorizer" };
+        Check(filter(journal), "Own journal voucher is temporarily eligible");
+        journal.ApplicationUserName = "another-user";
+        Check(filter(journal), "Other users' journal vouchers remain eligible");
+        journal.Lock();
+        Check(!filter(journal), "Locked journal remains excluded");
+        journal.UnLock(); journal.TransactionCode = 58;
+        Check(!filter(journal), "Wrong transaction type remains excluded");
+        journal.TransactionCode = 5; journal.CreatedDate = date.AddDays(-1);
+        Check(!filter(journal), "Before date range remains excluded");
+        journal.CreatedDate = date.AddDays(1);
+        Check(!filter(journal), "After date range remains excluded");
+        journal.CreatedDate = date.AddHours(23).AddMinutes(59);
+        Check(filter(journal), "End date includes evening postings");
     }
     static void JournalChecks() {
         var header = new ServiceHeader { ApplicationUserName = "test" };

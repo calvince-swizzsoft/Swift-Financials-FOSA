@@ -470,4 +470,7 @@
     <Error Condition="!Exists('..\packages\EntityFramework.6.5.2\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.5.2\build\EntityFramework.targets'))" />
   </Target>
   <Import Project="..\packages\EntityFramework.6.5.2\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.5.2\build\EntityFramework.targets')" />
+  <ItemGroup><Compile Include="AccountsModule\Services\ICashFlowAppService.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="AccountsModule\Services\CashFlowAppService.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="AccountsModule\Services\CashFlowSql.cs" /></ItemGroup>
 </Project>

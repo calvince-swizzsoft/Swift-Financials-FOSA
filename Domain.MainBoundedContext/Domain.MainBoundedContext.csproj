@@ -843,4 +843,7 @@
     <Folder Include="MicroCreditModule\Services\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup><Compile Include="AccountsModule\Aggregates\CashFlowMappingAgg\CashFlowMapping.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="AccountsModule\Aggregates\CashFlowMappingAgg\CashFlowMappingFactory.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="AccountsModule\Aggregates\CashFlowMappingAgg\CashFlowMappingSpecifications.cs" /></ItemGroup>
 </Project>

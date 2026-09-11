@@ -608,4 +608,5 @@
   </Target>
   <Target Name="AfterBuild">
   </Target> -->
+  <ItemGroup><Compile Include="Areas\Accounts\Controllers\CashFlowController.cs" /></ItemGroup>
 </Project>
