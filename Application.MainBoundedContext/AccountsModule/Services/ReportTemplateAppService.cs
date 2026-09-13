@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.Services;
 using Application.Seedwork;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.ReportTemplateAgg;
@@ -78,7 +78,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             {
                 var persisted = _reportTemplateRepository.Get(reportTemplateDTO.Id, serviceHeader);
 
-                if (persisted != null)
+                if (persisted != null && !persisted.IsVersioned)
                 {
                     var current = ReportTemplateFactory.CreateReportTemplate(reportTemplateDTO.ParentId, reportTemplateDTO.Description, reportTemplateDTO.Category, reportTemplateDTO.SpreadsheetCellReference);
 
@@ -384,7 +384,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 {
                     var persisted = _reportTemplateRepository.Get(reportTemplateId, serviceHeader);
 
-                    if (persisted != null)
+                    if (persisted != null && !persisted.IsVersioned)
                     {
                         var filter = ReportTemplateEntrySpecifications.ReportTemplateEntryWithReportTemplateId(reportTemplateId);
 

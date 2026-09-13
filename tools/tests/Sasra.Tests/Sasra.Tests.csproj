@@ -1,0 +1,23 @@
+<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <OutputType>Exe</OutputType><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <AssemblyName>Sasra.Tests</AssemblyName><OutputPath>bin\$(Configuration)\</OutputPath>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <ItemGroup><Reference Include="System"/><Reference Include="System.Core"/><Reference Include="System.ComponentModel.DataAnnotations"/><Compile Include="Program.cs"/><Compile Include="CatalogueInstall.cs"/></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Application.MainBoundedContext\Application.MainBoundedContext.csproj"><Name>Application.MainBoundedContext</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj"><Name>Application.MainBoundedContext.DTO</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj"><Name>Infrastructure.Crosscutting.Framework</Name></ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Data"/>
+    <ProjectReference Include="..\..\..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj"><Name>Domain.MainBoundedContext</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Domain.Seedwork\Domain.Seedwork.csproj"><Name>Domain.Seedwork</Name></ProjectReference>
+  </ItemGroup>
+  <ItemGroup><Reference Include="System.Xml"/><Reference Include="System.Xml.Linq"/><Reference Include="EntityFramework"><HintPath>..\..\..\packages\EntityFramework.6.5.2\lib\net45\EntityFramework.dll</HintPath></Reference><ProjectReference Include="..\..\..\Infrastructure.Data.MainBoundedContext\Infrastructure.Data.MainBoundedContext.csproj"><Name>Infrastructure.Data.MainBoundedContext</Name></ProjectReference></ItemGroup><ItemGroup><ProjectReference Include="..\..\..\EntityFramework.Implementation\EntityFramework.Implementation.csproj"><Name>EntityFramework.Implementation</Name></ProjectReference></ItemGroup><Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets"/>
+<ItemGroup><ProjectReference Include="..\..\..\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj"><Name>EntityFramework.Interfaces</Name></ProjectReference></ItemGroup><ItemGroup><Compile Include="Form6Tests.cs"/><Reference Include="NPOI"><HintPath>..\..\..\packages\NPOI.2.5.5\lib\net45\NPOI.dll</HintPath></Reference></ItemGroup><ItemGroup><Compile Include="Form7Tests.cs" /></ItemGroup><ItemGroup><Compile Include="Form1Tests.cs"/></ItemGroup><ItemGroup><Compile Include="Form2Tests.cs" /></ItemGroup><ItemGroup><Compile Include="Form3Tests.cs" /></ItemGroup><ItemGroup><Compile Include="LoanAgeingTests.cs" /></ItemGroup><ItemGroup><Compile Include="LoanScheduleAtomicTests.cs" /></ItemGroup><ItemGroup><Compile Include="LoanInterestAgeingTests.cs" /></ItemGroup>
+<ItemGroup><Compile Include="LoanRestructureForm4Tests.cs" /></ItemGroup>
+<ItemGroup><Compile Include="LoanRestructureAtomicTests.cs" /></ItemGroup>
+</Project>

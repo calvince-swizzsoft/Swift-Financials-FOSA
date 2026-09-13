@@ -9,6 +9,10 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 {
     public interface IBudgetAppService
     {
+        BudgetActualsDTO FindBudgetActuals(Guid budgetId, DateTime asAt, ServiceHeader header);
+
+        BudgetDTO SaveBudget(BudgetDTO model, List<BudgetEntryDTO> entries, ServiceHeader header);
+
         BudgetDTO AddNewBudget(BudgetDTO budgetDTO, ServiceHeader serviceHeader);
 
         bool UpdateBudget(BudgetDTO budgetDTO, ServiceHeader serviceHeader);
@@ -38,5 +42,15 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         decimal FetchBudgetBalance(Guid branchId, int type, Guid typeIdentifier, ServiceHeader serviceHeader);
 
         Task<bool> UpdateBudgetEntriesAsync(Guid budgetId, List<BudgetEntryDTO> budgetEntries, ServiceHeader serviceHeader);
+    }
+}
+
+namespace Application.MainBoundedContext.AccountsModule.Services
+{
+    public sealed class BudgetValidationException : System.Exception
+    {
+        public string Field { get; private set; }
+        public int StatusCode { get; private set; }
+        public BudgetValidationException(string message, string field, int statusCode = 400) : base(message) { Field = field; StatusCode = statusCode; }
     }
 }

@@ -1,0 +1,20 @@
+﻿<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <OutputType>Exe</OutputType><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <AssemblyName>BankReconciliation.Tests</AssemblyName><OutputPath>bin\$(Configuration)\</OutputPath>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <ItemGroup><Reference Include="System"/><Reference Include="System.Core"/><Reference Include="System.ComponentModel.DataAnnotations"/><Compile Include="Program.cs"/></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Application.MainBoundedContext\Application.MainBoundedContext.csproj"><Name>Application.MainBoundedContext</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj"><Name>Application.MainBoundedContext.DTO</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Infrastructure.Crosscutting.Framework\Infrastructure.Crosscutting.Framework.csproj"><Name>Infrastructure.Crosscutting.Framework</Name></ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Data"/>
+    <ProjectReference Include="..\..\..\Domain.MainBoundedContext\Domain.MainBoundedContext.csproj"><Name>Domain.MainBoundedContext</Name></ProjectReference>
+    <ProjectReference Include="..\..\..\Domain.Seedwork\Domain.Seedwork.csproj"><Name>Domain.Seedwork</Name></ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets"/>
+<ItemGroup><ProjectReference Include="..\..\..\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj"><Name>EntityFramework.Interfaces</Name></ProjectReference></ItemGroup></Project>

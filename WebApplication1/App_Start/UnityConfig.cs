@@ -128,6 +128,8 @@ namespace WebApplication1
             Current.RegisterType<IOverDeductionBatchAppService, OverDeductionBatchAppService>();
             Current.RegisterType<IAlternateChannelLogAppService, AlternateChannelLogAppService>();
             Current.RegisterType<IReportTemplateAppService, ReportTemplateAppService>();
+            Current.RegisterType<ISasraSetupAppService, SasraSetupAppService>();
+            Current.RegisterType<ILoanAgeingAppService, LoanAgeingAppService>();
             Current.RegisterType<IInsuranceCompanyAppService, InsuranceCompanyAppService>();
             Current.RegisterType<IDebitTypeAppService, DebitTypeAppService>();
             Current.RegisterType<IDebitBatchAppService, DebitBatchAppService>();

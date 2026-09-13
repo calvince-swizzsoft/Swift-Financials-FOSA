@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
@@ -1138,7 +1138,11 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                         if (journals.Any())
                         {
-                            result = _journalEntryPostingService.BulkSave(serviceHeader, journals);
+                            var capturedPlan = LoanAgeingEngine.CaptureDraft(loanDisbursementBatchEntryDTO.LoanCaseId,customerLoanAccountDTO.Id,loanDisbursementBatchEntryDTO.LoanCaseLoanProductChartOfAccountId,disbursementJournal.Id,disbursementJournal.ValueDate ?? disbursementJournal.CreatedDate,PV,repaymentSchedule,serviceHeader);
+                            capturedPlan.InterestReceivableChartOfAccountId=loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestReceivableChartOfAccountId;
+                            capturedPlan.InterestChargedChartOfAccountId=loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestChargedChartOfAccountId;
+                            // Generated interest is a draft only: minimums, rounding and upfront recovery require contractual review.
+                            result = _journalEntryPostingService.BulkSaveLoanDisbursement(serviceHeader, journals, capturedPlan);
                         }
 
                         #endregion

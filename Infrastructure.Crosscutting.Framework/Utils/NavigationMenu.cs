@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Infrastructure.Crosscutting.Framework.Utils
@@ -598,6 +598,8 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                     Code =  0x00006590 + 14},
                 new NavigationMenu { AreaCode = 0x00006590 + 11, IsArea = false, Description = "Approval Requests", Icon = "fa fa-table", ControllerName = "Workflow", ActionName = "Index", AreaName = "Workflows",
                     Code =  0x00006590 + 15},
+                new NavigationMenu { AreaCode = 0x00006590 + 11, IsArea = false, Description = "SASRA Reports", Icon = "fa fa-table", ControllerName = "SasraSetup", ActionName = "Index", AreaName = "Reports",
+                    Code = 0x00006590 + 16},
                 #endregion
                 //
             #region Control Module

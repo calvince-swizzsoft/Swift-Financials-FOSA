@@ -50,6 +50,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan accounts retrieved successfully", page));
             }
+            catch (Application.MainBoundedContext.DTO.BackOfficeModule.LoanAgeingException ex)
+            { return Content((HttpStatusCode)ex.Status, ErrorEnvelope(ex.Message)); }
             catch (Exception)
             {
                 throw;
@@ -105,6 +107,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse("Loan restructured successfully", null));
             }
+            catch (Application.MainBoundedContext.DTO.BackOfficeModule.LoanAgeingException ex)
+            { return Content((HttpStatusCode)ex.Status, ErrorEnvelope(ex.Message)); }
             catch (Exception)
             {
                 throw;

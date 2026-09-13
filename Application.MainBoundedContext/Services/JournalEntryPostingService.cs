@@ -1,4 +1,5 @@
-﻿using Application.MainBoundedContext.DTO.AccountsModule;
+using Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanRepaymentPlanAgg;
+using Application.MainBoundedContext.DTO.AccountsModule;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountArrearageAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountCarryForwardAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.JournalAgg;
@@ -17,6 +18,7 @@ namespace Application.MainBoundedContext.Services
     {
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<Journal> _journalRepository;
+        private readonly IRepository<LoanRepaymentPlan> _loanRepaymentPlanRepository;
         private readonly IRepository<CustomerAccountCarryForward> _customerAccountCarryForwardRepository;
         private readonly IRepository<StandingOrderHistory> _standingOrderHistoryRepository;
         private readonly IRepository<CustomerAccountArrearage> _customerAccountArrearageRepository;
@@ -26,7 +28,8 @@ namespace Application.MainBoundedContext.Services
             IRepository<Journal> journalRepository,
             IRepository<CustomerAccountCarryForward> customerAccountCarryForwardRepository,
             IRepository<StandingOrderHistory> standingOrderHistoryRepository,
-            IRepository<CustomerAccountArrearage> customerAccountArrearageRepository)
+            IRepository<CustomerAccountArrearage> customerAccountArrearageRepository,
+            IRepository<LoanRepaymentPlan> loanRepaymentPlanRepository)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -43,6 +46,7 @@ namespace Application.MainBoundedContext.Services
             if (customerAccountArrearageRepository == null)
                 throw new ArgumentNullException(nameof(customerAccountArrearageRepository));
 
+            _loanRepaymentPlanRepository = loanRepaymentPlanRepository ?? throw new ArgumentNullException(nameof(loanRepaymentPlanRepository));
             _dbContextScopeFactory = dbContextScopeFactory;
             _journalRepository = journalRepository;
             _customerAccountCarryForwardRepository = customerAccountCarryForwardRepository;
@@ -153,6 +157,15 @@ namespace Application.MainBoundedContext.Services
 
         public bool BulkSave(ServiceHeader serviceHeader, List<Journal> journals, List<CustomerAccountCarryForward> customerAccountCarryForwards, List<StandingOrderHistory> standingOrderHistories, List<CustomerAccountArrearage> customerAccountArrearages)
         {
+            return BulkSaveCore(serviceHeader,journals,customerAccountCarryForwards,standingOrderHistories,customerAccountArrearages,null);
+        }
+        public bool BulkSaveLoanDisbursement(ServiceHeader serviceHeader,List<Journal> journals,LoanRepaymentPlan plan)
+        {
+            if(plan==null||journals==null||!journals.Any(x=>x.Id==plan.SourceJournalId))throw new InvalidOperationException("A captured loan schedule must be saved with its source disbursement journal.");
+            return BulkSaveCore(serviceHeader,journals,null,null,null,plan);
+        }
+        private bool BulkSaveCore(ServiceHeader serviceHeader,List<Journal> journals,List<CustomerAccountCarryForward> customerAccountCarryForwards,List<StandingOrderHistory> standingOrderHistories,List<CustomerAccountArrearage> customerAccountArrearages,LoanRepaymentPlan plan)
+        {
             var result = default(bool);
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
@@ -189,6 +202,7 @@ namespace Application.MainBoundedContext.Services
                     });
                 }
 
+                if(plan!=null)_loanRepaymentPlanRepository.Add(plan,serviceHeader);
                 result = dbContextScope.SaveChanges(serviceHeader) >= 0;
             }
 

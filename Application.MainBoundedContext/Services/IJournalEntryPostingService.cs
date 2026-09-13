@@ -1,4 +1,5 @@
-﻿using Application.MainBoundedContext.DTO.AccountsModule;
+using Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanRepaymentPlanAgg;
+using Application.MainBoundedContext.DTO.AccountsModule;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountArrearageAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.CustomerAccountCarryForwardAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.JournalAgg;
@@ -18,6 +19,8 @@ namespace Application.MainBoundedContext.Services
         void PerformDoubleEntry(Journal journal, Guid creditChartOfAccountId, Guid debitChartOfAccountId, ServiceHeader serviceHeader);
 
         void PerformDoubleEntry(Journal journal, Guid creditChartOfAccountId, Guid debitChartOfAccountId, CustomerAccountDTO creditCustomerAccountDTO, CustomerAccountDTO debitCustomerAccountDTO, ServiceHeader serviceHeader);
+
+        bool BulkSaveLoanDisbursement(ServiceHeader serviceHeader, List<Journal> journals, LoanRepaymentPlan plan);
 
         bool BulkSave(ServiceHeader serviceHeader, List<Journal> journals = null, List<CustomerAccountCarryForward> customerAccountCarryForwards = null, List<StandingOrderHistory> standingOrderHistories = null, List<CustomerAccountArrearage> customerAccountArrearages = null);
     }

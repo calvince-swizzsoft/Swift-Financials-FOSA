@@ -1,4 +1,4 @@
-﻿using Application.Seedwork;
+using Application.Seedwork;
 
 using Infrastructure.Crosscutting.Framework.Attributes;
 using Infrastructure.Crosscutting.Framework.Extensions;
@@ -55,6 +55,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Adjustment Type")]
+        [Range(0, 3)]
         public int AdjustmentType { get; set; }
 
         [DataMember]
@@ -69,6 +70,7 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         [Display(Name = "Value")]
+        [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
         public decimal Value { get; set; }
 
         [DataMember]

@@ -133,3 +133,68 @@ employer. It should also reconcile the employer's remitted batch total against
 allocated member contributions while preserving discrepancy handling for
 missing or ambiguous matches. Migration and backward-compatibility behavior
 for existing batches must be defined before implementation.
+
+
+## Budget control does not automatically prevent overspending
+
+**Status:** open — documented on 2026-09-11; enforcement is not implemented by this change.
+
+Budget appropriation stores allocations and exposes balance tracking. It must
+not be relied on as a transaction-time spending/disbursement limit. The company
+`EnforceBudgetControl` setting and `BudgetAppService.FetchBudgetBalance` exist,
+but the active API/posting services do not wire that lookup into a universal
+overspending guard. `WebApplication1/Areas/BackOffice/Controllers/LoanCaseController.cs`
+explicitly leaves `BranchBudgetBalance` and `BranchCompanyEnforceBudgetControl`
+unpopulated, so `LoanCaseDTO.ValidateBudgetBalance` does not run its intended check.
+
+Future enforcement must be implemented in the AppService transaction/posting
+path, using authoritative balances and appropriate concurrency control, covering
+the intended expense and loan-disbursement routes. UI checks or enabling the
+company flag alone are insufficient. No automatic spending block was added.
+
+## G/L budget remaining balances reverse debit/credit signs
+
+**Status:** fixed on 2026-09-11 in `BudgetAppService.FetchBudgetEntryBalances`.
+Regression coverage: `tools/tests/Budget.Tests` (10 scenarios plus domain journal sign verification).
+
+`BudgetAppService.FetchBudgetEntryBalances` previously subtracted the negative of
+expense actuals, but subtracted income actuals without normalization. The actual
+domain posting convention in `Journal.PostDoubleEntries` is debit-positive and
+credit-negative. Given raw signed G/L balances, remaining expense budget must
+be `Amount - ActualToDate`; remaining income target must be `Amount + ActualToDate`.
+Do not use absolute values: refunds and reversals must restore/reduce usage.
+
+A read-only regression probe invoked the compiled AppService with a stub SQL
+balance provider and verified real domain journal signs:
+
+| Case | Budget | Signed G/L actual | Previous remaining | Correct remaining |
+| --- | ---: | ---: | ---: | ---: |
+| Expense debit | 15,000 | 4,000 | 19,000 | 11,000 |
+| Income credit | 15,000 | -4,000 | 19,000 | 11,000 |
+| Expense refund (net credit) | 15,000 | -1,000 | 14,000 | 16,000 |
+
+The query currently requests the branch, account, posting period and today's
+cutoff using CreatedDate. Effective-date treatment for backdated transactions
+is unchanged by this sign fix and remains a separate follow-up.
+`ActualToDate` still exposes the raw signed ledger balance; only budget usage is
+normalized. The missing procedure below still blocks database retrieval locally.
+
+## Required G/L budget balance stored procedure is missing locally
+
+**Status:** installation pending — `docs/database/install-gl-budget-balance.sql` now provides the procedure (2026-09-12). Verified with temporary SQL fixtures for branch/account/period isolation, signed amounts, both date filters, full end-date inclusion, empty results and invalid filters. The script has not been installed in the application database.
+
+Originally verified against the configured `SwiftFin_Dev` connection
+(database `SwiftFinancialsDB_Live`) on 2026-09-11. Other deployments were not checked.
+
+`SqlCommandAppService.FindGlAccountBalance(branchId, chartOfAccountId,
+postingPeriodId, cutoff, dateFilter, header)` executes
+`dbo.sp_GetGlAccountBalanceByBranchAndPostingPeriod`. A read-only `sys.procedures`
+check returned no such procedure; database VIEW DEFINITION permission was
+confirmed. Thus actual G/L budget balance retrieval cannot complete through
+this dependency in the checked database. The procedure was absent from the checked-in SQL scripts at verification time.
+
+Restore a version-controlled implementation or replace the dependency with an
+AppService-owned query, then verify branch/period isolation, effective dates,
+signed amounts and the budget arithmetic together. The sign probe above used
+a stub balance provider; it was not an end-to-end database budget calculation.
+No database objects or ledger data were changed during verification.

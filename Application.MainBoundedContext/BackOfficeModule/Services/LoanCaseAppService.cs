@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
@@ -54,6 +54,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         private readonly IPostingPeriodAppService _postingPeriodAppService;
         private readonly ICommissionAppService _commissionAppService;
         private readonly IBrokerService _brokerService;
+        private readonly ILoanAgeingAppService _loanAgeingAppService;
 
         public LoanCaseAppService(
            IDbContextScopeFactory dbContextScopeFactory,
@@ -78,8 +79,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
            IJournalEntryPostingService journalEntryPostingService,
            IPostingPeriodAppService postingPeriodAppService,
            ICommissionAppService commissionAppService,
-           IBrokerService brokerService)
+           IBrokerService brokerService, ILoanAgeingAppService loanAgeingAppService)
         {
+            _loanAgeingAppService = loanAgeingAppService ?? throw new ArgumentNullException(nameof(loanAgeingAppService));
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
 
@@ -1846,6 +1848,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         public bool RestructureLoan(Guid branchId, Guid customerAccountId, double NPer, double Pmt, string reference, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
             var result = default(bool);
+            if(double.IsNaN(NPer)||double.IsInfinity(NPer)||NPer<1||NPer>1200||NPer!=Math.Truncate(NPer)||double.IsNaN(Pmt)||double.IsInfinity(Pmt)||Pmt<=0||string.IsNullOrWhiteSpace(reference))throw new LoanAgeingException("NPer","Provide a whole number of 1–1,200 periods, a positive payment and a reference.");
 
             var customerLoanAccount = _customerAccountAppService.FindCustomerAccountDTO(customerAccountId, serviceHeader);
 
@@ -1855,11 +1858,13 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (customerLoanAccount != null && payablesControlChartOfAccountId != Guid.Empty && defaultSavingsProductDTO != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var existingLoanCases = FindLoanCasesByCustomerIdAndLoanProductId(customerLoanAccount.CustomerId, customerLoanAccount.CustomerAccountTypeTargetProductId, serviceHeader);
 
                     LoanCaseDTO lcDTO = new LoanCaseDTO();
+                    if(existingLoanCases==null||!existingLoanCases.Any())throw new LoanAgeingException("LoanCaseId","A posted original loan case is required before restructuring.");
+                    if(existingLoanCases.Any(x=>x.Status==(int)LoanCaseStatus.Restructured))throw new LoanAgeingException("LoanCaseId","This loan account has already been restructured. A second restructuring is not supported.");
 
                     if (existingLoanCases != null && existingLoanCases.Any(x => x.Status.In((int)LoanCaseStatus.Registered, (int)LoanCaseStatus.Appraised, (int)LoanCaseStatus.Deferred, (int)LoanCaseStatus.Approved, (int)LoanCaseStatus.Audited)))
                     {
@@ -1899,13 +1904,16 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                         _loanCaseRepository.Add(loanCase, serviceHeader);
 
-                        if (dbContextScope.SaveChanges(serviceHeader) > 0)
+                        // Stage the complete restructuring graph before one outer commit.
+
                         {
                             // 2. credit loan, debit payables
-                            _journalAppService.AddNewJournal(branchId, null, customerLoanAccount.PrincipalBalance * -1, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanRestructuring, null, loanProductDTO.ChartOfAccountId, payablesControlChartOfAccountId, customerLoanAccount, customerLoanAccount, serviceHeader);
+                            var clearingJournal = _journalAppService.AddNewJournal(branchId, null, customerLoanAccount.PrincipalBalance * -1, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanRestructuring, null, loanProductDTO.ChartOfAccountId, payablesControlChartOfAccountId, customerLoanAccount, customerLoanAccount, serviceHeader);
 
                             // 3. credit payables, credit loan
-                            _journalAppService.AddNewJournal(branchId, null, customerLoanAccount.PrincipalBalance * -1, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanRestructuring, null, payablesControlChartOfAccountId, loanProductDTO.ChartOfAccountId, customerLoanAccount, customerLoanAccount, serviceHeader);
+                            var replacementJournal = _journalAppService.AddNewJournal(branchId, null, customerLoanAccount.PrincipalBalance * -1, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanRestructuring, null, payablesControlChartOfAccountId, loanProductDTO.ChartOfAccountId, customerLoanAccount, customerLoanAccount, serviceHeader);
+
+                            if(clearingJournal==null||replacementJournal==null)throw new LoanAgeingException("PostingPeriod","The restructuring journals could not be staged. Check the posting period.");
 
                             // 4. standing order
                             Guid customerSavingsAccountId = Guid.Empty;
@@ -2025,6 +2033,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                 _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
                             }
 
+                            _loanAgeingAppService.CaptureRestructureSchedule(new LoanPlanDTO{LoanCaseId=loanCase.Id,CustomerAccountId=customerLoanAccount.Id,SourceJournalId=replacementJournal.Id,EffectiveAt=replacementJournal.ValueDate??replacementJournal.CreatedDate,Principal=PV,PrincipalChartOfAccountId=loanProductDTO.ChartOfAccountId,InterestReceivableChartOfAccountId=loanProductDTO.InterestReceivableChartOfAccountId,InterestChargedChartOfAccountId=loanProductDTO.InterestChargedChartOfAccountId},repaymentSchedule,serviceHeader);
+                            dbContextScope.SaveChanges(serviceHeader);
                             result = true;
                         }
                     }

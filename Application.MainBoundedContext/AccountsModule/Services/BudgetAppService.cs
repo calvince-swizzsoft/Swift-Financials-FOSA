@@ -52,6 +52,155 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             _sqlCommandAppService = sqlCommandAppService;
         }
 
+        public BudgetActualsDTO FindBudgetActuals(Guid budgetId, DateTime asAt, ServiceHeader header)
+        {
+            using (_dbContextScopeFactory.CreateReadOnlyWithTransaction(System.Data.IsolationLevel.Serializable))
+            {
+                var budget = FindBudget(budgetId, header);
+                if (budget == null) throw new BudgetValidationException("Select an existing budget.", "BudgetId", 404);
+                if (asAt.Year < 1753 || asAt.Date == DateTime.MaxValue.Date || asAt.Date < budget.PostingPeriodDurationStartDate.Date || asAt.Date > budget.PostingPeriodDurationEndDate.Date)
+                    throw new BudgetValidationException("Choose an as-at date within the budget's posting period.", "AsAt");
+                var entries = FindBudgetEntries(budgetId, header) ?? new List<BudgetEntryDTO>();
+                var parameters = new object[] {
+                    new System.Data.SqlClient.SqlParameter("@Branch", budget.BranchId.Value),
+                    new System.Data.SqlClient.SqlParameter("@Period", budget.PostingPeriodId),
+                    new System.Data.SqlClient.SqlParameter("@Start", budget.PostingPeriodDurationStartDate.Date),
+                    new System.Data.SqlClient.SqlParameter("@End", asAt.Date.AddDays(1)) };
+                var actuals = _budgetRepository.DatabaseSqlQuery<BudgetActualLineDTO>(@"
+SELECT a.Id TargetId, CASE WHEN a.AccountType=4000 THEN 'Income' ELSE 'Expenses' END Section,
+CAST(a.AccountCode AS varchar(20)) Code, a.AccountName Description, CAST(0 AS decimal(18,2)) Budget,
+SUM(CASE WHEN a.AccountType=4000 THEN -e.Amount ELSE e.Amount END) Actual
+FROM dbo.swiftFin_JournalEntries e
+JOIN dbo.swiftFin_Journals j ON j.Id=e.JournalId
+JOIN dbo.swiftFin_ChartOfAccounts a ON a.Id=e.ChartOfAccountId
+WHERE j.BranchId=@Branch AND j.PostingPeriodId=@Period AND a.AccountType IN (4000,5000)
+AND COALESCE(j.ValueDate,j.CreatedDate)>=@Start AND COALESCE(j.ValueDate,j.CreatedDate)<@End
+GROUP BY a.Id,a.AccountType,a.AccountCode,a.AccountName HAVING SUM(e.Amount)<>0", header, parameters).ToList();
+                actuals.AddRange(_budgetRepository.DatabaseSqlQuery<BudgetActualLineDTO>(@"
+SELECT p.Id TargetId, 'Loan disbursements' Section, CAST('' AS varchar(20)) Code,
+p.Description Description, CAST(0 AS decimal(18,2)) Budget, SUM(l.DisbursedAmount) Actual
+FROM dbo.swiftFin_LoanCases l JOIN dbo.swiftFin_LoanProducts p ON p.Id=l.LoanProductId
+WHERE l.BranchId=@Branch AND l.DisbursedDate>=@Start AND l.DisbursedDate<@End
+GROUP BY p.Id,p.Description HAVING SUM(l.DisbursedAmount)<>0", header,
+                    new System.Data.SqlClient.SqlParameter("@Branch", budget.BranchId.Value),
+                    new System.Data.SqlClient.SqlParameter("@Start", budget.PostingPeriodDurationStartDate.Date),
+                    new System.Data.SqlClient.SqlParameter("@End", asAt.Date.AddDays(1))));
+                return BuildBudgetActuals(budget, asAt.Date, entries, actuals);
+            }
+        }
+
+        internal static BudgetActualsDTO BuildBudgetActuals(BudgetDTO budget, DateTime asAt, List<BudgetEntryDTO> entries, List<BudgetActualLineDTO> actuals)
+        {
+            var lines = new Dictionary<string, BudgetActualLineDTO>();
+            foreach (var entry in entries)
+            {
+                var section = entry.Type == 1 ? "Loan disbursements" : entry.ChartOfAccountAccountType == 4000 ? "Income" : entry.ChartOfAccountAccountType == 5000 ? "Expenses" : null;
+                var target = entry.Type == 1 ? entry.LoanProductId : entry.ChartOfAccountId;
+                if (section == null || !target.HasValue || target == Guid.Empty)
+                    throw new BudgetValidationException("This budget contains an invalid allocation. Correct its account or loan product in Budget Appropriation.", "Entries");
+                var key = section + target.Value;
+                if (!lines.ContainsKey(key)) lines.Add(key, new BudgetActualLineDTO {
+                    TargetId = target.Value, Section = section,
+                    Code = entry.Type == 1 ? "" : entry.ChartOfAccountAccountCode.ToString(),
+                    Description = entry.Type == 1 ? entry.LoanProductDescription : entry.ChartOfAccountAccountName });
+                lines[key].Budget += entry.Amount;
+            }
+            foreach (var actual in actuals)
+            {
+                var key = actual.Section + actual.TargetId;
+                if (!lines.ContainsKey(key)) lines.Add(key, actual);
+                else lines[key].Actual += actual.Actual;
+            }
+            var sections = new[] { "Income", "Expenses", "Loan disbursements" };
+            return new BudgetActualsDTO {
+                Budget = budget, AsAt = asAt,
+                Lines = lines.Values.OrderBy(l => Array.IndexOf(sections, l.Section)).ThenBy(l => l.Code).ThenBy(l => l.Description).ToList(),
+                Totals = sections.Select(section => new BudgetActualTotalDTO {
+                    Section = section, Budget = lines.Values.Where(l => l.Section == section).Sum(l => l.Budget),
+                    Actual = lines.Values.Where(l => l.Section == section).Sum(l => l.Actual) }).ToList()
+            };
+        }
+
+        public BudgetDTO SaveBudget(BudgetDTO model, List<BudgetEntryDTO> entries, ServiceHeader header)
+        {
+            ValidateAppropriation(model, entries);
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
+            {
+                var persisted = model.Id == Guid.Empty ? null : _budgetRepository.Get(model.Id, header);
+                if (model.Id != Guid.Empty && persisted == null)
+                    throw new BudgetValidationException("The selected budget no longer exists. Refresh the budget list.", "Budget.Id", 404);
+                var duplicates = _budgetRepository.AllMatching(BudgetSpecifications.BudgetWithPostingPeriodIdAndBranchId(model.PostingPeriodId, model.BranchId.Value), header);
+                if (duplicates != null && duplicates.Any(b => b.Id != model.Id))
+                    throw new BudgetValidationException("A budget already exists for this branch and posting period. Select it under Existing Budget to edit its allocations.", "Budget.PostingPeriodId", 409);
+                RequireBudgetTarget("SELECT COUNT(*) FROM dbo.swiftFin_Branches WHERE Id=@Id", model.BranchId.Value, "Budget.BranchId", "Select an existing branch.", header);
+                RequireBudgetTarget("SELECT COUNT(*) FROM dbo.swiftFin_PostingPeriods WHERE Id=@Id", model.PostingPeriodId, "Budget.PostingPeriodId", "Select an existing posting period.", header);
+                for (var i = 0; i < entries.Count; i++)
+                {
+                    var e = entries[i];
+                    if (e.Type == (int)BudgetEntryType.IncomeOrExpense)
+                        RequireBudgetTarget("SELECT COUNT(*) FROM dbo.swiftFin_ChartOfAccounts a WHERE a.Id=@Id AND a.AccountType IN (4000,5000) AND NOT EXISTS (SELECT 1 FROM dbo.swiftFin_ChartOfAccounts c WHERE c.ParentId=a.Id)", e.ChartOfAccountId.Value, "Entries[" + i + "].ChartOfAccountId", "Line " + (i + 1) + ": select an income or expense posting account, not a parent account.", header);
+                    else
+                        RequireBudgetTarget("SELECT COUNT(*) FROM dbo.swiftFin_LoanProducts WHERE Id=@Id", e.LoanProductId.Value, "Entries[" + i + "].LoanProductId", "Line " + (i + 1) + ": select an existing loan product.", header);
+                }
+                var current = BudgetFactory.CreateBudget(model.PostingPeriodId, model.BranchId.Value, model.Description.Trim(), model.TotalValue);
+                if (persisted == null)
+                {
+                    current.CreatedBy = header.ApplicationUserName;
+                    _budgetRepository.Add(current, header);
+                }
+                else
+                {
+                    current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+                    _budgetRepository.Merge(persisted, current, header);
+                    var previous = _budgetEntryRepository.AllMatching(BudgetEntrySpecifications.BudgetEntryWithBudgetId(persisted.Id), header);
+                    if (previous != null) foreach (var e in previous) _budgetEntryRepository.Remove(e, header);
+                }
+                foreach (var e in entries)
+                {
+                    var line = BudgetEntryFactory.CreateBudgetEntry(current.Id, e.Type, e.ChartOfAccountId, e.LoanProductId, e.Amount, e.Reference);
+                    line.CreatedBy = header.ApplicationUserName;
+                    _budgetEntryRepository.Add(line, header);
+                }
+                scope.SaveChanges(header);
+                return current.ProjectedAs<BudgetDTO>();
+            }
+        }
+
+        private void RequireBudgetTarget(string sql, Guid id, string field, string message, ServiceHeader header)
+        {
+            if (_budgetRepository.DatabaseSqlQuery<int>(sql, header, new System.Data.SqlClient.SqlParameter("@Id", id)).Single() != 1)
+                throw new BudgetValidationException(message, field);
+        }
+
+        internal static void ValidateAppropriation(BudgetDTO model, List<BudgetEntryDTO> entries)
+        {
+            if (model == null) throw new BudgetValidationException("Complete the budget header.", "Budget");
+            if (string.IsNullOrWhiteSpace(model.Description) || model.Description.Trim().Length > 256)
+                throw new BudgetValidationException("Enter a budget name of 1–256 characters.", "Budget.Description");
+            if (!model.BranchId.HasValue || model.BranchId == Guid.Empty) throw new BudgetValidationException("Select a branch.", "Budget.BranchId");
+            if (model.PostingPeriodId == Guid.Empty) throw new BudgetValidationException("Select a posting period.", "Budget.PostingPeriodId");
+            if (!ValidBudgetAmount(model.TotalValue)) throw new BudgetValidationException("Enter a positive total with no more than two decimal places (maximum 9,999,999,999,999.99).", "Budget.TotalValue");
+            if (entries == null || entries.Count == 0) throw new BudgetValidationException("Add at least one allocation before saving.", "Entries");
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var e = entries[i]; var key = "Entries[" + i + "]"; var label = "Line " + (i + 1) + ": ";
+                if (e == null) throw new BudgetValidationException(label + "allocation is missing.", key);
+                if (e.Type != 0 && e.Type != 1) throw new BudgetValidationException(label + "choose Income / Expense or Loan Product.", key + ".Type");
+                if (!ValidBudgetAmount(e.Amount)) throw new BudgetValidationException(label + "enter a positive amount with no more than two decimal places (maximum 9,999,999,999,999.99).", key + ".Amount");
+                if ((e.Reference ?? "").Length > 256) throw new BudgetValidationException(label + "reference must not exceed 256 characters.", key + ".Reference");
+                if (e.Type == 0 && (!e.ChartOfAccountId.HasValue || e.ChartOfAccountId == Guid.Empty || (e.LoanProductId.HasValue && e.LoanProductId != Guid.Empty)))
+                    throw new BudgetValidationException(label + "select a G/L account only.", key + ".ChartOfAccountId");
+                if (e.Type == 1 && (!e.LoanProductId.HasValue || e.LoanProductId == Guid.Empty || (e.ChartOfAccountId.HasValue && e.ChartOfAccountId != Guid.Empty)))
+                    throw new BudgetValidationException(label + "select a loan product only.", key + ".LoanProductId");
+            }
+            var allocated = entries.Sum(e => e.Amount);
+            if (allocated != model.TotalValue)
+                throw new BudgetValidationException(string.Format("Allocations total {0:N2}; budget total is {1:N2}. {2} {3:N2} to balance the budget.", allocated, model.TotalValue, allocated < model.TotalValue ? "Allocate another" : "Reduce allocations by", Math.Abs(model.TotalValue - allocated)), "Entries");
+        }
+
+        private static bool ValidBudgetAmount(decimal value) { return value > 0 && value <= 9999999999999.99m && decimal.Round(value, 2) == value; }
+
+
         public BudgetDTO AddNewBudget(BudgetDTO budgetDTO, ServiceHeader serviceHeader)
         {
             if (budgetDTO != null)
@@ -383,7 +532,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                         {
                             budgetEntry.ActualToDate = _sqlCommandAppService.FindGlAccountBalance(budgetEntry.BudgetBranchId.Value, budgetEntry.ChartOfAccountId.Value, budgetEntry.BudgetPostingPeriodId, DateTime.Today, (int)TransactionDateFilter.CreatedDate, serviceHeader);
 
-                            budgetEntry.BudgetBalance = budgetEntry.Amount - (budgetEntry.ChartOfAccountAccountType == (int)ChartOfAccountType.Expense ? budgetEntry.ActualToDate * -1 : budgetEntry.ActualToDate);
+                            // Ledger debits are positive; income credits are negative.
+                            // Preserve reversal signs so refunds restore the expense allowance.
+                            var actualUsage = budgetEntry.ChartOfAccountAccountType == (int)ChartOfAccountType.Income
+                                ? -budgetEntry.ActualToDate
+                                : budgetEntry.ActualToDate;
+                            budgetEntry.BudgetBalance = budgetEntry.Amount - actualUsage;
                         }
 
                         break;

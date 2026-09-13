@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -8,6 +8,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 {
     public interface IBankReconciliationPeriodAppService
     {
+        decimal FindBankReconciliationBalance(Guid bankLinkageId, DateTime endDate, ServiceHeader header);
         BankReconciliationPeriodDTO AddNewBankReconciliationPeriod(BankReconciliationPeriodDTO bankReconciliationPeriodDTO, ServiceHeader serviceHeader);
 
         bool UpdateBankReconciliationPeriod(BankReconciliationPeriodDTO bankReconciliationPeriodDTO, ServiceHeader serviceHeader);
@@ -27,5 +28,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         BankReconciliationPeriodDTO FindBankReconciliationPeriod(Guid bankReconciliationPeriodId, ServiceHeader serviceHeader);
 
         PageCollectionInfo<BankReconciliationEntryDTO> FindBankReconciliationEntriesByBankReconciliationPeriodId(Guid bankReconciliationPeriodId, string text, int pageIndex, int pageSize, ServiceHeader serviceHeader);
+    }
+}
+
+namespace Application.MainBoundedContext.AccountsModule.Services
+{
+    public class BankReconciliationValidationException : System.Exception
+    {
+        public BankReconciliationValidationException(string message) : base(message) { }
     }
 }

@@ -473,4 +473,32 @@
   <ItemGroup><Compile Include="AccountsModule\Services\ICashFlowAppService.cs" /></ItemGroup>
   <ItemGroup><Compile Include="AccountsModule\Services\CashFlowAppService.cs" /></ItemGroup>
   <ItemGroup><Compile Include="AccountsModule\Services\CashFlowSql.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="AccountsModule\Services\ISasraSetupAppService.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="AccountsModule\Services\SasraSetupAppService.cs" /></ItemGroup>
+<ItemGroup><Compile Include="AccountsModule\Services\SasraStandardDefinitions.cs" /></ItemGroup>
+<ItemGroup>
+<Compile Include="AccountsModule\Services\SasraSetupAppService.Form6.cs" />
+<Compile Include="AccountsModule\Services\SasraForm6.cs" />
+<EmbeddedResource Include="AccountsModule\Templates\form6-statement-of-financial-position.xls"><LogicalName>Sasra.Form6.xls</LogicalName></EmbeddedResource>
+</ItemGroup>
+<ItemGroup>
+<Compile Include="AccountsModule\Services\SasraForm7.cs" />
+<Compile Include="AccountsModule\Services\SasraSetupAppService.Form7.cs" />
+<EmbeddedResource Include="AccountsModule\Templates\form7-statement-of-comprehensive-income.xls"><LogicalName>Sasra.Form7.xls</LogicalName></EmbeddedResource>
+</ItemGroup><ItemGroup><Compile Include="AccountsModule\Services\SasraForm1.cs"/><Compile Include="AccountsModule\Services\SasraSetupAppService.Form1.cs"/><EmbeddedResource Include="AccountsModule\Templates\form1-capital-adequacy.xls"><LogicalName>Sasra.Form1.xls</LogicalName></EmbeddedResource></ItemGroup>  <ItemGroup>
+    <Compile Include="AccountsModule\Services\SasraForm2.cs" />
+    <Compile Include="AccountsModule\Services\SasraSetupAppService.Form2.cs" />
+    <EmbeddedResource Include="AccountsModule\Templates\form2-liquidity.xls"><LogicalName>Sasra.Form2.xls</LogicalName></EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AccountsModule\Services\SasraForm3.cs" />
+    <Compile Include="AccountsModule\Services\SasraSetupAppService.Form3.cs" />
+    <EmbeddedResource Include="AccountsModule\Templates\form3-deposit-return.xls"><LogicalName>Sasra.Form3.xls</LogicalName></EmbeddedResource>
+  </ItemGroup>
+<ItemGroup><Compile Include="BackOfficeModule\Services\LoanAgeingEngine.cs" /></ItemGroup><ItemGroup><Compile Include="BackOfficeModule\Services\LoanAgeingAppService.cs" /></ItemGroup><ItemGroup><Compile Include="BackOfficeModule\Services\ILoanAgeingAppService.cs" /></ItemGroup><ItemGroup><Compile Include="BackOfficeModule\Services\LoanInterestAgeingEngine.cs" /></ItemGroup>
+<ItemGroup><Compile Include="BackOfficeModule\Services\LoanRestructureAgeing.cs" /><Compile Include="BackOfficeModule\Services\LoanAgeingAppService.Restructure.cs" /></ItemGroup>
+<ItemGroup><Compile Include="AccountsModule\Services\SasraForm4.cs" /><Compile Include="BackOfficeModule\Services\LoanAgeingAppService.Form4.cs" /></ItemGroup>
+<ItemGroup><EmbeddedResource Include="AccountsModule\Templates\form4-risk-classification.xls"><LogicalName>Sasra.Form4.xls</LogicalName></EmbeddedResource></ItemGroup>
+  <ItemGroup><Compile Include="BackOfficeModule\Services\LoanAgeingAppService.Generation.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="BackOfficeModule\Services\LoanScheduleGeneration.cs" /></ItemGroup>
 </Project>

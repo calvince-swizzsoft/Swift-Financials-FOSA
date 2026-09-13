@@ -1,4 +1,4 @@
-﻿using Domain.MainBoundedContext.AccountsModule.Aggregates.ReportTemplateEntryAgg;
+using Domain.MainBoundedContext.AccountsModule.Aggregates.ReportTemplateEntryAgg;
 using Infrastructure.Crosscutting.Framework;
 using System;
 using System.Collections.Generic;
@@ -25,6 +25,10 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.ReportTemplateAgg
         public int Depth { get; set; }
 
         public bool IsLocked { get; private set; }
+
+        public bool IsVersioned { get; private set; }
+
+        public void MarkVersioned() { IsVersioned = true; }
 
         
 

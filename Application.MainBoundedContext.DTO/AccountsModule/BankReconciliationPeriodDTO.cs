@@ -1,4 +1,4 @@
-﻿using Application.Seedwork;
+using Application.Seedwork;
 
 using Infrastructure.Crosscutting.Framework.Attributes;
 using Infrastructure.Crosscutting.Framework.Extensions;
@@ -143,16 +143,34 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         [Display(Name = "Created Date")]
         public DateTime CreatedDate { get; set; }
 
-        public static ValidationResult CheckDurationEndDate(string value, ValidationContext context)
+        [DataMember]
+        public int EntryCount { get; set; }
+
+        [DataMember]
+        public decimal BankAdjustments { get; set; }
+
+        [DataMember]
+        public decimal GeneralLedgerAdjustments { get; set; }
+
+        [DataMember]
+        public decimal AdjustedBankBalance { get; set; }
+
+        [DataMember]
+        public decimal AdjustedGeneralLedgerBalance { get; set; }
+
+        [DataMember]
+        public decimal UnreconciledBalance { get; set; }
+
+        public static ValidationResult CheckDurationEndDate(DateTime value, ValidationContext context)
         {
             var bindingModel = context.ObjectInstance as BankReconciliationPeriodDTO;
             if (bindingModel == null)
                 throw new NotSupportedException("ObjectInstance must be BankReconciliationPeriodDTO");
 
-            if (bindingModel.DurationEndDate == null || bindingModel.DurationStartDate == null)
+            if (bindingModel.DurationEndDate == default(DateTime) || bindingModel.DurationStartDate == default(DateTime))
                 return new ValidationResult("The duration dates must be specified.");
-            else if (bindingModel.DurationEndDate <= bindingModel.DurationStartDate)
-                return new ValidationResult("The end date must be greater than the start date.");
+            else if (bindingModel.DurationEndDate.Date < bindingModel.DurationStartDate.Date)
+                return new ValidationResult("The end date must be on or after the start date.");
 
             return ValidationResult.Success;
         }

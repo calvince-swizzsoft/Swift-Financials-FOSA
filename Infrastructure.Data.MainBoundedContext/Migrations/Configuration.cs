@@ -1,4 +1,4 @@
-﻿namespace Infrastructure.Data.MainBoundedContext.Migrations
+namespace Infrastructure.Data.MainBoundedContext.Migrations
 {
     using System;
     using System.Data.Entity;
@@ -10,7 +10,10 @@
         public Configuration()
         {
             AutomaticMigrationsEnabled = true;
-            AutomaticMigrationDataLossAllowed = true;
+            // Shared databases may be opened by an older application build.
+            // Never let its smaller model silently drop newer tables and data.
+            // Additive automatic migrations remain enabled.
+            AutomaticMigrationDataLossAllowed = false;
             CommandTimeout = 3600;
             CodeGenerator = new NonClusteredPrimaryKeyCSharpMigrationCodeGenerator();
             SetSqlGenerator("System.Data.SqlClient", new NonClusteredPrimaryKeySqlMigrationSqlGenerator());
