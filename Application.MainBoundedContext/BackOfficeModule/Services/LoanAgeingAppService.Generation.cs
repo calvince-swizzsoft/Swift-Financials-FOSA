@@ -20,11 +20,16 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
     Check(!p.IsRestructuring,"LoanCaseId","Replacement schedules use the approved restructuring terms. Open the existing replacement schedule to confirm it.");
     Check(c.LoanRegistration!=null&&c.LoanInterest!=null,"LoanCaseId","The loan case is missing its saved repayment terms.");
     var t=c.LoanRegistration;var interest=c.LoanInterest;
-    var r=LoanScheduleGeneration.Generate(p,t.TermInMonths,t.PaymentFrequencyPerYear,t.GracePeriod,t.PaymentDueDate,interest.CalculationMode,interest.AnnualPercentageRate);
     bool upfrontCharge=interest.ChargeMode==(int)InterestChargeMode.Upfront,upfrontRecovery=interest.RecoveryMode==(int)InterestRecoveryMode.Upfront;
     Check(Enum.IsDefined(typeof(InterestChargeMode),(int)interest.ChargeMode)&&Enum.IsDefined(typeof(InterestRecoveryMode),(int)interest.RecoveryMode),"Interest","The saved interest charging or recovery mode is unsupported.");
+    var r=LoanScheduleGeneration.Generate(p,t.TermInMonths,t.PaymentFrequencyPerYear,t.GracePeriod,t.PaymentDueDate,interest.CalculationMode,interest.AnnualPercentageRate,upfrontCharge?0:t.MinimumInterestAmount,upfrontCharge?(int?)null:t.RoundingType);
+    if(!upfrontCharge)r.Terms+="; minimum interest KSh "+t.MinimumInterestAmount.ToString("0.00",CultureInfo.InvariantCulture)+" per repayment period, applied before "+(RoundingType)t.RoundingType+" rounding";
     r.Terms+="; charge "+(InterestChargeMode)interest.ChargeMode+"; recovery "+(InterestRecoveryMode)interest.RecoveryMode;
-    if(upfrontRecovery)
+    // Historical loans retain their saved terms. Periodic charging never entered the
+    // upfront deduction block at disbursement, even if recovery was configured upfront.
+    if(!upfrontCharge&&upfrontRecovery)
+     r.Terms+="; reproduced with periodic recovery because charging is periodic (legacy conflicting recovery setting retained in the loan record)";
+    if(upfrontCharge&&upfrontRecovery)
     {
      var posted=ReadInterestPostings(new DateTime(9998,12,31),h).Where(x=>x.CustomerAccountId==p.CustomerAccountId&&x.ChartOfAccountId==p.InterestReceivableChartOfAccountId&&(x.JournalId==p.SourceJournalId||x.ParentJournalId==p.SourceJournalId)&&x.TransactionCode==(int)SystemTransactionCode.LoanDisbursement).ToList();
      decimal charged=posted.Where(x=>x.ContraChartOfAccountId==p.InterestChargedChartOfAccountId).Sum(x=>x.Amount);
@@ -41,10 +46,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
       LoanScheduleGeneration.Upfront(p,decimal.Round(expected,2,MidpointRounding.AwayFromZero));
       if(expected>0)r.Warnings.Add("Upfront interest is configured but no matching original charge was found. The proposed interest is calculated, not evidence of payment.");
      }
-     if(!upfrontCharge)r.Warnings.Add("The saved loan combines periodic charging with upfront recovery. Confirm the actual interest agreement separately; a zero receivable does not mean zero interest.");
     }
-    else if(t.MinimumInterestAmount>0||upfrontCharge)
-     r.Warnings.Add("Minimum interest or upfront charging with periodic recovery requires confirmation of the contractual interest allocation.");
+    else if(upfrontCharge)
+     r.Warnings.Add("Upfront charging with periodic recovery requires confirmation of the contractual interest allocation.");
     if(!p.InterestReceivableChartOfAccountId.HasValue||!p.InterestChargedChartOfAccountId.HasValue||p.InterestReceivableChartOfAccountId==p.InterestChargedChartOfAccountId||p.InterestReceivableChartOfAccountId==p.PrincipalChartOfAccountId||p.InterestChargedChartOfAccountId==p.PrincipalChartOfAccountId)
      r.Warnings.Add("Configure distinct principal, interest-receivable and interest-charged accounts before confirming interest.");
     p.Evidence="Generated from the saved loan-case terms and original posted disbursement. "+r.Terms+". First due date follows saved beginning/end-of-period and grace settings. Confirmed by the saving user as the reporting schedule; no independent credit-quality assessment is implied.";

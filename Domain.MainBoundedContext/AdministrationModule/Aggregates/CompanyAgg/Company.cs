@@ -5,6 +5,9 @@ namespace Domain.MainBoundedContext.AdministrationModule.Aggregates.CompanyAgg
 {
     public class Company : Entity
     {
+        public string DefaulterNoticePolicyJson { get; set; }
+        public int DefaulterNoticePolicyRevision { get; set; }
+
         public string Description { get; set; }
 
         public string Vision { get; set; }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Net.Http;
 using System.Web.Http;
@@ -31,6 +31,7 @@ class Program
 {
     static void Main()
     {
+        LoanAgeingQueryChecks.Run();
         using (var config = new HttpConfiguration())
         {
             config.Routes.MapHttpRoute("probe", "api/{controller}");

@@ -1,4 +1,4 @@
-<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project ToolsVersion="Current" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <OutputType>Exe</OutputType><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
@@ -20,4 +20,6 @@
 <ItemGroup><ProjectReference Include="..\..\..\EntityFramework.Interfaces\EntityFramework.Interfaces.csproj"><Name>EntityFramework.Interfaces</Name></ProjectReference></ItemGroup><ItemGroup><Compile Include="Form6Tests.cs"/><Reference Include="NPOI"><HintPath>..\..\..\packages\NPOI.2.5.5\lib\net45\NPOI.dll</HintPath></Reference></ItemGroup><ItemGroup><Compile Include="Form7Tests.cs" /></ItemGroup><ItemGroup><Compile Include="Form1Tests.cs"/></ItemGroup><ItemGroup><Compile Include="Form2Tests.cs" /></ItemGroup><ItemGroup><Compile Include="Form3Tests.cs" /></ItemGroup><ItemGroup><Compile Include="LoanAgeingTests.cs" /></ItemGroup><ItemGroup><Compile Include="LoanScheduleAtomicTests.cs" /></ItemGroup><ItemGroup><Compile Include="LoanInterestAgeingTests.cs" /></ItemGroup>
 <ItemGroup><Compile Include="LoanRestructureForm4Tests.cs" /></ItemGroup>
 <ItemGroup><Compile Include="LoanRestructureAtomicTests.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="LoanScheduleGenerationTests.cs" /></ItemGroup>
+<ItemGroup><Compile Include="LoanNoticeTests.cs" /></ItemGroup>
 </Project>

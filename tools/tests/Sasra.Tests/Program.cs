@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
@@ -43,8 +43,10 @@ class Program
   Form2Tests.Run();
   Form3Tests.Run();
   LoanAgeingTests.Run();
+  LoanNoticeTests.Run();
   LoanInterestAgeingTests.Run();
   LoanRestructureForm4Tests.Run();
+  LoanScheduleGenerationTests.Run();
   LoanRestructureAtomicTests.Run();
   LoanScheduleAtomicTests.Run();
   foreach(var kind in new[]{"DT","NWDT"})
@@ -86,8 +88,8 @@ class Program
   DbConfiguration.SetConfiguration(new BoundedContextConfiguration());var builder=new DbModelBuilder();
   using(var context=new BoundedContextUnitOfWork())typeof(BoundedContextUnitOfWork).GetMethod("OnModelCreating",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(context,new object[]{builder});
   var model=builder.Build(new DbProviderInfo("System.Data.SqlClient","2012"));var buffer=new StringWriter();using(var writer=XmlWriter.Create(buffer))EdmxWriter.WriteEdmx(model,writer);var xml=buffer.ToString();
-  foreach(var table in new[]{"SasraInstitutionProfiles","SasraTemplateVersions","SasraLineDefinitions","LoanRepaymentPlans","LoanRepaymentInstalments"})Check(xml.Contains("swiftFin_"+table),"EF discovers "+table);
-  foreach(var name in new[]{"UX_SasraProfile_Singleton","UX_SasraVersion","IsVersioned"})Check(xml.Contains(name),"EF includes "+name);
+  foreach(var table in new[]{"SasraInstitutionProfiles","SasraTemplateVersions","SasraLineDefinitions","LoanRepaymentPlans","LoanRepaymentInstalments","LoanNotices"})Check(xml.Contains("swiftFin_"+table),"EF discovers "+table);
+  foreach(var name in new[]{"UX_SasraProfile_Singleton","UX_SasraVersion","IsVersioned","UX_LoanNoticeDuplicate"})Check(xml.Contains(name),"EF includes "+name);
   Console.WriteLine("PASS: "+checks+" SASRA validation, atomic-save, revision and real EF model assertions; no database writes.");
  }
 }

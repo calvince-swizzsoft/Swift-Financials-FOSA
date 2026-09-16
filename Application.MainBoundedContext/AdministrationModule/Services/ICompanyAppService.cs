@@ -10,6 +10,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 {
     public interface ICompanyAppService
     {
+        ResolvedDefaulterNoticePolicyDTO ResolveDefaulterNoticePolicy(Guid loanCaseId, ServiceHeader serviceHeader);
+
         CompanyDTO AddNewCompany(CompanyDTO companyDTO, ServiceHeader serviceHeader);
 
         bool UpdateCompany(CompanyDTO companyDTO, ServiceHeader serviceHeader);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Data;
 using System.Data.SqlClient;
@@ -20,7 +20,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
   public LoanAgeingAppService(IDbContextScopeFactory scopes,IRepository<LoanRepaymentPlan> plans,IRepository<LoanRepaymentInstalment> instalments,IRepository<LoanCase> cases,IRepository<CustomerAccount> customers,IRepository<ChartOfAccount> accounts,IRepository<LoanRiskReview> riskReviews){this.riskReviews=riskReviews;this.scopes=scopes;this.plans=plans;this.instalments=instalments;this.cases=cases;this.customers=customers;this.accounts=accounts;}
   static void Check(bool ok,string field,string message,int status=400){if(!ok)throw new LoanAgeingException(field,message,status);}
   static void Page(int page,int size){Check(page>=0&&page<=100000&&size>0&&size<=100,"PageIndex","Choose a valid page and a page size between 1 and 100.");}
-  const string CasesSql=@"SELECT l.Id,l.CreatedDate,CAST(l.CaseNumber AS int) CaseNumber,p.Description Product,l.CustomerId,l.LoanProductId,l.BranchId,l.DisbursedDate,l.DisbursedAmount,CAST(l.Status AS int) Status,CAST(l.LoanRegistration_TermInMonths AS int) TermMonths,CAST(l.LoanRegistration_PaymentFrequencyPerYear AS int) Frequency,CAST(l.LoanInterest_CalculationMode AS int) CalculationMode,p.InterestReceivableChartOfAccountId,p.InterestChargedChartOfAccountId,p.ChartOfAccountId PrincipalChartOfAccountId,ISNULL(v.Revision,0) PlanRevision,ISNULL(v.IsConfirmed,0) IsConfirmed FROM dbo.swiftFin_LoanCases l JOIN dbo.swiftFin_LoanProducts p ON p.Id=l.LoanProductId OUTER APPLY (SELECT TOP 1 Revision,IsConfirmed FROM dbo.swiftFin_LoanRepaymentPlans s WHERE s.LoanCaseId=l.Id ORDER BY Revision DESC) v ";
+  const string CasesSql=@"SELECT l.Id,l.CreatedDate,CAST(l.CaseNumber AS int) CaseNumber,p.Description Product,CASE WHEN customer.Type=0 THEN LTRIM(RTRIM(COALESCE(customer.Individual_FirstName,'')+' '+COALESCE(customer.Individual_LastName,''))) ELSE customer.NonIndividual_Description END LoaneeName,l.CustomerId,l.LoanProductId,l.BranchId,l.DisbursedDate,l.DisbursedAmount,CAST(l.Status AS int) Status,CAST(l.LoanRegistration_TermInMonths AS int) TermMonths,CAST(l.LoanRegistration_PaymentFrequencyPerYear AS int) Frequency,CAST(l.LoanInterest_CalculationMode AS int) CalculationMode,p.InterestReceivableChartOfAccountId,p.InterestChargedChartOfAccountId,p.ChartOfAccountId PrincipalChartOfAccountId,ISNULL(v.Revision,0) PlanRevision,ISNULL(v.IsConfirmed,0) IsConfirmed FROM dbo.swiftFin_LoanCases l JOIN dbo.swiftFin_LoanProducts p ON p.Id=l.LoanProductId LEFT JOIN dbo.swiftFin_Customers customer ON customer.Id=l.CustomerId OUTER APPLY (SELECT TOP 1 Revision,IsConfirmed FROM dbo.swiftFin_LoanRepaymentPlans s WHERE s.LoanCaseId=l.Id ORDER BY Revision DESC) v ";
   const string CaseFilter=" WHERE l.Status IN (48829,48833) AND (@Text='' OR CONVERT(varchar(20),l.CaseNumber)=@Text OR p.Description LIKE @Like) ";
   public LoanAgeingCasePage GetCases(string text,int pageIndex,int pageSize,ServiceHeader h)
   {
@@ -76,7 +76,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
    return accounts.DatabaseSqlQuery<LoanAgeingPosting>(sql,h,new SqlParameter("@End",end)).ToList();
   }
   public LoanAgeingResult GetReport(DateTime asAt,Guid? branchId,int pageIndex,int pageSize,Guid? accountId,ServiceHeader h){return ReportCore(asAt,branchId,pageIndex,pageSize,accountId,h,false);}
-  LoanAgeingResult ReportCore(DateTime asAt,Guid? branchId,int pageIndex,int pageSize,Guid? accountId,ServiceHeader h,bool allDetails)
+  public LoanAgeingResult GetNoticeLoanReport(DateTime asAt,ServiceHeader h){return ReportCore(asAt,null,0,100,null,h,true,true);}
+  public LoanAgeingResult GetLoanReport(DateTime asAt,Guid? branchId,int pageIndex,int pageSize,ServiceHeader h){return ReportCore(asAt,branchId,pageIndex,pageSize,null,h,false,true);}
+  LoanAgeingResult ReportCore(DateTime asAt,Guid? branchId,int pageIndex,int pageSize,Guid? accountId,ServiceHeader h,bool allDetails,bool perLoan=false)
   {
    Page(pageIndex,pageSize);Check(asAt.Year>=1753&&asAt.Year<9999,"AsAt","Select a valid reporting date.");
    using(scopes.CreateReadOnlyWithTransaction(IsolationLevel.Serializable))
@@ -113,6 +115,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
      if(cs.Any(c=>linksByCustomerProduct[Tuple.Create(c.CustomerId,c.LoanProductId)].Count()>1)){item.Interest.Issues.Add("Multiple customer accounts match the same loan case.");item.Interest.DaysPastDue=null;item.Interest.OverdueInterest=null;item.Interest.Bucket="Needs review";item.Interest.Instalments.Clear();}
      if(item.DaysPastDue.HasValue&&item.Interest.DaysPastDue.HasValue){item.CombinedDaysPastDue=Math.Max(item.DaysPastDue.Value,item.Interest.DaysPastDue.Value);item.CombinedBucket=LoanAgeingEngine.Bucket(item.CombinedDaysPastDue.Value);}
      r.Accounts.Add(item);
+     if(perLoan)r.Loans.AddRange(LoanAgeingEngine.ByLoan(item,cs,asAt));
+     if(perLoan&&cs.Count==0)r.Issues.Add("A loan account has postings without a linked loan case; its balance cannot be listed per loan.");
     }
     r.AccountInterestReceivable=r.Accounts.Sum(x=>x.Interest.Receivable);
     r.LedgerInterestReceivable=branchId.HasValue?interestRows.Where(x=>x.CustomerAccountId.HasValue&&selectedIds.Contains(x.CustomerAccountId.Value)).Sum(x=>x.Amount):interestRows.Sum(x=>x.Amount);
@@ -126,6 +130,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
     r.Warnings.Add("Principal and confirmed contractual interest are aged separately. Combined days overdue requires both components to be resolved. SASRA classifications, provisions and restructuring are not assessed. Unknown accounts are excluded from known overdue totals.");
     r.Warnings.Add("Confirmed schedule corrections are applied to historical reports. The response identifies the schedule revision through its plan ID; earlier revisions remain available in schedule history.");
     r.Warnings.Add("Net principal reductions settle oldest due instalments first across cases sharing an account. Prepayments settle future instalments; refunds and repayment reversals reopen the most recently settled principal. This is a reporting allocation, not a new financial posting.");
+    if(perLoan){r.TotalLoans=r.Loans.Select(x=>x.LoanCaseId).Distinct().Count();r.Loans=r.Loans.GroupBy(x=>x.LoanCaseId).Select(g=>{var row=g.First();if(g.Count()>1){row.OutstandingPrincipal=null;row.OverduePrincipal=null;row.OverdueInterest=null;row.DaysPastDue=null;row.Status="Needs review";}return row;}).OrderBy(x=>x.CaseNumber).ThenBy(x=>x.LoanCaseId).ToList();if(!allDetails)r.Loans=r.Loans.Skip(pageIndex*pageSize).Take(pageSize).ToList();r.Accounts.Clear();return r;}
     if(accountId.HasValue){r.Accounts=r.Accounts.Where(x=>x.CustomerAccountId==accountId).ToList();Check(r.Accounts.Count>0,"CustomerAccountId","No loan account was found in this reporting scope.",404);}else if(!allDetails){r.Accounts=r.Accounts.Skip(pageIndex*pageSize).Take(pageSize).ToList();foreach(var a in r.Accounts){a.Instalments.Clear();a.Interest.Instalments.Clear();}}
     return r;
    }

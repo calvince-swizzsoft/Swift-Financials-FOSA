@@ -26,6 +26,7 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
  }
  public class LoanAgeingCaseDTO
  {
+  public string LoaneeName{get;set;}
   public DateTime CreatedDate{get;set;} public Guid Id{get;set;} public int CaseNumber{get;set;} public string Product{get;set;} public Guid CustomerId{get;set;} public Guid LoanProductId{get;set;} public Guid BranchId{get;set;}
   public DateTime? DisbursedDate{get;set;} public decimal DisbursedAmount{get;set;} public int Status{get;set;} public int TermMonths{get;set;} public int Frequency{get;set;} public int CalculationMode{get;set;}
   public Guid? InterestReceivableChartOfAccountId{get;set;} public Guid? InterestChargedChartOfAccountId{get;set;}
@@ -51,8 +52,15 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
   public Guid CustomerAccountId{get;set;} public List<int> CaseNumbers{get;set;}=new List<int>(); public decimal OutstandingPrincipal{get;set;} public decimal? OverduePrincipal{get;set;} public int? DaysPastDue{get;set;} public DateTime? OldestUnpaidDueDate{get;set;} public string Bucket{get;set;}
   public List<string> Issues{get;set;}=new List<string>(); public List<LoanAgeingInstalmentResult> Instalments{get;set;}=new List<LoanAgeingInstalmentResult>();
  }
+ public class LoanAgeingLoanResult
+ {
+  public Guid LoanCaseId{get;set;} public Guid CustomerAccountId{get;set;} public int CaseNumber{get;set;} public string LoaneeName{get;set;} public string Product{get;set;}
+  public decimal? OutstandingPrincipal{get;set;} public decimal? OverduePrincipal{get;set;} public decimal? OverdueInterest{get;set;} public int? DaysPastDue{get;set;} public string Status{get;set;}="Needs review";
+  public List<string> Issues{get;set;}=new List<string>();
+ }
  public class LoanAgeingResult
  {
+  public int TotalLoans{get;set;} public List<LoanAgeingLoanResult> Loans{get;set;}=new List<LoanAgeingLoanResult>();
   public decimal AccountInterestReceivable{get;set;} public decimal LedgerInterestReceivable{get;set;} public decimal InterestDifference{get;set;} public decimal KnownOverdueInterest{get;set;} public int InterestAccountsRequiringReview{get;set;}
   public DateTime AsAt{get;set;} public DateTime GeneratedAtUtc{get;set;} public string Policy{get;set;} public int TotalAccounts{get;set;} public int AccountsRequiringReview{get;set;} public decimal LedgerPrincipal{get;set;} public decimal AccountPrincipal{get;set;} public decimal Difference{get;set;} public decimal KnownOverduePrincipal{get;set;}
   public List<string> Issues{get;set;}=new List<string>(); public List<string> Warnings{get;set;}=new List<string>(); public List<LoanAgeingAccountResult> Accounts{get;set;}=new List<LoanAgeingAccountResult>();

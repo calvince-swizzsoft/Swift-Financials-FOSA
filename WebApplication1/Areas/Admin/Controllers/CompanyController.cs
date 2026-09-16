@@ -1,4 +1,4 @@
-using Application.MainBoundedContext.AdministrationModule.Services;
+﻿using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.AdministrationModule;
@@ -111,6 +111,10 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 return Ok(company);
             }
+            catch (System.Data.Entity.Infrastructure.DbUpdateConcurrencyException)
+            {
+                return ValidationError("Another user changed this company. Reopen it before saving.");
+            }
             catch (InvalidOperationException ex)
             {
                 // CompanyAppService owns company validation. Translate its
@@ -136,6 +140,10 @@ namespace WebApplication1.Areas.Admin.Controllers
 
                 var company = _companyAppService.FindCompany(id, serviceHeader);
                 return Ok(company);
+            }
+            catch (System.Data.Entity.Infrastructure.DbUpdateConcurrencyException)
+            {
+                return ValidationError("Another user changed this company. Reopen it before saving.");
             }
             catch (InvalidOperationException ex)
             {

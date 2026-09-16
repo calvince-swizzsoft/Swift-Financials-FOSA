@@ -5,6 +5,9 @@ namespace Application.MainBoundedContext.DTO.AdministrationModule
 {
     public class CompanyDTO
     {
+        public string DefaulterNoticePolicyJson { get; set; }
+        public int DefaulterNoticePolicyRevision { get; set; }
+
         [Display(Name = "Id")]
         public Guid Id { get; set; }
 

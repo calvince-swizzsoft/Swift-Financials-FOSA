@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -610,4 +610,6 @@
   </Target> -->
   <ItemGroup><Compile Include="Areas\Accounts\Controllers\CashFlowController.cs" /></ItemGroup>
   <ItemGroup><Compile Include="Areas\Accounts\Controllers\SasraSetupController.cs" /></ItemGroup>
-<ItemGroup><Compile Include="Areas\BackOffice\Controllers\LoanAgeingController.cs" /></ItemGroup></Project>
+<ItemGroup><Compile Include="Areas\BackOffice\Controllers\LoanAgeingController.cs" /></ItemGroup><ItemGroup><Compile Include="Areas\BackOffice\Controllers\LoanNoticePolicyController.cs" /></ItemGroup>
+<ItemGroup><Compile Include="Areas\BackOffice\Controllers\LoanNoticeController.cs" /></ItemGroup>
+</Project>

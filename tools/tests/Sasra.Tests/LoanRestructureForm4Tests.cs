@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -39,12 +39,12 @@ static class LoanRestructureForm4Tests
   portfolio.LedgerPrincipal=10000;portfolio.AccountPrincipal=10000;
   var reviews=portfolio.Accounts.Select((a,i)=>new LoanRiskReviewDTO{CustomerAccountId=a.CustomerAccountId,AsAt=at.Date,Revision=1,RiskCategory=i%5,ProvisioningAdjustment=0,Evidence="Synthetic credit and suspense review",BasisHash=SasraForm4.Basis(a)}).ToList();
   var form=SasraForm4.Build(request,portfolio,reviews);Check(form.Issues.Count==0&&form.Rows.All(x=>x.Accounts==1),"ten sections count each account once");Check(form.TotalExposure==10000&&form.TotalProvision==3620,"all five provision rates, ordinary and restructured");
-  using(var stream=new MemoryStream(Convert.FromBase64String(form.WorkbookBase64))){var wb=new HSSFWorkbook(stream);var sheet=wb.GetSheet("Portfolio Analysis");Check(sheet.GetRow(22).GetCell(2).NumericCellValue==10,"official workbook count formula");Check(sheet.GetRow(22).GetCell(5).NumericCellValue==3620,"official workbook provision formula");Check(wb.GetSheet("Review evidence")!=null,"review provenance accompanies export");for(int i=0;i<10;i++){int row=(i<5?9:16)+i%5;Check(sheet.GetRow(row).GetCell(3).NumericCellValue==1000,"official amount cell "+row);}}
+  using(var stream=new MemoryStream(Convert.FromBase64String(form.WorkbookBase64))){var wb=new HSSFWorkbook(stream);var sheet=wb.GetSheet("Portfolio Analysis");Check(sheet.GetRow(22).GetCell(2).NumericCellValue==10,"official workbook count formula");Check(sheet.GetRow(22).GetCell(5).NumericCellValue==3620,"official workbook provision formula");Check(wb.GetSheet("Loan detail")!=null,"account basis accompanies working export");for(int i=0;i<10;i++){int row=(i<5?9:16)+i%5;Check(sheet.GetRow(row).GetCell(3).NumericCellValue==1000,"official amount cell "+row);}}
   if(Environment.GetEnvironmentVariable("FORM4_TEST_OUTPUT") is string output&&!string.IsNullOrWhiteSpace(output))File.WriteAllBytes(output,Convert.FromBase64String(form.WorkbookBase64));
-  reviews[0].ProvisioningAdjustment=100;form=SasraForm4.Build(request,portfolio,reviews);Check(form.TotalExposure==10100&&form.TotalProvision==3621,"supported adjustment separate from principal");
-  reviews.RemoveAt(0);form=SasraForm4.Build(request,portfolio,reviews);Check(form.WorkbookBase64==null&&form.UnresolvedAccounts==1,"missing review blocks incomplete export");
-  reviews[0].BasisHash="stale";form=SasraForm4.Build(request,portfolio,reviews);Check(form.UnresolvedAccounts==2,"stale review rejected");
-  portfolio.Issues.Add("G/L difference");form=SasraForm4.Build(request,portfolio,reviews);Check(form.WorkbookBase64==null,"ledger discrepancy blocks export");
+  reviews[0].ProvisioningAdjustment=100;form=SasraForm4.Build(request,portfolio,reviews);Check(form.TotalExposure==10000&&form.TotalProvision==3620,"UI adjustments do not change system-derived export");
+  reviews.RemoveAt(0);form=SasraForm4.Build(request,portfolio,reviews);Check(form.WorkbookBase64!=null&&form.UnresolvedAccounts==0,"dated UI review is not an export prerequisite");
+  reviews[0].BasisHash="stale";form=SasraForm4.Build(request,portfolio,reviews);Check(form.UnresolvedAccounts==0,"stale manual review is not applied");
+  portfolio.Issues.Add("G/L difference");form=SasraForm4.Build(request,portfolio,reviews);Check(form.WorkbookBase64!=null&&form.Issues.Count>0,"ledger discrepancy is disclosed in working export");
   Check(SasraForm4.Open().GetSheet("Portfolio Analysis")!=null,"embedded workbook checksum verified");
   Console.WriteLine("PASS: "+checks+" restructuring, risk-classification and Form 4 workbook assertions.");
  }

@@ -25,12 +25,20 @@ namespace WebApplication1.Areas.BackOffice.Controllers
   }
   [HttpPost,Route("form4")]public IHttpActionResult Form4(SasraForm4Request input){return Execute(()=>service.PreviewForm4(input,Utils.CreateServiceHeader()));}
   [HttpPost,Route("risk-reviews")]public IHttpActionResult RiskReview(LoanRiskReviewDTO input){return Execute(()=>service.SaveRiskReview(input,Utils.CreateServiceHeader()));}
-  [HttpGet,Route("cases")]public IHttpActionResult Cases(string text="",int pageIndex=0,int pageSize=20){return Execute(()=>service.GetCases(text,pageIndex,pageSize,Utils.CreateServiceHeader()));}
+  [HttpGet,Route("cases")]
+  public IHttpActionResult Cases(string text="",int pageIndex=0,int pageSize=20)
+  {
+   // Web API binds ?text= to null and adds text.String as a required-value error.
+   // Search is optional. Keep every other binding error, including invalid paging.
+   if(string.IsNullOrWhiteSpace(text))ModelState.Remove("text.String");
+   return Execute(()=>service.GetCases(text,pageIndex,pageSize,Utils.CreateServiceHeader()));
+  }
   [HttpGet,Route("cases/{id:guid}/schedule-proposal")]public IHttpActionResult Proposal(Guid id){return Execute(()=>service.GenerateSchedule(id,Utils.CreateServiceHeader()));}
   [HttpPost,Route("generated-schedules/confirm")]public IHttpActionResult ConfirmGenerated(List<LoanScheduleConfirmationDTO> input){return Execute(()=>service.ConfirmGeneratedSchedules(input,Utils.CreateServiceHeader()));}
   [HttpGet,Route("cases/{id:guid}/plan")]public IHttpActionResult Plan(Guid id){return Execute(()=>service.GetPlan(id,Utils.CreateServiceHeader()));}
   [HttpGet,Route("cases/{id:guid}/history")]public IHttpActionResult History(Guid id){return Execute(()=>service.GetHistory(id,Utils.CreateServiceHeader()));}
   [HttpPost,Route("plans")]public IHttpActionResult Save(LoanPlanDTO input){return Execute(()=>service.SavePlan(input,Utils.CreateServiceHeader()));}
+  [HttpGet,Route("loans")]public IHttpActionResult Loans(DateTime asAt,Guid? branchId=null,int pageIndex=0,int pageSize=20){return Execute(()=>service.GetLoanReport(asAt,branchId,pageIndex,pageSize,Utils.CreateServiceHeader()));}
   [HttpGet,Route("report")]public IHttpActionResult Report(DateTime asAt,Guid? branchId=null,int pageIndex=0,int pageSize=20,Guid? accountId=null){return Execute(()=>service.GetReport(asAt,branchId,pageIndex,pageSize,accountId,Utils.CreateServiceHeader()));}
  }
 }

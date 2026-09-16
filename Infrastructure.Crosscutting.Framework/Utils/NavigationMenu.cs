@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Infrastructure.Crosscutting.Framework.Utils
@@ -331,6 +331,13 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                     Code = 0x00011170 + 16 },
                 new NavigationMenu { AreaCode = 0x00011170 + 12, IsArea = false, Description = "Guarantor Management", Icon = "fa fa-users", ControllerName = "GuarantorManagement", ActionName = "Create", AreaName = "Loaning",
                     Code = 0x00011170 + 17 },
+
+                new NavigationMenu { AreaCode = 0x00011170 + 12, IsArea = false, Description = "Defaulter Notices", Icon = "fa fa-envelope", ControllerName = "DefaulterNotices", ActionName = "Index", AreaName = "Loaning",
+                    Code = 0x00011170 + 25 },
+                new NavigationMenu { AreaCode = 0x00011170 + 12, IsArea = false, Description = "Loan Ageing", Icon = "fa fa-calendar", ControllerName = "LoanAgeing", ActionName = "Index", AreaName = "Loaning",
+                    Code = 0x00011170 + 23 },
+                new NavigationMenu { AreaCode = 0x00011170 + 12, IsArea = false, Description = "Repayment Schedules", Icon = "fa fa-calendar", ControllerName = "RepaymentSchedules", ActionName = "Index", AreaName = "Loaning",
+                    Code = 0x00011170 + 24 },
 
                 //..Data Capture
                 new NavigationMenu { AreaCode = 0x00011170 + 2, IsArea = true, Description = "Data Capture", Icon = "", Code = 0x00011170 + 18 },

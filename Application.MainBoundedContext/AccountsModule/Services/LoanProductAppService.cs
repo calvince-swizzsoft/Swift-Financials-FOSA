@@ -142,6 +142,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 add("LoanInterestAnnualPercentageRate", "Annual percentage rate must be between 0% and 100%.");
             if (!Enum.IsDefined(typeof(InterestChargeMode), dto.LoanInterestChargeMode)) add("LoanInterestChargeMode", "Select a valid interest charge mode.");
             if (!Enum.IsDefined(typeof(InterestRecoveryMode), dto.LoanInterestRecoveryMode)) add("LoanInterestRecoveryMode", "Select a valid interest recovery mode.");
+            if (dto.LoanInterestChargeMode == (int)InterestChargeMode.Periodic && dto.LoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront)
+                add("LoanInterestRecoveryMode", "Periodic interest charging requires periodic recovery. Select Periodic recovery, or change charging to Upfront if the full-term interest must be collected at disbursement.");
             if (!Enum.IsDefined(typeof(InterestCalculationMode), dto.LoanInterestCalculationMode)) add("LoanInterestCalculationMode", "Select a valid interest calculation mode.");
             if (!Enum.IsDefined(typeof(LoanProductSection), dto.LoanRegistrationLoanProductSection)) add("LoanRegistrationLoanProductSection", "Select a valid loan-product section.");
             if (!Enum.IsDefined(typeof(LoanProductCategory), dto.LoanRegistrationLoanProductCategory)) add("LoanRegistrationLoanProductCategory", "Select a valid loan-product category.");

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Data;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
   public SasraForm4Result PreviewForm4(SasraForm4Request input,ServiceHeader h)
   {
    SasraForm4.Validate(input);var report=ReportCore(input.AsAt,null,0,100,null,h,true);
-   using(scopes.CreateReadOnly()){var saved=riskReviews.AllMatching(new DirectSpecification<LoanRiskReview>(x=>x.AsAt==input.AsAt.Date),h).GroupBy(x=>x.CustomerAccountId).Select(g=>g.OrderByDescending(x=>x.Revision).First()).Select(ReviewDto).ToList();return SasraForm4.Build(input,report,saved);}
+   return SasraForm4.Build(input,report,new List<LoanRiskReviewDTO>()); // Form 4 adjustments and credit review are completed in Excel.
   }
   public LoanRiskReviewDTO SaveRiskReview(LoanRiskReviewDTO input,ServiceHeader h)
   {

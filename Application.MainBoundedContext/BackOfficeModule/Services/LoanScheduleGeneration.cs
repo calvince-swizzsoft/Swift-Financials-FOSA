@@ -14,7 +14,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
    if(frequency<=12)return anchor.AddMonths(n*(12/frequency));
    return anchor.AddDays(n*(frequency==24?15:frequency==26?14:frequency==52?7:1));
   }
-  public static LoanScheduleProposalDTO Generate(LoanPlanDTO p,int term,int frequency,int grace,int paymentDue,int mode,double apr)
+  public static LoanScheduleProposalDTO Generate(LoanPlanDTO p,int term,int frequency,int grace,int paymentDue,int mode,double apr,decimal minimumInterest=0,int? interestRounding=null)
   {
    if(term<1||term>1200||!Enum.IsDefined(typeof(PaymentFrequencyPerYear),frequency)||grace<0||paymentDue<0||paymentDue>1||!Enum.IsDefined(typeof(InterestCalculationMode),mode)||double.IsNaN(apr)||double.IsInfinity(apr)||apr<0||apr>1000)
     throw new LoanAgeingException("LoanTerms","The saved loan has invalid or unsupported term, frequency, grace, payment timing or interest settings.");
@@ -27,7 +27,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
     // deliberately discarded; all dates here come from this loan's saved settings.
     var rows=new FinancialsService().RepaymentSchedule(term,frequency,grace,mode,apr,-(double)p.Principal,0,paymentDue);
     if(rows.Count!=(int)count)throw new LoanAgeingException("Instalments","The saved terms produced an unexpected number of instalments.");
-    p.Instalments=rows.Select((x,i)=>new LoanPlanInstalmentDTO{Number=i+1,DueDate=DueDate(p.DisbursementDate,grace,frequency,paymentDue,i),Principal=decimal.Round(x.PrincipalPayment,2,MidpointRounding.AwayFromZero),Interest=decimal.Round(x.InterestPayment,2,MidpointRounding.AwayFromZero),InterestDueDate=DueDate(p.DisbursementDate,grace,frequency,paymentDue,i)}).ToList();
+    p.Instalments=rows.Select((x,i)=>new LoanPlanInstalmentDTO{Number=i+1,DueDate=DueDate(p.DisbursementDate,grace,frequency,paymentDue,i),Principal=decimal.Round(x.PrincipalPayment,2,MidpointRounding.AwayFromZero),Interest=PeriodicInterest(x.InterestPayment,minimumInterest,interestRounding),InterestDueDate=DueDate(p.DisbursementDate,grace,frequency,paymentDue,i)}).ToList();
     decimal residual=p.Principal-p.Instalments.Sum(x=>x.Principal);
     if(Math.Abs(residual)>.01m*(count+1))throw new LoanAgeingException("Principal","The saved terms do not amortize the posted principal. Review the payment timing and interest method.");
     p.Instalments.Last().Principal+=residual;
@@ -36,6 +36,22 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
    }
    catch(ArgumentException){throw new LoanAgeingException("LoanTerms","The saved terms produce unsupported dates or financial calculations. Review the term, rate and original disbursement date.");}
    catch(OverflowException){throw new LoanAgeingException("LoanTerms","The saved terms exceed the supported amount or date range.");}
+  }
+  public static decimal PeriodicInterest(decimal calculated,decimal minimum,int? rounding=null)
+  {
+   if(minimum<0||minimum>1000000000000000m||decimal.Round(minimum,2)!=minimum)
+    throw new LoanAgeingException("MinimumInterestAmount","The loan's saved minimum interest must be non-negative and have at most two decimal places.");
+   if(rounding.HasValue&&!Enum.IsDefined(typeof(RoundingType),rounding.Value))
+    throw new LoanAgeingException("RoundingType","The loan's saved interest rounding rule is unsupported.");
+   // Match the periodic charging rule: apply the per-period floor, then rounding.
+   decimal amount=Math.Max(calculated,minimum);
+   if(rounding.HasValue)switch((RoundingType)rounding.Value){
+    case RoundingType.ToEven: amount=decimal.Round(amount,0,MidpointRounding.ToEven);break;
+    case RoundingType.AwayFromZero: amount=decimal.Round(amount,0,MidpointRounding.AwayFromZero);break;
+    case RoundingType.Ceiling: amount=decimal.Ceiling(amount);break;
+    case RoundingType.Floor: amount=decimal.Floor(amount);break;
+   }
+   return decimal.Round(amount,2,MidpointRounding.AwayFromZero);
   }
   public static void Upfront(LoanPlanDTO p,decimal total)
   {

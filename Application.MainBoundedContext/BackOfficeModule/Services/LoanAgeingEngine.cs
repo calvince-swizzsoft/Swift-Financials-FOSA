@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using Application.MainBoundedContext.DTO;
@@ -41,6 +41,30 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
   {
    var e=new LoanRepaymentPlan{IsRestructuring=p.IsRestructuring,EffectiveAt=p.EffectiveAt,OpeningInterest=p.OpeningInterest,PriorRiskCategory=p.PriorRiskCategory,PriorPlanIds=p.PriorPlanIds,OpeningLedgerHash=p.OpeningLedgerHash,InterestTermsConfirmed=p.InterestTermsConfirmed,InterestReceivableChartOfAccountId=p.InterestReceivableChartOfAccountId,InterestChargedChartOfAccountId=p.InterestChargedChartOfAccountId,LoanCaseId=p.LoanCaseId,CustomerAccountId=p.CustomerAccountId,PrincipalChartOfAccountId=p.PrincipalChartOfAccountId,SourceJournalId=p.SourceJournalId,Revision=p.Revision,IsConfirmed=p.IsConfirmed,DisbursementDate=p.DisbursementDate.Date,Principal=p.Principal,Evidence=p.Evidence.Trim(),AllocationPolicy=p.AllocationPolicy,CreatedBy=h.ApplicationUserName,CreatedDate=DateTime.Now};e.GenerateNewIdentity();
    foreach(var r in p.Instalments){var row=new LoanRepaymentInstalment{PlanId=e.Id,Number=r.Number,DueDate=r.DueDate.Date,Principal=r.Principal,Interest=r.Interest,InterestDueDate=r.InterestDueDate?.Date,CreatedDate=e.CreatedDate,CreatedBy=e.CreatedBy};row.GenerateNewIdentity();e.Instalments.Add(row);}return e;
+  }
+  // Project already allocated instalments, never allocate the same account repayments again per loan.
+  public static List<LoanAgeingLoanResult> ByLoan(LoanAgeingAccountResult account,List<LoanAgeingCaseDTO> cases,DateTime asAt)
+  {
+   return cases.Select(c=>{
+    var row=new LoanAgeingLoanResult{LoanCaseId=c.Id,CustomerAccountId=account.CustomerAccountId,CaseNumber=c.CaseNumber,LoaneeName=c.LoaneeName,Product=c.Product};
+    row.Issues.AddRange(account.Issues);if(account.Interest!=null)row.Issues.AddRange(account.Interest.Issues);
+    var principal=account.Instalments.Where(x=>x.CaseNumber==c.CaseNumber).ToList();
+    int? principalDays=null,interestDays=null;
+    if(account.DaysPastDue.HasValue&&account.Issues.Count==0){
+     row.OutstandingPrincipal=principal.Sum(x=>x.RemainingPrincipal);
+     row.OverduePrincipal=principal.Where(x=>x.DueDate.Date<asAt.Date).Sum(x=>x.RemainingPrincipal);
+     principalDays=principal.Where(x=>x.RemainingPrincipal>0).Select(x=>Math.Max(0,(asAt.Date-x.DueDate.Date).Days)).DefaultIfEmpty(0).Max();
+    }else if(cases.Count==1)row.OutstandingPrincipal=account.OutstandingPrincipal;
+    if(account.Interest!=null&&account.Interest.DaysPastDue.HasValue&&account.Interest.Issues.Count==0){
+     var interest=account.Interest.Instalments.Where(x=>x.CaseNumber==c.CaseNumber).ToList();
+     row.OverdueInterest=interest.Where(x=>x.DueDate.Date<asAt.Date).Sum(x=>x.RemainingInterest);
+     interestDays=interest.Where(x=>x.RemainingInterest>0).Select(x=>Math.Max(0,(asAt.Date-x.DueDate.Date).Days)).DefaultIfEmpty(0).Max();
+    }
+    if(principalDays.HasValue&&interestDays.HasValue){row.DaysPastDue=Math.Max(principalDays.Value,interestDays.Value);row.Status=Bucket(row.DaysPastDue.Value);}
+    if(cases.Count>1)row.Issues.Add("Repayments shared by these loans are allocated to the oldest due instalments first. These are reporting allocations.");
+    if(account.IsRestructured&&principal.Count==0&&account.OutstandingPrincipal>0&&principalDays.HasValue)row.Issues.Add("This loan's original balance is covered by the replacement restructuring schedule.");
+    return row;
+   }).ToList();
   }
   public static string Bucket(int days){return days==0?"Current":days<=30?"1–30 days":days<=90?"31–90 days":days<=180?"91–180 days":days<=360?"181–360 days":"Over 360 days";}
   public static LoanAgeingAccountResult Calculate(Guid accountId,DateTime asAt,List<LoanAgeingCaseDTO> cases,List<LoanPlanDTO> plans,List<LoanAgeingPosting> postings)

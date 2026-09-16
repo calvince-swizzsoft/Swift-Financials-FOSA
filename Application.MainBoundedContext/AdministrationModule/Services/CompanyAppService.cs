@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace Application.MainBoundedContext.AdministrationModule.Services
 {
-    public class CompanyAppService : ICompanyAppService
+    public partial class CompanyAppService : ICompanyAppService
     {
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<Company> _companyRepository;
@@ -89,6 +89,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                     company.EnforceFileTracking();
                 else company.ExemptFileTracking();
 
+                ApplyNoticePolicy(company, companyDTO, null);
                 _companyRepository.Add(company, serviceHeader);
 
                 return dbContextScope.SaveChanges(serviceHeader) >= 0 ? company.ProjectedAs<CompanyDTO>() : null;
@@ -121,6 +122,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
                         current.EnforceFileTracking();
                     else current.ExemptFileTracking();
 
+                    ApplyNoticePolicy(current, companyDTO, persisted);
                     _companyRepository.Merge(persisted, current, serviceHeader);
 
                     // Lock?

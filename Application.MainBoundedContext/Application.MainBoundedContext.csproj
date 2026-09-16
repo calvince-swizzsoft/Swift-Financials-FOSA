@@ -501,4 +501,7 @@
 <ItemGroup><EmbeddedResource Include="AccountsModule\Templates\form4-risk-classification.xls"><LogicalName>Sasra.Form4.xls</LogicalName></EmbeddedResource></ItemGroup>
   <ItemGroup><Compile Include="BackOfficeModule\Services\LoanAgeingAppService.Generation.cs" /></ItemGroup>
   <ItemGroup><Compile Include="BackOfficeModule\Services\LoanScheduleGeneration.cs" /></ItemGroup>
+<ItemGroup><Compile Include="AdministrationModule\Services\CompanyAppService.Notices.cs" /></ItemGroup>
+<ItemGroup><Compile Include="BackOfficeModule\Services\LoanNoticeAppService.cs" /></ItemGroup>
+<ItemGroup><Compile Include="BackOfficeModule\Services\ILoanNoticeAppService.cs" /></ItemGroup>
 </Project>

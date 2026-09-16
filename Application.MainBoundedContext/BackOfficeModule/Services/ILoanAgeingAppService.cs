@@ -15,6 +15,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
   LoanPlanDTO GetPlan(Guid caseId,ServiceHeader h);
   List<LoanPlanDTO> GetHistory(Guid caseId,ServiceHeader h);
   LoanPlanDTO SavePlan(LoanPlanDTO input,ServiceHeader h);
+  LoanAgeingResult GetNoticeLoanReport(DateTime asAt,ServiceHeader h);
+  LoanAgeingResult GetLoanReport(DateTime asAt,Guid? branchId,int pageIndex,int pageSize,ServiceHeader h);
   LoanAgeingResult GetReport(DateTime asAt,Guid? branchId,int pageIndex,int pageSize,Guid? accountId,ServiceHeader h);
  }
 }

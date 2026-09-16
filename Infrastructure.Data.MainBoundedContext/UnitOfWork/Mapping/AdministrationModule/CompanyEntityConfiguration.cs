@@ -16,6 +16,8 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.Administrati
         public CompanyEntityConfiguration()
         {
             HasKey(x => x.Id);
+            Property(x => x.DefaulterNoticePolicyJson).IsOptional().IsMaxLength();
+            Property(x => x.DefaulterNoticePolicyRevision).IsConcurrencyToken();
 
             Property(t => t.SequentialId).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsClustered = true, IsUnique = true })); Property(x => x.CreatedBy).HasMaxLength(256);
 

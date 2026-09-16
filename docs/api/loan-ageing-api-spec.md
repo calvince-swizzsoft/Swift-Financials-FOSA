@@ -74,3 +74,14 @@ POST `api/backoffice/loan-ageing/risk-reviews`: `{customerAccountId,asAt,revisio
 Plan DTOs add `isRestructuring`, `effectiveAt`, `openingInterest`, `priorRiskCategory`, `priorPlanIds` and `openingLedgerHash`. Original loan plans cannot submit restructure metadata. The source case must have a posted restructuring; confirmed replacements require confirmed interest and prior schedules. Opening amounts/identifiers are server-derived. Reports before the effective boundary retain original terms. Reopening a replacement proposes current opening references; saving a correction appends a revision.
 
 New domain table: `swiftFin_LoanRiskReviews`. Repayment-plan fields are additive EF changes; normal automatic migration only. All three Debug migration hosts must use the updated domain/infrastructure assemblies.
+
+
+## Historical schedule proposals and Excel-only Form 4 adjustments
+
+`GET cases/{id}/schedule-proposal` returns a read-only plan, source terms, warnings, canConfirm and proposalHash. Dates come from the original disbursement, saved payment timing and grace. Original case terms are used, including posted upfront interest once. Missing or contradictory terms block bulk confirmation.
+
+`POST generated-schedules/confirm` accepts 1–100 distinct `{loanCaseId, revision, proposalHash}` records. It rechecks every proposal and saves immutable confirmed revisions in one serializable transaction. Stale proposals return 409. No financial postings or new schema are involved.
+
+`POST form4` now exports a system-derived working copy, using calculated categories and booked principal without manual UI review adjustments. Institution details remain required. Unresolved accounts and G/L differences are included in the workbook as exceptions. `isWorkingCopy`, `unclassifiedPrincipal`, account `isSettled` and `interestReceivable` describe this basis. Unclassified accounts retain blank Excel categories; they are not silently classified as performing.
+
+The Loan detail worksheet exposes blue category, adjustment, inclusion and explanation cells. These feed the original Form 4 count/exposure/provision formulas. Excel changes do not persist to the database. The legacy risk-review endpoint remains for compatibility but is no longer used by this Form 4 workflow.
