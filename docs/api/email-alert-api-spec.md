@@ -13,9 +13,10 @@ It persists the alert and places its ID on the email MSMQ queue; see
 
 `GET /?dlrStatus=8&text=&startDate=&endDate=&pageIndex=0&pageSize=20`
 
-- `dlrStatus` defaults to `8` (`Delivered`). Valid `DLRStatus` values are
-  `1` Unknown, `2` Failed, `4` Pending, `8` Delivered, `16` Not Applicable,
-  and `32` Submitted.
+- `dlrStatus` defaults to `8` (`Sent`). Valid `DLRStatus` values are
+  `1` Unknown, `2` Failed, `4` Pending, `8` Sent, `16` Not Applicable,
+  and `32` Submitted (legacy). The numeric/shared enum value 8 remains unchanged;
+  `MailMessageDLRStatusDescription` now returns `Sent` for email only. SMS labels are unchanged.
 - `text` searches recipient, subject, and body through the existing app
   service specification.
 - `startDate` and `endDate` are optional, but must be supplied together.
@@ -65,3 +66,23 @@ response means queued—not delivered to an inbox.
 
 There are intentionally no public update/delete endpoints. Updates are an
 internal dispatcher concern used to record delivery state.
+
+## Sending outcomes
+
+The dispatcher processes Pending/Unknown records. Successful SMTP acceptance is
+shown as Sent; this does not confirm inbox delivery or that the message was read.
+Send/preparation exceptions record Failed and increment the attempt counter.
+Once the failure is saved, the queue item is acknowledged and failed records are
+not automatically resent. The exception is logged by the dispatcher, not exposed
+as raw SMTP details in the UI. Submitted remains available for legacy records.
+
+If saving the status fails, the error propagates so MSMQ retains the queue item.
+A failure to save Sent after SMTP acceptance must not falsely record Failed;
+SMTP and the database are not atomic, so that failure can still cause a retry.
+Missing domain configuration or a missing record remains a processing error;
+no safe record update is possible in those cases.
+
+Apply the updated email-dispatcher binaries to the service host and restart that
+host, as well as updating the API for the revised status description. Existing
+Pending records are not retroactively changed to Failed without a send attempt.
+No schema migration is required.

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -8,6 +8,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
     {
         SasraVersionDTO GetForm3Definition(ServiceHeader header);
         SasraForm3Result PreviewForm3(SasraForm3Request input,ServiceHeader header);
+        SasraVersionDTO GetForm5Definition(ServiceHeader header);
+        SasraForm5Result PreviewForm5(SasraForm5Request input,ServiceHeader header);
         SasraVersionDTO GetForm2Definition(ServiceHeader header);
         SasraForm2Result PreviewForm2(SasraForm2Request input,ServiceHeader header);
         SasraVersionDTO GetForm1Definition(ServiceHeader header);

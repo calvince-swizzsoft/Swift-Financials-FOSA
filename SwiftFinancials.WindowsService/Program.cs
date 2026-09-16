@@ -21,6 +21,7 @@ namespace SwiftFinancials.WindowsService
             {
                 Console.Error.WriteLine("Usage: SwiftFinancials.WindowsService.exe [--check-startup]");
                 return 2;
+
             }
 #if (!DEBUG)
             ServiceBase.Run(new ServiceBase[] { new MainService() });

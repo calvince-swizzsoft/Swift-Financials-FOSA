@@ -1,4 +1,4 @@
-﻿using Domain.Seedwork.Specification;
+using Domain.Seedwork.Specification;
 using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -21,14 +21,17 @@ namespace Domain.MainBoundedContext.Aggregates.AuditTrailAgg
 
             if (startDate != null && endDate != null)
             {
-                endDate = UberUtil.AdjustTimeSpan(endDate);
+                var endExclusive = endDate.Date.AddDays(1);
+                startDate = startDate.Date;
 
-                var dateRangeSpec = new DirectSpecification<AuditTrail>(x => x.CreatedDate >= startDate && x.CreatedDate <= endDate);
+                var dateRangeSpec = new DirectSpecification<AuditTrail>(x => x.CreatedDate >= startDate && x.CreatedDate < endExclusive);
 
                 specification &= dateRangeSpec;
 
                 if (!String.IsNullOrWhiteSpace(text))
                 {
+                    Guid customerId;
+                    var hasCustomerId = Guid.TryParse(text.Trim(), out customerId);
                     text = text.SanitizePatIndexInput();
 
                     var eventTypeSpec = new DirectSpecification<AuditTrail>(c => SqlFunctions.PatIndex(text, c.EventType) > 0);
@@ -44,7 +47,9 @@ namespace Domain.MainBoundedContext.Aggregates.AuditTrailAgg
                     var environmentProcessorIdSpec = new DirectSpecification<AuditTrail>(c => SqlFunctions.PatIndex(text, c.EnvironmentProcessorId) > 0);
                     var environmentIPAddressSpec = new DirectSpecification<AuditTrail>(c => SqlFunctions.PatIndex(text, c.EnvironmentIPAddress) > 0);
 
-                    specification &= (eventTypeSpec | activitySpec |
+                    var customerSpec = new DirectSpecification<AuditTrail>(c => hasCustomerId && c.CustomerId == customerId);
+
+                    specification &= (customerSpec | eventTypeSpec | activitySpec |
                         applicationUserNameSpec | applicationUserDesignationSpec | environmentUserNameSpec | environmentMachineNameSpec | environmentOSVersionSpec | environmentMACAddressSpec | environmentMotherboardSerialNumberSpec | environmentProcessorIdSpec | environmentIPAddressSpec);
                 }
             }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Data;
@@ -98,11 +98,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             if(input.Version==SasraForm1.Version) SasraForm1.Validate(input);
             if(input.Version==SasraForm2.Version) SasraForm2.Validate(input);
             if(input.Version==SasraForm3.Version) SasraForm3.Validate(input);
+            if(input.Version==SasraForm5.Version) SasraForm5.Validate(input);
             var codes=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var cells=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var used=new HashSet<Guid>();
             for(int i=0;i<input.Lines.Count;i++)
             {
                 var l=input.Lines[i];var f="Lines["+i+"]";Check(l!=null,f,"Remove the empty line.");l.Code=Required(l.Code,f+".Code",40);l.Description=Required(l.Description,f+".Description",256);
-                Check(codes.Add(l.Code),f+".Code","Line codes must be unique.");Check((new[]{"Header","GlBalance","GlMovement"}.Contains(l.Source)||(input.Version==SasraForm6.Version && new[]{"Formula","CurrentSurplus"}.Contains(l.Source))||(input.Version==SasraForm7.Version&&l.Source=="Formula")||((input.Version==SasraForm1.Version||input.Version==SasraForm2.Version)&&new[]{"Formula","Manual","Derived","Constant"}.Contains(l.Source))),f+".Source","Select Header, G/L closing balance or G/L movement.");
+                Check(codes.Add(l.Code),f+".Code","Line codes must be unique.");Check((new[]{"Header","GlBalance","GlMovement"}.Contains(l.Source)||(input.Version==SasraForm6.Version && new[]{"Formula","CurrentSurplus"}.Contains(l.Source))||(input.Version==SasraForm7.Version&&l.Source=="Formula")||((input.Version==SasraForm1.Version||input.Version==SasraForm2.Version||input.Version==SasraForm5.Version)&&new[]{"Formula","Manual","Derived","Constant"}.Contains(l.Source))),f+".Source","Select Header, G/L closing balance or G/L movement.");
                 Check(l.Sign==1||l.Sign==-1,f+".Sign","Select preserve sign or reverse sign.");Check(l.AccountIds!=null&&l.AccountIds.Count<=500,f+".AccountIds","A line may contain up to 500 account mappings.");
                 if(l.Source=="Header"){Check(l.AccountIds.Count==0&&string.IsNullOrWhiteSpace(l.Cell)&&string.IsNullOrWhiteSpace(l.Sheet),f,"Headers cannot have account mappings or output cells.");continue;}
                 l.Sheet=Required(l.Sheet,f+".Sheet",31);Check(!Regex.IsMatch(l.Sheet,@"[\[\]:*?/\\]"),f+".Sheet","Enter a valid worksheet name.");
@@ -144,6 +145,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     if(input.Version==SasraForm1.Version)
                         foreach(var line in input.Lines.Where(x=>x.AccountIds.Count>0))
                             Check(selected.Where(x=>line.AccountIds.Contains(x.Id)).All(x=>SasraForm1.AllowsAccountType(line.Cell,x.AccountType)),"AccountIds",line.Description+": select equity accounts for capital components or asset accounts for on-balance-sheet assets.");
+                    if(input.Version==SasraForm5.Version)
+                        Check(selected.All(x=>x.AccountType==1000),"AccountIds","Form 5 requires asset posting accounts.");
                     if(input.Version==SasraForm2.Version)
                         foreach(var line in input.Lines.Where(x=>x.AccountIds.Count>0))
                             Check(selected.Where(x=>line.AccountIds.Contains(x.Id)).All(x=>SasraForm2.AllowsAccountType(line.Cell,x.AccountType)),"AccountIds",line.Description+": select matching asset or liability posting accounts.");

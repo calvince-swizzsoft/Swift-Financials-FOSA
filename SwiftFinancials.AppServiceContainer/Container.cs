@@ -176,6 +176,7 @@ namespace SwiftFinancials.AppServiceContainer
             Current.RegisterType<IAdministrativeDivisionAppService, AdministrativeDivisionAppService>();
 
             Current.RegisterType<ILoanPurposeAppService, LoanPurposeAppService>();
+            Current.RegisterType<ILoanAgeingAppService, LoanAgeingAppService>();
             Current.RegisterType<ILoanCaseAppService, LoanCaseAppService>();
             Current.RegisterType<IIncomeAdjustmentAppService, IncomeAdjustmentAppService>();
             Current.RegisterType<ILoaningRemarkAppService, LoaningRemarkAppService>();

@@ -483,4 +483,5 @@
 <ItemGroup><Compile Include="BackOfficeModule\LoanAgeingDTO.cs" /></ItemGroup><ItemGroup><Compile Include="BackOfficeModule\SasraForm4DTO.cs" /></ItemGroup>
 <ItemGroup><Compile Include="AdministrationModule\DefaulterNoticePolicyDTO.cs" /></ItemGroup>
 <ItemGroup><Compile Include="BackOfficeModule\LoanNoticeDTO.cs" /></ItemGroup>
+<ItemGroup><Compile Include="AccountsModule\SasraForm5DTO.cs" /></ItemGroup>
 </Project>

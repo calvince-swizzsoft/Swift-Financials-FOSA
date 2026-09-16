@@ -20,6 +20,7 @@ public class EmailProcessingTests
     {
         public EmailAlertDTO Record;
         public int Finds, Updates;
+        public bool UpdateSucceeds = true;
         public EmailService() : base(typeof(IEmailAlertAppService)) { }
         public override IMessage Invoke(IMessage message)
         {
@@ -27,7 +28,7 @@ public class EmailProcessingTests
             object result;
             if (call.MethodName == "GetType") result = typeof(IEmailAlertAppService);
             else if (call.MethodName == "FindEmailAlert") { Finds++; result = Record; }
-            else if (call.MethodName == "UpdateEmailAlert") { Updates++; Record = (EmailAlertDTO)call.Args[0]; result = true; }
+            else if (call.MethodName == "UpdateEmailAlert") { Updates++; Record = (EmailAlertDTO)call.Args[0]; result = UpdateSucceeds; }
             else throw new Exception("Unexpected application operation: " + call.MethodName);
             return new ReturnMessage(result, null, 0, call.LogicalCallContext, call);
         }
@@ -35,6 +36,7 @@ public class EmailProcessingTests
     private class SmtpService : RealProxy
     {
         public int Sends;
+        public Exception Failure;
         public SmtpService() : base(typeof(ISmtpService)) { }
         public override IMessage Invoke(IMessage message)
         {
@@ -42,6 +44,7 @@ public class EmailProcessingTests
             if (call.MethodName == "GetType") return new ReturnMessage(typeof(ISmtpService), null, 0, call.LogicalCallContext, call);
             if (call.MethodName != "SendEmail") throw new Exception("Unexpected SMTP operation.");
             Sends++;
+            if (Failure != null) return new ReturnMessage(Failure, call);
             return new ReturnMessage(null, null, 0, call.LogicalCallContext, call);
         }
     }
@@ -82,7 +85,30 @@ public class EmailProcessingTests
             Assert(smtp.Sends == 1 && app.Updates == 1 && app.Record.MailMessageDLRStatus == (int)DLRStatus.Delivered, "Successful processing must send and update delivery status.");
             Process(processor, item);
             Assert(smtp.Sends == 1 && app.Updates == 1, "An already delivered record must not be resent.");
-            Console.WriteLine("PASS: domain mismatch, missing record, successful delivery update, already-delivered deduplication. No SQL or SMTP operations performed.");
+            Assert(app.Record.MailMessageDLRStatusDescription == "Sent", "Email success must be labelled Sent.");
+            Assert(EnumHelper.GetDescription(DLRStatus.Delivered) == "Delivered", "Shared SMS status must remain Delivered.");
+            foreach (var cc in new[] { "", "copy@example.invalid" })
+            {
+                app.Record = new EmailAlertDTO { Id = Guid.NewGuid(), MailMessageDLRStatus = (int)DLRStatus.Pending, MailMessageCC = cc };
+                smtp.Failure = new System.Net.Mail.SmtpException("Simulated SMTP rejection");
+                var sends = smtp.Sends;
+                Process(processor, item);
+                Assert(app.Record.MailMessageDLRStatus == (int)DLRStatus.Failed && app.Record.MailMessageSendRetry == 1, "SMTP errors must persist Failed and attempt count.");
+                Process(processor, item);
+                Assert(smtp.Sends == sends + 1, "Failed messages must not be automatically resent.");
+            }
+            app.Record = new EmailAlertDTO { Id = Guid.NewGuid(), MailMessageDLRStatus = (int)DLRStatus.UnKnown };
+            smtp.Failure = new FormatException("Invalid recipient");
+            Process(processor, item);
+            Assert(app.Record.MailMessageDLRStatus == (int)DLRStatus.Failed, "Non-SMTP preparation errors must persist Failed.");
+            app.Record = new EmailAlertDTO { Id = Guid.NewGuid(), MailMessageDLRStatus = (int)DLRStatus.Pending };
+            app.UpdateSucceeds = false;
+            ExpectFailure(processor, item, "Could not save the failed email status");
+            smtp.Failure = null;
+            app.Record = new EmailAlertDTO { Id = Guid.NewGuid(), MailMessageDLRStatus = (int)DLRStatus.Pending };
+            ExpectFailure(processor, item, "Email was sent but its status could not be saved");
+            Assert(app.Record.MailMessageDLRStatus == (int)DLRStatus.Delivered, "A status-save failure after SMTP success must not mark sending as Failed.");
+            Console.WriteLine("PASS: email status labels, send success, SMTP/format failures, CC path, duplicate suppression, persistence failures, missing domain/record. No SQL or SMTP operations performed.");
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

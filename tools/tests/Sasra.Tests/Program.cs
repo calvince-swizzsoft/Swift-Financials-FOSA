@@ -42,6 +42,7 @@ class Program
   Form1Tests.Run();
   Form2Tests.Run();
   Form3Tests.Run();
+  Form5Tests.Run();
   LoanAgeingTests.Run();
   LoanNoticeTests.Run();
   LoanInterestAgeingTests.Run();

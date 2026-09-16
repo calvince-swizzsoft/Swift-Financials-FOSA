@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.Seedwork;
 using Domain.MainBoundedContext.Aggregates.AuditLogAgg;
 using Domain.MainBoundedContext.Aggregates.AuditTrailAgg;
@@ -199,7 +199,7 @@ namespace Application.MainBoundedContext.Services
 
                 var sortFields = new List<string> { "SequentialId" };
 
-                var auditLogPagedCollection = await _auditLogRepository.AllMatchingPagedAsync(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+                var auditLogPagedCollection = await _auditLogRepository.AllMatchingPagedAsync(spec, pageIndex, pageSize, sortFields, false, serviceHeader);
 
                 if (auditLogPagedCollection != null)
                 {
@@ -291,7 +291,7 @@ namespace Application.MainBoundedContext.Services
 
                 var sortFields = new List<string> { "SequentialId" };
 
-                return await _auditTrailRepository.AllMatchingPagedAsync<AuditTrailDTO>(spec, pageIndex, pageSize, sortFields, true, serviceHeader);
+                return await _auditTrailRepository.AllMatchingPagedAsync<AuditTrailDTO>(spec, pageIndex, pageSize, sortFields, false, serviceHeader);
             }
         }
 

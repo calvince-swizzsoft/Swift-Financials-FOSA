@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Linq;
@@ -31,6 +31,8 @@ namespace WebApplication1.Areas.Accounts.Controllers
         }
         [HttpGet,Route("form3/definition")] public IHttpActionResult Form3Definition(){return Execute(()=>service.GetForm3Definition(Utils.CreateServiceHeader()));}
         [HttpPost,Route("form3/preview")] public IHttpActionResult PreviewForm3(SasraForm3Request input){return Execute(()=>service.PreviewForm3(input,Utils.CreateServiceHeader()));}
+        [HttpGet,Route("form5/definition")] public IHttpActionResult Form5Definition(){return Execute(()=>service.GetForm5Definition(Utils.CreateServiceHeader()));}
+        [HttpPost,Route("form5/preview")] public IHttpActionResult PreviewForm5(SasraForm5Request input){return Execute(()=>service.PreviewForm5(input,Utils.CreateServiceHeader()));}
         [HttpGet,Route("form2/definition")] public IHttpActionResult Form2Definition(){return Execute(()=>service.GetForm2Definition(Utils.CreateServiceHeader()));}
         [HttpPost,Route("form2/preview")] public IHttpActionResult PreviewForm2(SasraForm2Request input){return Execute(()=>service.PreviewForm2(input,Utils.CreateServiceHeader()));}
         [HttpGet,Route("form1/definition")] public IHttpActionResult Form1Definition(){return Execute(()=>service.GetForm1Definition(Utils.CreateServiceHeader()));}

@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.MessagingModule.Services;
+using Application.MainBoundedContext.MessagingModule.Services;
 using Application.MainBoundedContext.Services;
 using Infrastructure.Crosscutting.Framework.Logging;
 using Infrastructure.Crosscutting.Framework.Models;
@@ -70,33 +70,49 @@ namespace SwiftFinancials.EmailAlertDispatcher.Configuration
                                 case DLRStatus.UnKnown:
                                 case DLRStatus.Pending:
 
-                                    var attachmentFilePaths = new List<string>();
-
-                                    if (!string.IsNullOrWhiteSpace(emailAlertDTO.MailMessageAttachments))
+                                    emailAlertDTO.MailMessageSendRetry += 1;
+                                    try
                                     {
-                                        var attachmentsBuffer = emailAlertDTO.MailMessageAttachments.Split(new char[] { ',' });
+                                        var attachmentFilePaths = new List<string>();
 
-                                        if (attachmentsBuffer != null)
+                                        if (!string.IsNullOrWhiteSpace(emailAlertDTO.MailMessageAttachments))
                                         {
-                                            foreach (var item in attachmentsBuffer)
-                                            {
-                                                var pdfPath = Path.Combine(_emailDispatcherConfigSection.EmailDispatcherSettingsItems.AttachmentStagingFolder, item);
+                                            var attachmentsBuffer = emailAlertDTO.MailMessageAttachments.Split(new char[] { ',' });
 
-                                                if (File.Exists(pdfPath))
-                                                    attachmentFilePaths.Add(pdfPath);
+                                            if (attachmentsBuffer != null)
+                                            {
+                                                foreach (var item in attachmentsBuffer)
+                                                {
+                                                    var pdfPath = Path.Combine(_emailDispatcherConfigSection.EmailDispatcherSettingsItems.AttachmentStagingFolder, item);
+
+                                                    if (File.Exists(pdfPath))
+                                                        attachmentFilePaths.Add(pdfPath);
+                                                }
                                             }
                                         }
-                                    }
 
-                                    if (!string.IsNullOrWhiteSpace(emailAlertDTO.MailMessageCC))
-                                        _smtpService.SendEmail(queueDTO.SmtpHost, queueDTO.SmtpPort, queueDTO.SmtpEnableSsl, queueDTO.SmtpUsername, queueDTO.SmtpPassword, queueDTO.SmtpUsername, emailAlertDTO.MailMessageTo, emailAlertDTO.MailMessageCC, emailAlertDTO.MailMessageSubject, emailAlertDTO.MailMessageBody, emailAlertDTO.MailMessageIsBodyHtml, attachmentFilePaths);
-                                    else _smtpService.SendEmail(queueDTO.SmtpHost, queueDTO.SmtpPort, queueDTO.SmtpEnableSsl, queueDTO.SmtpUsername, queueDTO.SmtpPassword, queueDTO.SmtpUsername, emailAlertDTO.MailMessageTo, emailAlertDTO.MailMessageSubject, emailAlertDTO.MailMessageBody, emailAlertDTO.MailMessageIsBodyHtml, attachmentFilePaths);
+                                        if (!string.IsNullOrWhiteSpace(emailAlertDTO.MailMessageCC))
+                                            _smtpService.SendEmail(queueDTO.SmtpHost, queueDTO.SmtpPort, queueDTO.SmtpEnableSsl, queueDTO.SmtpUsername, queueDTO.SmtpPassword, queueDTO.SmtpUsername, emailAlertDTO.MailMessageTo, emailAlertDTO.MailMessageCC, emailAlertDTO.MailMessageSubject, emailAlertDTO.MailMessageBody, emailAlertDTO.MailMessageIsBodyHtml, attachmentFilePaths);
+                                        else _smtpService.SendEmail(queueDTO.SmtpHost, queueDTO.SmtpPort, queueDTO.SmtpEnableSsl, queueDTO.SmtpUsername, queueDTO.SmtpPassword, queueDTO.SmtpUsername, emailAlertDTO.MailMessageTo, emailAlertDTO.MailMessageSubject, emailAlertDTO.MailMessageBody, emailAlertDTO.MailMessageIsBodyHtml, attachmentFilePaths);
+
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        // Persist a terminal failure before acknowledging the queue item.
+                                        // A database failure must still escape so MSMQ retains the item.
+                                        emailAlertDTO.MailMessageDLRStatus = (int)DLRStatus.Failed;
+                                        _logger?.LogError("Email send failed for alert {0}.", ex, emailAlertDTO.Id);
+                                        if (!Container.Current.Resolve<IEmailAlertAppService>().UpdateEmailAlert(emailAlertDTO, serviceHeader))
+                                            throw new InvalidOperationException("Could not save the failed email status.", ex);
+                                        return;
+                                    }
 
                                     emailAlertDTO.MailMessageFrom = queueDTO.SmtpUsername;
                                     emailAlertDTO.MailMessageDLRStatus = (int)DLRStatus.Delivered;
-                                    emailAlertDTO.MailMessageSendRetry = 1;
 
-                                    Container.Current.Resolve<IEmailAlertAppService>().UpdateEmailAlert(emailAlertDTO, serviceHeader);
+                                    // SMTP acceptance is displayed as Sent, not confirmed recipient delivery.
+                                    if (!Container.Current.Resolve<IEmailAlertAppService>().UpdateEmailAlert(emailAlertDTO, serviceHeader))
+                                        throw new InvalidOperationException("Email was sent but its status could not be saved.");
 
                                     break;
                                 default:

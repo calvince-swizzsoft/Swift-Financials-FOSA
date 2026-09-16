@@ -69,4 +69,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Email test compilation failed.' }
 $result = Run-Check $testExe ''
 if ($result.Code -ne 0) { throw $result.Text }
 Write-Host $result.Text
+$loanTestExe = Join-Path $fixture 'LoanWorkerResolutionTests.exe'
+Copy-Item -LiteralPath $configPath -Destination ($loanTestExe + '.config')
+& $csc /nologo /target:exe "/out:$loanTestExe" /r:System.Configuration.dll @references (Join-Path $PSScriptRoot 'tests\LoanWorkerResolutionTests.cs')
+if ($LASTEXITCODE -ne 0) { throw 'Loan worker resolution test compilation failed.' }
+$loanResult = Run-Check $loanTestExe ''
+if ($loanResult.Code -ne 0) { throw $loanResult.Text }
+Write-Host $loanResult.Text
 Write-Host "Tests passed. Isolated fixture: $fixture"

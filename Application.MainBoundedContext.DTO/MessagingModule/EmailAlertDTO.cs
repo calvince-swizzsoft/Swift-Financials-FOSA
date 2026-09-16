@@ -1,4 +1,4 @@
-﻿using Application.Seedwork;
+using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -67,6 +67,8 @@ namespace Application.MainBoundedContext.DTO.MessagingModule
         {
             get
             {
+                // Preserve stored/shared DLR values; email only confirms SMTP acceptance.
+                if (MailMessageDLRStatus == (int)DLRStatus.Delivered) return "Sent";
                 return Enum.IsDefined(typeof(DLRStatus), MailMessageDLRStatus) ? EnumHelper.GetDescription((DLRStatus)MailMessageDLRStatus) : string.Empty;
             }
         }

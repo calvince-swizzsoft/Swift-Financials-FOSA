@@ -1,4 +1,4 @@
-﻿using Domain.Seedwork.Specification;
+using Domain.Seedwork.Specification;
 using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -21,9 +21,10 @@ namespace Domain.MainBoundedContext.Aggregates.AuditLogAgg
 
             if (startDate != null && endDate != null)
             {
-                endDate = UberUtil.AdjustTimeSpan(endDate);
+                var endExclusive = endDate.Date.AddDays(1);
+                startDate = startDate.Date;
 
-                var dateRangeSpec = new DirectSpecification<AuditLog>(x => x.CreatedDate >= startDate && x.CreatedDate <= endDate);
+                var dateRangeSpec = new DirectSpecification<AuditLog>(x => x.CreatedDate >= startDate && x.CreatedDate < endExclusive);
 
                 specification &= dateRangeSpec;
 
