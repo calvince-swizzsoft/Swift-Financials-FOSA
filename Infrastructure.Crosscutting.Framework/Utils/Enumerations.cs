@@ -468,7 +468,9 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         InternalDebtors = 0xBEBA + 34,
 
         [Description("Inventory")]
-        Inventory = 0xBEBA + 35
+        Inventory = 0xBEBA + 35,
+        [Description("Employer's Contribution (Housing Levy)")]
+        EmployerHousingLevyContribution = 0xBEBA + 36
     }
 
     public enum Gender
@@ -547,7 +549,7 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         FullTimeBasicPayEarning = 0xF0F0,
         [Description("N.S.S.F Deduction")]
         NSSFDeduction = 0xF0F0 + 1,
-        [Description("N.H.I.F Deduction")]
+        [Description("NHIF Deduction (Legacy)")]
         NHIFDeduction = 0xF0F0 + 2,
         [Description("P.A.Y.E Deduction")]
         PAYEDeduction = 0xF0F0 + 3,
@@ -567,6 +569,10 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         PartTimeBasicPayEarning = 0xF0F0 + 11,
         [Description("Basic Pay Earning (Contract)")]
         ContractBasicPayEarning = 0xF0F0 + 12,
+        [Description("SHIF Deduction")]
+        SHIFDeduction = 0xF0F0 + 13,
+        [Description("Affordable Housing Levy")]
+        AffordableHousingLevyDeduction = 0xF0F0 + 14,
     }
 
     [Flags]

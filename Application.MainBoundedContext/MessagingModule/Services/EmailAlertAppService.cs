@@ -1,4 +1,6 @@
-﻿using Application.MainBoundedContext.AdministrationModule.Services;
+﻿using Application.MainBoundedContext.BackOfficeModule.Services;
+using Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanNoticeAgg;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.MessagingModule;
 using Application.MainBoundedContext.Services;
@@ -19,6 +21,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 {
     public class EmailAlertAppService : IEmailAlertAppService
     {
+        private readonly IRepository<LoanNotice> _loanNotices;
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<EmailAlert> _emailAlertRepository;
         private readonly IBranchAppService _branchAppService;
@@ -27,6 +30,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 
         public EmailAlertAppService(
             IDbContextScopeFactory dbContextScopeFactory,
+            IRepository<LoanNotice> loanNotices,
             IRepository<EmailAlert> emailAlertRepository,
             IBranchAppService branchAppService,
             IMessageGroupAppService messageGroupAppService,
@@ -47,6 +51,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
             if (brokerService == null)
                 throw new ArgumentNullException(nameof(brokerService));
 
+            _loanNotices = loanNotices ?? throw new ArgumentNullException(nameof(loanNotices));
             _dbContextScopeFactory = dbContextScopeFactory;
             _emailAlertRepository = emailAlertRepository;
             _branchAppService = branchAppService;
@@ -137,6 +142,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 
                     _emailAlertRepository.Merge(persisted, current, serviceHeader);
 
+                    LoanNoticeAppService.ApplyDeliveryResult(_loanNotices,persisted.Id,"Email",emailAlertDTO.MailMessageDLRStatus,serviceHeader);
                     return dbContextScope.SaveChanges(serviceHeader) >= 0;
                 }
                 else return false;

@@ -41,6 +41,22 @@ static class LoanAgeingTests
   Check(loanRows[0].OverduePrincipal==0&&loanRows[1].OverduePrincipal==30,"separate overdue principal");
   Check(loanRows[0].OverdueInterest==7&&loanRows[1].OverdueInterest==0,"separate overdue interest");
   Check(loanRows[0].DaysPastDue==20&&loanRows[1].DaysPastDue==5,"each loan uses its own maximum principal and interest days");
+  Check(loanRows.Sum(x=>x.OutstandingInterest)==7&&loanRows.Sum(x=>x.TotalOutstanding)==137,"remaining interest and combined balance do not double count shared accounts");
+  r.Interest.Instalments.Add(new LoanInterestInstalmentResult{CaseNumber=1,Number=2,DueDate=new DateTime(2026,4,30),RemainingInterest=11});
+  loanRows=LoanAgeingEngine.ByLoan(r,cs,new DateTime(2026,2,20));
+  Check(loanRows[0].OutstandingInterest==18&&loanRows[0].OverdueInterest==7,"remaining interest includes future interest but overdue interest does not");
+  foreach(var boundary in new[]{Tuple.Create(0,"Performing"),Tuple.Create(1,"Watch"),Tuple.Create(30,"Watch"),Tuple.Create(31,"Substandard"),Tuple.Create(180,"Substandard"),Tuple.Create(181,"Doubtful"),Tuple.Create(360,"Doubtful"),Tuple.Create(361,"Loss")}){
+   var snapshot=new LoanAgeingAccountResult{DaysPastDue=boundary.Item1,Interest=new LoanInterestAgeingResult{DaysPastDue=0}};
+   snapshot.Instalments.Add(new LoanAgeingInstalmentResult{CaseNumber=1,Number=1,DueDate=new DateTime(2026,1,1),RemainingPrincipal=100});
+   Check(LoanAgeingEngine.ByLoan(snapshot,Cases(),new DateTime(2026,1,1).AddDays(boundary.Item1))[0].RiskClassification==boundary.Item2,"register risk boundary "+boundary.Item1);
+   snapshot.IsRestructured=true;snapshot.PriorRiskCategory=4;
+   Check(LoanAgeingEngine.ByLoan(snapshot,Cases(),new DateTime(2026,1,1).AddDays(boundary.Item1))[0].RiskClassification=="Loss","restructuring cannot improve retained classification");
+  }
+  var missedSnapshot=new LoanAgeingAccountResult{DaysPastDue=5,Interest=new LoanInterestAgeingResult{DaysPastDue=0}};
+  for(int n=1;n<=2;n++)missedSnapshot.Instalments.Add(new LoanAgeingInstalmentResult{CaseNumber=1,Number=n,DueDate=new DateTime(2026,2,15),RemainingPrincipal=50});
+  Check(LoanAgeingEngine.ByLoan(missedSnapshot,Cases(),new DateTime(2026,2,20))[0].RiskClassification=="Substandard","missed instalment count can raise the risk above the day band");
+  missedSnapshot.Interest.DaysPastDue=null;
+  Check(LoanAgeingEngine.ByLoan(missedSnapshot,Cases(),new DateTime(2026,2,20))[0].RiskClassification=="Needs review","unresolved interest cannot be called performing");
   r.DaysPastDue=null;r.Issues.Add("Missing schedule");r.Instalments.Clear();
   loanRows=LoanAgeingEngine.ByLoan(r,cs,new DateTime(2026,2,20));
   Check(loanRows.All(x=>x.OutstandingPrincipal==null&&x.OverduePrincipal==null&&x.DaysPastDue==null&&x.Status=="Needs review"),"unknown shared allocation cannot duplicate the account balance or imply current");

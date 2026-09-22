@@ -2463,6 +2463,19 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 {
                     var pageCollection = loanGuarantorCollection.PageCollection.ProjectedAsCollection<LoanGuarantorDTO>();
 
+                    // The stored commitment is the eligibility snapshot before this guarantee.
+                    // List current active commitments across all loans, not just the displayed page.
+                    var customerIds = pageCollection.Select(g => g.CustomerId).Distinct().ToArray();
+                    if (customerIds.Length > 0)
+                    {
+                        var active = _loanGuarantorRepository.AllMatching(new DirectSpecification<LoanGuarantor>(g => customerIds.Contains(g.CustomerId) && g.Status == (int)LoanGuarantorStatus.Attached), serviceHeader);
+                        var committed = active.GroupBy(g => g.CustomerId).ToDictionary(g => g.Key, g => g.Sum(x => x.AmountGuaranteed));
+                        foreach (var guarantor in pageCollection)
+                        {
+                            decimal amount;
+                            guarantor.CommittedShares = committed.TryGetValue(guarantor.CustomerId, out amount) ? amount : 0m;
+                        }
+                    }
                     var itemsCount = loanGuarantorCollection.ItemsCount;
 
                     return new PageCollectionInfo<LoanGuarantorDTO> { PageCollection = pageCollection, ItemsCount = itemsCount };
@@ -2605,6 +2618,16 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 }
             }
             else return null;
+        }
+
+        public List<LoanCaseDTO> FindGuarantorLoanCases(Guid customerId, ServiceHeader serviceHeader)
+        {
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var filter = new DirectSpecification<LoanCase>(loan => loan.CustomerId == customerId && loan.Status != (int)LoanCaseStatus.Rejected);
+                return _loanCaseRepository.AllMatching(filter, serviceHeader).ProjectedAsCollection<LoanCaseDTO>()
+                    .Where(loan => Enum.IsDefined(typeof(LoanCaseStatus), loan.Status)).OrderByDescending(loan => loan.CaseNumber).ToList();
+            }
         }
 
         public List<LoanCaseDTO> FindLoanCasesByCustomerIdInProcess(Guid customerId, ServiceHeader serviceHeader)
@@ -2822,8 +2845,25 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         {
             if (loanGuarantorDTO != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
+                    var loan = loanGuarantorDTO.LoanCaseId.HasValue ? FindLoanCase(loanGuarantorDTO.LoanCaseId.Value, serviceHeader) : null;
+                    var caseError = GuarantorRegistrationRules.ValidateAdditionalCase(loan, loanGuarantorDTO);
+                    if (caseError != null) { loanGuarantorDTO.ErrorMsgResult = caseError; return loanGuarantorDTO; }
+                    var product = _loanProductAppService.FindLoanProduct(loan.LoanProductId, serviceHeader);
+                    if (product == null || product.IsLocked) { loanGuarantorDTO.ErrorMsgResult = "Select an active loan product."; return loanGuarantorDTO; }
+                    LoanGuarantorDTO eligibility;
+                    try { eligibility = GetRegistrationGuarantorEligibility(loanGuarantorDTO.CustomerId, product, serviceHeader).Item2; }
+                    catch (InvalidOperationException exception) { loanGuarantorDTO.ErrorMsgResult = exception.Message; return loanGuarantorDTO; }
+                    loanGuarantorDTO.GuarantorId = loanGuarantorDTO.CustomerId;
+                    loanGuarantorDTO.TotalShares = eligibility.TotalShares;
+                    loanGuarantorDTO.CommittedShares = eligibility.CommittedShares;
+                    loanGuarantorDTO.AppraisalFactor = eligibility.AppraisalFactor;
+                    var amountError = GuarantorRegistrationRules.ValidateAmount(product, loan, loanGuarantorDTO);
+                    if (amountError != null) { loanGuarantorDTO.ErrorMsgResult = amountError; return loanGuarantorDTO; }
+                    var activeCount = (FindLoanGuarantorsByLoanCaseId(loan.Id, serviceHeader) ?? new List<LoanGuarantorDTO>()).Count(g => g.Status == (int)LoanGuarantorStatus.Attached);
+                    if (activeCount >= product.LoanRegistrationMaximumGuarantees) { loanGuarantorDTO.ErrorMsgResult = "The loan has reached its guarantor limit."; return loanGuarantorDTO; }
+
                     var existingGuarantors = _loanGuarantorRepository.AllMatching(LoanGuarantorSpecifications.LoanGuarantorWithLoaneeCustomerIdAndLoanProductId(loanGuarantorDTO.LoaneeCustomerId ?? Guid.Empty, loanGuarantorDTO.LoanProductId), serviceHeader);
 
                     if (existingGuarantors != null && existingGuarantors.Any(x => x.Status == (int)LoanGuarantorStatus.Attached && x.CustomerId == loanGuarantorDTO.CustomerId))

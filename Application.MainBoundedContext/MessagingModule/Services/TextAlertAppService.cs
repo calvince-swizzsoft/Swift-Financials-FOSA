@@ -1,4 +1,6 @@
-﻿using Application.MainBoundedContext.AdministrationModule.Services;
+﻿using Application.MainBoundedContext.BackOfficeModule.Services;
+using Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanNoticeAgg;
+using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.MessagingModule;
 using Application.MainBoundedContext.Services;
@@ -23,6 +25,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 {
     public class TextAlertAppService : ITextAlertAppService
     {
+        private readonly IRepository<LoanNotice> _loanNotices;
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<TextAlert> _textAlertRepository;
         private readonly IRepository<TextAlertCommission> _textAlertCommissionRepository;
@@ -34,6 +37,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 
         public TextAlertAppService(
             IDbContextScopeFactory dbContextScopeFactory,
+            IRepository<LoanNotice> loanNotices,
             IRepository<TextAlert> textAlertRepository,
             IRepository<TextAlertCommission> textAlertCommissionRepository,
             IRepository<Commission> commissionRepository,
@@ -66,6 +70,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
             if (appCache == null)
                 throw new ArgumentNullException(nameof(appCache));
 
+            _loanNotices = loanNotices ?? throw new ArgumentNullException(nameof(loanNotices));
             _dbContextScopeFactory = dbContextScopeFactory;
             _textAlertRepository = textAlertRepository;
             _textAlertCommissionRepository = textAlertCommissionRepository;
@@ -211,6 +216,7 @@ namespace Application.MainBoundedContext.MessagingModule.Services
 
                     _textAlertRepository.Merge(persisted, current, serviceHeader);
 
+                    LoanNoticeAppService.ApplyDeliveryResult(_loanNotices,persisted.Id,"SMS",textAlertDTO.TextMessageDLRStatus,serviceHeader);
                     return dbContextScope.SaveChanges(serviceHeader) >= 0;
                 }
                 else return false;

@@ -57,10 +57,14 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
     }else if(cases.Count==1)row.OutstandingPrincipal=account.OutstandingPrincipal;
     if(account.Interest!=null&&account.Interest.DaysPastDue.HasValue&&account.Interest.Issues.Count==0){
      var interest=account.Interest.Instalments.Where(x=>x.CaseNumber==c.CaseNumber).ToList();
+     row.OutstandingInterest=interest.Sum(x=>x.RemainingInterest);
      row.OverdueInterest=interest.Where(x=>x.DueDate.Date<asAt.Date).Sum(x=>x.RemainingInterest);
      interestDays=interest.Where(x=>x.RemainingInterest>0).Select(x=>Math.Max(0,(asAt.Date-x.DueDate.Date).Days)).DefaultIfEmpty(0).Max();
     }
-    if(principalDays.HasValue&&interestDays.HasValue){row.DaysPastDue=Math.Max(principalDays.Value,interestDays.Value);row.Status=Bucket(row.DaysPastDue.Value);}
+    if(principalDays.HasValue&&interestDays.HasValue){row.DaysPastDue=Math.Max(principalDays.Value,interestDays.Value);row.Status=Bucket(row.DaysPastDue.Value);
+     var missed=principal.Where(x=>x.RemainingPrincipal>0&&x.DueDate.Date<asAt.Date).Select(x=>x.Number).Concat(account.Interest.Instalments.Where(x=>x.CaseNumber==c.CaseNumber&&x.RemainingInterest>0&&x.DueDate.Date<asAt.Date).Select(x=>x.Number)).Distinct().Count();
+     var category=Math.Max(LoanRestructureAgeing.Category(row.DaysPastDue.Value,missed),account.IsRestructured?(account.PriorRiskCategory??4):0);
+     row.RiskClassification=new[]{"Performing","Watch","Substandard","Doubtful","Loss"}[category];}
     if(cases.Count>1)row.Issues.Add("Repayments shared by these loans are allocated to the oldest due instalments first. These are reporting allocations.");
     if(account.IsRestructured&&principal.Count==0&&account.OutstandingPrincipal>0&&principalDays.HasValue)row.Issues.Add("This loan's original balance is covered by the replacement restructuring schedule.");
     return row;

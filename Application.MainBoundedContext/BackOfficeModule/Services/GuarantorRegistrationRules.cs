@@ -10,6 +10,15 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 {
     public static class GuarantorRegistrationRules
     {
+        public static string ValidateAdditionalCase(LoanCaseDTO loan, LoanGuarantorDTO guarantor)
+        {
+            if (loan == null) return "Loan case not found.";
+            if (!Enum.IsDefined(typeof(LoanCaseStatus), loan.Status) || loan.Status == (int)LoanCaseStatus.Rejected) return "Guarantors cannot be added to this loan stage.";
+            if (guarantor.LoaneeCustomerId != loan.CustomerId || guarantor.LoanProductId != loan.LoanProductId) return "The borrower or product does not match the loan.";
+            if (guarantor.AmountPledged < 0m || decimal.Round(guarantor.AmountPledged, 2) != guarantor.AmountPledged) return "Enter a non-negative pledged amount with at most two decimal places.";
+            return null;
+        }
+
         public static string ValidateEditableCase(LoanCaseDTO loan)
         {
             if (loan == null) return "Loan case not found.";

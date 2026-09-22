@@ -391,4 +391,5 @@
   <ItemGroup><Compile Include="UnitOfWork\Mapping\AccountsModule\CashFlowMappingEntityConfiguration.cs" /></ItemGroup>
   <ItemGroup><Compile Include="UnitOfWork\Mapping\AccountsModule\SasraEntityConfigurations.cs" /></ItemGroup>
 <ItemGroup><Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanRepaymentPlanConfiguration.cs" /></ItemGroup><ItemGroup><Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanNoticeConfiguration.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="UnitOfWork\Mapping\BackOfficeModule\LoanRecoveryConfiguration.cs" /></ItemGroup>
 </Project>

@@ -193,7 +193,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                     var salaryPeriods = _salaryPeriodRepository.AllMatching(spec, serviceHeader);
 
                     if (salaryPeriods != null && salaryPeriods.Any(x => x.Id != persisted.Id && x.Status == (int)SalaryPeriodStatus.Closed || x.Status == (int)SalaryPeriodStatus.Suspended))
-                        throw new InvalidOperationException(string.Format("Sorry, but there is already an open/closed {0} payroll period for the month of {1}!", salaryPeriodDTO.EmployeeCategoryDescription, salaryPeriodDTO.MonthDescription));
+                        throw new PayrollSetupException(string.Format("Sorry, but there is already an open/closed {0} payroll period for the month of {1}!", salaryPeriodDTO.EmployeeCategoryDescription, salaryPeriodDTO.MonthDescription));
                     else
                     {
                         var current = SalaryPeriodFactory.CreateSalaryPeriod(persisted.PostingPeriodId, salaryPeriodDTO.Month, salaryPeriodDTO.EmployeeCategory, salaryPeriodDTO.TaxReliefAmount, salaryPeriodDTO.MaximumProvidentFundReliefAmount, salaryPeriodDTO.MaximumInsuranceReliefAmount, salaryPeriodDTO.Remarks);
@@ -223,7 +223,12 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                 if (persistedSalaryPeriod != null && persistedSalaryPeriod.Status == (int)SalaryPeriodStatus.Open)
                 {
-                    result = _paySlipAppService.PurgePaySlips(salaryPeriodDTO, serviceHeader);
+                    salaryPeriodDTO = persistedSalaryPeriod;
+                    var payrollPostingPeriod = _postingPeriodAppService.FindPostingPeriod(persistedSalaryPeriod.PostingPeriodId, serviceHeader);
+                    if (payrollPostingPeriod == null) throw new PayrollSetupException("Select a valid payroll posting period.");
+                    var payrollMonth = new DateTime(payrollPostingPeriod.DurationEndDate.Year, persistedSalaryPeriod.Month, 1);
+                    // Finish all calculations before replacing an existing draft payroll.
+                    result = true;
 
                     if (result)
                     {
@@ -260,6 +265,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                                         if (salaryCardEntries != null && salaryCardEntries.Any(x => x.SalaryGroupEntrySalaryHeadType == (int)targetBasicPayEarningSalaryHeadType)) /*BasicPayEarning entry must be present*/
                                         {
+                                            KenyaPayrollRules.ValidateHeads(payrollMonth, salaryCardEntries.Select(x => (SalaryHeadType)x.SalaryGroupEntrySalaryHeadType));
+
                                             #region Ensure employee has an account for each entry, if not create it
 
                                             foreach (var salaryCardEntryDTO in salaryCardEntries)
@@ -297,6 +304,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                             {
                                                 var payslipDTO = new PaySlipDTO { SalaryPeriodId = persistedSalaryPeriod.Id, SalaryPeriodMonth = persistedSalaryPeriod.Month, SalaryCardId = salaryCardDTO.Id };
 
+                                                var regularCashPay = basicPayEarningEntry.SalaryGroupEntrySalaryHeadIsOneOff ? 0m : basicPayEarningEntry.ChargeFixedAmount;
+
                                                 #region collate pay slip entries
 
                                                 foreach (var salaryCardEntryDTO in salaryCardEntries)
@@ -308,6 +317,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                                         case SalaryHeadType.ContractBasicPayEarning:
                                                         case SalaryHeadType.NSSFDeduction:
                                                         case SalaryHeadType.NHIFDeduction:
+                                                        case SalaryHeadType.SHIFDeduction:
+                                                        case SalaryHeadType.AffordableHousingLevyDeduction:
                                                         case SalaryHeadType.PAYEDeduction:
                                                         case SalaryHeadType.StatutoryProvidentFundDeduction:
 
@@ -434,6 +445,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                                                 Principal = earningValue,
                                                                 RoundingType = salaryCardEntryDTO.SalaryGroupEntryRoundingType,
                                                             });
+                                                            if (!salaryCardEntryDTO.SalaryGroupEntrySalaryHeadIsOneOff) regularCashPay += earningValue;
 
                                                             break;
 
@@ -591,7 +603,13 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                                                 #region compute statutory deductions
 
-                                                if (employeeDTO.EmployeeTypeCategory.In((int)EmployeeCategory.FullTime, (int)EmployeeCategory.Contract))
+                                                if (KenyaPayrollRules.Applies(payrollMonth))
+                                                {
+                                                    foreach (var entry in payslipDTO.PaySlipEntries.Where(x => x.SalaryHeadType == (int)SalaryHeadType.StatutoryProvidentFundDeduction))
+                                                        entry.Principal = ComputeStatutoryCharges(entry, basicPayEarningEntry.ChargeFixedAmount, serviceHeader);
+                                                    KenyaPayrollRules.Apply(payrollMonth, payslipDTO.PaySlipEntries, regularCashPay, salaryPeriodDTO, salaryCardDTO);
+                                                }
+                                                else if (employeeDTO.EmployeeTypeCategory.In((int)EmployeeCategory.FullTime, (int)EmployeeCategory.PartTime, (int)EmployeeCategory.Contract))
                                                 {
                                                     if (payslipDTO.PaySlipEntries.Any())
                                                     {
@@ -658,6 +676,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                                                         taxablePay = taxablePay - Math.Abs(salaryCardDTO.TaxExemption);
                                                                     }
 
+                                                                    payslipEntry.Principal = 0m;
                                                                     if (taxablePay > 0m)
                                                                     {
                                                                         var taxValue = ComputeStatutoryCharges(payslipEntry, taxablePay, serviceHeader);
@@ -692,7 +711,17 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                         if (paySlipDTOs.Any())
                         {
-                            result = _paySlipAppService.AddNewPaySlips(paySlipDTOs, serviceHeader);
+                            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
+                            {
+                                var currentPeriod = FindSalaryPeriod(salaryPeriodDTO.Id, serviceHeader);
+                                var existingSlips = _paySlipAppService.FindPaySlipsBySalaryPeriodId(salaryPeriodDTO.Id, serviceHeader);
+                                if (currentPeriod == null || currentPeriod.Status != (int)SalaryPeriodStatus.Open ||
+                                    (existingSlips != null && existingSlips.Any(x => x.Status != (int)PaySlipStatus.Pending)))
+                                    throw new PayrollSetupException("Only an open salary period with unposted payslips can be recalculated.");
+                                result = _paySlipAppService.PurgePaySlips(salaryPeriodDTO, serviceHeader) &&
+                                    _paySlipAppService.AddNewPaySlips(paySlipDTOs, serviceHeader);
+                                if (result) scope.SaveChanges(serviceHeader);
+                            }
                         }
                     }
                 }
@@ -747,6 +776,19 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
         public bool PostPaySlip(Guid paySlipId, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
+            Action afterCommit;
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
+            {
+                if (!PostPaySlipCore(paySlipId, moduleNavigationItemCode, serviceHeader, out afterCommit)) return false;
+                scope.SaveChanges(serviceHeader);
+            }
+            if (afterCommit != null) afterCommit();
+            return true;
+        }
+
+        private bool PostPaySlipCore(Guid paySlipId, int moduleNavigationItemCode, ServiceHeader serviceHeader, out Action afterCommit)
+        {
+            afterCommit = null;
             var result = default(bool);
 
             var pendingPaySlip = _paySlipAppService.FindPaySlip(paySlipId, serviceHeader);
@@ -755,13 +797,28 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
             var employeeType = _employeeTypeAppService.FindEmployeeType(pendingPaySlip.SalaryCardEmployeeEmployeeTypeId, serviceHeader);
             if (employeeType == null)
-                throw new InvalidOperationException("The payslip employee type could not be found.");
+                throw new PayrollSetupException("The payslip employee type could not be found.");
             if (employeeType.IsLocked)
-                throw new InvalidOperationException("The payslip employee type is locked and cannot be used for payroll posting.");
+                throw new PayrollSetupException("The payslip employee type is locked and cannot be used for payroll posting.");
 
             var payrollControlAccount = _chartOfAccountAppService.FindChartOfAccount(employeeType.ChartOfAccountId, serviceHeader);
             if (payrollControlAccount == null || payrollControlAccount.IsLocked || payrollControlAccount.AccountCategory != (int)ChartOfAccountCategory.DetailAccount)
-                throw new InvalidOperationException("The employee type payroll control account is missing, locked, or non-postable.");
+                throw new PayrollSetupException("The employee type payroll control account is missing, locked, or non-postable.");
+
+            var pendingEntries = _paySlipAppService.FindPaySlipEntriesByPaySlipId(paySlipId, serviceHeader);
+            var pendingPeriod = FindSalaryPeriod(pendingPaySlip.SalaryPeriodId, serviceHeader);
+            var pendingPostingPeriod = _postingPeriodAppService.FindPostingPeriod(pendingPaySlip.SalaryPeriodPostingPeriodId, serviceHeader);
+            if (pendingPeriod == null || pendingPostingPeriod == null) throw new PayrollSetupException("The payroll period could not be found.");
+            var pendingMonth = new DateTime(pendingPostingPeriod.DurationEndDate.Year, pendingPeriod.Month, 1);
+            KenyaPayrollRules.ValidateHeads(pendingMonth, (pendingEntries ?? new List<PaySlipEntryDTO>()).Select(x => (SalaryHeadType)x.SalaryHeadType));
+            if (KenyaPayrollRules.Applies(pendingMonth))
+                foreach (var code in new[] { SystemGeneralLedgerAccountCode.EmployerNSSFContribution, SystemGeneralLedgerAccountCode.EmployerHousingLevyContribution })
+                {
+                    var accountId = _chartOfAccountAppService.GetCachedChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)code, serviceHeader);
+                    var account = accountId == Guid.Empty ? null : _chartOfAccountAppService.FindChartOfAccount(accountId, serviceHeader);
+                    if (account == null || account.IsLocked || account.AccountCategory != (int)ChartOfAccountCategory.DetailAccount)
+                        throw new PayrollSetupException("Configure a valid employer contribution G/L mapping for " + code + " before posting payroll.");
+                }
 
             if (_paySlipAppService.MarkPaySlipPosted(paySlipId, serviceHeader))
             {
@@ -837,6 +894,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                 break;
                             case SalaryHeadType.NSSFDeduction:
                             case SalaryHeadType.NHIFDeduction:
+                            case SalaryHeadType.SHIFDeduction:
+                            case SalaryHeadType.AffordableHousingLevyDeduction:
                             case SalaryHeadType.PAYEDeduction:
                             case SalaryHeadType.StatutoryProvidentFundDeduction:
                             case SalaryHeadType.OtherDeduction:
@@ -847,7 +906,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                 _journalEntryPostingService.PerformDoubleEntry(deductionJournal, paySlipEntryDTO.ChartOfAccountId, paySlipDTO.SalaryCardEmployeeEmployeeTypeChartOfAccountId, payrollSavingsAccount, payrollSavingsAccount, serviceHeader);
                                 journals.Add(deductionJournal);
 
-                                if (paySlipDTO.SalaryCardEmployeeEmployeeTypeCategory.In((int)EmployeeCategory.FullTime, (int)EmployeeCategory.Contract))
+                                if (paySlipDTO.SalaryCardEmployeeEmployeeTypeCategory.In((int)EmployeeCategory.FullTime, (int)EmployeeCategory.PartTime, (int)EmployeeCategory.Contract))
                                 {
                                     var basicPay = paySlipEntries.Where(x => x.SalaryHeadType == (int)targetBasicPayEarningSalaryHeadType).Sum(x => x.Principal);
 
@@ -859,13 +918,20 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                                         if (employerNSSFContributionChartOfAccountId != Guid.Empty)
                                         {
-                                            var employerNSSFAmount = ComputeComplementaryStatutoryCharges(paySlipEntryDTO, basicPay, serviceHeader);
+                                            var employerNSSFAmount = KenyaPayrollRules.Applies(pendingMonth) ? paySlipEntryDTO.Principal : ComputeComplementaryStatutoryCharges(paySlipEntryDTO, basicPay, serviceHeader);
 
                                             // Deduction Journal: Credit PaySlipEntryDTO.ChartOfAccountId, Debit SystemGeneralLedgerAccountCode.NSSFEmployerContribution
                                             var employerNSSFContributionJournal = JournalFactory.CreateJournal(parentJournalId, postingPeriodDTO.Id, paySlipDTO.SalaryCardEmployeeBranchId, null, employerNSSFAmount, paySlipEntryDTO.Description, paySlipEntryDTO.SalaryHeadCategoryDescription, salaryPeriodDTO.Remarks, moduleNavigationItemCode, (int)SystemTransactionCode.SalaryProcessing, UberUtil.GetLastDayOfMonth(salaryPeriodDTO.Month, postingPeriodDTO.DurationEndDate.Year, salaryPeriodDTO.EnforceMonthValueDate), serviceHeader);
                                             _journalEntryPostingService.PerformDoubleEntry(employerNSSFContributionJournal, paySlipEntryDTO.ChartOfAccountId, employerNSSFContributionChartOfAccountId, payrollSavingsAccount, payrollSavingsAccount, serviceHeader);
                                             journals.Add(employerNSSFContributionJournal);
                                         }
+                                    }
+                                    else if (paySlipEntryDTO.SalaryHeadType == (int)SalaryHeadType.AffordableHousingLevyDeduction)
+                                    {
+                                        var employerAccountId = _chartOfAccountAppService.GetCachedChartOfAccountMappingForSystemGeneralLedgerAccountCode((int)SystemGeneralLedgerAccountCode.EmployerHousingLevyContribution, serviceHeader);
+                                        var employerJournal = JournalFactory.CreateJournal(parentJournalId, postingPeriodDTO.Id, paySlipDTO.SalaryCardEmployeeBranchId, null, paySlipEntryDTO.Principal, "Employer Housing Levy", paySlipEntryDTO.SalaryHeadCategoryDescription, salaryPeriodDTO.Remarks, moduleNavigationItemCode, (int)SystemTransactionCode.SalaryProcessing, UberUtil.GetLastDayOfMonth(salaryPeriodDTO.Month, postingPeriodDTO.DurationEndDate.Year, salaryPeriodDTO.EnforceMonthValueDate), serviceHeader);
+                                        _journalEntryPostingService.PerformDoubleEntry(employerJournal, paySlipEntryDTO.ChartOfAccountId, employerAccountId, payrollSavingsAccount, payrollSavingsAccount, serviceHeader);
+                                        journals.Add(employerJournal);
                                     }
                                     else if (paySlipEntryDTO.SalaryHeadType.In((int)SalaryHeadType.StatutoryProvidentFundDeduction))
                                     {
@@ -968,7 +1034,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                             #region Execute payout standing orders?
 
                             if (salaryPeriodDTO.ExecutePayoutStandingOrders)
-                                _recurringBatchAppService.ExecutePayoutStandingOrders(payrollSavingsAccount.Id, salaryPeriodDTO.Month, (int)QueuePriority.High, serviceHeader);
+                                afterCommit = () => _recurringBatchAppService.ExecutePayoutStandingOrders(payrollSavingsAccount.Id, salaryPeriodDTO.Month, (int)QueuePriority.High, serviceHeader);
 
                             #endregion
                         }

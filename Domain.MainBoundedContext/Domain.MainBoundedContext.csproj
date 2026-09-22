@@ -849,4 +849,5 @@
   <ItemGroup><Compile Include="AccountsModule\Aggregates\SasraAgg\SasraConfiguration.cs" /></ItemGroup>
 <ItemGroup><Compile Include="BackOfficeModule\Aggregates\LoanRepaymentPlanAgg\LoanRepaymentPlan.cs" /></ItemGroup><ItemGroup><Compile Include="BackOfficeModule\Aggregates\LoanRepaymentPlanAgg\LoanRiskReview.cs" /></ItemGroup>
 <ItemGroup><Compile Include="BackOfficeModule\Aggregates\LoanNoticeAgg\LoanNotice.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="BackOfficeModule\Aggregates\LoanRecoveryAgg\LoanRecovery.cs" /></ItemGroup>
 </Project>

@@ -19,6 +19,12 @@ namespace Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanNoticeAgg
   public string Body {get;set;} public string PolicyJson {get;set;} public string SnapshotJson {get;set;}
   public bool RequireApproval {get;set;} public string Status {get;set;}
   public string ApprovedBy {get;set;} public DateTime? ApprovedAtUtc {get;set;}
+  public string DeliveryAttemptsJson {get;set;}
+  public Guid? MessageAlertId {get;set;}
+  public string DeliveryDestination {get;set;} public string DeliveryStatus {get;set;}
+  public string QueuedBy {get;set;} public DateTime? QueuedAtUtc {get;set;}
+  public string StageRecipientIdsJson {get;set;}
+  public string SentBy {get;set;} public DateTime? SentAtUtc {get;set;} public string DispatchReference {get;set;}
   public string CancelledBy {get;set;} public DateTime? CancelledAtUtc {get;set;}
  }
 }

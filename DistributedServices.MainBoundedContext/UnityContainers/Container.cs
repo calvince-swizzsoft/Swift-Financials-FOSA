@@ -138,6 +138,7 @@ namespace DistributedServices.MainBoundedContext.UnityContainers
             Current.RegisterType<ISasraSetupAppService, SasraSetupAppService>();
             Current.RegisterType<ILoanAgeingAppService, LoanAgeingAppService>();
             Current.RegisterType<ILoanNoticeAppService, LoanNoticeAppService>();
+            Current.RegisterType<ILoanRecoveryAppService, LoanRecoveryAppService>();
             Current.RegisterType<IInsuranceCompanyAppService, InsuranceCompanyAppService>();
             Current.RegisterType<IDebitTypeAppService, DebitTypeAppService>();
             Current.RegisterType<IDebitBatchAppService, DebitBatchAppService>();

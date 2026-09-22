@@ -1983,7 +1983,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                                 _customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { loanProductAccount }, serviceHeader, true);
 
-                                if (loanProductAccount.BookBalance * -1 <= 0m) // IFF has no loan balance
+                                if (CanAutomaticallyReleaseGuarantors(loanProductAccount.PrincipalBalance, loanProductAccount.InterestBalance))
                                 {
                                     recurringBatchEntries.Add(new RecurringBatchEntryDTO
                                     {
@@ -3823,6 +3823,12 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             return new Tuple<bool, string>(result, builder.ToString());
         }
 
+        public static bool CanAutomaticallyReleaseGuarantors(decimal principal, decimal interest)
+        {
+            // Balance service returns absolute amounts: only zero in both components is cleared.
+            return principal == 0m && interest == 0m;
+        }
+
         private Tuple<bool, string> ReleaseLoanGuarantors(RecurringBatchEntryDTO recurringBatchEntryDTO, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
             var result = default(bool);
@@ -3831,6 +3837,14 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             if (recurringBatchEntryDTO != null && recurringBatchEntryDTO.CustomerAccount != null)
             {
+                // A queued release can be stale by execution time; reload and check before mutation.
+                var currentAccount = _customerAccountAppService.FindCustomerAccountDTO(recurringBatchEntryDTO.CustomerAccount.Id, serviceHeader);
+                if (currentAccount == null || currentAccount.CustomerAccountTypeProductCode != (int)ProductCode.Loan || currentAccount.Status != (int)CustomerAccountStatus.Normal)
+                    return new Tuple<bool, string>(false, "Loan account is not eligible for automatic release.");
+                _customerAccountAppService.FetchCustomerAccountBalances(new List<CustomerAccountDTO> { currentAccount }, serviceHeader, true);
+                if (!CanAutomaticallyReleaseGuarantors(currentAccount.PrincipalBalance, currentAccount.InterestBalance))
+                    return new Tuple<bool, string>(false, "Loan balance remains outstanding.");
+
                 var loanGuarantors = FindAttachedLoanGuarantors(recurringBatchEntryDTO.CustomerAccount, serviceHeader);
 
                 var loanCollaterals = FindAttachedLoanCollaterals(recurringBatchEntryDTO.CustomerAccount, serviceHeader);

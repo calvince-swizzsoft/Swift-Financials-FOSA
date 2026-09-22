@@ -1,4 +1,5 @@
 using Application.Seedwork;
+using Application.MainBoundedContext.HumanResourcesModule.Services;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http.ExceptionHandling;
@@ -15,6 +16,11 @@ namespace WebApplication1.ApiErrors
 
         public static HttpResponseMessage CreateResponse(HttpRequestMessage request, System.Exception exception)
         {
+            var payrollSetup = exception as PayrollSetupException;
+            if (payrollSetup != null)
+                return ApiErrorResponses.Create(request, HttpStatusCode.Conflict,
+                    "PAYROLL_SETUP_REQUIRED", payrollSetup.Message);
+
             var authorityFailure = exception as TransactionAuthorityException;
             if (authorityFailure != null)
             {

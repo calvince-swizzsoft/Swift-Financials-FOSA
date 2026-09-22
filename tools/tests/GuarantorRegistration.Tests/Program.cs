@@ -24,6 +24,22 @@ class Program
         Check(GuarantorRegistrationRules.ValidateEditableCase(null) != null, "Missing case rejected");
         foreach (LoanCaseStatus status in Enum.GetValues(typeof(LoanCaseStatus)))
             Check((GuarantorRegistrationRules.ValidateEditableCase(new LoanCaseDTO { Status = (int)status }) == null) == (status == LoanCaseStatus.Registered), "Edit lifecycle guard: " + status);
+        var existingLoan = new LoanCaseDTO { Id=Guid.NewGuid(), CustomerId=Guid.NewGuid(), LoanProductId=Guid.NewGuid(), Status=(int)LoanCaseStatus.Disbursed };
+        var additional = new LoanGuarantorDTO { CustomerId=Guid.NewGuid(), LoanCaseId=existingLoan.Id, LoaneeCustomerId=existingLoan.CustomerId, LoanProductId=existingLoan.LoanProductId, AmountGuaranteed=100 };
+        foreach (LoanCaseStatus stage in Enum.GetValues(typeof(LoanCaseStatus))) {
+            existingLoan.Status=(int)stage;
+            Check((GuarantorRegistrationRules.ValidateAdditionalCase(existingLoan,additional)==null)==(stage!=LoanCaseStatus.Rejected), "Additional guarantor stage: "+stage);
+        }
+        existingLoan.Status=(int)LoanCaseStatus.Disbursed;
+        additional.LoaneeCustomerId=Guid.NewGuid();Check(GuarantorRegistrationRules.ValidateAdditionalCase(existingLoan,additional)!=null,"Wrong borrower rejected");additional.LoaneeCustomerId=existingLoan.CustomerId;
+        additional.LoanProductId=Guid.NewGuid();Check(GuarantorRegistrationRules.ValidateAdditionalCase(existingLoan,additional)!=null,"Wrong product rejected");additional.LoanProductId=existingLoan.LoanProductId;
+        additional.AmountPledged=-1;Check(GuarantorRegistrationRules.ValidateAdditionalCase(existingLoan,additional)!=null,"Negative pledge rejected");
+        additional.AmountPledged=1.001m;Check(GuarantorRegistrationRules.ValidateAdditionalCase(existingLoan,additional)!=null,"Fractional-cent pledge rejected");
+        Check(GuarantorRegistrationRules.ValidateAdditionalCase(null,additional)!=null,"Missing existing loan rejected");
+        Check(existingLoan.Status==(int)LoanCaseStatus.Disbursed,"Adding a guarantor does not change the loan stage");
+        Check(Application.MainBoundedContext.AccountsModule.Services.RecurringBatchAppService.CanAutomaticallyReleaseGuarantors(0,0), "Cleared principal and interest permit automatic release");
+        foreach(var balancesToCheck in new[]{Tuple.Create(66666.68m,0m),Tuple.Create(0m,1m),Tuple.Create(1m,1m),Tuple.Create(-1m,1m),Tuple.Create(1m,-1m),Tuple.Create(-1m,0m)})
+            Check(!Application.MainBoundedContext.AccountsModule.Services.RecurringBatchAppService.CanAutomaticallyReleaseGuarantors(balancesToCheck.Item1,balancesToCheck.Item2), "Outstanding or offsetting balances cannot automatically release guarantees");
         var caseId = Guid.NewGuid();
         var commitments = new[] { new LoanGuarantorDTO { LoanCaseId = caseId, AmountGuaranteed = 700 }, new LoanGuarantorDTO { LoanCaseId = Guid.NewGuid(), AmountGuaranteed = 200 }, new LoanGuarantorDTO { AmountGuaranteed = 100 } };
         Check(GuarantorRegistrationRules.CommittedShares(commitments, caseId) == 300, "Replacement excludes this case only");

@@ -89,6 +89,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("loans/customer/{customerId:guid}")]
+        public IHttpActionResult CustomerLoans(Guid customerId)
+        {
+            return Ok(ApiResponse("", _loanCaseAppService.FindGuarantorLoanCases(customerId, Utils.CreateServiceHeader())));
+        }
+
         [HttpPost]
         [Route("")]
         public IHttpActionResult Create(LoanGuarantorDTO loanGuarantorDTO)
@@ -102,9 +109,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 loanGuarantorDTO.CreatedBy = serviceHeader.ApplicationUserName;
 
-                loanGuarantorDTO.ValidateAll();
-                if (loanGuarantorDTO.HasErrors)
-                    return ErrorResponse(string.Join("; ", loanGuarantorDTO.ErrorMessages));
+                // The AppService resolves authoritative eligibility before validating the guarantee.
 
                 var created = _loanCaseAppService.AddNewLoanGuarantor(loanGuarantorDTO, serviceHeader);
 

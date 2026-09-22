@@ -57,3 +57,8 @@ POST action is entirely commented out — no `UpdateLoanGuarantorAsync` call
 exists anywhere in the reference app. Matching that, there's no `PUT`
 here either; it would be exposing behavior the reference app itself never
 actually shipped.
+
+
+## Existing-loan guarantors
+
+GET `api/backoffice/loanguarantors/loans/customer/{customerId}` returns the selected customer’s loan cases, including Disbursed and Restructured; Rejected cases are excluded. POST to the existing guarantor endpoint adds a new Attached record without changing the loan stage or released history. The AppService validates the exact borrower/product/case link, resolves current member eligibility and guarantee capacity, validates amounts and the active guarantor limit, and rejects existing active duplicates in a serializable transaction. The registration-only replacement endpoint remains restricted to Registered cases.

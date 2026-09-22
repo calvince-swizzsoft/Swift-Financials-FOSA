@@ -26,6 +26,7 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
  }
  public class LoanAgeingCaseDTO
  {
+  public DateTime ReceivedDate{get;set;} public decimal AmountApplied{get;set;} public decimal ApprovedAmount{get;set;}
   public string LoaneeName{get;set;}
   public DateTime CreatedDate{get;set;} public Guid Id{get;set;} public int CaseNumber{get;set;} public string Product{get;set;} public Guid CustomerId{get;set;} public Guid LoanProductId{get;set;} public Guid BranchId{get;set;}
   public DateTime? DisbursedDate{get;set;} public decimal DisbursedAmount{get;set;} public int Status{get;set;} public int TermMonths{get;set;} public int Frequency{get;set;} public int CalculationMode{get;set;}
@@ -54,6 +55,8 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
  }
  public class LoanAgeingLoanResult
  {
+  public DateTime? AppliedDate{get;set;} public DateTime? DisbursedDate{get;set;} public decimal AmountApplied{get;set;} public decimal ApprovedAmount{get;set;} public decimal DisbursedAmount{get;set;} public int TermMonths{get;set;} public string LoanStatus{get;set;} public bool IsDisbursed{get;set;}
+  public decimal? OutstandingInterest{get;set;} public decimal? TotalOutstanding{get{return OutstandingPrincipal+OutstandingInterest;}} public string RiskClassification{get;set;}="Needs review";
   public Guid LoanCaseId{get;set;} public Guid CustomerAccountId{get;set;} public int CaseNumber{get;set;} public string LoaneeName{get;set;} public string Product{get;set;}
   public decimal? OutstandingPrincipal{get;set;} public decimal? OverduePrincipal{get;set;} public decimal? OverdueInterest{get;set;} public int? DaysPastDue{get;set;} public string Status{get;set;}="Needs review";
   public List<string> Issues{get;set;}=new List<string>();

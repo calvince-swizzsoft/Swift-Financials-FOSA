@@ -93,8 +93,6 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
             if (paySlipDTOs != null && paySlipDTOs.Any())
             {
-                var paySlips = new List<PaySlip> { };
-
                 using (var dbContextScope = _dbContextScopeFactory.Create())
                 {
                     paySlipDTOs.ForEach(paySlipDTO =>
@@ -125,8 +123,6 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                         newPaySlip.Status = (int)PaySlipStatus.Pending;
                         newPaySlip.CreatedBy = serviceHeader.ApplicationUserName;
 
-                        paySlips.Add(newPaySlip);
-
                         foreach (var paySlipEntryDTO in paySlipDTO.PaySlipEntries)
                         {
                             var charge = new Charge(paySlipEntryDTO.SalaryCardEntryChargeType, paySlipEntryDTO.SalaryCardEntryChargePercentage, paySlipEntryDTO.SalaryCardEntryChargeFixedAmount);
@@ -138,71 +134,14 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                             newPaySlip.PaySlipEntries.Add(newPaySlipEntry);
                         }
 
+                        // Join the caller's transaction, including all child entries. A separate
+                        // SqlBulkCopy connection waits on the caller's serializable range locks
+                        // and cannot participate in rollback of the draft replacement.
+                        _paySlipRepository.Add(newPaySlip, serviceHeader);
                     });
 
-                    dbContextScope.SaveChanges(serviceHeader);
+                    result = dbContextScope.SaveChanges(serviceHeader) >= 0;
                 }
-
-                #region Bulk-Insert pay slips && pay slip entries
-
-                if (paySlips.Any())
-                {
-                    var paySlipEntries = new List<PaySlipEntry>();
-
-                    paySlips.ForEach(p => paySlipEntries.AddRange(p.PaySlipEntries));
-
-                    var bcpPaySlips = new List<PaySlipBulkCopyDTO>();
-
-                    paySlips.ForEach(c =>
-                    {
-                        PaySlipBulkCopyDTO bcpc =
-                            new PaySlipBulkCopyDTO
-                            {
-                                Id = c.Id,
-                                SalaryPeriodId = c.SalaryPeriodId,
-                                SalaryCardId = c.SalaryCardId,
-                                Remarks = c.Remarks,
-                                Status = c.Status,
-                                CreatedBy = c.CreatedBy,
-                                CreatedDate = c.CreatedDate
-                            };
-
-                        bcpPaySlips.Add(bcpc);
-                    });
-
-                    var bcpPaySlipEntries = new List<PaySlipEntryBulkCopyDTO>();
-
-                    paySlipEntries.ForEach(c =>
-                    {
-                        PaySlipEntryBulkCopyDTO bcpc =
-                            new PaySlipEntryBulkCopyDTO
-                            {
-                                Id = c.Id,
-                                PaySlipId = c.PaySlipId,
-                                CustomerAccountId = c.CustomerAccountId,
-                                ChartOfAccountId = c.ChartOfAccountId,
-                                Description = c.Description,
-                                SalaryHeadType = c.SalaryHeadType,
-                                SalaryHeadCategory = c.SalaryHeadCategory,
-                                Principal = c.Principal,
-                                Interest = c.Interest,
-                                RoundingType = c.RoundingType,
-                                SalaryCardEntryCharge_Type = c.SalaryCardEntryCharge.Type,
-                                SalaryCardEntryCharge_FixedAmount = c.SalaryCardEntryCharge.FixedAmount,
-                                SalaryCardEntryCharge_Percentage = c.SalaryCardEntryCharge.Percentage,
-                                CreatedBy = c.CreatedBy,
-                                CreatedDate = c.CreatedDate
-                            };
-
-                        bcpPaySlipEntries.Add(bcpc);
-                    });
-
-                    result = _sqlCommandAppService.BulkInsert(string.Format("{0}{1}", DefaultSettings.Instance.TablePrefix, _paySlipRepository.Pluralize()), bcpPaySlips, serviceHeader);
-
-                    result = _sqlCommandAppService.BulkInsert(string.Format("{0}{1}", DefaultSettings.Instance.TablePrefix, _paySlipEntryRepository.Pluralize()), bcpPaySlipEntries, serviceHeader);
-                }
-
-                #endregion
             }
 
             return result;

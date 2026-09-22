@@ -47,6 +47,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                         case SalaryHeadType.ContractBasicPayEarning:
                         case SalaryHeadType.NSSFDeduction:
                         case SalaryHeadType.NHIFDeduction:
+                        case SalaryHeadType.SHIFDeduction:
+                        case SalaryHeadType.AffordableHousingLevyDeduction:
                         case SalaryHeadType.PAYEDeduction:
                         case SalaryHeadType.StatutoryProvidentFundDeduction:
 
@@ -85,6 +87,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                                 break;
                             case SalaryHeadType.NSSFDeduction:
                             case SalaryHeadType.NHIFDeduction:
+                            case SalaryHeadType.SHIFDeduction:
+                            case SalaryHeadType.AffordableHousingLevyDeduction:
                             case SalaryHeadType.PAYEDeduction:
                             case SalaryHeadType.StatutoryProvidentFundDeduction:
                             case SalaryHeadType.LoanDeduction:
@@ -120,6 +124,10 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
                 if (persisted != null)
                 {
+                    if (salaryHeadDTO.Type != persisted.Type && KenyaPayrollRules.IsSingleton((SalaryHeadType)salaryHeadDTO.Type) &&
+                        _salaryHeadRepository.AllMatching(SalaryHeadSpecifications.SalaryHeadWithType(salaryHeadDTO.Type), serviceHeader).Any(x => x.Id != persisted.Id))
+                        return false;
+
                     var customerAccountType = new CustomerAccountType(salaryHeadDTO.CustomerAccountTypeProductCode, salaryHeadDTO.CustomerAccountTypeTargetProductId, salaryHeadDTO.CustomerAccountTypeTargetProductCode);
 
                     var current = SalaryHeadFactory.CreateSalaryHead(salaryHeadDTO.ChartOfAccountId, salaryHeadDTO.Description, salaryHeadDTO.Type, customerAccountType);
@@ -138,6 +146,8 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                             break;
                         case SalaryHeadType.NSSFDeduction:
                         case SalaryHeadType.NHIFDeduction:
+                        case SalaryHeadType.SHIFDeduction:
+                        case SalaryHeadType.AffordableHousingLevyDeduction:
                         case SalaryHeadType.PAYEDeduction:
                         case SalaryHeadType.StatutoryProvidentFundDeduction:
                         case SalaryHeadType.LoanDeduction:

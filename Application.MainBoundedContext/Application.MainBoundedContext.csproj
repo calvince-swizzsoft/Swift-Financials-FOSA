@@ -507,4 +507,8 @@
 <ItemGroup><Compile Include="AccountsModule\Services\SasraForm5.cs" /></ItemGroup>
 <ItemGroup><Compile Include="AccountsModule\Services\SasraSetupAppService.Form5.cs" /></ItemGroup>
 <ItemGroup><EmbeddedResource Include="AccountsModule\Templates\form5-investment-return.xls"><LogicalName>Sasra.Form5.xls</LogicalName></EmbeddedResource></ItemGroup>
+  <ItemGroup><Compile Include="BackOfficeModule\Services\ILoanRecoveryAppService.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="BackOfficeModule\Services\LoanRecoveryAppService.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="BackOfficeModule\Services\LoanRecoveryAllocation.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="HumanResourcesModule\Services\KenyaPayrollRules.cs" /></ItemGroup>
 </Project>

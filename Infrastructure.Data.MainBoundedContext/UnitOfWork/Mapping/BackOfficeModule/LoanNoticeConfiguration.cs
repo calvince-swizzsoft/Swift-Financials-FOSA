@@ -17,6 +17,11 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.BackOfficeMo
    Property(x=>x.RecipientName).IsRequired().HasMaxLength(500);Property(x=>x.BorrowerName).IsRequired().HasMaxLength(500);Property(x=>x.CompanyName).IsRequired().HasMaxLength(500);
    Property(x=>x.Body).IsRequired().IsMaxLength();Property(x=>x.PolicyJson).IsRequired().IsMaxLength();Property(x=>x.SnapshotJson).IsRequired().IsMaxLength();
    Property(x=>x.CreatedBy).HasMaxLength(256);Property(x=>x.ApprovedBy).HasMaxLength(256);Property(x=>x.CancelledBy).HasMaxLength(256);
+   Property(x=>x.DeliveryAttemptsJson).IsMaxLength();
+   Property(x=>x.MessageAlertId).HasColumnAnnotation(IndexAnnotation.AnnotationName,new IndexAnnotation(new IndexAttribute("IX_LoanNotice_MessageAlertId")));
+   Property(x=>x.DeliveryDestination).HasMaxLength(256);Property(x=>x.DeliveryStatus).HasMaxLength(40);Property(x=>x.QueuedBy).HasMaxLength(256);
+   Property(x=>x.StageRecipientIdsJson).IsMaxLength();
+   Property(x=>x.SentBy).HasMaxLength(256);Property(x=>x.DispatchReference).HasMaxLength(500);
    Property(x=>x.AsAt).HasColumnType("date");Property(x=>x.ResponseDeadline).HasColumnType("date");
    Property(x=>x.PrincipalOverdue).HasPrecision(18,2);Property(x=>x.InterestOverdue).HasPrecision(18,2);
    HasRequired(x=>x.LoanCase).WithMany().HasForeignKey(x=>x.LoanCaseId).WillCascadeOnDelete(false);

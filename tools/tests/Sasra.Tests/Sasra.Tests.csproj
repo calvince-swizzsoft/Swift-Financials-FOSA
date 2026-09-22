@@ -23,4 +23,6 @@
   <ItemGroup><Compile Include="LoanScheduleGenerationTests.cs" /></ItemGroup>
 <ItemGroup><Compile Include="LoanNoticeTests.cs" /></ItemGroup>
 <ItemGroup><Compile Include="Form5Tests.cs" /></ItemGroup>
+<ItemGroup><Compile Include="LoanRecoveryTests.cs" /></ItemGroup>
+<ItemGroup><Compile Include="KenyaPayrollTests.cs" /></ItemGroup>
 </Project>

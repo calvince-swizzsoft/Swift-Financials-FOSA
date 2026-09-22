@@ -82,7 +82,8 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
                                         smsAlert.TextMessageDLRStatus = (int)DLRStatus.Failed;
                                         smsAlert.TextMessageSendRetry += 1;
                                         smsAlert.TextMessageReference = "SMS recipient and message body are required.";
-                                        Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader);
+                                        if (!Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader))
+                                            throw new InvalidOperationException("Could not save SMS delivery status.");
                                         return;
                                     }
 
@@ -95,7 +96,8 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
                                         smsAlert.TextMessageDLRStatus = (int)DLRStatus.Failed;
                                         smsAlert.TextMessageSendRetry += 1;
                                         smsAlert.TextMessageReference = "Invalid mobile number. Use international format beginning with +.";
-                                        Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader);
+                                        if (!Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader))
+                                            throw new InvalidOperationException("Could not save SMS delivery status.");
                                         return;
                                     }
 
@@ -219,7 +221,8 @@ namespace SwiftFinancials.TextAlertDispatcher.Celcom.Configuration
                                         smsAlert.TextMessageReference = string.Format("{0}:{1}", responseTuple.Item1, responseTuple.Item2);
                                     }
 
-                                    Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader);
+                                    if (!Container.Current.Resolve<ITextAlertAppService>().UpdateTextAlert(smsAlert, serviceHeader))
+                                            throw new InvalidOperationException("Could not save SMS delivery status.");
 
                                     break;
                                 default:

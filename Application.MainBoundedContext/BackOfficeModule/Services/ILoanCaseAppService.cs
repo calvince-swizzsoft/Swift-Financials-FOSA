@@ -105,6 +105,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         List<LoanGuarantorDTO> FindLoanGuarantorsByLoaneeCustomerIdAndLoanProductId(Guid loaneeCustomerId, Guid loanProductId, ServiceHeader serviceHeader);
 
+        List<LoanCaseDTO> FindGuarantorLoanCases(Guid customerId, ServiceHeader serviceHeader);
+
         List<LoanCaseDTO> FindLoanCasesByCustomerIdInProcess(Guid customerId, ServiceHeader serviceHeader);
 
         List<LoanCollateralDTO> FindLoanCollateralsByLoanCaseId(Guid loanCaseId, ServiceHeader serviceHeader);
