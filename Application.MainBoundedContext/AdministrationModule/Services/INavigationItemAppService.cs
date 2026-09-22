@@ -9,6 +9,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
 {
     public interface INavigationItemAppService
     {
+        Task<NavigationItemDTO> EnsureLeaveSetupNavigationAsync(ServiceHeader header);
+
         Task<bool> AddNavigationItemsAsync(List<NavigationItemDTO> navigationItems, ServiceHeader serviceHeader);
 
         Task<bool> BulkInsertNavigationItemAsync(List<Guid> navigationItemIds, string roleName, ServiceHeader serviceHeader);

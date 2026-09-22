@@ -23,6 +23,9 @@ namespace Application.MainBoundedContext.DTO.HumanResourcesModule
         [Display(Name = "Customer")]
         [ValidGuid]
         public Guid CustomerId { get; set; }
+        [DataMember]
+        [Display(Name = "Employment Start Date")]
+        public DateTime? EmploymentStartDate { get; set; }
 
         [DataMember]
         [Display(Name = "Customer")]

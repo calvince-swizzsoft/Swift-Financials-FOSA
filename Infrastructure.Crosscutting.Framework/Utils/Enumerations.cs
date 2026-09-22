@@ -2955,7 +2955,9 @@ namespace Infrastructure.Crosscutting.Framework.Utils
         [Description("Rejected")]
         Rejected = 4,
         [Description("Recalled")]
-        Recalled = 8
+        Recalled = 8,
+        [Description("Withdrawn")]
+        Withdrawn = 16
     }
 
     [Flags]

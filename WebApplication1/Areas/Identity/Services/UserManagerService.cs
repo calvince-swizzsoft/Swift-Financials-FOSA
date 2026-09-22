@@ -109,7 +109,7 @@ namespace WebApplication1.Areas.Identity.Services
             }
         }
 
-        public bool HasActiveEmployeeUserInAnyRole(IEnumerable<string> roleNames, ServiceHeader serviceHeader)
+        public bool HasActiveEmployeeUserInAnyRole(IEnumerable<string> roleNames, ServiceHeader serviceHeader, Guid? excludedEmployeeId = null)
         {
             var normalizedRoles = (roleNames ?? Enumerable.Empty<string>())
                 .Where(role => !string.IsNullOrWhiteSpace(role))
@@ -130,6 +130,8 @@ namespace WebApplication1.Areas.Identity.Services
                 var now = DateTime.UtcNow;
                 employeeIds = context.Users
                     .Where(user => user.EmployeeId.HasValue
+                        && (!excludedEmployeeId.HasValue || user.EmployeeId != excludedEmployeeId)
+                        && user.UserName != serviceHeader.ApplicationUserName
                         && user.Roles.Any(role => roleIds.Contains(role.RoleId))
                         && (!user.LockoutEnabled || !user.LockoutEndDateUtc.HasValue || user.LockoutEndDateUtc <= now))
                     .Select(user => user.EmployeeId.Value)
@@ -159,6 +161,7 @@ namespace WebApplication1.Areas.Identity.Services
                 var roleIds = context.Roles.Where(role => normalizedRoles.Contains(role.Name)).Select(role => role.Id).ToList();
                 var now = DateTime.UtcNow;
                 candidates = context.Users.Where(user => user.EmployeeId.HasValue
+                    && user.EmployeeId != leaveApplication.EmployeeId && user.UserName != leaveApplication.CreatedBy
                     && !string.IsNullOrEmpty(user.Email)
                     && user.Roles.Any(role => roleIds.Contains(role.RoleId))
                     && (!user.LockoutEnabled || !user.LockoutEndDateUtc.HasValue || user.LockoutEndDateUtc <= now)).ToList();

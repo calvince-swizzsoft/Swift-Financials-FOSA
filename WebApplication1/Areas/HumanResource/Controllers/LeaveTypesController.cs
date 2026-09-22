@@ -33,7 +33,7 @@ namespace WebApplication1.Controllers
     {
         private readonly ILeaveTypeAppService _leaveTypeAppService;
         private readonly INavigationItemInRoleAppService _navigationItemInRoleAppService;
-        private const int LeaveApplicationModuleCode = 22016;
+        private const int LeaveSetupModuleCode = 22028;
 
         public LeaveTypesController(ILeaveTypeAppService leaveTypeAppService, INavigationItemInRoleAppService navigationItemInRoleAppService)
         {
@@ -48,7 +48,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var serviceHeader = Utils.CreateServiceHeader();
-                if (!HasPermission(serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
+                if (!new[] { 22016, 22017, 22018, LeaveSetupModuleCode }.Any(code => HasPermission(serviceHeader, code))) return StatusCode(HttpStatusCode.Forbidden);
 
                 var leaveTypes = _leaveTypeAppService.FindLeaveTypes(text, pageIndex, pageSize, serviceHeader);
 
@@ -123,6 +123,9 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet, Route("capabilities")]
+        public IHttpActionResult Capabilities() { return Ok(new { CanManage = HasPermission(Utils.CreateServiceHeader()) }); }
+
         private static LeaveTypeDTO ToDTO(LeaveTypeBindingModel model)
         {
             return new LeaveTypeDTO
@@ -139,10 +142,10 @@ namespace WebApplication1.Controllers
             };
         }
 
-        private bool HasPermission(ServiceHeader serviceHeader)
+        private bool HasPermission(ServiceHeader serviceHeader, int moduleCode = LeaveSetupModuleCode)
         {
             var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
-            var grantedRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApplicationModuleCode, serviceHeader) ?? new string[0];
+            var grantedRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(moduleCode, serviceHeader) ?? new string[0];
             return callerRoles.Any(callerRole => grantedRoles.Any(grantedRole =>
                 string.Equals(callerRole, grantedRole, StringComparison.OrdinalIgnoreCase)));
         }

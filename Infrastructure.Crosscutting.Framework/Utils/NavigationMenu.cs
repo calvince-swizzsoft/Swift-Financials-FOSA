@@ -469,6 +469,7 @@ namespace Infrastructure.Crosscutting.Framework.Utils
                 new NavigationMenu { AreaCode = 0x000055F0 + 15, IsArea = false, Description = "Recall", Icon = "fa fa-cogs", ControllerName = "LeaveRecall", ActionName = "Index", AreaName = "HumanResource",
                     Code =  0x000055F0 + 18},
 
+                new NavigationMenu { AreaCode = 0x000055F0 + 15, IsArea = false, Description = "Leave Setup", Icon = "fa fa-cogs", ControllerName = "LeaveTypes", ActionName = "Index", AreaName = "HumanResource", Code = 22028 },
                 //..Salary
                 new NavigationMenu { AreaCode = 0x000055F0 + 2, IsArea = true, Description = "Salary", Icon = "", Code = 0x000055F0 + 19 },
                 new NavigationMenu { AreaCode = 0x000055F0 + 19, IsArea = false, Description = "Salary Heads", Icon = "fa fa-clipboard", ControllerName = "Salary", ActionName = "Index", AreaName = "HumanResource",

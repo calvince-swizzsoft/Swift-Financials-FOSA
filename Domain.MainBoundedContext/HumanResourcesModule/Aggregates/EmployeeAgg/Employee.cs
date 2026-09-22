@@ -11,6 +11,7 @@ namespace Domain.MainBoundedContext.HumanResourcesModule.Aggregates.EmployeeAgg
     public class Employee : Entity
     {
         public Guid CustomerId { get; set; }
+        public DateTime? EmploymentStartDate { get; set; }
 
         public virtual Customer Customer { get; private set; }
 

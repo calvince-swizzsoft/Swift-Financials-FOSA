@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
@@ -47,6 +47,8 @@ class Program
   LoanNoticeTests.Run();
   LoanRecoveryTests.Run();
   KenyaPayrollTests.Run();
+  LeaveWorkflowTests.Run();
+
   LoanInterestAgeingTests.Run();
   LoanRestructureForm4Tests.Run();
   LoanScheduleGenerationTests.Run();
@@ -93,6 +95,7 @@ class Program
   var model=builder.Build(new DbProviderInfo("System.Data.SqlClient","2012"));var buffer=new StringWriter();using(var writer=XmlWriter.Create(buffer))EdmxWriter.WriteEdmx(model,writer);var xml=buffer.ToString();
   foreach(var table in new[]{"SasraInstitutionProfiles","SasraTemplateVersions","SasraLineDefinitions","LoanRepaymentPlans","LoanRepaymentInstalments","LoanNotices","LoanRecoveries"})Check(xml.Contains("swiftFin_"+table),"EF discovers "+table);
   foreach(var name in new[]{"UX_SasraProfile_Singleton","UX_SasraVersion","IsVersioned","UX_LoanNoticeDuplicate"})Check(xml.Contains(name),"EF includes "+name);
+  LeaveMigrationTests.Run();
   Console.WriteLine("PASS: "+checks+" SASRA validation, atomic-save, revision and real EF model assertions; no database writes.");
  }
 }

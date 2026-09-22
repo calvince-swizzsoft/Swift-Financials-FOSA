@@ -14,6 +14,13 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
         bool AuthorizeLeaveApplication(LeaveApplicationDTO leaveApplicationDTO, ServiceHeader serviceHeader);
 
+        EmployeeLeaveStatisticsDTO GetEmployeeLeaveStatistics(Guid employeeId, Guid leaveTypeId, DateTime asAt, int pageIndex, ServiceHeader serviceHeader);
+
+        LeavePreviewDTO PreviewLeave(Guid employeeId, Guid leaveTypeId, DateTime start, DateTime end, Guid? excludedId, ServiceHeader serviceHeader);
+        bool WithdrawLeaveApplication(Guid id, ServiceHeader serviceHeader);
+        void MarkLeaveNotificationQueued(Guid id, ServiceHeader serviceHeader);
+        bool RetryLeaveNotification(Guid id, ServiceHeader serviceHeader);
+
         bool RecallLeaveApplication(LeaveApplicationDTO leaveApplicationDTO, ServiceHeader serviceHeader);
 
         List<LeaveApplicationDTO> FindLeaveApplications(ServiceHeader serviceHeader);

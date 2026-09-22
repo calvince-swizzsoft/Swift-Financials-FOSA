@@ -70,6 +70,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                     {
                         var employee = EmployeeFactory.CreateEmployee(employeeDTO.CustomerId, employeeDTO.BranchId, employeeDTO.DesignationId, employeeDTO.DepartmentId, employeeDTO.EmployeeTypeId, employeeDTO.NationalSocialSecurityFundNumber, employeeDTO.NationalHospitalInsuranceFundNumber, employeeDTO.BloodGroup, employeeDTO.Remarks, employeeDTO.OnlineNotificationsEnabled, employeeDTO.EnforceBiometricsForLogin);
 
+                        employee.EmploymentStartDate = employeeDTO.EmploymentStartDate?.Date;
                         if (employeeDTO.IsLocked)
                             employee.Lock();
                         else employee.UnLock();
@@ -107,6 +108,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                 {
                     var current = EmployeeFactory.CreateEmployee(persisted.CustomerId, employeeDTO.BranchId, employeeDTO.DesignationId, employeeDTO.DepartmentId, employeeDTO.EmployeeTypeId, employeeDTO.NationalSocialSecurityFundNumber, employeeDTO.NationalHospitalInsuranceFundNumber, employeeDTO.BloodGroup, employeeDTO.Remarks, employeeDTO.OnlineNotificationsEnabled, employeeDTO.EnforceBiometricsForLogin);
 
+                    current.EmploymentStartDate = employeeDTO.EmploymentStartDate?.Date;
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
 
                     if (employeeDTO.IsLocked)

@@ -11,45 +11,7 @@ using WebApplication1.Areas.Identity.Services;
 
 namespace WebApplication1.Controllers
 {
-    // Backs all three HR > Operations > Leave nav leaves — Application
-    // (22016), Approval (22017), Recall (22018) — which are really one
-    // data source (LeaveApplication) viewed through three different
-    // workflow lenses, not three separate resources: Approval is the
-    // Pending queue, Recall is the Approved queue, Application is
-    // everything. Same gap as Holidays/EmployeeDocuments: the domain/
-    // app-service layer (ILeaveApplicationAppService, ILeaveTypeAppService)
-    // was already fully built (and DI-registered) but had no REST
-    // controller anywhere.
-    //
-    // Two things the raw app service leaves to its caller, resolved here
-    // server-side rather than trusted from the client (same principle as
-    // HolidaysController resolving PostingPeriod bounds):
-    // - LeaveTypeExcludeWeekends/ExcludeHolidays/UnitType/IsAccrued/
-    //   Entitlement/Description are plain fields duplicated onto
-    //   LeaveApplicationDTO — AddNewLeaveApplication/UpdateLeaveApplication
-    //   read them directly off the DTO instead of looking up LeaveTypeId
-    //   themselves, so this controller resolves the real LeaveType and
-    //   copies them across before calling in.
-    // - DTO.Balance is read by the app service as "remaining balance after
-    //   this request", not "days requested" — RecallLeaveApplication adds
-    //   (DurationEndDate - DurationStartDate).TotalDays back onto it to
-    //   "return" the balance, so Create computes
-    //   currentBalance - thatSameDayCount up front to stay consistent with
-    //   what Recall assumes when reversing it later.
-    //
-    // AddNewLeaveApplication/UpdateLeaveApplication/AuthorizeLeaveApplication/
-    // RecallLeaveApplication all run LeaveApplicationBindingModel validation
-    // internally and throw InvalidOperationException on failure (business
-    // rules too — start date in the past, start after end, negative
-    // balance — are also raised this way, not via HasErrors) — caught
-    // below and turned into a clean 400 rather than a 500.
-    //
-    // Status transitions the app service itself does NOT guard (confirmed
-    // in LeaveApplicationAppService.cs — AuthorizeLeaveApplication doesn't
-    // check the current status before overwriting it, RecallLeaveApplication
-    // doesn't check it's actually Approved) are guarded here instead:
-    // Update/Authorize only act on a Pending application, Recall only on
-    // an Approved one.
+    // Business validation, balances and transitions are owned by LeaveApplicationAppService.
     [Authorize]
     [RoutePrefix("api/humanresource/leaveapplications")]
     public class LeaveApplicationsController : ApiController
@@ -156,7 +118,7 @@ namespace WebApplication1.Controllers
                 var serviceHeader = Utils.CreateServiceHeader();
                 if (!HasPermission(LeaveApplicationModuleCode, serviceHeader)) return StatusCode(HttpStatusCode.Forbidden);
                 var approvalRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApprovalModuleCode, serviceHeader) ?? new string[0];
-                if (!_userManagerService.HasActiveEmployeeUserInAnyRole(approvalRoles, serviceHeader))
+                if (!_userManagerService.HasActiveEmployeeUserInAnyRole(approvalRoles, serviceHeader, leaveApplicationDTO.EmployeeId))
                     return BadRequest("Leave cannot be submitted because no active employee user is currently authorized to approve it. Assign Leave Approval permission to a role with an active user, then try again.");
 
                 var created = _leaveApplicationAppService.AddNewLeaveApplication(leaveApplicationDTO, serviceHeader);
@@ -164,7 +126,9 @@ namespace WebApplication1.Controllers
                 if (created == null)
                     throw new InvalidOperationException("Failed to save the leave application.");
 
-                _userManagerService.NotifyActiveLeaveApprovers(approvalRoles, created, serviceHeader);
+                created = _leaveApplicationAppService.FindLeaveApplication(created.Id, serviceHeader);
+                TryNotifyApprovers(created, serviceHeader);
+                created = _leaveApplicationAppService.FindLeaveApplication(created.Id, serviceHeader);
 
                 return Ok(created);
             }
@@ -204,7 +168,9 @@ namespace WebApplication1.Controllers
                 if (!updated)
                     return NotFound();
 
-                return Ok(leaveApplicationDTO);
+                var saved = _leaveApplicationAppService.FindLeaveApplication(id, serviceHeader);
+                TryNotifyApprovers(saved, serviceHeader);
+                return Ok(_leaveApplicationAppService.FindLeaveApplication(id, serviceHeader));
             }
             catch (InvalidOperationException ex)
             {
@@ -250,7 +216,7 @@ namespace WebApplication1.Controllers
                 if (!authorized)
                     return NotFound();
 
-                return Ok(persisted);
+                return Ok(_leaveApplicationAppService.FindLeaveApplication(id, serviceHeader));
             }
             catch (InvalidOperationException ex)
             {
@@ -284,13 +250,14 @@ namespace WebApplication1.Controllers
                     return Content(HttpStatusCode.Conflict, new { Message = "Only an Approved leave application can be recalled." });
 
                 persisted.RecallRemarks = request?.Remarks;
+                persisted.EffectiveReturnDate = request?.EffectiveReturnDate;
 
                 var recalled = _leaveApplicationAppService.RecallLeaveApplication(persisted, serviceHeader);
 
                 if (!recalled)
                     return NotFound();
 
-                return Ok(persisted);
+                return Ok(_leaveApplicationAppService.FindLeaveApplication(id, serviceHeader));
             }
             catch (InvalidOperationException ex)
             {
@@ -300,6 +267,65 @@ namespace WebApplication1.Controllers
             {
                 throw;
             }
+        }
+
+        [HttpGet, Route("employee-statistics")]
+        public IHttpActionResult EmployeeStatistics(Guid employeeId, Guid leaveTypeId, DateTime asAt, int pageIndex = 0)
+        {
+            var header = Utils.CreateServiceHeader();
+            if (!HasAnyLeavePermission(header)) return StatusCode(HttpStatusCode.Forbidden);
+            try { return Ok(_leaveApplicationAppService.GetEmployeeLeaveStatistics(employeeId, leaveTypeId, asAt, pageIndex, header)); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpGet, Route("preview")]
+        public IHttpActionResult Preview(Guid employeeId, Guid leaveTypeId, DateTime start, DateTime end, Guid? excludedId = null)
+        {
+            var header = Utils.CreateServiceHeader();
+            if (!HasAnyLeavePermission(header)) return StatusCode(HttpStatusCode.Forbidden);
+            return Ok(_leaveApplicationAppService.PreviewLeave(employeeId, leaveTypeId, start, end, excludedId, header));
+        }
+
+        [HttpPost, Route("{id:guid}/withdraw")]
+        public IHttpActionResult Withdraw(Guid id)
+        {
+            var header = Utils.CreateServiceHeader();
+            if (!HasPermission(LeaveApplicationModuleCode, header)) return StatusCode(HttpStatusCode.Forbidden);
+            try { if (!_leaveApplicationAppService.WithdrawLeaveApplication(id, header)) return NotFound(); return Ok(_leaveApplicationAppService.FindLeaveApplication(id, header)); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpPost, Route("{id:guid}/retry-notification")]
+        public IHttpActionResult RetryNotification(Guid id)
+        {
+            var header = Utils.CreateServiceHeader();
+            if (!HasPermission(LeaveApplicationModuleCode, header) && !HasPermission(LeaveApprovalModuleCode, header))
+                return StatusCode(HttpStatusCode.Forbidden);
+            var application = _leaveApplicationAppService.FindLeaveApplication(id, header);
+            if (application == null) return NotFound();
+            if (application.Status == (int)LeaveApplicationStatus.Pending)
+            {
+                if (!HasPermission(LeaveApplicationModuleCode, header)) return StatusCode(HttpStatusCode.Forbidden);
+                TryNotifyApprovers(application, header);
+            }
+            else
+            {
+                if (!HasPermission(LeaveApprovalModuleCode, header)) return StatusCode(HttpStatusCode.Forbidden);
+                _leaveApplicationAppService.RetryLeaveNotification(id, header);
+            }
+            return Ok(_leaveApplicationAppService.FindLeaveApplication(id, header));
+        }
+
+        private void TryNotifyApprovers(LeaveApplicationDTO application, ServiceHeader header)
+        {
+            if (application == null || !application.NotificationPending) return;
+            try
+            {
+                var roles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApprovalModuleCode, header) ?? new string[0];
+                if (_userManagerService.NotifyActiveLeaveApprovers(roles, application, header) > 0)
+                    _leaveApplicationAppService.MarkLeaveNotificationQueued(application.Id, header);
+            }
+            catch (Exception ex) { System.Diagnostics.Trace.TraceError("Leave application {0} saved; notification pending: {1}", application.Id, ex); }
         }
 
         private bool HasAnyLeavePermission(ServiceHeader serviceHeader)
@@ -344,6 +370,7 @@ namespace WebApplication1.Controllers
 
     public class LeaveRecallRequest
     {
+        public DateTime? EffectiveReturnDate { get; set; }
         public string Remarks { get; set; }
     }
 }

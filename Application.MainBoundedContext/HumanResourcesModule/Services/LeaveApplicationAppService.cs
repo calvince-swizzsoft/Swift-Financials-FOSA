@@ -71,19 +71,20 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         public LeaveApplicationDTO AddNewLeaveApplication(LeaveApplicationDTO leaveApplicationDTO, ServiceHeader serviceHeader)
         {
             EnsurePermission(LeaveApplicationModuleCode, serviceHeader);
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            if (leaveApplicationDTO == null) throw new InvalidOperationException("Leave application details are required.");
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
+                LockEmployee(leaveApplicationDTO.EmployeeId, serviceHeader);
                 var leaveType = ValidateAndApplyRequest(leaveApplicationDTO, null, serviceHeader);
-                var requestedDays = CalculateWorkingDays(leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate, leaveType, serviceHeader);
-                var currentBalance = CalculateEmployeeLeaveBalance(leaveApplicationDTO.EmployeeId, leaveApplicationDTO.LeaveTypeId, leaveApplicationDTO.DurationStartDate, null, serviceHeader);
-                leaveApplicationDTO.Balance = currentBalance - requestedDays;
-                if (leaveApplicationDTO.Balance < 0)
-                    throw new InvalidOperationException(string.Format("Insufficient leave balance. Available: {0} day(s); requested: {1} day(s).", currentBalance, requestedDays));
-
+                var preview = PreviewLeave(leaveApplicationDTO.EmployeeId, leaveApplicationDTO.LeaveTypeId, leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate, null, serviceHeader);
+                if (!preview.CanSubmit) throw new InvalidOperationException(preview.Error);
+                leaveApplicationDTO.Balance = preview.Cycles.Min(x => x.Remaining);
                 var duration = new Duration(leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate);
 
                 var leaveApplication = LeaveApplicationFactory.CreateLeaveApplication(leaveApplicationDTO.EmployeeId, leaveApplicationDTO.LeaveTypeId, duration, leaveApplicationDTO.Reason, leaveApplicationDTO.Balance, leaveApplicationDTO.DocumentNumber, leaveApplicationDTO.FileName, leaveApplicationDTO.FileTitle, leaveApplicationDTO.FileDescription, leaveApplicationDTO.FileMIMEType);
 
+                leaveApplication.ChargedDates = LeaveCalendar.Encode(GetChargeDates(leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate, leaveType, serviceHeader));
+                leaveApplication.NotificationPending = true;
                 leaveApplication.Status = (int)LeaveApplicationStatus.Pending;
 
                 leaveApplication.CreatedBy = serviceHeader.ApplicationUserName;
@@ -97,27 +98,27 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         public bool UpdateLeaveApplication(LeaveApplicationDTO leaveApplicationDTO, ServiceHeader serviceHeader)
         {
             EnsurePermission(LeaveApplicationModuleCode, serviceHeader);
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var persisted = _leaveApplicationRepository.Get(leaveApplicationDTO.Id, serviceHeader);
 
                 if (persisted != null)
                 {
+                    LockEmployee(persisted.EmployeeId, serviceHeader);
                     if (persisted.Status != (byte)LeaveApplicationStatus.Pending)
                         throw new InvalidOperationException("Only a pending leave application can be edited.");
                     leaveApplicationDTO.EmployeeId = persisted.EmployeeId;
                     var leaveType = ValidateAndApplyRequest(leaveApplicationDTO, persisted.Id, serviceHeader);
-                    var requestedDays = CalculateWorkingDays(leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate, leaveType, serviceHeader);
-                    var currentBalance = CalculateEmployeeLeaveBalance(persisted.EmployeeId, leaveApplicationDTO.LeaveTypeId, leaveApplicationDTO.DurationStartDate, persisted.Id, serviceHeader);
-                    leaveApplicationDTO.Balance = currentBalance - requestedDays;
-                    if (leaveApplicationDTO.Balance < 0)
-                        throw new InvalidOperationException(string.Format("Insufficient leave balance. Available: {0} day(s); requested: {1} day(s).", currentBalance, requestedDays));
-
+                    var preview = PreviewLeave(persisted.EmployeeId, leaveApplicationDTO.LeaveTypeId, leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate, persisted.Id, serviceHeader);
+                    if (!preview.CanSubmit) throw new InvalidOperationException(preview.Error);
+                    leaveApplicationDTO.Balance = preview.Cycles.Min(x => x.Remaining);
                     var duration = new Duration(leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate);
 
                     var current = LeaveApplicationFactory.CreateLeaveApplication(persisted.EmployeeId, leaveApplicationDTO.LeaveTypeId, duration, leaveApplicationDTO.Reason, leaveApplicationDTO.Balance, leaveApplicationDTO.DocumentNumber, leaveApplicationDTO.FileName, leaveApplicationDTO.FileTitle, leaveApplicationDTO.FileDescription, leaveApplicationDTO.FileMIMEType);
 
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+                    current.ChargedDates = persisted.LeaveTypeId == leaveApplicationDTO.LeaveTypeId && persisted.Duration.StartDate.Date == leaveApplicationDTO.DurationStartDate.Date && persisted.Duration.EndDate.Date == leaveApplicationDTO.DurationEndDate.Date ? persisted.ChargedDates : LeaveCalendar.Encode(GetChargeDates(leaveApplicationDTO.DurationStartDate, leaveApplicationDTO.DurationEndDate, leaveType, serviceHeader));
+                    current.NotificationPending = true;
                     current.Status = persisted.Status;
                     current.CreatedBy = persisted.CreatedBy;
 
@@ -132,16 +133,28 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         {
             EnsurePermission(LeaveApprovalModuleCode, serviceHeader);
             var result = false;
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var persisted = _leaveApplicationRepository.Get(leaveApplicationDTO.Id, serviceHeader);
 
                 if (persisted == null) return false;
+                LockEmployee(persisted.EmployeeId, serviceHeader);
                 if (persisted.Status != (byte)LeaveApplicationStatus.Pending)
                     throw new InvalidOperationException("Only a pending leave application can be approved or rejected.");
                 if (leaveApplicationDTO.Status != (byte)LeaveApplicationStatus.Approved && leaveApplicationDTO.Status != (byte)LeaveApplicationStatus.Rejected)
                     throw new InvalidOperationException("The authorization decision must be Approved or Rejected.");
 
+                if (string.Equals(persisted.CreatedBy, serviceHeader.ApplicationUserName, StringComparison.OrdinalIgnoreCase) || serviceHeader.ApplicationUserEmployeeId == persisted.EmployeeId)
+                    throw new InvalidOperationException("Another authorized user must decide this leave application.");
+                if (leaveApplicationDTO.Status == (byte)LeaveApplicationStatus.Approved)
+                {
+                    var request = new LeaveApplicationDTO { EmployeeId = persisted.EmployeeId, LeaveTypeId = persisted.LeaveTypeId ?? Guid.Empty, DurationStartDate = persisted.Duration.StartDate, DurationEndDate = persisted.Duration.EndDate, Reason = persisted.Reason };
+                    ValidateAndApplyRequest(request, persisted.Id, serviceHeader, true);
+                    var preview = PreviewLeave(request.EmployeeId, request.LeaveTypeId, request.DurationStartDate, request.DurationEndDate, persisted.Id, serviceHeader);
+                    if (!preview.CanSubmit) throw new InvalidOperationException(preview.Error);
+                    persisted.Balance = preview.Cycles.Min(x => x.Remaining);
+                }
+                persisted.NotificationPending = true;
                 persisted.Status = (byte)leaveApplicationDTO.Status;
                 persisted.AuthorizationRemarks = leaveApplicationDTO.AuthorizationRemarks;
                 persisted.AuthorizedBy = serviceHeader.ApplicationUserName;
@@ -153,12 +166,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
                 result = dbContextScope.SaveChanges(serviceHeader) >= 0;
             }
 
-            if (result)
-            {
-                var committed = FindLeaveApplication(leaveApplicationDTO.Id, serviceHeader);
-                if (committed != null)
-                    _brokerService.ProcessLeaveApprovalAccountAlerts(DMLCommand.None, serviceHeader, committed);
-            }
+            if (result) RetryLeaveNotification(leaveApplicationDTO.Id, serviceHeader);
 
             return result;
         }
@@ -166,20 +174,26 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         public bool RecallLeaveApplication(LeaveApplicationDTO leaveApplicationDTO, ServiceHeader serviceHeader)
         {
             EnsurePermission(LeaveRecallModuleCode, serviceHeader);
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var persisted = _leaveApplicationRepository.Get(leaveApplicationDTO.Id, serviceHeader);
 
                 if (persisted == null) return false;
+                LockEmployee(persisted.EmployeeId, serviceHeader);
                 if (persisted.Status != (byte)LeaveApplicationStatus.Approved)
                     throw new InvalidOperationException("Only an approved leave application can be recalled.");
 
+                if (!leaveApplicationDTO.EffectiveReturnDate.HasValue) throw new InvalidOperationException("Select the effective return-to-work date.");
+                var returnDate = leaveApplicationDTO.EffectiveReturnDate.Value.Date;
+                if (returnDate < DateTime.Today || returnDate < persisted.Duration.StartDate.Date || returnDate > persisted.Duration.EndDate.Date)
+                    throw new InvalidOperationException("The return date must be today or later and within the approved leave dates. Completed leave requires an HR correction, not recall.");
+                persisted.EffectiveReturnDate = returnDate;
                 persisted.Status = (byte)LeaveApplicationStatus.Recalled;
                 persisted.RecallRemarks = leaveApplicationDTO.RecallRemarks;
                 persisted.RecalledBy = serviceHeader.ApplicationUserName;
                 persisted.RecalledDate = DateTime.Now;
                 if (persisted.LeaveTypeId.HasValue)
-                    persisted.Balance = CalculateEmployeeLeaveBalance(persisted.EmployeeId, persisted.LeaveTypeId.Value, DateTime.Today, persisted.Id, serviceHeader);
+                    persisted.Balance = CalculateEmployeeLeaveBalance(persisted.EmployeeId, persisted.LeaveTypeId.Value, returnDate, null, serviceHeader);
 
                 return dbContextScope.SaveChanges(serviceHeader) >= 0;
             }
@@ -209,7 +223,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         {
             using (_dbContextScopeFactory.CreateReadOnly())
             {
-                var filter = LeaveApplicationSpecifications.ActiveLeaveApplicationWithEmployeeId(employeeId);
+                var filter = LeaveApplicationSpecifications.LeaveApplicationsByEmployeeId(employeeId);
 
                 ISpecification<LeaveApplication> spec = filter;
 
@@ -286,17 +300,18 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
             }
         }
 
-        private LeaveTypeDTO ValidateAndApplyRequest(LeaveApplicationDTO request, Guid? existingId, ServiceHeader serviceHeader)
+        private LeaveTypeDTO ValidateAndApplyRequest(LeaveApplicationDTO request, Guid? existingId, ServiceHeader serviceHeader, bool approving = false)
         {
             if (request == null) throw new InvalidOperationException("Leave application details are required.");
             if (request.EmployeeId == Guid.Empty) throw new InvalidOperationException("An employee is required.");
             if (request.LeaveTypeId == Guid.Empty) throw new InvalidOperationException("A leave type is required.");
             if (string.IsNullOrWhiteSpace(request.Reason)) throw new InvalidOperationException("A reason for leave is required.");
-            if (request.DurationStartDate.Date < DateTime.Today) throw new InvalidOperationException("The leave start date cannot be in the past.");
+            if (!approving && request.DurationStartDate.Date < DateTime.Today) throw new InvalidOperationException("The leave start date cannot be in the past.");
             if (request.DurationEndDate.Date < request.DurationStartDate.Date) throw new InvalidOperationException("The leave end date cannot be earlier than the start date.");
 
             var employee = _employeeAppService.FindEmployee(request.EmployeeId, serviceHeader);
             if (employee == null) throw new InvalidOperationException("The selected employee could not be found.");
+            if (employee.EmploymentStartDate.HasValue && request.DurationStartDate.Date < employee.EmploymentStartDate.Value.Date) throw new InvalidOperationException("Leave cannot begin before employment starts.");
             if (employee.IsLocked) throw new InvalidOperationException("The selected employee is locked and cannot apply for leave.");
             var leaveType = _leaveTypeAppService.FindLeaveType(request.LeaveTypeId, serviceHeader);
             if (leaveType == null) throw new InvalidOperationException("The selected leave type could not be found.");
@@ -326,105 +341,177 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
             request.LeaveTypeExcludeWeekends = leaveType.ExcludeWeekends;
         }
 
-        private decimal CalculateEmployeeLeaveBalance(Guid employeeId, Guid leaveTypeId, DateTime targetDate, Guid? excludedApplicationId, ServiceHeader serviceHeader)
+        private void LockEmployee(Guid employeeId, ServiceHeader header)
         {
-            var employee = _employeeAppService.FindEmployee(employeeId, serviceHeader);
-            if (employee == null) throw new InvalidOperationException("The selected employee could not be found.");
-            var leaveType = _leaveTypeAppService.FindLeaveType(leaveTypeId, serviceHeader);
-            if (leaveType == null) throw new InvalidOperationException("The selected leave type could not be found.");
+            var result = _leaveApplicationRepository.DatabaseSqlQuery<int>(
+                "DECLARE @result int; EXEC @result = sys.sp_getapplock @Resource=@resource, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; SELECT @result;",
+                header, new System.Data.SqlClient.SqlParameter("@resource", "employee-leave:" + employeeId.ToString("D"))).Single();
+            if (result < 0) throw new InvalidOperationException("Another leave operation is in progress for this employee. Please retry.");
+        }
 
-            targetDate = targetDate.Date;
-            var employmentStart = employee.CreatedDate == default(DateTime) ? targetDate : employee.CreatedDate.Date;
-            if (targetDate < employmentStart) employmentStart = targetDate;
-            DateTime usageStart;
-            DateTime usageEnd;
-            decimal entitlement;
+        private List<DateTime> GetChargeDates(DateTime start, DateTime end, LeaveTypeDTO policy, ServiceHeader header)
+        {
+            var holidays = policy.ExcludeHolidays ? _holidayAppService.FindHolidays(start.Date, end.Date, header) : new List<HolidayDTO>();
+            return LeaveCalendar.ChargeDates(start, end, policy, holidays);
+        }
 
-            if (leaveType.IsAccrued)
+        private List<DateTime> ConsumedDates(LeaveApplication application)
+        {
+            if (application.Status != (byte)LeaveApplicationStatus.Pending && application.Status != (byte)LeaveApplicationStatus.Approved && application.Status != (byte)LeaveApplicationStatus.Recalled)
+                return new List<DateTime>();
+            if (application.Status == (byte)LeaveApplicationStatus.Recalled && !application.EffectiveReturnDate.HasValue) return new List<DateTime>(); // historical cancellations
+            if (application.ChargedDates == null) throw new InvalidOperationException("This employee has legacy leave awaiting charged-day migration. Ask an administrator to apply the leave schema update.");
+            return LeaveCalendar.Decode(application.ChargedDates).Where(x => !application.EffectiveReturnDate.HasValue || x < application.EffectiveReturnDate.Value.Date).ToList();
+        }
+
+        private LeaveCycleBalanceDTO GetCycleBalance(EmployeeDTO employee, LeaveTypeDTO policy, DateTime date, Guid? excludedId, ServiceHeader header, List<LeaveApplication> loadedApplications = null)
+        {
+            var start = policy.IsAccrued ? (employee.EmploymentStartDate ?? date).Date : LeaveCalendar.CycleStart(date, policy.UnitType);
+            var end = policy.IsAccrued ? DateTime.MaxValue.Date : LeaveCalendar.CycleEnd(start, policy.UnitType);
+            var result = new LeaveCycleBalanceDTO { Start = start, End = end, Entitlement = LeaveCalendar.Entitlement(policy, employee.EmploymentStartDate, date) };
+            var applications = loadedApplications ?? _leaveApplicationRepository.AllMatching(LeaveApplicationSpecifications.LeaveApplicationsWithEmployeeIdAndLeaveTypeId(employee.Id, policy.Id), header) ?? new List<LeaveApplication>();
+            foreach (var application in applications.Where(x => !excludedId.HasValue || x.Id != excludedId.Value))
             {
-                usageStart = employmentStart;
-                usageEnd = DateTime.MaxValue.Date;
-                entitlement = leaveType.Entitlement * GetAccruedPeriodCount(employmentStart, targetDate, (LeaveUnitTypes)leaveType.UnitType);
+                var count = ConsumedDates(application).Count(x => x >= start && x <= end);
+                if (application.Status == (byte)LeaveApplicationStatus.Pending) result.Reserved += count;
+                else result.Used += count;
             }
-            else
-            {
-                GetCycleBounds(targetDate, (LeaveUnitTypes)leaveType.UnitType, out usageStart, out usageEnd);
-                entitlement = leaveType.Entitlement;
-            }
+            result.Available = result.Entitlement - result.Used - result.Reserved;
+            return result;
+        }
 
-            var applications = _leaveApplicationRepository.AllMatching(
-                LeaveApplicationSpecifications.LeaveApplicationsWithEmployeeIdAndLeaveTypeId(employeeId, leaveTypeId), serviceHeader);
-            decimal used = 0m;
-            if (applications != null)
+        private decimal CalculateEmployeeLeaveBalance(Guid employeeId, Guid leaveTypeId, DateTime targetDate, Guid? excludedApplicationId, ServiceHeader header)
+        {
+            var employee = _employeeAppService.FindEmployee(employeeId, header);
+            var policy = _leaveTypeAppService.FindLeaveType(leaveTypeId, header);
+            if (employee == null || policy == null) throw new InvalidOperationException("Select an existing employee and leave type.");
+            return GetCycleBalance(employee, policy, targetDate.Date, excludedApplicationId, header).Available;
+        }
+
+        public EmployeeLeaveStatisticsDTO GetEmployeeLeaveStatistics(Guid employeeId, Guid leaveTypeId, DateTime asAt, int pageIndex, ServiceHeader header)
+        {
+            EnsureReadPermission(header);
+            if (asAt.Year < 1900 || asAt.Year > 9998 || pageIndex < 0 || pageIndex > 100000)
+                throw new InvalidOperationException("Select a valid balance date and history page.");
+            using (_dbContextScopeFactory.CreateReadOnly())
             {
-                foreach (var application in applications.Where(x =>
-                    (!excludedApplicationId.HasValue || x.Id != excludedApplicationId.Value) &&
-                    (x.Status == (byte)LeaveApplicationStatus.Pending || x.Status == (byte)LeaveApplicationStatus.Approved) &&
-                    x.Duration.StartDate.Date >= usageStart && x.Duration.StartDate.Date <= usageEnd))
+                var employee = _employeeAppService.FindEmployee(employeeId, header);
+                var policy = _leaveTypeAppService.FindLeaveType(leaveTypeId, header);
+                if (employee == null || policy == null) throw new InvalidOperationException("Select an existing employee and leave type.");
+                var applications = _leaveApplicationRepository.AllMatching(LeaveApplicationSpecifications.LeaveApplicationsWithEmployeeIdAndLeaveTypeId(employeeId, leaveTypeId), header) ?? new List<LeaveApplication>();
+                var result = new EmployeeLeaveStatisticsDTO { AsAt = asAt.Date, Today = DateTime.Today, LeaveTypeDescription = policy.Description, IsAccrued = policy.IsAccrued };
+                try
                 {
-                    used += CalculateWorkingDays(application.Duration.StartDate, application.Duration.EndDate, leaveType, serviceHeader);
+                    result.Balance = GetCycleBalance(employee, policy, asAt.Date, null, header, applications);
+                    var approvedDates = applications.Where(x => x.Status != (int)LeaveApplicationStatus.Pending).SelectMany(ConsumedDates)
+                        .Where(x => x >= result.Balance.Start && x <= result.Balance.End).ToList();
+                    result.TakenDays = approvedDates.Count(x => x <= DateTime.Today);
+                    result.UpcomingDays = approvedDates.Count(x => x > DateTime.Today);
                 }
+                catch (InvalidOperationException ex) { result.BalanceError = ex.Message; }
+                var start = new DateTime(asAt.Year, 1, 1);
+                var end = start.AddYears(1);
+                var history = applications.Where(x => x.Duration.StartDate < end && x.Duration.EndDate >= start)
+                    .OrderByDescending(x => x.Duration.StartDate).ThenByDescending(x => x.CreatedDate).ThenBy(x => x.Id).ToList();
+                result.HistoryCount = history.Count;
+                result.History = history.Skip(pageIndex * 10).Take(10).Select(x => new EmployeeLeaveHistoryDTO {
+                    Id = x.Id, Start = x.Duration.StartDate, End = x.Duration.EndDate, Status = x.Status,
+                    ChargedDaysInYear = x.ChargedDates == null ? 0 : ConsumedDates(x).Count(d => d >= start && d < end),
+                    EffectiveReturnDate = x.EffectiveReturnDate, Reason = x.Reason, AuthorizedBy = x.AuthorizedBy
+                }).ToList();
+                return result;
             }
-            return Math.Max(0m, entitlement - used);
         }
 
-        private decimal CalculateWorkingDays(DateTime startDate, DateTime endDate, LeaveTypeDTO leaveType, ServiceHeader serviceHeader)
+        public LeavePreviewDTO PreviewLeave(Guid employeeId, Guid leaveTypeId, DateTime start, DateTime end, Guid? excludedId, ServiceHeader header)
         {
-            startDate = startDate.Date;
-            endDate = endDate.Date;
-            if (endDate < startDate) throw new InvalidOperationException("The leave end date cannot be earlier than the start date.");
-            var holidayDates = new HashSet<DateTime>();
-            if (leaveType.ExcludeHolidays)
+            EnsureReadPermission(header);
+            using (_dbContextScopeFactory.CreateReadOnly())
             {
-                var holidays = _holidayAppService.FindHolidays(startDate, endDate, serviceHeader) ?? new List<HolidayDTO>();
-                foreach (var holiday in holidays.Where(x => !x.IsLocked))
+                var result = new LeavePreviewDTO();
+                try
                 {
-                    var date = holiday.DurationStartDate.Date < startDate ? startDate : holiday.DurationStartDate.Date;
-                    var last = holiday.DurationEndDate.Date > endDate ? endDate : holiday.DurationEndDate.Date;
-                    while (date <= last) { holidayDates.Add(date); date = date.AddDays(1); }
+                    var policy = ValidateAndApplyRequest(new LeaveApplicationDTO { EmployeeId = employeeId, LeaveTypeId = leaveTypeId, DurationStartDate = start, DurationEndDate = end, Reason = "Preview" }, excludedId, header, true);
+                    var employee = _employeeAppService.FindEmployee(employeeId, header);
+                    var dates = GetChargeDates(start, end, policy, header);
+                    if (excludedId.HasValue)
+                    {
+                        var existing = _leaveApplicationRepository.Get(excludedId.Value, header);
+                        if (existing == null || existing.EmployeeId != employeeId) throw new InvalidOperationException("The application does not belong to the selected employee.");
+                        if (existing.LeaveTypeId == leaveTypeId && existing.Duration.StartDate.Date == start.Date && existing.Duration.EndDate.Date == end.Date && existing.ChargedDates != null)
+                            dates = LeaveCalendar.Decode(existing.ChargedDates);
+                    }
+                    if (!dates.Any()) throw new InvalidOperationException("The selected dates contain no chargeable leave days.");
+                    result.RequestedDays = dates.Count;
+                    foreach (var group in dates.GroupBy(x => policy.IsAccrued ? start.Date : LeaveCalendar.CycleStart(x, policy.UnitType)))
+                    {
+                        var cycle = GetCycleBalance(employee, policy, group.Key < start.Date ? start.Date : group.Key, excludedId, header);
+                        cycle.Requested = group.Count();
+                        cycle.Remaining = cycle.Available - cycle.Requested;
+                        result.Cycles.Add(cycle);
+                    }
+                    result.CanSubmit = result.Cycles.All(x => x.Remaining >= 0);
+                    if (!result.CanSubmit) result.Error = "Insufficient leave balance in one or more entitlement periods.";
                 }
-            }
-            decimal days = 0m;
-            for (var date = startDate; date <= endDate; date = date.AddDays(1))
-            {
-                if (leaveType.ExcludeWeekends && (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)) continue;
-                if (holidayDates.Contains(date)) continue;
-                days += 1m;
-            }
-            if (days <= 0m) throw new InvalidOperationException("The selected dates contain no chargeable leave days.");
-            return days;
-        }
-
-        private static int GetAccruedPeriodCount(DateTime startDate, DateTime targetDate, LeaveUnitTypes unitType)
-        {
-            switch (unitType)
-            {
-                case LeaveUnitTypes.Weekly: return Math.Max(1, ((targetDate - startDate).Days / 7) + 1);
-                case LeaveUnitTypes.Monthly: return Math.Max(1, ((targetDate.Year - startDate.Year) * 12) + targetDate.Month - startDate.Month + 1);
-                case LeaveUnitTypes.Yearly: return Math.Max(1, targetDate.Year - startDate.Year + 1);
-                default: throw new InvalidOperationException("The leave entitlement cycle is invalid.");
+                catch (InvalidOperationException ex) { result.Error = ex.Message; result.CanSubmit = false; }
+                return result;
             }
         }
 
-        private static void GetCycleBounds(DateTime targetDate, LeaveUnitTypes unitType, out DateTime startDate, out DateTime endDate)
+        public bool WithdrawLeaveApplication(Guid id, ServiceHeader header)
         {
-            switch (unitType)
+            EnsurePermission(LeaveApplicationModuleCode, header);
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
-                case LeaveUnitTypes.Weekly:
-                    var offset = ((int)targetDate.DayOfWeek + 6) % 7;
-                    startDate = targetDate.AddDays(-offset).Date;
-                    endDate = startDate.AddDays(6);
-                    break;
-                case LeaveUnitTypes.Monthly:
-                    startDate = new DateTime(targetDate.Year, targetDate.Month, 1);
-                    endDate = startDate.AddMonths(1).AddDays(-1);
-                    break;
-                case LeaveUnitTypes.Yearly:
-                    startDate = new DateTime(targetDate.Year, 1, 1);
-                    endDate = new DateTime(targetDate.Year, 12, 31);
-                    break;
-                default: throw new InvalidOperationException("The leave entitlement cycle is invalid.");
+                var application = _leaveApplicationRepository.Get(id, header);
+                if (application == null) return false;
+                LockEmployee(application.EmployeeId, header);
+                if (application.Status != (byte)LeaveApplicationStatus.Pending) throw new InvalidOperationException("Only pending leave can be withdrawn.");
+                if (!string.Equals(application.CreatedBy, header.ApplicationUserName, StringComparison.OrdinalIgnoreCase) && header.ApplicationUserEmployeeId != application.EmployeeId)
+                    throw new InvalidOperationException("Only the employee or submitting user can withdraw this application.");
+                application.Status = (byte)LeaveApplicationStatus.Withdrawn;
+                application.NotificationPending = false;
+                application.RecalledBy = header.ApplicationUserName;
+                application.RecalledDate = DateTime.Now;
+                application.RecallRemarks = "Withdrawn before approval";
+                return scope.SaveChanges(header) >= 0;
             }
+        }
+
+        public void MarkLeaveNotificationQueued(Guid id, ServiceHeader header)
+        {
+            EnsureReadPermission(header);
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
+            {
+                var application = _leaveApplicationRepository.Get(id, header);
+                if (application == null) return;
+                application.NotificationPending = false;
+                scope.SaveChanges(header);
+            }
+        }
+
+        public bool RetryLeaveNotification(Guid id, ServiceHeader header)
+        {
+            EnsurePermission(LeaveApprovalModuleCode, header);
+            try
+            {
+                var application = FindLeaveApplication(id, header);
+                if (application == null || !application.NotificationPending) return true;
+                if (application.Status != (byte)LeaveApplicationStatus.Approved && application.Status != (byte)LeaveApplicationStatus.Rejected) return false;
+                if (!_brokerService.ProcessLeaveApprovalAccountAlerts(DMLCommand.None, header, application)) return false;
+                MarkLeaveNotificationQueued(id, header);
+                return true;
+            }
+            catch (Exception ex) { System.Diagnostics.Trace.TraceError("Leave notification retry failed for {0}: {1}", id, ex); return false; }
+        }
+
+        private void EnsureReadPermission(ServiceHeader header)
+        {
+            if (header == null) throw new InvalidOperationException("Authenticated caller context is required.");
+            var roles = header.ApplicationUserRoles ?? new List<string>();
+            if (!new[] { LeaveApplicationModuleCode, LeaveApprovalModuleCode, LeaveRecallModuleCode }.Any(code =>
+                (_navigationItemInRoleAppService.GetRolesForNavigationItemCode(code, header) ?? new string[0]).Any(granted => roles.Any(role => string.Equals(role, granted, StringComparison.OrdinalIgnoreCase)))))
+                throw new InvalidOperationException("Access denied for employee leave.");
         }
 
         private void EnsurePermission(int moduleCode, ServiceHeader serviceHeader)

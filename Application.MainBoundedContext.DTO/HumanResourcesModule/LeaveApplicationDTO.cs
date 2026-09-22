@@ -1,10 +1,53 @@
 ﻿using Infrastructure.Crosscutting.Framework.Attributes;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.MainBoundedContext.DTO.HumanResourcesModule
 {
+    public class EmployeeLeaveStatisticsDTO
+    {
+        public DateTime AsAt { get; set; }
+        public DateTime Today { get; set; }
+        public string LeaveTypeDescription { get; set; }
+        public bool IsAccrued { get; set; }
+        public LeaveCycleBalanceDTO Balance { get; set; }
+        public string BalanceError { get; set; }
+        public int TakenDays { get; set; }
+        public int UpcomingDays { get; set; }
+        public int HistoryCount { get; set; }
+        public List<EmployeeLeaveHistoryDTO> History { get; set; } = new List<EmployeeLeaveHistoryDTO>();
+    }
+    public class EmployeeLeaveHistoryDTO
+    {
+        public Guid Id { get; set; }
+        public DateTime Start { get; set; }
+        public DateTime End { get; set; }
+        public int Status { get; set; }
+        public int ChargedDaysInYear { get; set; }
+        public DateTime? EffectiveReturnDate { get; set; }
+        public string Reason { get; set; }
+        public string AuthorizedBy { get; set; }
+    }
+    public class LeavePreviewDTO
+    {
+        public decimal RequestedDays { get; set; }
+        public bool CanSubmit { get; set; }
+        public string Error { get; set; }
+        public List<LeaveCycleBalanceDTO> Cycles { get; set; } = new List<LeaveCycleBalanceDTO>();
+    }
+    public class LeaveCycleBalanceDTO
+    {
+        public DateTime Start { get; set; }
+        public DateTime End { get; set; }
+        public decimal Entitlement { get; set; }
+        public decimal Used { get; set; }
+        public decimal Reserved { get; set; }
+        public decimal Available { get; set; }
+        public decimal Requested { get; set; }
+        public decimal Remaining { get; set; }
+    }
     public class LeaveApplicationDTO
     {
         
@@ -13,6 +56,9 @@ namespace Application.MainBoundedContext.DTO.HumanResourcesModule
 
         [Display(Name = "Employee")]
         public Guid EmployeeId { get; set; }
+        public string ChargedDates { get; set; }
+        public DateTime? EffectiveReturnDate { get; set; }
+        public bool NotificationPending { get; set; }
 
         [Display(Name = "Customer")]
         public Guid EmployeeCustomerId { get; set; }

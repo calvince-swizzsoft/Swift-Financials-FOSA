@@ -28,6 +28,23 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             _numberSeriesSeeder = numberSeriesSeeder ?? throw new ArgumentNullException(nameof(numberSeriesSeeder));
         }
 
+        // Idempotent registration for the leave hardening upgrade; does not reseed unrelated modules.
+        public async Task<NavigationItemDTO> EnsureLeaveSetupNavigationAsync(ServiceHeader header)
+        {
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
+            {
+                var existing = await FindNavigationItemAsync(22028, header);
+                if (existing != null) return existing;
+                var parent = await FindNavigationItemAsync(22015, header);
+                if (parent == null) throw new InvalidOperationException("Register the Leave navigation area first.");
+                var item = NavigationItemFactory.CreateNavigationItem(parent.Id, "Leave Setup", "fa fa-cogs", 22028, "LeaveTypes", "Index", 22015, "HumanResource");
+                item.CreatedBy = header.ApplicationUserName;
+                _navigationItemRepository.Add(item, header);
+                scope.SaveChanges(header);
+                return item.ProjectedAs<NavigationItemDTO>();
+            }
+        }
+
         #region NavigationItemDTO
 
         public async Task<bool> AddNavigationItemsAsync(List<NavigationItemDTO> navigationItems, ServiceHeader serviceHeader)

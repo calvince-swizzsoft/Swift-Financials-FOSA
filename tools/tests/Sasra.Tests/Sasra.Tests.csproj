@@ -25,4 +25,5 @@
 <ItemGroup><Compile Include="Form5Tests.cs" /></ItemGroup>
 <ItemGroup><Compile Include="LoanRecoveryTests.cs" /></ItemGroup>
 <ItemGroup><Compile Include="KenyaPayrollTests.cs" /></ItemGroup>
-</Project>
+<ItemGroup><Compile Include="LeaveWorkflowTests.cs" /></ItemGroup>
+<ItemGroup><Compile Include="LeaveMigrationTests.cs"/><Reference Include="EntityFramework.SqlServer"><HintPath>..\..\..\packages\EntityFramework.6.5.2\lib\net45\EntityFramework.SqlServer.dll</HintPath></Reference></ItemGroup></Project>

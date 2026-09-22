@@ -511,4 +511,5 @@
   <ItemGroup><Compile Include="BackOfficeModule\Services\LoanRecoveryAppService.cs" /></ItemGroup>
   <ItemGroup><Compile Include="BackOfficeModule\Services\LoanRecoveryAllocation.cs" /></ItemGroup>
   <ItemGroup><Compile Include="HumanResourcesModule\Services\KenyaPayrollRules.cs" /></ItemGroup>
+<ItemGroup><Compile Include="HumanResourcesModule\Services\LeaveCalendar.cs" /></ItemGroup>
 </Project>

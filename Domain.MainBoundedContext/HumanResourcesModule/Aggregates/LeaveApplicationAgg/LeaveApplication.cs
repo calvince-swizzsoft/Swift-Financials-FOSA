@@ -9,6 +9,9 @@ namespace Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveApplica
     public class LeaveApplication : Entity
     {
         public Guid EmployeeId { get; set; }
+        public string ChargedDates { get; set; }
+        public DateTime? EffectiveReturnDate { get; set; }
+        public bool NotificationPending { get; set; }
 
         public virtual Employee Employee { get; private set; }
 

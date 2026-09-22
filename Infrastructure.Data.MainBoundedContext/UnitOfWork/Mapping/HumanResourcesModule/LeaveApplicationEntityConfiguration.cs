@@ -11,6 +11,8 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.HumanResourc
         public LeaveApplicationEntityConfiguration()
         {
             HasKey(x => x.Id);
+            Property(x => x.ChargedDates).IsMaxLength();
+            Property(x => x.EffectiveReturnDate).HasColumnType("date");
 
             Property(t => t.SequentialId).HasColumnAnnotation(IndexAnnotation.AnnotationName, new IndexAnnotation(new IndexAttribute() { IsClustered = true, IsUnique = true })); Property(x => x.CreatedBy).HasMaxLength(256);
 

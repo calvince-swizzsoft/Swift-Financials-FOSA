@@ -19,12 +19,14 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<LeaveType> _leaveTypeRepository;
         private readonly INavigationItemInRoleAppService _navigationItemInRoleAppService;
-        private const int LeaveApplicationModuleCode = 22016;
+        private const int LeaveSetupModuleCode = 22028;
+        private readonly IRepository<Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveApplicationAgg.LeaveApplication> _applications;
 
         public LeaveTypeAppService(
             IDbContextScopeFactory dbContextScopeFactory,
             IRepository<LeaveType> leaveTypeRepository,
-            INavigationItemInRoleAppService navigationItemInRoleAppService)
+            INavigationItemInRoleAppService navigationItemInRoleAppService,
+            IRepository<Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveApplicationAgg.LeaveApplication> applications)
         {
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -37,13 +39,14 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
 
             _dbContextScopeFactory = dbContextScopeFactory;
             _leaveTypeRepository = leaveTypeRepository;
+            _applications = applications ?? throw new ArgumentNullException(nameof(applications));
             _navigationItemInRoleAppService = navigationItemInRoleAppService;
         }
 
         public LeaveTypeDTO AddNewLeaveType(LeaveTypeDTO leaveTypeDTO, ServiceHeader serviceHeader)
         {
             EnsurePermission(serviceHeader);
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 ValidateLeaveType(leaveTypeDTO, null, serviceHeader);
                 var leaveType = LeaveTypeFactory.CreateLeaveType(leaveTypeDTO.Description, leaveTypeDTO.Entitlement, leaveTypeDTO.TargetGender, leaveTypeDTO.IsAccrued, leaveTypeDTO.UnitType, leaveTypeDTO.ExcludeHolidays, leaveTypeDTO.ExcludeWeekends);
@@ -95,13 +98,16 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         {
             EnsurePermission(serviceHeader);
             if (leaveTypeDTO == null || leaveTypeDTO.Id == Guid.Empty) return false;
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 ValidateLeaveType(leaveTypeDTO, leaveTypeDTO.Id, serviceHeader);
                 var persisted = _leaveTypeRepository.Get(leaveTypeDTO.Id, serviceHeader);
 
                 if (persisted != null)
                 {
+                    if ((persisted.Entitlement != leaveTypeDTO.Entitlement || persisted.UnitType != leaveTypeDTO.UnitType || persisted.IsAccrued != leaveTypeDTO.IsAccrued) &&
+                        _applications.AllMatchingCount(new DirectSpecification<Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveApplicationAgg.LeaveApplication>(x => x.LeaveTypeId == persisted.Id), serviceHeader) > 0)
+                        throw new InvalidOperationException("This leave type has application history. Create a new leave type for a different entitlement or accrual policy.");
                     var current = LeaveTypeFactory.CreateLeaveType(leaveTypeDTO.Description, leaveTypeDTO.Entitlement, leaveTypeDTO.TargetGender, leaveTypeDTO.IsAccrued, leaveTypeDTO.UnitType, leaveTypeDTO.ExcludeHolidays, leaveTypeDTO.ExcludeWeekends);
 
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
@@ -137,7 +143,7 @@ namespace Application.MainBoundedContext.HumanResourcesModule.Services
         {
             if (serviceHeader == null) throw new InvalidOperationException("Authenticated caller context is required.");
             var callerRoles = serviceHeader.ApplicationUserRoles ?? new List<string>();
-            var grantedRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveApplicationModuleCode, serviceHeader) ?? new string[0];
+            var grantedRoles = _navigationItemInRoleAppService.GetRolesForNavigationItemCode(LeaveSetupModuleCode, serviceHeader) ?? new string[0];
             if (!callerRoles.Any(callerRole => grantedRoles.Any(grantedRole => string.Equals(callerRole, grantedRole, StringComparison.OrdinalIgnoreCase))))
                 throw new InvalidOperationException("Access denied: your role is not authorized to manage leave configuration.");
         }

@@ -96,7 +96,8 @@ namespace Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveApplica
 
             Specification<LeaveApplication> specification = new DirectSpecification<LeaveApplication>(x =>
                 x.EmployeeId == employeeId &&
-                x.Status == (int)LeaveApplicationStatus.Approved &&
+                (x.Status == (int)LeaveApplicationStatus.Approved ||
+                    (x.Status == (int)LeaveApplicationStatus.Recalled && x.EffectiveReturnDate > targetDate)) &&
                 x.Duration.StartDate <= targetDate && x.Duration.EndDate >= targetDate);
 
             return specification;
@@ -124,7 +125,7 @@ namespace Domain.MainBoundedContext.HumanResourcesModule.Aggregates.LeaveApplica
         {
             return new DirectSpecification<LeaveApplication>(x =>
                 x.EmployeeId == employeeId &&
-                (x.Status == (int)LeaveApplicationStatus.Pending || x.Status == (int)LeaveApplicationStatus.Approved) &&
+                (x.Status == (int)LeaveApplicationStatus.Pending || x.Status == (int)LeaveApplicationStatus.Approved || (x.Status == (int)LeaveApplicationStatus.Recalled && x.EffectiveReturnDate > startDate)) &&
                 x.Duration.StartDate <= endDate && x.Duration.EndDate >= startDate);
         }
     }

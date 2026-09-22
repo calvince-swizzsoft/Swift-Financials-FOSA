@@ -39,7 +39,7 @@ namespace Domain.MainBoundedContext.HumanResourcesModule.Aggregates.HolidayAgg
 
         public static Specification<Holiday> HolidayWithinDurationDates(DateTime durationStartDate, DateTime durationEndDate)
         {
-            Specification<Holiday> specification = new DirectSpecification<Holiday>(c => c.Duration.StartDate >= durationStartDate && c.Duration.EndDate <= durationEndDate);
+            Specification<Holiday> specification = new DirectSpecification<Holiday>(c => c.Duration.StartDate <= durationEndDate && c.Duration.EndDate >= durationStartDate);
 
             return specification;
         }
