@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO.AccountsModule;
+using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Attributes;
@@ -17,6 +17,16 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
         {
             AddAllAttributeValidators();
         }
+
+        [DataMember]
+        public bool? RequireIncomeAssessment { get; set; }
+        [DataMember]
+        public string IncomeAssessmentReference { get; set; }
+        [DataMember]
+        public string IncomeAssessmentSignature { get; set; }
+        // Transient appraisal input; persisted amounts and signature are server-generated.
+        [DataMember]
+        public List<LoanAppraisalFactorDTO> IncomeAssessmentAdjustments { get; set; }
 
         [DataMember]
         [Display(Name = "Id")]

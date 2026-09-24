@@ -613,4 +613,4 @@
   <ItemGroup><Compile Include="Areas\Accounts\Controllers\SasraSetupController.cs" /></ItemGroup>
 <ItemGroup><Compile Include="Areas\BackOffice\Controllers\LoanAgeingController.cs" /></ItemGroup><ItemGroup><Compile Include="Areas\BackOffice\Controllers\LoanNoticePolicyController.cs" /></ItemGroup>
 <ItemGroup><Compile Include="Areas\BackOffice\Controllers\LoanNoticeController.cs" /></ItemGroup>
-</Project>
+<ItemGroup><Compile Include="Areas\Accounts\Controllers\SasraInsiderController.cs" /></ItemGroup></Project>

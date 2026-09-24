@@ -660,3 +660,50 @@ This applies to lookup, registration and existing-case guarantor save validation
 FOSA and Income security calculations are unchanged. Configure designated deposit
 products through `PUT /api/accounts/loanproducts/{id}/appraisal-products`, preserving
 the other collections in that full-replacement resource.
+
+## Borrower investment selection (24 September 2026)
+
+`GET /{id}/appraisal-worksheet`, `POST /{id}/appraise`, and the customer appraisal preview use `ILoanProductAppService.CalculateLoanQualificationFromAccounts` with server-loaded customer accounts. Investments are limited to target product IDs in the loan product's `InvestmentProductCollection` (InvestmentsQualification), matching the existing guarantor selection source. BOSA products exclude savings even when the legacy income-based include-savings flag is enabled. The existing effective multiplier, product ceiling and outstanding-loan treatment are unchanged.
+
+BOSA products, and other products with a positive investment multiplier, require at least one selected investment product. Missing selections or locked selected investments return HTTP 409, `LOAN_APPRAISAL_SETUP_REQUIRED`, with a setup message. Missing member accounts yield zero eligible deposits. There is no fallback to all investments. Existing unconfigured deposit-based products must therefore receive an explicit selection before appraisal.
+
+Response field names are unchanged. For a selected loan product, `investmentsBalance` (or preview `investmentBalance`) reports eligible investments; `qualification.SavingsBalance` and the appraisal `savingsBalance` report only included savings (zero for BOSA), and `totalShares` reflects the eligible appraisal base. Customer preview without a selected loan product retains its general account totals. Full account lists remain available for display.
+
+## Independent income assessment (24 September 2026)
+
+Loan products and cases expose nullable `RequireIncomeAssessment`: null preserves the existing FOSA/non-microcredit section default, true requires the new monthly gross-income assessment, false suppresses the controller income requirement. Registration snapshots the product setting and take-home policy in the AppService. Product editors may configure this independently of BOSA/FOSA. Opted-in products require monthly repayment; activation requires a positive take-home rule.
+
+`GET /{id}/appraisal-repayment-schedule?amount=...` previews a positive proposed principal for Registered/Deferred cases, returning the existing amortization-entry list. The appraisal screen uses the maximum monthly payment from the returned schedule. It is read-only.
+
+`POST /{id}/appraise` accepts `IncomeAssessmentReference` (required for opted-in cases, maximum 512 characters). Existing `LoanProductLatestIncome` means verified monthly gross including allowances for these cases; enabled `IncomeAdjustments` must be positive, distinct deduction definitions. Include verified existing commitments. AppService calculations override submitted net income, ability, monthly payment and total repayment. The take-home percentage uses gross income; fixed minimums are also supported. Evidence verification remains an officer responsibility, not an external payroll integration.
+
+`IncomeAssessmentSignature` is server-generated and persisted. Approval/verification/disbursement require the assessed amount, terms, policy and income to remain unchanged; defer/reappraise to change them. Generic editing of opted-in cases after appraisal is rejected. HTTP 409 `LOAN_INCOME_ASSESSMENT_REQUIRED` identifies missing evidence, missing configuration, failed affordability or stale assessment. These checks exist in both sync/async AppService lifecycle methods.
+
+Schema prerequisite: `tools/sql/2026-09-24-loan-income-assessment.sql`. Existing cases are not backfilled; legacy null settings retain prior behavior. The new policy does not change the separate restructuring workflow or automatically verify payslip attachments.
+
+### Maker-checker validation before loan-stage changes
+
+Appraisal, approval and verification validate the assigned workflow item's
+maker-checker rule before changing loan data. The workflow AppService owns the
+rule and repeats it when completing the item. The initiating/latest approving
+user is rejected with HTTP 409, error code MAKER_CHECKER_VIOLATION, and the
+instruction that a different authorized user must complete the step. Having the
+assigned role does not override this rule.
+
+The early validation prevents this known rejection from occurring only after
+the loan has been saved. It does not make the existing multi-service workflow
+completion sequence atomic or repair cases already saved by an earlier request.
+Temporary local testing exception: Web.config's
+DevelopmentAllowSingleUserLoanWorkflow=true permits the same user to perform
+loan appraisal, approval and verification workflow steps. It is effective only
+in a Debug build using SwiftFin_Dev against (local)/SwiftFinancialsDB_Live.
+Missing/false settings, other connections, Release builds and other workflow
+types retain maker-checker enforcement. Assigned roles, actionable workflow
+status and loan-stage/business validations still apply. Set the key to false
+to restore the normal rule locally. Enabled for local testing at user request.
+Income-assessment signatures canonicalize decimal amounts before hashing so
+SQL decimal formatting (40000 versus 40000.00) does not invalidate an assessment.
+Existing signatures are accepted only when the same complete assessment payload
+matches using numerically identical persisted/canonical decimal scales.
+Missing signatures and actual changes to amount, income, evidence or terms still
+require reassessment. Verified against local Boresha case 12 without changing it.

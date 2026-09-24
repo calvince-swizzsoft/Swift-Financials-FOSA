@@ -1,4 +1,4 @@
-﻿using Application.Seedwork;
+using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Attributes;
 using Infrastructure.Crosscutting.Framework.Extensions;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -17,6 +17,9 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
         {
             AddAllAttributeValidators();
         }
+
+        [DataMember]
+        public bool? RequireIncomeAssessment { get; set; }
 
         [DataMember]
         [Display(Name = "Id")]

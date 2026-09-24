@@ -198,3 +198,7 @@ per-commission. `404` if `id` doesn't exist.
 | `Id` | What you send back (e.g. as one entry in `ChequeTypeController`'s `CreateChequeTypeRequest.AttachedProducts.LoanProductCollection`). |
 | `Code` / `PaddedCode` | Numeric product code. |
 | `Description` | Display label. |
+
+## Income assessment setting (24 September 2026)
+
+`RequireIncomeAssessment` is nullable: null retains the section default, true requires monthly income assessment independent of BOSA/FOSA, false suppresses the controller income requirement. New cases snapshot this setting and TakeHome policy. When true, percentage minimums apply to verified monthly gross income; only deductions are entered separately. Unlocked products must have a positive take-home threshold and opted-in products must use monthly repayments. See the Loan Case API income-assessment section for evidence and lifecycle requirements.

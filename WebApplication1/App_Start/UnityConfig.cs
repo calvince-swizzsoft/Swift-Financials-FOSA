@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.BackOfficeModule.Services;
 using Application.MainBoundedContext.DTO.TypeAdapterFactory;
@@ -129,6 +129,7 @@ namespace WebApplication1
             Current.RegisterType<IAlternateChannelLogAppService, AlternateChannelLogAppService>();
             Current.RegisterType<IReportTemplateAppService, ReportTemplateAppService>();
             Current.RegisterType<ISasraSetupAppService, SasraSetupAppService>();
+            Current.RegisterType<ISasraInsiderAppService, SasraInsiderAppService>();
             Current.RegisterType<ILoanAgeingAppService, LoanAgeingAppService>();
             Current.RegisterType<ILoanNoticeAppService, LoanNoticeAppService>();
             Current.RegisterType<ILoanRecoveryAppService, LoanRecoveryAppService>();

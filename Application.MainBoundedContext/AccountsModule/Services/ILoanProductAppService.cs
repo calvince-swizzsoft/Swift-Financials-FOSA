@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -67,6 +67,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
         bool UpdateLoanProductAuxilliaryAppraisalFactors(Guid loanProductId, List<LoanProductAuxilliaryAppraisalFactorDTO> loanProductAuxilliaryAppraisalFactors, ServiceHeader serviceHeader);
 
         double GetLoaneeAppraisalFactor(Guid loanProductId, decimal totalValue, ServiceHeader serviceHeader);
+
+        LoanQualificationDTO CalculateLoanQualificationFromAccounts(Guid loanProductId, IEnumerable<CustomerAccountDTO> accounts, decimal outstandingLoansBalance, bool includeSavings, bool excludeOutstandingLoans, decimal productMaximumAmount, ServiceHeader serviceHeader);
 
         LoanQualificationDTO CalculateLoanQualification(Guid loanProductId, decimal investmentsBalance, decimal savingsBalance, decimal outstandingLoansBalance, bool includeSavings, bool excludeOutstandingLoans, decimal productMaximumAmount, ServiceHeader serviceHeader);
 

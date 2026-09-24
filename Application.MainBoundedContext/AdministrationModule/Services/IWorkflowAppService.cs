@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System;
@@ -31,6 +31,8 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
         WorkflowItemDTO FindWorkflowItem(Guid workflowItemId, ServiceHeader serviceHeader);
 
         List<WorkflowItemDTO> FindWorkflowItems(Guid workflowId, ServiceHeader serviceHeader);
+
+        void ValidateWorkflowItemMakerChecker(Guid workflowItemId, ServiceHeader serviceHeader);
 
         bool ApproveWorkflowItem(WorkflowItemDTO workflowItemDTO, bool usedBiometrics, ServiceHeader serviceHeader);
 

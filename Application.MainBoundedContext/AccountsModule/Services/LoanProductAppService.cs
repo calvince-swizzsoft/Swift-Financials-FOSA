@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.Seedwork;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.LoanCycleAgg;
@@ -22,6 +22,11 @@ using System.Linq;
 
 namespace Application.MainBoundedContext.AccountsModule.Services
 {
+    public sealed class LoanAppraisalConfigurationException : InvalidOperationException
+    {
+        public LoanAppraisalConfigurationException(string message) : base(message) { }
+    }
+
     public class LoanProductAppService : ILoanProductAppService
     {
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
@@ -178,6 +183,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             percentage("LoanRegistrationMaximumSelfGuaranteeEligiblePercentage", dto.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage, "Maximum self-guarantee percentage");
             if (dto.LoanRegistrationAllowSelfGuarantee && dto.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage <= 0d) add("LoanRegistrationMaximumSelfGuaranteeEligiblePercentage", "Set a positive self-guarantee percentage when self-guarantee is allowed.");
             if (dto.TakeHomeType == (int)ChargeType.Percentage) percentage("TakeHomePercentage", dto.TakeHomePercentage, "Take-home percentage");
+            if (dto.RequireIncomeAssessment == true)
+            {
+                if (dto.LoanRegistrationPaymentFrequencyPerYear != (int)PaymentFrequencyPerYear.Monthly)
+                    add("LoanRegistrationPaymentFrequencyPerYear", "Income assessment requires monthly repayments.");
+                if (!dto.IsLocked && ((dto.TakeHomeType == (int)ChargeType.Percentage && dto.TakeHomePercentage <= 0d) || (dto.TakeHomeType == (int)ChargeType.FixedAmount && dto.TakeHomeFixedAmount <= 0m)))
+                    add("TakeHome", "Set a positive minimum take-home requirement before activating this product.");
+            }
             if (dto.TakeHomeType == (int)ChargeType.FixedAmount && dto.TakeHomeFixedAmount < 0m) add("TakeHomeFixedAmount", "Take-home fixed amount cannot be negative.");
 
             return errors.ToDictionary(x => x.Key, x => x.Value.Distinct().ToArray());
@@ -277,6 +289,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     var loanProduct = LoanProductFactory.CreateLoanProduct(loanProductDTO.ChartOfAccountId, loanProductDTO.InterestReceivedChartOfAccountId, loanProductDTO.InterestReceivableChartOfAccountId, loanProductDTO.InterestChargedChartOfAccountId, loanProductDTO.Description, loanInterest, loanRegistration, takeHome, loanProductDTO.Priority);
 
+                    loanProduct.RequireIncomeAssessment = loanProductDTO.RequireIncomeAssessment;
                     loanProduct.Code = (short)_loanProductRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(Code),0) + 1 AS Expr1 FROM {0}LoanProducts", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
 
                     if (loanProductDTO.IsLocked)
@@ -313,6 +326,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     var current = LoanProductFactory.CreateLoanProduct(loanProductDTO.ChartOfAccountId, loanProductDTO.InterestReceivedChartOfAccountId, loanProductDTO.InterestReceivableChartOfAccountId, loanProductDTO.InterestChargedChartOfAccountId, loanProductDTO.Description, loanInterest, loanRegistration, takeHome, loanProductDTO.Priority);
 
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
+                    current.RequireIncomeAssessment = loanProductDTO.RequireIncomeAssessment;
                     current.Code = persisted.Code;
 
 
@@ -1140,6 +1154,34 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             }
 
             return result;
+        }
+
+        // Callers provide server-loaded customer accounts, never balances from an API request.
+        // The selected InvestmentsQualification products are shared with guarantor eligibility.
+        public LoanQualificationDTO CalculateLoanQualificationFromAccounts(Guid loanProductId, IEnumerable<CustomerAccountDTO> accounts, decimal outstandingLoansBalance, bool includeSavings, bool excludeOutstandingLoans, decimal productMaximumAmount, ServiceHeader serviceHeader)
+        {
+            var product = FindLoanProduct(loanProductId, serviceHeader);
+            if (product == null)
+                throw new LoanAppraisalConfigurationException("The loan product could not be found for appraisal.");
+            var selected = FindAppraisalProducts(loanProductId, serviceHeader)?.InvestmentProductCollection
+                ?? new List<InvestmentProductDTO>();
+            var isBosa = product.LoanRegistrationLoanProductSection == (int)LoanProductSection.BOSA;
+            if ((isBosa || product.LoanRegistrationInvestmentsMultiplier > 0d) && !selected.Any())
+                throw new LoanAppraisalConfigurationException("Select the eligible investment products under this loan product's appraisal products before calculating deposit-based entitlement.");
+            if (selected.Any(p => p.Id == Guid.Empty || p.IsLocked))
+                throw new LoanAppraisalConfigurationException("An investment product selected for loan appraisal is invalid or locked. Review the loan product's appraisal products.");
+            var eligibleIds = new HashSet<Guid>(selected.Select(p => p.Id));
+            var balances = (accounts ?? Enumerable.Empty<CustomerAccountDTO>()).ToList();
+            var investmentsBalance = balances
+                .Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment && eligibleIds.Contains(a.CustomerAccountTypeTargetProductId))
+                .Sum(a => a.BookBalance);
+            // BOSA entitlement is backed by designated deposits, never ordinary savings.
+            var useSavings = includeSavings && !isBosa;
+            var savingsBalance = useSavings
+                ? balances.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance)
+                : 0m;
+            return CalculateLoanQualification(loanProductId, investmentsBalance, savingsBalance, outstandingLoansBalance,
+                useSavings, excludeOutstandingLoans, productMaximumAmount, serviceHeader);
         }
 
         public LoanQualificationDTO CalculateLoanQualification(Guid loanProductId, decimal investmentsBalance, decimal savingsBalance, decimal outstandingLoansBalance, bool includeSavings, bool excludeOutstandingLoans, decimal productMaximumAmount, ServiceHeader serviceHeader)

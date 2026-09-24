@@ -16,6 +16,16 @@ namespace WebApplication1.ApiErrors
 
         public static HttpResponseMessage CreateResponse(HttpRequestMessage request, System.Exception exception)
         {
+            var incomeAssessment = exception as Application.MainBoundedContext.BackOfficeModule.Services.LoanIncomeAssessmentException;
+            if (incomeAssessment != null)
+                return ApiErrorResponses.Create(request, HttpStatusCode.Conflict,
+                    "LOAN_INCOME_ASSESSMENT_REQUIRED", incomeAssessment.Message);
+
+            var appraisalSetup = exception as Application.MainBoundedContext.AccountsModule.Services.LoanAppraisalConfigurationException;
+            if (appraisalSetup != null)
+                return ApiErrorResponses.Create(request, HttpStatusCode.Conflict,
+                    "LOAN_APPRAISAL_SETUP_REQUIRED", appraisalSetup.Message);
+
             var payrollSetup = exception as PayrollSetupException;
             if (payrollSetup != null)
                 return ApiErrorResponses.Create(request, HttpStatusCode.Conflict,

@@ -1,4 +1,4 @@
-﻿using Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanCaseAgg;
+using Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanCaseAgg;
 using Infrastructure.Crosscutting.Framework.Utils;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.Infrastructure.Annotations;
@@ -17,6 +17,8 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.BackOfficeMo
             Property(x => x.CreatedBy).HasMaxLength(256);
 
             Property(x => x.Reference).HasMaxLength(512);
+            Property(x => x.IncomeAssessmentReference).HasMaxLength(512);
+            Property(x => x.IncomeAssessmentSignature).HasMaxLength(64);
 
             Property(x => x.Remarks).HasMaxLength(512);
 

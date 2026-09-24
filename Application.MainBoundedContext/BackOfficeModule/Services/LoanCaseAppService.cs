@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 
 namespace Application.MainBoundedContext.BackOfficeModule.Services
 {
-    public class LoanCaseAppService : ILoanCaseAppService
+    public partial class LoanCaseAppService : ILoanCaseAppService
     {
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<LoanCase> _loanCaseRepository;
@@ -55,6 +55,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         private readonly ICommissionAppService _commissionAppService;
         private readonly IBrokerService _brokerService;
         private readonly ILoanAgeingAppService _loanAgeingAppService;
+        private readonly IIncomeAdjustmentAppService _incomeAdjustmentAppService;
 
         public LoanCaseAppService(
            IDbContextScopeFactory dbContextScopeFactory,
@@ -79,8 +80,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
            IJournalEntryPostingService journalEntryPostingService,
            IPostingPeriodAppService postingPeriodAppService,
            ICommissionAppService commissionAppService,
-           IBrokerService brokerService, ILoanAgeingAppService loanAgeingAppService)
+           IBrokerService brokerService, ILoanAgeingAppService loanAgeingAppService, IIncomeAdjustmentAppService incomeAdjustmentAppService)
         {
+            _incomeAdjustmentAppService = incomeAdjustmentAppService ?? throw new ArgumentNullException(nameof(incomeAdjustmentAppService));
             _loanAgeingAppService = loanAgeingAppService ?? throw new ArgumentNullException(nameof(loanAgeingAppService));
             if (dbContextScopeFactory == null)
                 throw new ArgumentNullException(nameof(dbContextScopeFactory));
@@ -199,6 +201,10 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                     var loanCase = LoanCaseFactory.CreateLoanCase(loanCaseDTO.ParentId, loanCaseDTO.BranchId, loanCaseDTO.CustomerId, loanCaseDTO.LoanProductId, loanCaseDTO.LoanPurposeId, loanCaseDTO.SavingsProductId, loanCaseDTO.Remarks, loanCaseDTO.AmountApplied, loanCaseDTO.ReceivedDate, loanCaseDTO.LoanProductInvestmentsBalance, loanCaseDTO.LoanProductLoanBalance, loanCaseDTO.TotalLoansBalance, loanCaseDTO.LoanProductLatestIncome, loanCaseDTO.Reference, loanInterest, loanRegistration, loanCaseDTO.MaximumAmountPercentage, takeHome);
 
+                    var incomePolicyProduct = _loanProductAppService.FindLoanProduct(loanCase.LoanProductId, serviceHeader);
+                    loanCase.RequireIncomeAssessment = incomePolicyProduct?.RequireIncomeAssessment;
+                    if (loanCase.RequireIncomeAssessment == true)
+                        loanCase.TakeHome = new Charge(incomePolicyProduct.TakeHomeType, incomePolicyProduct.TakeHomePercentage, incomePolicyProduct.TakeHomeFixedAmount);
                     loanCase.CaseNumber = _loanCaseRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(CaseNumber),0) + 1 AS Expr1 FROM {0}LoanCases", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
                     loanCase.Status = loanCaseDTO.Status;
                     loanCase.CreatedBy = serviceHeader.ApplicationUserName;
@@ -226,6 +232,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         switch ((LoanAppraisalOption)loanAppraisalOption)
                         {
                             case LoanAppraisalOption.Appraise:
+
+                                ApplyIncomeAssessment(persisted, loanCaseDTO, serviceHeader);
 
                                 persisted.Status = (int)LoanCaseStatus.Appraised;
 
@@ -305,6 +313,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         {
                             case LoanAppraisalOption.Appraise:
 
+                                ApplyIncomeAssessment(persisted, loanCaseDTO, serviceHeader);
+
                                 persisted.Status = (int)LoanCaseStatus.Appraised;
 
                                 persisted.LoanProductLatestIncome = loanCaseDTO.LoanProductLatestIncome;
@@ -371,6 +381,15 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         switch ((LoanApprovalOption)loanApprovalOption)
                         {
                             case LoanApprovalOption.Approve:
+
+                                ValidateSavedIncomeAssessment(persisted, loanCaseDTO.ApprovedAmount, serviceHeader);
+                                if (persisted.RequireIncomeAssessment == true)
+                                {
+                                    loanCaseDTO.MonthlyPaybackAmount = persisted.MonthlyPaybackAmount;
+                                    loanCaseDTO.TotalPaybackAmount = persisted.TotalPaybackAmount;
+                                    loanCaseDTO.ApprovedPrincipalPayment = 0m;
+                                    loanCaseDTO.ApprovedInterestPayment = 0m;
+                                }
 
                                 persisted.Status = (int)LoanCaseStatus.Approved;
 
@@ -440,6 +459,15 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         {
                             case LoanApprovalOption.Approve:
 
+                                ValidateSavedIncomeAssessment(persisted, loanCaseDTO.ApprovedAmount, serviceHeader);
+                                if (persisted.RequireIncomeAssessment == true)
+                                {
+                                    loanCaseDTO.MonthlyPaybackAmount = persisted.MonthlyPaybackAmount;
+                                    loanCaseDTO.TotalPaybackAmount = persisted.TotalPaybackAmount;
+                                    loanCaseDTO.ApprovedPrincipalPayment = 0m;
+                                    loanCaseDTO.ApprovedInterestPayment = 0m;
+                                }
+
                                 persisted.Status = (int)LoanCaseStatus.Approved;
 
                                 persisted.MonthlyPaybackAmount = loanCaseDTO.MonthlyPaybackAmount;
@@ -507,6 +535,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         switch ((LoanAuditOption)loanAuditOption)
                         {
                             case LoanAuditOption.Audit:
+
+                                ValidateSavedIncomeAssessment(persisted, persisted.ApprovedAmount, serviceHeader);
 
                                 persisted.Status = (int)LoanCaseStatus.Audited;
 
@@ -746,6 +776,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         switch ((LoanAuditOption)loanAuditOption)
                         {
                             case LoanAuditOption.Audit:
+
+                                ValidateSavedIncomeAssessment(persisted, persisted.ApprovedAmount, serviceHeader);
 
                                 persisted.Status = (int)LoanCaseStatus.Audited;
 
@@ -1043,6 +1075,13 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         var takeHome = new Charge(loanCaseDTO.TakeHomeType, loanCaseDTO.TakeHomePercentage, loanCaseDTO.TakeHomeFixedAmount);
 
                         var current = LoanCaseFactory.CreateLoanCase(loanCaseDTO.ParentId, loanCaseDTO.BranchId, loanCaseDTO.CustomerId, loanCaseDTO.LoanProductId, loanCaseDTO.LoanPurposeId, loanCaseDTO.SavingsProductId, loanCaseDTO.Remarks, loanCaseDTO.AmountApplied, loanCaseDTO.ReceivedDate, loanCaseDTO.LoanProductInvestmentsBalance, loanCaseDTO.LoanProductLoanBalance, loanCaseDTO.TotalLoansBalance, loanCaseDTO.LoanProductLatestIncome, loanCaseDTO.Reference, loanInterest, loanRegistration, loanCaseDTO.MaximumAmountPercentage, takeHome);
+
+                        if (persisted.RequireIncomeAssessment == true && persisted.Status != (int)LoanCaseStatus.Registered && persisted.Status != (int)LoanCaseStatus.Deferred)
+                            throw new LoanIncomeAssessmentException("Defer this loan for reassessment before changing its terms.");
+                        var incomePolicyProduct = _loanProductAppService.FindLoanProduct(current.LoanProductId, serviceHeader);
+                        current.RequireIncomeAssessment = incomePolicyProduct?.RequireIncomeAssessment;
+                        if (current.RequireIncomeAssessment == true)
+                            current.TakeHome = new Charge(incomePolicyProduct.TakeHomeType, incomePolicyProduct.TakeHomePercentage, incomePolicyProduct.TakeHomeFixedAmount);
 
                         // Save original values that should NOT be overwritten
                         var originalStatus = persisted.Status;
@@ -2060,6 +2099,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                     switch ((LoanCaseStatus)persistedLoanCase.Status)
                     {
                         case LoanCaseStatus.Audited:
+                            ValidateSavedIncomeAssessment(persistedLoanCase, persistedLoanCase.ApprovedAmount, serviceHeader);
 
                             if (persistedLoanCase.LoanRegistration.CreateStandingOrderOnLoanAudit)
                             {

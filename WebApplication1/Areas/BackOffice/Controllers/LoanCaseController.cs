@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.AccountsModule.Services;
+using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.AdministrationModule.Services;
 using Application.MainBoundedContext.BackOfficeModule.Services;
 using Application.MainBoundedContext.DTO;
@@ -590,7 +590,6 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (membershipMonths < loanProduct.LoanRegistrationMinimumMembershipPeriod)
                     return ErrorResponse($"The selected customer's membership period is less than the minimum of {loanProduct.LoanRegistrationMinimumMembershipPeriod} months required for the selected loan product");
 
-
                 var collateralDocuments = new List<CustomerDocumentDTO>();
                 foreach (var documentId in collateralDocumentIds)
                 {
@@ -716,16 +715,16 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(loanCase.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
 
-                var investmentsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(a => a.BookBalance);
-                var savingsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance);
                 var loanProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(loanCase.CustomerId, loanCase.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
                 var outstandingLoansBalance = loanProductAccounts.Sum(a => Math.Abs(a.BookBalance + a.CarryForwardsBalance));
-                var qualification = _loanProductAppService.CalculateLoanQualification(
-                    loanProduct.Id, investmentsBalance, savingsBalance, outstandingLoansBalance,
+                var qualification = _loanProductAppService.CalculateLoanQualificationFromAccounts(
+                    loanProduct.Id, accounts, outstandingLoansBalance,
                     loanCase.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal,
                     loanCase.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement,
                     loanCase.LoanRegistrationMaximumAmount, serviceHeader);
-                var totalShares = investmentsBalance + savingsBalance;
+                var investmentsBalance = qualification.InvestmentsBalance;
+                var savingsBalance = qualification.SavingsBalance;
+                var totalShares = qualification.AppraisalBaseBalance;
                 var appraisalBaseBalance = qualification.AppraisalBaseBalance;
                 var maximumLoan = qualification.MaximumLoan;
                 var maximumEntitled = qualification.MaximumEntitled;
@@ -751,8 +750,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 var attachedLoans = _loanCaseAppService.FindAttachedLoansByLoanCaseId(id, serviceHeader) ?? new List<AttachedLoanDTO>();
                 var fileRegister = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(loanCase.CustomerId, loanCase.BranchId, serviceHeader);
                 var fileReadyForAppraisal = fileRegister?.IsReadyForLoanAppraisal == true;
-                var requiresIncomeAppraisal = !loanCase.LoanRegistrationMicrocredit
-                    && loanCase.LoanRegistrationLoanProductSection == (int)LoanProductSection.FOSA;
+                var requiresIncomeAppraisal = loanCase.RequireIncomeAssessment ?? (!loanCase.LoanRegistrationMicrocredit
+                    && loanCase.LoanRegistrationLoanProductSection == (int)LoanProductSection.FOSA);
 
                 return Ok(ApiResponse("", new
                 {
@@ -850,8 +849,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 if (existing == null)
                     return NotFound();
 
-                var requiresIncomeAppraisal = !existing.LoanRegistrationMicrocredit
-                    && existing.LoanRegistrationLoanProductSection == (int)LoanProductSection.FOSA;
+                var requiresIncomeAppraisal = existing.RequireIncomeAssessment ?? (!existing.LoanRegistrationMicrocredit
+                    && existing.LoanRegistrationLoanProductSection == (int)LoanProductSection.FOSA);
 
                 var customerFile = _fileRegisterAppService.FindFileRegisterAndLastDepartmentByCustomerId(existing.CustomerId, existing.BranchId, serviceHeader);
                 if (customerFile?.IsReadyForLoanAppraisal != true)
@@ -911,12 +910,11 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                 existing.AppraisedNetIncome = request.AppraisedNetIncome;
                 existing.AppraisedAbility = request.AppraisedAbility;
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(existing.CustomerId, serviceHeader) ?? new List<CustomerAccountDTO>();
-                var investmentsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Investment).Sum(a => a.BookBalance);
-                var savingsBalance = accounts.Where(a => a.CustomerAccountTypeProductCode == (int)ProductCode.Savings).Sum(a => a.BookBalance);
+
                 var sameProductAccounts = _customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(existing.CustomerId, existing.LoanProductId, serviceHeader) ?? new List<CustomerAccountDTO>();
                 var outstandingSameProductBalance = sameProductAccounts.Sum(a => Math.Abs(a.BookBalance + a.CarryForwardsBalance));
-                var qualification = _loanProductAppService.CalculateLoanQualification(
-                    existing.LoanProductId, investmentsBalance, savingsBalance, outstandingSameProductBalance,
+                var qualification = _loanProductAppService.CalculateLoanQualificationFromAccounts(
+                    existing.LoanProductId, accounts, outstandingSameProductBalance,
                     existing.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal,
                     existing.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement,
                     existing.LoanRegistrationMaximumAmount, serviceHeader);
@@ -933,7 +931,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     && request.AppraisedAmount > existing.SystemAppraisedAmount)
                     return Content(HttpStatusCode.Conflict, ErrorEnvelope("This loan product enforces the system appraisal recommendation; the appraised amount cannot exceed the system-appraised amount"));
 
-                if (request.Option == (int)LoanAppraisalOption.Appraise && requiresIncomeAppraisal)
+                if (request.Option == (int)LoanAppraisalOption.Appraise && requiresIncomeAppraisal && existing.RequireIncomeAssessment != true)
                 {
                     var takeHome = request.AppraisedNetIncome - request.MonthlyPaybackAmount;
                     if (existing.TakeHomeType == (int)ChargeType.Percentage)
@@ -947,6 +945,8 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                         return Content(HttpStatusCode.Conflict, ErrorEnvelope("The proposed repayment would reduce the member's take-home below the fixed amount required by this loan product"));
                     }
                 }
+                existing.IncomeAssessmentReference = request.IncomeAssessmentReference;
+                existing.IncomeAssessmentAdjustments = request.IncomeAdjustments;
                 existing.AppraisedAmount = request.AppraisedAmount;
                 existing.AppraisedAmountRemarks = request.AppraisedAmountRemarks;
                 existing.AppraisalRemarks = request.AppraisalRemarks;
@@ -997,6 +997,11 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     throw new InvalidOperationException("The appraisal was saved, but the approval workflow could not be created");
 
                 return Ok(ApiResponse("Loan case appraisal recorded successfully", refreshed));
+            }
+            catch (Application.Seedwork.MakerCheckerViolationException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Conflict, WebApplication1.ApiErrors.ErrorCodes.MakerCheckerViolation, ex.Message));
             }
             catch (Exception)
             {
@@ -1089,6 +1094,11 @@ namespace WebApplication1.Areas.BackOffice.Controllers
 
                 return Ok(ApiResponse(message, refreshed));
             }
+            catch (Application.Seedwork.MakerCheckerViolationException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Conflict, WebApplication1.ApiErrors.ErrorCodes.MakerCheckerViolation, ex.Message));
+            }
             catch (Exception)
             {
                 throw;
@@ -1160,6 +1170,11 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     : "Loan case verification recorded successfully";
 
                 return Ok(ApiResponse(message, refreshed));
+            }
+            catch (Application.Seedwork.MakerCheckerViolationException ex)
+            {
+                return ResponseMessage(WebApplication1.ApiErrors.ApiErrorResponses.Create(Request,
+                    HttpStatusCode.Conflict, WebApplication1.ApiErrors.ErrorCodes.MakerCheckerViolation, ex.Message));
             }
             catch (InvalidOperationException ex)
             {
@@ -1400,6 +1415,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             loanCaseDTO.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal = loanProduct.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal;
             loanCaseDTO.LoanRegistrationThrottleScheduledArrearsRecovery = loanProduct.LoanRegistrationThrottleScheduledArrearsRecovery;
             loanCaseDTO.LoanRegistrationCreateStandingOrderOnLoanAudit = loanProduct.LoanRegistrationCreateStandingOrderOnLoanAudit;
+            loanCaseDTO.RequireIncomeAssessment = loanProduct.RequireIncomeAssessment;
             loanCaseDTO.TakeHomeType = loanProduct.TakeHomeType;
             loanCaseDTO.TakeHomePercentage = loanProduct.TakeHomePercentage;
             loanCaseDTO.TakeHomeFixedAmount = loanProduct.TakeHomeFixedAmount;
@@ -1506,11 +1522,13 @@ namespace WebApplication1.Areas.BackOffice.Controllers
                     if (loanProduct == null)
                         return ErrorResponse("Loan product not found");
                     selectedProductLoanBalance = (_customerAccountAppService.FindCustomerAccountDTOsByCustomerIdAndCustomerAccountTypeTargetProductId(customerId, loanProductId.Value, header) ?? new List<CustomerAccountDTO>()).Sum(account => Math.Abs(account.BookBalance + account.CarryForwardsBalance));
-                    qualification = _loanProductAppService.CalculateLoanQualification(
-                        loanProduct.Id, investmentBalance, savingsBalance, selectedProductLoanBalance,
+                    qualification = _loanProductAppService.CalculateLoanQualificationFromAccounts(
+                        loanProduct.Id, accounts, selectedProductLoanBalance,
                         loanProduct.LoanRegistrationConsiderInvestmentsBalanceForIncomeBasedLoanAppraisal,
                         loanProduct.LoanRegistrationExcludeOutstandingLoansOnMaximumEntitlement,
                         loanProduct.LoanRegistrationMaximumAmount, header);
+                    investmentBalance = qualification.InvestmentsBalance;
+                    savingsBalance = qualification.SavingsBalance;
                     appraisalBaseBalance = qualification.AppraisalBaseBalance;
                     maximumLoan = qualification.MaximumLoan;
                     maximumEntitled = qualification.MaximumEntitled;
@@ -1568,6 +1586,19 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             return mappedRoles.Any(mapping => callerRoles.Any(role => string.Equals(role, mapping.RoleName, StringComparison.OrdinalIgnoreCase)))
                 ? null
                 : $"The current user does not hold a role mapped to {permissionType}";
+        }
+
+        [HttpGet]
+        [Route("{id:guid}/appraisal-repayment-schedule")]
+        public IHttpActionResult GetAppraisalRepaymentSchedule(Guid id, decimal amount)
+        {
+            if (amount <= 0m) return ErrorResponse("Appraised amount must be greater than zero");
+            var header = Utils.CreateServiceHeader();
+            var loanCase = _loanCaseAppService.FindLoanCase(id, header);
+            if (loanCase == null) return NotFound();
+            if (loanCase.Status != (int)LoanCaseStatus.Registered && loanCase.Status != (int)LoanCaseStatus.Deferred)
+                return Content(HttpStatusCode.Conflict, ErrorEnvelope("Only a Registered or Deferred loan can be appraised"));
+            return Ok(ApiResponse("", _loanCaseAppService.BuildRepaymentSchedule(id, amount, header)));
         }
 
         [HttpGet]
@@ -1651,6 +1682,9 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             var assignedRoleName = workflowItem.RoleName;
             if (!callerRoles.Any(r => string.Equals(r, assignedRoleName, StringComparison.OrdinalIgnoreCase)))
                 return "The current user does not hold the role assigned to this loan stage";
+            // Check before appraisal/approval/audit writes; completion rechecks the same rule.
+            _workflowAppService.ValidateWorkflowItemMakerChecker(workflowItem.Id, serviceHeader);
+
             if (!workflowItem.IsLastItemInOverallApprovalChain)
                 return "This workflow item is an earlier approval stage; approve it in Workflow Tasks before the final loan-stage action";
 
@@ -1714,6 +1748,7 @@ namespace WebApplication1.Areas.BackOffice.Controllers
         public decimal AppraisedAmount { get; set; }
         public string AppraisedAmountRemarks { get; set; }
         public string AppraisalRemarks { get; set; }
+        public string IncomeAssessmentReference { get; set; }
         public decimal MonthlyPaybackAmount { get; set; }
         public decimal TotalPaybackAmount { get; set; }
         public decimal TotalLoansBalance { get; set; }

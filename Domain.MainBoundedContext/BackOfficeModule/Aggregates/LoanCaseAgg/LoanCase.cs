@@ -1,4 +1,4 @@
-﻿using Domain.MainBoundedContext.AccountsModule.Aggregates.LoanProductAgg;
+using Domain.MainBoundedContext.AccountsModule.Aggregates.LoanProductAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.SavingsProductAgg;
 using Domain.MainBoundedContext.AdministrationModule.Aggregates.BranchAgg;
 using Domain.MainBoundedContext.BackOfficeModule.Aggregates.AttachedLoanAgg;
@@ -122,6 +122,10 @@ namespace Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanCaseAgg
         public virtual LoanRegistration LoanRegistration { get; set; }
 
         public double MaximumAmountPercentage { get; set; }
+
+        public bool? RequireIncomeAssessment { get; set; }
+        public string IncomeAssessmentReference { get; set; }
+        public string IncomeAssessmentSignature { get; set; }
 
         public virtual Charge TakeHome { get; set; }
 

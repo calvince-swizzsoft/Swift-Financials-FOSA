@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Data.Entity.Migrations.Model;
 using System.Data.Entity.SqlServer;
 
@@ -33,8 +33,8 @@ namespace Infrastructure.Data.MainBoundedContext.Migrations
         {
             SetSequentialIdColumn(addColumnOperation.Column);
 
-            // The leave backfill script can precede EF's automatic migration.
-            // Reconcile only those four known columns; never suppress arbitrary schema drift.
+            // Approved additive scripts can precede EF's automatic migration.
+            // Reconcile only known columns with matching definitions; never suppress arbitrary schema drift.
             var table = addColumnOperation.Table.Replace("[", "").Replace("]", "");
             var column = addColumnOperation.Column;
             string expected = null;
@@ -45,6 +45,16 @@ namespace Infrastructure.Data.MainBoundedContext.Migrations
                 if (column.Name == "ChargedDates") expected = "TYPE_NAME(c.system_type_id) = 'nvarchar' AND c.max_length = -1 AND c.is_nullable = 1";
                 if (column.Name == "EffectiveReturnDate") expected = "TYPE_NAME(c.system_type_id) = 'date' AND c.is_nullable = 1";
                 if (column.Name == "NotificationPending") expected = "TYPE_NAME(c.system_type_id) = 'bit' AND c.is_nullable = 0";
+            }
+            if ((table == "dbo.swiftFin_LoanProducts" || table == "dbo.swiftFin_LoanCases") &&
+                column.Name == "RequireIncomeAssessment")
+                expected = "TYPE_NAME(c.system_type_id) = 'bit' AND c.is_nullable = 1";
+            if (table == "dbo.swiftFin_LoanCases")
+            {
+                if (column.Name == "IncomeAssessmentReference")
+                    expected = "TYPE_NAME(c.system_type_id) = 'nvarchar' AND c.max_length = 1024 AND c.is_nullable = 1";
+                if (column.Name == "IncomeAssessmentSignature")
+                    expected = "TYPE_NAME(c.system_type_id) = 'nvarchar' AND c.max_length = 128 AND c.is_nullable = 1";
             }
             if (expected == null) { base.Generate(addColumnOperation); return; }
 
@@ -60,7 +70,7 @@ namespace Infrastructure.Data.MainBoundedContext.Migrations
                 writer.WriteLine("END");
                 writer.WriteLine("ELSE IF NOT EXISTS (SELECT 1 FROM sys.columns c WHERE c.object_id = OBJECT_ID(N'" + table + "') AND c.name = N'" + column.Name + "' AND " + expected + ")");
                 writer.WriteLine("BEGIN");
-                writer.WriteLine(";THROW 50000, 'Existing leave column has an incompatible definition: " + table + "." + column.Name + "', 1;");
+                writer.WriteLine(";THROW 50000, 'Existing scripted column has an incompatible definition: " + table + "." + column.Name + "', 1;");
                 writer.WriteLine("END");
                 Statement(writer);
             }

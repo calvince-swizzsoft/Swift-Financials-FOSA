@@ -1,4 +1,4 @@
-﻿using Domain.MainBoundedContext.AccountsModule.Aggregates.ChartOfAccountAgg;
+using Domain.MainBoundedContext.AccountsModule.Aggregates.ChartOfAccountAgg;
 using Domain.MainBoundedContext.ValueObjects;
 using Domain.Seedwork;
 using System;
@@ -30,6 +30,8 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.LoanProductAgg
         public virtual LoanInterest LoanInterest { get; set; }
 
         public virtual LoanRegistration LoanRegistration { get; set; }
+
+        public bool? RequireIncomeAssessment { get; set; }
 
         public virtual Charge TakeHome { get; set; }
 

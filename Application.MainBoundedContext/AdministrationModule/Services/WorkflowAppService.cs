@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Application.MainBoundedContext.DTO.AdministrationModule;
 using Infrastructure.Crosscutting.Framework.Utils;
@@ -417,6 +417,42 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             return result;
         }
 
+        private static bool IsLocalLoanMakerCheckerBypass(string enabled, string domain, string connectionString, int permission)
+        {
+#if DEBUG
+            bool allow;
+            if (!bool.TryParse(enabled, out allow) || !allow || domain != "SwiftFin_Dev") return false;
+            System.Data.SqlClient.SqlConnectionStringBuilder connection;
+            try { connection = new System.Data.SqlClient.SqlConnectionStringBuilder(connectionString ?? ""); }
+            catch (ArgumentException) { return false; }
+            if (connection.DataSource != "(local)" || connection.InitialCatalog != "SwiftFinancialsDB_Live") return false;
+            switch ((SystemPermissionType)permission)
+            {
+                case SystemPermissionType.BackOfficeLoanAppraisal:
+                case SystemPermissionType.BackOfficeLoanApproval:
+                case SystemPermissionType.BackOfficeLoanAudit:
+                case SystemPermissionType.FrontOfficeLoanAppraisal:
+                case SystemPermissionType.FrontOfficeLoanApproval:
+                case SystemPermissionType.FrontOfficeLoanAudit:
+                    return true;
+            }
+#endif
+            return false;
+        }
+        public void ValidateWorkflowItemMakerChecker(Guid workflowItemId, ServiceHeader serviceHeader)
+        {
+            var developmentSwitch = System.Configuration.ConfigurationManager.AppSettings["DevelopmentAllowSingleUserLoanWorkflow"];
+            if (string.Equals(developmentSwitch, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                var item = FindWorkflowItem(workflowItemId, serviceHeader);
+                var connection = System.Configuration.ConfigurationManager.ConnectionStrings[serviceHeader.ApplicationDomainName];
+                if (item != null && IsLocalLoanMakerCheckerBypass(developmentSwitch, serviceHeader.ApplicationDomainName,
+                    connection == null ? null : connection.ConnectionString, item.WorkflowSystemPermissionType))
+                    return;
+            }
+            if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemId, serviceHeader.ApplicationUserName, serviceHeader))
+                throw new MakerCheckerViolationException();
+        }
         public bool ApproveWorkflowItem(WorkflowItemDTO workflowItemDTO, bool usedBiometrics, ServiceHeader serviceHeader)
         {
             var result = default(bool);
@@ -432,8 +468,7 @@ namespace Application.MainBoundedContext.AdministrationModule.Services
             // Enforce maker-checker across the approval chain. For the first
             // action this compares against the workflow item's creator; for
             // later actions it compares against the latest recorded approver.
-            if (IsUserLatestApproverOfWorkflowItemEntry(workflowItemDTO.Id, serviceHeader.ApplicationUserName, serviceHeader))
-                throw new MakerCheckerViolationException();
+            ValidateWorkflowItemMakerChecker(workflowItemDTO.Id, serviceHeader);
 
             using (var dbContextScope = _dbContextScopeFactory.Create())
             {
