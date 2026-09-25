@@ -1,4 +1,4 @@
-using Application.MainBoundedContext.AccountsModule.Services;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
@@ -24,7 +24,7 @@ using System.Linq;
 
 namespace Application.MainBoundedContext.BackOfficeModule.Services
 {
-    public class LoanDisbursementBatchAppService : ILoanDisbursementBatchAppService
+    public partial class LoanDisbursementBatchAppService : ILoanDisbursementBatchAppService
     {
         private readonly IDbContextScopeFactory _dbContextScopeFactory;
         private readonly IRepository<LoanDisbursementBatch> _loanDisbursementBatchRepository;
@@ -147,6 +147,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 {
                     var loanDisbursementBatch = LoanDisbursementBatchFactory.CreateLoanDisbursementBatch(loanDisbursementBatchDTO.BranchId, loanDisbursementBatchDTO.DataAttachmentPeriodId, loanDisbursementBatchDTO.Type, loanDisbursementBatchDTO.LoanProductCategory, loanDisbursementBatchDTO.Reference, loanDisbursementBatchDTO.Priority);
 
+                    loanDisbursementBatch.EffectiveDisbursementDate = (loanDisbursementBatchDTO.EffectiveDisbursementDate ?? DateTime.Today).Date;
+                    ResolveDisbursementPeriod(loanDisbursementBatch.EffectiveDisbursementDate.Value, serviceHeader);
+
                     loanDisbursementBatch.BatchNumber = _loanDisbursementBatchRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(BatchNumber),0) + 1 AS Expr1 FROM {0}LoanDisbursementBatches", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
                     loanDisbursementBatch.Status = (int)BatchStatus.Pending;
                     loanDisbursementBatch.CreatedBy = serviceHeader.ApplicationUserName;
@@ -166,12 +169,23 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             if (loanDisbursementBatchDTO == null || loanDisbursementBatchDTO.Id == Guid.Empty)
                 return false;
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
+                _loanDisbursementBatchRepository.DatabaseSqlQuery<Guid>(
+                    "SELECT Id FROM dbo.swiftFin_LoanDisbursementBatches WITH (UPDLOCK,HOLDLOCK) WHERE Id=@Id",
+                    serviceHeader, new SqlParameter("@Id", loanDisbursementBatchDTO.Id)).ToList();
                 var persisted = _loanDisbursementBatchRepository.Get(loanDisbursementBatchDTO.Id, serviceHeader);
 
                 if (persisted != null)
                 {
+                    if (loanDisbursementBatchDTO.EffectiveDisbursementDate.HasValue && loanDisbursementBatchDTO.EffectiveDisbursementDate.Value.Date != persisted.EffectiveDisbursementDate?.Date)
+                    {
+                        if (persisted.Status != (int)BatchStatus.Pending)
+                            throw new LoanDisbursementDateException("The effective disbursement date can only be changed while the batch is Pending. Reload the batch to see its current status.");
+                        if (!string.Equals(persisted.CreatedBy, serviceHeader.ApplicationUserName, StringComparison.OrdinalIgnoreCase))
+                            throw new LoanDisbursementDateException("Only the batch creator can change its effective disbursement date.");
+                        ValidateBatchDates(persisted, serviceHeader, loanDisbursementBatchDTO.EffectiveDisbursementDate.Value.Date);
+                    }
                     persisted.Reference = loanDisbursementBatchDTO.Reference;
                     persisted.Priority = (byte)loanDisbursementBatchDTO.Priority;
 
@@ -186,8 +200,11 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             if (loanDisbursementBatchDTO == null || !Enum.IsDefined(typeof(BatchAuthOption), batchAuthOption))
                 return false;
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
+                _loanDisbursementBatchRepository.DatabaseSqlQuery<Guid>(
+                    "SELECT Id FROM dbo.swiftFin_LoanDisbursementBatches WITH (UPDLOCK,HOLDLOCK) WHERE Id=@Id",
+                    serviceHeader, new SqlParameter("@Id", loanDisbursementBatchDTO.Id)).ToList();
                 var persisted = _loanDisbursementBatchRepository.Get(loanDisbursementBatchDTO.Id, serviceHeader);
 
                 if (persisted == null || persisted.Status != (int)BatchStatus.Pending)
@@ -197,6 +214,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 {
                     case BatchAuthOption.Post:
 
+                        ValidateBatchDates(persisted, serviceHeader);
                         persisted.Status = (int)BatchStatus.Audited;
                         persisted.AuditRemarks = loanDisbursementBatchDTO.AuditRemarks;
                         persisted.AuditedBy = serviceHeader.ApplicationUserName;
@@ -227,8 +245,11 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             if (loanDisbursementBatchDTO == null || !Enum.IsDefined(typeof(BatchAuthOption), batchAuthOption))
                 return result;
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
+                _loanDisbursementBatchRepository.DatabaseSqlQuery<Guid>(
+                    "SELECT Id FROM dbo.swiftFin_LoanDisbursementBatches WITH (UPDLOCK,HOLDLOCK) WHERE Id=@Id",
+                    serviceHeader, new SqlParameter("@Id", loanDisbursementBatchDTO.Id)).ToList();
                 var persisted = _loanDisbursementBatchRepository.Get(loanDisbursementBatchDTO.Id, serviceHeader);
 
                 if (persisted == null || persisted.Status != (int)BatchStatus.Audited)
@@ -238,6 +259,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 {
                     case BatchAuthOption.Post:
 
+                        ValidateBatchDates(persisted, serviceHeader);
                         persisted.Status = (int)BatchStatus.Posted;
                         persisted.AuthorizationRemarks = loanDisbursementBatchDTO.AuthorizationRemarks;
                         persisted.AuthorizedBy = serviceHeader.ApplicationUserName;
@@ -308,6 +330,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                             throw new InvalidOperationException("The loan case branch does not match the disbursement batch branch.");
                         if (persisted.LoanRegistration.LoanProductCategory != batch.LoanProductCategory)
                             throw new InvalidOperationException("The loan case product category does not match the disbursement batch category.");
+
+                        ResolveDisbursementPeriod((batch.EffectiveDisbursementDate ?? DateTime.Today).Date, serviceHeader);
+                        ValidateLoanDate(persisted, (batch.EffectiveDisbursementDate ?? DateTime.Today).Date, serviceHeader);
 
                         if (_loanDisbursementBatchEntryRepository.AllMatchingCount(LoanDisbursementBatchEntrySpecifications.LoanDisbursementBatchEntryWithLoanCaseId(persisted.Id), serviceHeader) != 0)
                             throw new InvalidOperationException("Sorry, but the selected loan number has already been batched!");
@@ -525,6 +550,26 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public bool PostLoanDisbursementBatchEntry(Guid loanDisbursementBatchEntryId, int moduleNavigationItemCode, ServiceHeader serviceHeader)
         {
+            // Validate before the existing posting pipeline performs any mutation.
+            // Do not wrap that pipeline in a joined scope: its legacy services own
+            // separate transactions and some depend on their immediate save results.
+            using (_dbContextScopeFactory.CreateReadOnly())
+            {
+                var entry = _loanDisbursementBatchEntryRepository.Get(loanDisbursementBatchEntryId, serviceHeader);
+                if (entry == null) return false;
+                var batch = _loanDisbursementBatchRepository.Get(entry.LoanDisbursementBatchId, serviceHeader);
+                if (batch == null || batch.Status != (int)BatchStatus.Posted) return false;
+                var loan = _loanCaseRepository.Get(entry.LoanCaseId, serviceHeader);
+                if (loan == null || loan.Status != (int)LoanCaseStatus.Audited) return false;
+                var date = (batch.EffectiveDisbursementDate ?? batch.AuthorizedDate ?? DateTime.Today).Date;
+                ResolveDisbursementPeriod(date, serviceHeader);
+                ValidateLoanDate(loan, date, serviceHeader);
+            }
+            return PostLoanDisbursementBatchEntryCore(loanDisbursementBatchEntryId, moduleNavigationItemCode, serviceHeader);
+        }
+
+        private bool PostLoanDisbursementBatchEntryCore(Guid loanDisbursementBatchEntryId, int moduleNavigationItemCode, ServiceHeader serviceHeader)
+        {
             var result = default(bool);
 
             if (MarkLoanDisbursementBatchEntryPosted(loanDisbursementBatchEntryId, serviceHeader))
@@ -533,11 +578,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                 if (loanDisbursementBatchEntryDTO == null || loanDisbursementBatchEntryDTO.Status != (int)BatchEntryStatus.Posted)
                     return result;
 
-                var loanDisbursementBatchDTO = FindCachedLoanDisbursementBatch(loanDisbursementBatchEntryDTO.LoanDisbursementBatchId, serviceHeader);
+                var loanDisbursementBatchDTO = FindLoanDisbursementBatch(loanDisbursementBatchEntryDTO.LoanDisbursementBatchId, serviceHeader);
                 if (loanDisbursementBatchDTO == null)
                     return result;
 
-                var postingPeriodDTO = _postingPeriodAppService.FindCachedCurrentPostingPeriod(serviceHeader);
+                var effectiveDate = (loanDisbursementBatchDTO.EffectiveDisbursementDate ?? loanDisbursementBatchDTO.AuthorizedDate ?? DateTime.Today).Date;
+                var postingPeriodDTO = ResolveDisbursementPeriod(effectiveDate, serviceHeader);
                 if (postingPeriodDTO == null)
                     return result;
 
@@ -616,7 +662,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                     #region 1. Disburse to customer savings & loan accounts
 
-                    var disbursementJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, loanDisbursementBatchEntryDTO.LoanCaseApprovedAmount, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                    var disbursementJournal = JournalFactory.CreateJournal(null, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, loanDisbursementBatchEntryDTO.LoanCaseApprovedAmount, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                     _journalEntryPostingService.PerformDoubleEntry(disbursementJournal, loanDisbursementBatchEntryDTO.LoanCaseSavingsProductChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseLoanProductChartOfAccountId, customerSavingsAccountDTO, customerLoanAccountDTO, serviceHeader);
                     journals.Add(disbursementJournal);
 
@@ -631,7 +677,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         // recover interest charges
                         loanAccountDynamicChargeTariffs.ForEach(tariff =>
                         {
-                            var dynamicChargeTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                            var dynamicChargeTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                             _journalEntryPostingService.PerformDoubleEntry(dynamicChargeTariffJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerLoanAccountDTO, customerLoanAccountDTO, serviceHeader);
                             journals.Add(dynamicChargeTariffJournal);
                         });
@@ -642,18 +688,35 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                     #endregion
 
-                    if (_loanCaseAppService.MarkLoanCaseDisbursed(loanDisbursementBatchEntryDTO, serviceHeader)) // mark disbursed at this point to take care of persisting audit top up charges above
+                    decimal PV = (loanDisbursementBatchEntryDTO.LoanCaseApprovedAmount + loanDisbursementBatchEntryDTO.LoanCaseAuditTopUpAmount);
+
+                    decimal Pmt = (decimal)_financialsService.Pmt(loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentFrequencyPerYear, loanDisbursementBatchEntryDTO.LoanCaseLoanInterestAnnualPercentageRate, -(double)PV, 0d, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentDueDate);
+
+                    var repaymentSchedule = _financialsService.RepaymentSchedule(loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentFrequencyPerYear, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationGracePeriod, loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode, loanDisbursementBatchEntryDTO.LoanCaseLoanInterestAnnualPercentageRate, -(double)PV, 0d, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentDueDate);
+
+                    for (int i = 0; i < repaymentSchedule.Count; i++)
+                        repaymentSchedule[i].DueDate = LoanScheduleGeneration.DueDate(effectiveDate,
+                            loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationGracePeriod,
+                            loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentFrequencyPerYear,
+                            loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentDueDate, i);
+
+                    var finalPlan = LoanDisbursementSchedule.Build(loanDisbursementBatchEntryDTO, customerLoanAccountDTO.Id,
+                        disbursementJournal.Id, effectiveDate, PV, repaymentSchedule);
+                    if (finalPlan.IsConfirmed)
+                    {
+                        bool averaged = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode == (int)InterestCalculationMode.StraightLineAmortization || loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode == (int)InterestCalculationMode.DiminishingBalanceAmortization;
+                        decimal principalPayment = averaged ? finalPlan.Instalments.Sum(x => x.Principal) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths : finalPlan.Instalments[0].Principal;
+                        decimal interestPayment = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront ? 0m : averaged ? finalPlan.Instalments.Sum(x => x.Interest.Value) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths : finalPlan.Instalments[0].Interest.Value;
+                        loanDisbursementBatchEntryDTO.LoanCaseMonthlyPaybackAmount = principalPayment + interestPayment;
+                    }
+                    // Validate before marking the loan disbursed. The funding journal and
+                    // this final schedule are later persisted together by BulkSave.
+                    if (_loanCaseAppService.MarkLoanCaseDisbursed(loanDisbursementBatchEntryDTO, serviceHeader))
                     {
                         #region 3. Do we need to auto-create a standing order?
 
-                        decimal PV = (loanDisbursementBatchEntryDTO.LoanCaseApprovedAmount + loanDisbursementBatchEntryDTO.LoanCaseAuditTopUpAmount);
-
-                        decimal Pmt = (decimal)_financialsService.Pmt(loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentFrequencyPerYear, loanDisbursementBatchEntryDTO.LoanCaseLoanInterestAnnualPercentageRate, -(double)PV, 0d, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentDueDate);
-
-                        var repaymentSchedule = _financialsService.RepaymentSchedule(loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentFrequencyPerYear, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationGracePeriod, loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode, loanDisbursementBatchEntryDTO.LoanCaseLoanInterestAnnualPercentageRate, -(double)PV, 0d, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationPaymentDueDate);
-
                         // do we need to reset?
-                        var chargeableFirstInterestValue = Math.Max(repaymentSchedule.First().InterestPayment, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationMinimumInterestAmount);
+                        var chargeableFirstInterestValue = finalPlan.IsConfirmed ? finalPlan.Instalments[0].Interest.Value : Math.Max(repaymentSchedule.First().InterestPayment, loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationMinimumInterestAmount);
                         var standingOrderInterest = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront
                             ? 0m
                             : Math.Max(chargeableFirstInterestValue, loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment != 0m ? loanDisbursementBatchEntryDTO.LoanCaseApprovedInterestPayment : repaymentSchedule.First().InterestPayment);
@@ -700,6 +763,14 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                         break;
                                 }
 
+                                if (finalPlan.IsConfirmed)
+                                {
+                                    bool averaged = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode == (int)InterestCalculationMode.StraightLineAmortization || loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode == (int)InterestCalculationMode.DiminishingBalanceAmortization;
+                                    targetStandingOrder.Principal = averaged ? finalPlan.Instalments.Sum(x => x.Principal) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths : finalPlan.Instalments[0].Principal;
+                                    targetStandingOrder.Interest = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront ? 0m : averaged ? finalPlan.Instalments.Sum(x => x.Interest.Value) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths : finalPlan.Instalments[0].Interest.Value;
+                                    targetStandingOrder.PaymentPerPeriod = targetStandingOrder.Principal + targetStandingOrder.Interest;
+                                    loanDisbursementBatchEntryDTO.LoanCaseMonthlyPaybackAmount = targetStandingOrder.PaymentPerPeriod;
+                                }
                                 targetStandingOrder.CapitalizedInterest = targetStandingOrder.Interest;
                                 _standingOrderAppService.UpdateStandingOrder(targetStandingOrder, serviceHeader);
                             }
@@ -745,6 +816,14 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                     break;
                             }
 
+                            if (finalPlan.IsConfirmed)
+                            {
+                                bool averaged = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode == (int)InterestCalculationMode.StraightLineAmortization || loanDisbursementBatchEntryDTO.LoanCaseLoanInterestCalculationMode == (int)InterestCalculationMode.DiminishingBalanceAmortization;
+                                newStandingOrderDTO.Principal = averaged ? finalPlan.Instalments.Sum(x => x.Principal) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths : finalPlan.Instalments[0].Principal;
+                                newStandingOrderDTO.Interest = loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront ? 0m : averaged ? finalPlan.Instalments.Sum(x => x.Interest.Value) / loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths : finalPlan.Instalments[0].Interest.Value;
+                                newStandingOrderDTO.PaymentPerPeriod = newStandingOrderDTO.Principal + newStandingOrderDTO.Interest;
+                                loanDisbursementBatchEntryDTO.LoanCaseMonthlyPaybackAmount = newStandingOrderDTO.PaymentPerPeriod;
+                            }
                             newStandingOrderDTO.CapitalizedInterest = newStandingOrderDTO.Interest;
                             _standingOrderAppService.AddNewStandingOrder(newStandingOrderDTO, serviceHeader);
                         }
@@ -761,7 +840,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                 normalTariffs.ForEach(tariff =>
                                 {
-                                    var normalTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                                    var normalTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(normalTariffJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerSavingsAccountDTO, customerSavingsAccountDTO, serviceHeader);
                                     journals.Add(normalTariffJournal);
                                 });
@@ -773,7 +852,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                 expressTariffs.ForEach(tariff =>
                                 {
-                                    var expressTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                                    var expressTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(expressTariffJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerSavingsAccountDTO, customerSavingsAccountDTO, serviceHeader);
                                     journals.Add(expressTariffJournal);
                                 });
@@ -824,7 +903,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         {
                             savingsAccountUpfrontDynamicChargeTariffs.ForEach(tariff =>
                             {
-                                var dynamicChargeTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                                var dynamicChargeTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                                 _journalEntryPostingService.PerformDoubleEntry(dynamicChargeTariffJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerSavingsAccountDTO, customerSavingsAccountDTO, serviceHeader);
                                 journals.Add(dynamicChargeTariffJournal);
                             });
@@ -836,36 +915,11 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                         if (loanDisbursementBatchEntryDTO.LoanCaseLoanInterestChargeMode == (int)InterestChargeMode.Upfront)
                         {
-                            var repaymentScheduleTotalInterest = repaymentSchedule.Sum(x => x.InterestPayment);
-
-                            var minimumTotalInterest = loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationMinimumInterestAmount * loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationTermInMonths;
-
-                            // do we need to reset?
-                            var chargeableTotalInterestValue = Math.Max(repaymentScheduleTotalInterest, minimumTotalInterest);
-
+                            var chargeableTotalInterestValue = LoanDisbursementSchedule.UpfrontInterest(loanDisbursementBatchEntryDTO, repaymentSchedule);
                             if (chargeableTotalInterestValue != 0m)
                             {
-                                // do we need to round?
-                                switch ((RoundingType)loanDisbursementBatchEntryDTO.LoanCaseLoanRegistrationRoundingType)
-                                {
-                                    case RoundingType.ToEven:
-                                        chargeableTotalInterestValue = Math.Round(chargeableTotalInterestValue, MidpointRounding.ToEven);
-                                        break;
-                                    case RoundingType.AwayFromZero:
-                                        chargeableTotalInterestValue = Math.Round(chargeableTotalInterestValue, MidpointRounding.AwayFromZero);
-                                        break;
-                                    case RoundingType.Ceiling:
-                                        chargeableTotalInterestValue = Math.Ceiling(chargeableTotalInterestValue);
-                                        break;
-                                    case RoundingType.Floor:
-                                        chargeableTotalInterestValue = Math.Floor(chargeableTotalInterestValue);
-                                        break;
-                                    default:
-                                        break;
-                                }
-
                                 // Credit LoanProduct.InterestChargedChartOfAccountId, Debit LoanProduct.InterestReceivableChartOfAccountId
-                                var chargeInterestJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, chargeableTotalInterestValue, "Interest Charged Up-front", secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                                var chargeInterestJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, chargeableTotalInterestValue, "Interest Charged Up-front", secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                                 _journalEntryPostingService.PerformDoubleEntry(chargeInterestJournal, loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestChargedChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestReceivableChartOfAccountId, customerLoanAccountDTO, customerLoanAccountDTO, serviceHeader);
                                 journals.Add(chargeInterestJournal);
 
@@ -874,12 +928,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                 if (loanDisbursementBatchEntryDTO.LoanCaseLoanInterestRecoveryMode == (int)InterestRecoveryMode.Upfront)
                                 {
                                     // Credit LoanProduct.InterestReceivableChartOfAccountId, Debit SavingsProduct.ChartOfAccountId
-                                    var interestReceivableJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, chargeableTotalInterestValue, "Interest Paid Up-front", secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                                    var interestReceivableJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, chargeableTotalInterestValue, "Interest Paid Up-front", secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(interestReceivableJournal, loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestReceivableChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseSavingsProductChartOfAccountId, customerLoanAccountDTO, customerSavingsAccountDTO, serviceHeader);
                                     journals.Add(interestReceivableJournal);
 
                                     // Credit LoanProduct.InterestReceivedChartOfAccountId, Debit LoanProduct.InterestChargedChartOfAccountId
-                                    var interestReceivedJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, chargeableTotalInterestValue, "Interest Paid Up-front", secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                                    var interestReceivedJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, chargeableTotalInterestValue, "Interest Paid Up-front", secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(interestReceivedJournal, loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestReceivedChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestChargedChartOfAccountId, customerLoanAccountDTO, customerLoanAccountDTO, serviceHeader);
                                     journals.Add(interestReceivedJournal);
                                 }
@@ -936,17 +990,17 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                     #region recover attached interest + principal
 
                                     // Credit LoanProduct.InterestReceivableChartOfAccountId, Debit SavingsProduct.ChartOfAccountId
-                                    var interestReceivableClearanceJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, actualInterestBalance, string.Format("Attached Interest Clearance~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, null, serviceHeader);
+                                    var interestReceivableClearanceJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, actualInterestBalance, string.Format("Attached Interest Clearance~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, effectiveDate, serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(interestReceivableClearanceJournal, attachedLoanDTO.CustomerAccountTypeTargetProductInterestReceivableChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseSavingsProductChartOfAccountId, attachedLoanAccount, customerSavingsAccountDTO, serviceHeader);
                                     journals.Add(interestReceivableClearanceJournal);
 
                                     // Credit LoanProduct.InterestReceivedChartOfAccountId, Debit LoanProduct.InterestChargedChartOfAccountId
-                                    var interestReceivedClearanceJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, actualInterestBalance, string.Format("Attached Interest Clearance~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, null, serviceHeader);
+                                    var interestReceivedClearanceJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, actualInterestBalance, string.Format("Attached Interest Clearance~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, effectiveDate, serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(interestReceivedClearanceJournal, attachedLoanDTO.CustomerAccountTypeTargetProductInterestReceivedChartOfAccountId, attachedLoanDTO.CustomerAccountTypeTargetProductInterestChargedChartOfAccountId, attachedLoanAccount, attachedLoanAccount, serviceHeader);
                                     journals.Add(interestReceivedClearanceJournal);
 
                                     // Credit LoanProduct.ChartOfAccountId, Debit SavingsProduct.ChartOfAccountId
-                                    var principalClearanceJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, actualPrincipalBalance, string.Format("Attached Principal Clearance~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, null, serviceHeader);
+                                    var principalClearanceJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, actualPrincipalBalance, string.Format("Attached Principal Clearance~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, effectiveDate, serviceHeader);
                                     _journalEntryPostingService.PerformDoubleEntry(principalClearanceJournal, attachedLoanDTO.CustomerAccountTypeTargetProductChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseSavingsProductChartOfAccountId, attachedLoanAccount, customerSavingsAccountDTO, serviceHeader);
                                     journals.Add(principalClearanceJournal);
 
@@ -980,7 +1034,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                                                 var carryForwardsAmount = Math.Min((totalPayments), (attachedLoanDTO.CarryForwardsBalance * -1));
 
                                                 // Credit CarryForward.BeneficiaryChartOfAccountId, Debit SavingsProduct.ChartOfAccountId
-                                                var carryFowardBeneficiaryJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, carryForwardsAmount, string.Format("Carry Forwards Offsetting~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, null, serviceHeader);
+                                                var carryFowardBeneficiaryJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, carryForwardsAmount, string.Format("Carry Forwards Offsetting~{0}", attachedLoanDTO.CustomerAccountTypeTargetProductDescription), secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, effectiveDate, serviceHeader);
                                                 _journalEntryPostingService.PerformDoubleEntry(carryFowardBeneficiaryJournal, item.BeneficiaryChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseSavingsProductChartOfAccountId, customerSavingsAccountDTO, customerSavingsAccountDTO, serviceHeader);
                                                 journals.Add(carryFowardBeneficiaryJournal);
 
@@ -1018,7 +1072,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                         clearanceTariffs.ForEach(tariff =>
                                         {
-                                            var clearanceTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, null, serviceHeader);
+                                            var clearanceTariffJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, tariff.Amount, tariff.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanOffsetting, effectiveDate, serviceHeader);
                                             _journalEntryPostingService.PerformDoubleEntry(clearanceTariffJournal, tariff.CreditGLAccountId, tariff.DebitGLAccountId, customerSavingsAccountDTO, customerSavingsAccountDTO, serviceHeader);
                                             journals.Add(clearanceTariffJournal);
                                         });
@@ -1123,7 +1177,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                                         if (deductibleAmount * -1 < 0m)
                                         {
-                                            var deductibleJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, deductibleAmount, deductibleDTO.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, null, serviceHeader);
+                                            var deductibleJournal = JournalFactory.CreateJournal(disbursementJournal.Id, postingPeriodDTO.Id, loanDisbursementBatchEntryDTO.LoanCaseBranchId, null, deductibleAmount, deductibleDTO.Description, secondaryDescription, reference, moduleNavigationItemCode, (int)SystemTransactionCode.LoanDisbursement, effectiveDate, serviceHeader);
                                             _journalEntryPostingService.PerformDoubleEntry(deductibleJournal, deductibleCustomerAccountDTO.CustomerAccountTypeTargetProductChartOfAccountId, loanDisbursementBatchEntryDTO.LoanCaseSavingsProductChartOfAccountId, deductibleCustomerAccountDTO, customerSavingsAccountDTO, serviceHeader);
                                             journals.Add(deductibleJournal);
                                         }
@@ -1138,10 +1192,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                         if (journals.Any())
                         {
-                            var capturedPlan = LoanAgeingEngine.CaptureDraft(loanDisbursementBatchEntryDTO.LoanCaseId,customerLoanAccountDTO.Id,loanDisbursementBatchEntryDTO.LoanCaseLoanProductChartOfAccountId,disbursementJournal.Id,disbursementJournal.ValueDate ?? disbursementJournal.CreatedDate,PV,repaymentSchedule,serviceHeader);
-                            capturedPlan.InterestReceivableChartOfAccountId=loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestReceivableChartOfAccountId;
-                            capturedPlan.InterestChargedChartOfAccountId=loanDisbursementBatchEntryDTO.LoanCaseLoanProductInterestChargedChartOfAccountId;
-                            // Generated interest is a draft only: minimums, rounding and upfront recovery require contractual review.
+                            var capturedPlan = LoanAgeingEngine.Entity(finalPlan, serviceHeader);
                             result = _journalEntryPostingService.BulkSaveLoanDisbursement(serviceHeader, journals, capturedPlan);
                         }
 

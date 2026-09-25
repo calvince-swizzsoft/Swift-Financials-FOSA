@@ -183,6 +183,8 @@ namespace Application.MainBoundedContext.AccountsModule.Services
             percentage("LoanRegistrationMaximumSelfGuaranteeEligiblePercentage", dto.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage, "Maximum self-guarantee percentage");
             if (dto.LoanRegistrationAllowSelfGuarantee && dto.LoanRegistrationMaximumSelfGuaranteeEligiblePercentage <= 0d) add("LoanRegistrationMaximumSelfGuaranteeEligiblePercentage", "Set a positive self-guarantee percentage when self-guarantee is allowed.");
             if (dto.TakeHomeType == (int)ChargeType.Percentage) percentage("TakeHomePercentage", dto.TakeHomePercentage, "Take-home percentage");
+            if (dto.WaiveGuarantorsBelowOwnDeposits == true && (dto.LoanRegistrationLoanProductSection != (int)LoanProductSection.BOSA || dto.LoanRegistrationGuarantorSecurityMode != (int)GuarantorSecurityMode.Investments))
+                add("WaiveGuarantorsBelowOwnDeposits", "Own-deposit waiver requires a BOSA product with investment security.");
             if (dto.RequireIncomeAssessment == true)
             {
                 if (dto.LoanRegistrationPaymentFrequencyPerYear != (int)PaymentFrequencyPerYear.Monthly)
@@ -290,6 +292,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     var loanProduct = LoanProductFactory.CreateLoanProduct(loanProductDTO.ChartOfAccountId, loanProductDTO.InterestReceivedChartOfAccountId, loanProductDTO.InterestReceivableChartOfAccountId, loanProductDTO.InterestChargedChartOfAccountId, loanProductDTO.Description, loanInterest, loanRegistration, takeHome, loanProductDTO.Priority);
 
                     loanProduct.RequireIncomeAssessment = loanProductDTO.RequireIncomeAssessment;
+                    loanProduct.WaiveGuarantorsBelowOwnDeposits = loanProductDTO.WaiveGuarantorsBelowOwnDeposits;
                     loanProduct.Code = (short)_loanProductRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(Code),0) + 1 AS Expr1 FROM {0}LoanProducts", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
 
                     if (loanProductDTO.IsLocked)
@@ -327,6 +330,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                     current.ChangeCurrentIdentity(persisted.Id, persisted.SequentialId, persisted.CreatedBy, persisted.CreatedDate);
                     current.RequireIncomeAssessment = loanProductDTO.RequireIncomeAssessment;
+                    current.WaiveGuarantorsBelowOwnDeposits = loanProductDTO.WaiveGuarantorsBelowOwnDeposits;
                     current.Code = persisted.Code;
 
 

@@ -57,7 +57,7 @@ static class Form9Tests
         }
         var rows=new List<SasraInsiderRecord>();int commits=0;Guid customer=Guid.NewGuid(),caseId=Guid.NewGuid();
         var profile=new SasraProfileDTO{Profile="DT",InstitutionName="Test",RegistrationNumber="CS1"};
-        var loan=new Form9Source{LoanCaseId=caseId,CustomerId=customer,CaseNumber=1,Borrower="Person",MemberNumber="M1",Product="Normal",AmountApplied=100,ApprovedAmount=100,CreatedDate=new DateTime(2020,1,1),DisbursedDate=new DateTime(2020,2,5),TermMonths=12};
+        var loan=new Form9Source{LoanCaseId=caseId,CustomerId=customer,CaseNumber=1,Borrower="Person",MemberNumber="M1",Product="Normal",AmountApplied=100,ApprovedAmount=100,CreatedDate=new DateTime(2020,3,10),DisbursedDate=new DateTime(2020,2,5),TermMonths=12};
         var finance=new LoanAgeingResult{Loans=new List<LoanAgeingLoanResult>{new LoanAgeingLoanResult{LoanCaseId=caseId,OutstandingPrincipal=50,OutstandingInterest=10,RiskClassification="Performing"}}};
         var scope=Stub<IDbContextScope>(c=>{if(c.MethodName=="SaveChanges"){commits++;return 1;}return null;});
         var read=Stub<IDbContextReadOnlyScope>(c=>null);
@@ -71,7 +71,7 @@ static class Form9Tests
                 if(sql.StartsWith("SELECT Id,Description"))return new[]{new Form9Product{Id=product,Description="Deposits"}};
                 if(sql.StartsWith("WITH candidates"))return new[]{new Form9Candidate{CustomerId=customer,Name="Person",Kind="Employee"}};
                 if(sql.StartsWith("WITH products"))return new[]{500m};
-                if(sql.Contains("SELECT l.Id LoanCaseId"))return new[]{loan};
+                if(sql.Contains("SELECT l.Id LoanCaseId")){Check(!sql.Contains("WHERE l.CreatedDate"),"historical business dates are not filtered by later record creation");return new[]{loan};}
             }throw new Exception("Unexpected call "+c.MethodName);
         });
         var auth=Stub<IAuthorizationAppService>(c=>{

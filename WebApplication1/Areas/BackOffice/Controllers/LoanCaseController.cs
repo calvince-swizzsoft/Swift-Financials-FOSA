@@ -658,6 +658,26 @@ namespace WebApplication1.Areas.BackOffice.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("deposit-security")]
+        public IHttpActionResult DepositSecurity(Guid customerId, Guid loanProductId, decimal amount)
+        {
+            if(customerId==Guid.Empty || loanProductId==Guid.Empty || amount<=0m) return ErrorResponse("Select a customer, product and positive loan amount.");
+            return Ok(ApiResponse("Deposit security checked", _loanCaseAppService.GetOwnDepositSecurity(customerId,loanProductId,amount,Utils.CreateServiceHeader())));
+        }
+
+        [HttpPost]
+        [Route("{id:guid}/deposit-security/release")]
+        public IHttpActionResult ReleaseDepositSecurity(Guid id)
+        {
+            var h=Utils.CreateServiceHeader();
+            var grants=_authorizationAppService.GetRolesForSystemPermissionType((int)SystemPermissionType.BackOfficeLoanApproval,h) ?? new string[0];
+            if(!(h.ApplicationUserRoles ?? new List<string>()).Any(r=>grants.Any(g=>string.Equals(g,r,StringComparison.OrdinalIgnoreCase))))
+                return Content(HttpStatusCode.Forbidden,ErrorEnvelope("BOSA loan approval permission is required to release deposit security."));
+            _loanCaseAppService.ReleaseOwnDepositSecurity(id,h);
+            return Ok(ApiResponse("Deposit security released",_loanCaseAppService.FindLoanCase(id,h)));
+        }
+
         // Reference has no dedicated Edit action for LoanCase itself
         // (guarantors/collaterals/appraisal factors each have their own
         // update entry points on ILoanCaseAppService, unchanged here) — this

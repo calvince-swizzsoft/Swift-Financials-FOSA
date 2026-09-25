@@ -19,6 +19,7 @@ namespace Infrastructure.Data.MainBoundedContext.UnitOfWork.Mapping.BackOfficeMo
             Property(x => x.Reference).HasMaxLength(512);
             Property(x => x.IncomeAssessmentReference).HasMaxLength(512);
             Property(x => x.IncomeAssessmentSignature).HasMaxLength(64);
+            Property(x => x.DepositSecurityAmount).HasPrecision(18, 2);
 
             Property(x => x.Remarks).HasMaxLength(512);
 

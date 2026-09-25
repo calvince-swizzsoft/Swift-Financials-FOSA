@@ -56,6 +56,8 @@ class Program
   LoanScheduleGenerationTests.Run();
   LoanRestructureAtomicTests.Run();
   LoanScheduleAtomicTests.Run();
+  LoanDisbursementDateTests.Run();
+  LoanDisbursementScheduleTests.Run();
   foreach(var kind in new[]{"DT","NWDT"})
   {
     var definitions=SasraStandardDefinitions.ForProfile(kind);

@@ -1,4 +1,4 @@
-﻿using Application.MainBoundedContext.DTO;
+using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
@@ -38,6 +38,8 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         string ReplaceRegisteredLoanGuarantors(Guid loanCaseId, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader);
 
         string ValidateRegistrationGuarantors(LoanCaseDTO loan, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader);
+        LoanDepositSecurityQuote GetOwnDepositSecurity(Guid customerId, Guid productId, decimal amount, ServiceHeader header);
+        bool ReleaseOwnDepositSecurity(Guid loanCaseId, ServiceHeader header);
 
         bool UpdateLoanGuarantors(Guid loanCaseId, List<LoanGuarantorDTO> loanGuarantors, ServiceHeader serviceHeader);
 

@@ -1,4 +1,4 @@
-using Application.MainBoundedContext.AccountsModule.Services;
+﻿using Application.MainBoundedContext.AccountsModule.Services;
 using Application.MainBoundedContext.DTO;
 using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.BackOfficeModule;
@@ -191,7 +191,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                     return loanCaseDTO;
                 }
 
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var loanInterest = new LoanInterest(loanCaseDTO.LoanInterestAnnualPercentageRate, loanCaseDTO.LoanInterestChargeMode, loanCaseDTO.LoanInterestRecoveryMode, loanCaseDTO.LoanInterestCalculationMode);
 
@@ -203,6 +203,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                     var incomePolicyProduct = _loanProductAppService.FindLoanProduct(loanCase.LoanProductId, serviceHeader);
                     loanCase.RequireIncomeAssessment = incomePolicyProduct?.RequireIncomeAssessment;
+                    loanCase.WaiveGuarantorsBelowOwnDeposits = incomePolicyProduct?.WaiveGuarantorsBelowOwnDeposits;
+                    if (loanCase.WaiveGuarantorsBelowOwnDeposits == true && loanCaseDTO.TotalNumberOfGuarantors == 0)
+                        ReserveOwnDeposits(loanCase, loanCase.AmountApplied, serviceHeader);
                     if (loanCase.RequireIncomeAssessment == true)
                         loanCase.TakeHome = new Charge(incomePolicyProduct.TakeHomeType, incomePolicyProduct.TakeHomePercentage, incomePolicyProduct.TakeHomeFixedAmount);
                     loanCase.CaseNumber = _loanCaseRepository.DatabaseSqlQuery<int>(string.Format("SELECT ISNULL(MAX(CaseNumber),0) + 1 AS Expr1 FROM {0}LoanCases", DefaultSettings.Instance.TablePrefix), serviceHeader).FirstOrDefault();
@@ -223,7 +226,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanAppraisalOption), loanAppraisalOption))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseDTO.Id, serviceHeader);
 
@@ -233,6 +236,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         {
                             case LoanAppraisalOption.Appraise:
 
+                                ValidateDepositSecurity(persisted, loanCaseDTO.AppraisedAmount, serviceHeader);
                                 ApplyIncomeAssessment(persisted, loanCaseDTO, serviceHeader);
 
                                 persisted.Status = (int)LoanCaseStatus.Appraised;
@@ -303,7 +307,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanAppraisalOption), loanAppraisalOption))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = await _loanCaseRepository.GetAsync(loanCaseDTO.Id, serviceHeader);
 
@@ -313,6 +317,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         {
                             case LoanAppraisalOption.Appraise:
 
+                                ValidateDepositSecurity(persisted, loanCaseDTO.AppraisedAmount, serviceHeader);
                                 ApplyIncomeAssessment(persisted, loanCaseDTO, serviceHeader);
 
                                 persisted.Status = (int)LoanCaseStatus.Appraised;
@@ -372,7 +377,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanApprovalOption), loanApprovalOption))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseDTO.Id, serviceHeader);
 
@@ -449,7 +454,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanApprovalOption), loanApprovalOption))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = await _loanCaseRepository.GetAsync(loanCaseDTO.Id, serviceHeader);
 
@@ -526,7 +531,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanAuditOption), loanAuditOption))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseDTO.Id, serviceHeader);
 
@@ -767,7 +772,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanAuditOption), loanAuditOption))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = await _loanCaseRepository.GetAsync(loanCaseDTO.Id, serviceHeader);
 
@@ -1005,7 +1010,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         {
             if (loanCaseDTO != null && Enum.IsDefined(typeof(LoanCancellationOption), loanCancellationOption))
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseDTO.Id, serviceHeader);
 
@@ -1058,7 +1063,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public async Task<bool> UpdateLoanCaseAsync(LoanCaseDTO loanCaseDTO, ServiceHeader serviceHeader)
         {
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var result = default(bool);
 
@@ -1080,6 +1085,9 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                             throw new LoanIncomeAssessmentException("Defer this loan for reassessment before changing its terms.");
                         var incomePolicyProduct = _loanProductAppService.FindLoanProduct(current.LoanProductId, serviceHeader);
                         current.RequireIncomeAssessment = incomePolicyProduct?.RequireIncomeAssessment;
+                        if (persisted.WaiveGuarantorsBelowOwnDeposits == true)
+                            throw new LoanDepositSecurityException("Use reassessment for a deposit-waiver loan; generic changes to its borrower, product or terms are not allowed.");
+                        current.WaiveGuarantorsBelowOwnDeposits = incomePolicyProduct?.WaiveGuarantorsBelowOwnDeposits;
                         if (current.RequireIncomeAssessment == true)
                             current.TakeHome = new Charge(incomePolicyProduct.TakeHomeType, incomePolicyProduct.TakeHomePercentage, incomePolicyProduct.TakeHomeFixedAmount);
 
@@ -1115,7 +1123,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public async Task<bool> CancelLoanCaseAsync(LoanCaseDTO loanCaseDTO, int loanCancellationOption, ServiceHeader serviceHeader)
         {
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var persisted = await _loanCaseRepository.GetAsync(loanCaseDTO.Id, serviceHeader);
 
@@ -1164,6 +1172,12 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public Tuple<CustomerDTO, LoanGuarantorDTO> GetRegistrationGuarantorEligibility(Guid guarantorId, Guid loanProductId, ServiceHeader serviceHeader, Guid? loanCaseId = null)
         {
+            using(var scope=_dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
+                return GetRegistrationGuarantorEligibilityCore(guarantorId,loanProductId,serviceHeader,loanCaseId);
+        }
+        private Tuple<CustomerDTO, LoanGuarantorDTO> GetRegistrationGuarantorEligibilityCore(Guid guarantorId, Guid loanProductId, ServiceHeader serviceHeader, Guid? loanCaseId)
+
+        {
             if (loanCaseId.HasValue)
             {
                 var loan = FindLoanCase(loanCaseId.Value, serviceHeader);
@@ -1187,12 +1201,16 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             if (product.LoanRegistrationGuarantorSecurityMode == (int)GuarantorSecurityMode.Investments)
             {
                 var accounts = _customerAccountAppService.FindCustomerAccountsByCustomerId(guarantorId, serviceHeader) ?? new List<CustomerAccountDTO>();
+                foreach(var account in accounts.Where(a=>a.CustomerAccountTypeProductCode==(int)ProductCode.Investment).OrderBy(a=>a.Id))
+                    _loanCaseRepository.DatabaseSqlQuery<Guid>("SELECT Id FROM dbo.swiftFin_CustomerAccounts WITH (UPDLOCK,HOLDLOCK) WHERE Id=@Account",serviceHeader,new System.Data.SqlClient.SqlParameter("@Account",account.Id)).ToList();
+                _customerAccountAppService.FetchCustomerAccountBalances(accounts, serviceHeader);
                 var designatedProducts = product.LoanRegistrationLoanProductSection == (int)LoanProductSection.BOSA
                     ? _loanProductAppService.FindAppraisalProducts(product.Id, serviceHeader)?.InvestmentProductCollection
                     : null;
                 result.TotalShares = GuarantorRegistrationRules.EligibleShares(product, accounts,
                     designatedProducts == null ? Enumerable.Empty<Guid>() : designatedProducts.Select(item => item.Id));
                 var guarantees = FindLoanGuarantorsByCustomerId(guarantorId, serviceHeader) ?? new List<LoanGuarantorDTO>();
+                result.TotalShares = Math.Max(0m, result.TotalShares - ReservedOwnDeposits(guarantorId, excludedLoanCaseId, serviceHeader));
                 result.CommittedShares = GuarantorRegistrationRules.CommittedShares(guarantees, excludedLoanCaseId);
                 result.AppraisalFactor = _loanProductAppService.GetGuarantorAppraisalFactor(product.Id, result.TotalShares, serviceHeader);
             }
@@ -1201,13 +1219,17 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public string ValidateRegistrationGuarantors(LoanCaseDTO loan, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader)
         {
-            return ValidateRegistrationGuarantors(loan, guarantors, serviceHeader, null);
+            using(var scope=_dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
+                return ValidateRegistrationGuarantors(loan, guarantors, serviceHeader, null);
         }
 
         private string ValidateRegistrationGuarantors(LoanCaseDTO loan, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader, Guid? excludedLoanCaseId)
         {
             if (loan == null) return "Loan application is required.";
             var product = _loanProductAppService.FindLoanProduct(loan.LoanProductId, serviceHeader);
+            var security = EvaluateOwnDepositSecurity(loan.CustomerId, product, loan.AmountApplied, serviceHeader, excludedLoanCaseId);
+            loan.DepositSecurityAmount = security.Waived ? (decimal?)loan.AmountApplied : null;
+            if (security.Waived && guarantors != null && guarantors.Count == 0) { loan.WaiveGuarantorsBelowOwnDeposits = true; return null; }
             var error = GuarantorRegistrationRules.ValidateCount(product, guarantors);
             if (error != null) return error;
             foreach (var guarantor in guarantors)
@@ -1235,7 +1257,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public string ReplaceRegisteredLoanGuarantors(Guid loanCaseId, List<LoanGuarantorDTO> guarantors, ServiceHeader serviceHeader)
         {
-            using (var scope = _dbContextScopeFactory.Create())
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var loan = FindLoanCase(loanCaseId, serviceHeader);
                 var error = GuarantorRegistrationRules.ValidateEditableCase(loan);
@@ -1261,12 +1283,24 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         {
             if (loanCaseId != null && loanGuarantors != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseId, serviceHeader);
 
                     if (persisted != null)
                     {
+                        if(persisted.WaiveGuarantorsBelowOwnDeposits==true)
+                        {
+                            if(!loanGuarantors.Any())ReserveOwnDeposits(persisted,persisted.AmountApplied,serviceHeader);
+                            else
+                            {
+                                if(persisted.DepositSecurityAccountId.HasValue)throw new LoanDepositSecurityException("This application already reserves own deposits. Keep its deposit security or reject it before changing the security route.");
+                                foreach(var g in loanGuarantors)g.GuarantorId=g.CustomerId;
+                                var error=ValidateRegistrationGuarantors(persisted.ProjectedAs<LoanCaseDTO>(),loanGuarantors,serviceHeader,persisted.Id);
+                                if(error!=null)throw new LoanDepositSecurityException(error);
+                            }
+                        }
+
                         var existing = FindLoanGuarantorsByLoanCaseId(loanCaseId, serviceHeader);
 
                         if (existing != null && existing.Any())
@@ -1307,7 +1341,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         {
             if (loanCaseId != null && customerDocuments != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseId, serviceHeader);
 
@@ -1356,7 +1390,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
         {
             if (loanCaseId != null && loanAppraisalFactors != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanCaseRepository.Get(loanCaseId, serviceHeader);
 
@@ -1397,7 +1431,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         public bool UpdateAttachedLoans(Guid loanCaseId, List<AttachedLoanDTO> attachedLoans, ServiceHeader serviceHeader)
         {
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var existingAttachedLoans = FindAttachedLoansByLoanCaseId(loanCaseId, serviceHeader);
 
@@ -1471,7 +1505,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 if (substituteGuarantorCustomer != null)
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var loanGuarantorDTO in loansGuaranteed)
                         {
@@ -1522,7 +1556,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 if (substituteGuarantorCustomer != null)
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var loanGuarantorDTO in loansGuaranteed)
                         {
@@ -1604,7 +1638,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 if (loanGuarantors != null && loanGuarantors.Any())
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var item in loanGuarantors)
                         {
@@ -1646,7 +1680,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 if (loanGuarantors != null && loanGuarantors.Any())
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var item in loanGuarantors)
                         {
@@ -1688,7 +1722,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 if (loanGuarantors != null && loanGuarantors.Any())
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var item in loanGuarantors)
                         {
@@ -1733,7 +1767,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 if (loanGuarantors != null && loanGuarantors.Any())
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var item in loanGuarantors)
                         {
@@ -1859,7 +1893,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                         }
                     });
 
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var item in loanGuarantorAttachmentHistories)
                             _loanGuarantorAttachmentHistoryRepository.Add(item, serviceHeader);
@@ -1903,6 +1937,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                     LoanCaseDTO lcDTO = new LoanCaseDTO();
                     if(existingLoanCases==null||!existingLoanCases.Any())throw new LoanAgeingException("LoanCaseId","A posted original loan case is required before restructuring.");
+                    if(existingLoanCases.Any(x=>x.DepositSecurityAmount>0m))throw new LoanDepositSecurityException("Deposit-secured loans require a security review before restructuring; the existing reservation must remain in place.");
                     if(existingLoanCases.Any(x=>x.Status==(int)LoanCaseStatus.Restructured))throw new LoanAgeingException("LoanCaseId","This loan account has already been restructured. A second restructuring is not supported.");
 
                     if (existingLoanCases != null && existingLoanCases.Any(x => x.Status.In((int)LoanCaseStatus.Registered, (int)LoanCaseStatus.Appraised, (int)LoanCaseStatus.Deferred, (int)LoanCaseStatus.Approved, (int)LoanCaseStatus.Audited)))
@@ -2090,7 +2125,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             if (loanDisbursementBatchEntryDTO == null)
                 return result;
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var persistedLoanCase = _loanCaseRepository.Get(loanDisbursementBatchEntryDTO.LoanCaseId, serviceHeader);
 
@@ -2134,7 +2169,10 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
                             persistedLoanCase.MonthlyPaybackAmount = loanDisbursementBatchEntryDTO.LoanCaseMonthlyPaybackAmount;
                             persistedLoanCase.DisbursementRemarks = loanDisbursementBatchEntryDTO.LoanDisbursementBatchReference;
                             persistedLoanCase.DisbursedBy = serviceHeader.ApplicationUserName;
-                            persistedLoanCase.DisbursedDate = DateTime.Now;
+                            persistedLoanCase.DisbursementProcessedDate = DateTime.Now;
+                            persistedLoanCase.DisbursedDate = _loanCaseRepository.DatabaseSqlQuery<DateTime?>(
+                                "SELECT COALESCE(b.EffectiveDisbursementDate,b.AuthorizedDate) FROM dbo.swiftFin_LoanDisbursementBatchEntries e JOIN dbo.swiftFin_LoanDisbursementBatches b ON b.Id=e.LoanDisbursementBatchId WHERE e.Id=@Id AND e.LoanCaseId=@LoanId",
+                                serviceHeader, new System.Data.SqlClient.SqlParameter("@Id", loanDisbursementBatchEntryDTO.Id), new System.Data.SqlClient.SqlParameter("@LoanId", persistedLoanCase.Id)).SingleOrDefault() ?? DateTime.Today;
 
                             result = dbContextScope.SaveChanges(serviceHeader) > 0;
 
@@ -2352,7 +2390,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             if (loanCaseId == Guid.Empty)
                 return null;
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var loanCase = _loanCaseRepository.Get(loanCaseId, serviceHeader);
                 if (loanCase == null || loanCase.Status != (int)LoanCaseStatus.Approved || loanCase.ApprovedAmount <= 0m)
@@ -2796,7 +2834,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             {
                 var journals = new List<Journal>();
 
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var persisted = _loanGuarantorAttachmentHistoryRepository.Get(loanGuarantorAttachmentHistoryId, serviceHeader);
 
@@ -2865,7 +2903,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
             if (loanGuarantorDTOs == null)
                 return false;
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 foreach (var item in loanGuarantorDTOs)
                 {
@@ -2956,7 +2994,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanGuarantors != null && loanGuarantors.Any())
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     foreach (var item in loanGuarantors)
                     {
@@ -2993,7 +3031,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
             if (loanGuarantors != null && loanGuarantors.Any())
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     foreach (var item in loanGuarantors)
                     {
@@ -3032,7 +3070,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 var loanCollaterals = FindLoanCollateralsByLoaneeCustomerIdAndLoanProductId(customerAccountDTO.CustomerId, customerAccountDTO.CustomerAccountTypeTargetProductId, serviceHeader);
 
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     if (loanGuarantors != null && loanGuarantors.Any())
                     {
@@ -3085,7 +3123,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
                 var loanCollaterals = FindLoanCollateralsByLoaneeCustomerIdAndLoanProductId(customerAccountDTO.CustomerId, customerAccountDTO.CustomerAccountTypeTargetProductId, serviceHeader);
 
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     if (loanGuarantors != null && loanGuarantors.Any())
                     {

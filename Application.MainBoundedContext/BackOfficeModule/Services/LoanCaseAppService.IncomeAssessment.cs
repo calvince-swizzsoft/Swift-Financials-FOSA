@@ -120,6 +120,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
 
         private void ValidateSavedIncomeAssessment(LoanCase persisted, decimal principal, ServiceHeader header)
         {
+            ValidateDepositSecurity(persisted, principal, header);
             if (persisted.RequireIncomeAssessment != true) return;
             if (!LoanIncomeAssessmentRules.MatchesSignature(persisted.ProjectedAs<LoanCaseDTO>(), principal,
                 persisted.LoanProductLatestIncome, persisted.AppraisedNetIncome, persisted.IncomeAssessmentReference, persisted.IncomeAssessmentSignature))

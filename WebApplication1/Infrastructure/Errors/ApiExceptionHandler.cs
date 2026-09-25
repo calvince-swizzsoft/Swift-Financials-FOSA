@@ -1,4 +1,4 @@
-using Application.Seedwork;
+﻿using Application.Seedwork;
 using Application.MainBoundedContext.HumanResourcesModule.Services;
 using System.Net;
 using System.Net.Http;
@@ -16,6 +16,15 @@ namespace WebApplication1.ApiErrors
 
         public static HttpResponseMessage CreateResponse(HttpRequestMessage request, System.Exception exception)
         {
+            var schedule = exception as Application.MainBoundedContext.DTO.BackOfficeModule.LoanAgeingException;
+            if (schedule != null)
+                return ApiErrorResponses.Create(request, (HttpStatusCode)schedule.Status, "LOAN_SCHEDULE_VALIDATION_FAILED", schedule.Message);
+            var disbursementDate = exception as Application.MainBoundedContext.BackOfficeModule.Services.LoanDisbursementDateException;
+            if (disbursementDate != null)
+                return ApiErrorResponses.Create(request, HttpStatusCode.Conflict, "LOAN_DISBURSEMENT_DATE_INVALID", disbursementDate.Message);
+            var depositSecurity = exception as Application.MainBoundedContext.BackOfficeModule.Services.LoanDepositSecurityException;
+            if (depositSecurity != null)
+                return ApiErrorResponses.Create(request, HttpStatusCode.Conflict, "LOAN_DEPOSIT_SECURITY_REQUIRED", depositSecurity.Message);
             var incomeAssessment = exception as Application.MainBoundedContext.BackOfficeModule.Services.LoanIncomeAssessmentException;
             if (incomeAssessment != null)
                 return ApiErrorResponses.Create(request, HttpStatusCode.Conflict,

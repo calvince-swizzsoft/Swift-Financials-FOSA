@@ -24,6 +24,9 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
         public Guid Id { get; set; }
 
         [DataMember]
+        public DateTime? EffectiveDisbursementDate { get; set; }
+
+        [DataMember]
         [Display(Name = "Branch")]
         public Guid BranchId { get; set; }
 

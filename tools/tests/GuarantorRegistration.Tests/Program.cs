@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -85,6 +85,7 @@ class Program
                     case "FindCustomer": return customer;
                     case "FindCustomerAccountsByCustomerId": return new List<CustomerAccountDTO> { new CustomerAccountDTO { CustomerAccountTypeProductCode = (int)ProductCode.Investment, BookBalance = 1000 } };
                     case "GetGuarantorAppraisalFactor": return 1d;
+                    case "CreateWithTransaction": if((System.Data.IsolationLevel)call.Args[0] != System.Data.IsolationLevel.Serializable) throw new Exception("Security checks require serializable isolation"); return new Stub(((MethodInfo)call.MethodBase).ReturnType, c => null).GetTransparentProxy();
                     case "CreateReadOnly": return new Stub(((MethodInfo)call.MethodBase).ReturnType, c => null).GetTransparentProxy();
                     default: throw new Exception("Unexpected dependency call: " + call.MethodName);
                 }

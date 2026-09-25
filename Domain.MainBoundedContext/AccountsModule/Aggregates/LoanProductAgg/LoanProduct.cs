@@ -32,6 +32,7 @@ namespace Domain.MainBoundedContext.AccountsModule.Aggregates.LoanProductAgg
         public virtual LoanRegistration LoanRegistration { get; set; }
 
         public bool? RequireIncomeAssessment { get; set; }
+        public bool? WaiveGuarantorsBelowOwnDeposits { get; set; }
 
         public virtual Charge TakeHome { get; set; }
 

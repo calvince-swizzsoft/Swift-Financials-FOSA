@@ -1,4 +1,4 @@
-using Domain.MainBoundedContext.AccountsModule.Aggregates.LoanProductAgg;
+﻿using Domain.MainBoundedContext.AccountsModule.Aggregates.LoanProductAgg;
 using Domain.MainBoundedContext.AccountsModule.Aggregates.SavingsProductAgg;
 using Domain.MainBoundedContext.AdministrationModule.Aggregates.BranchAgg;
 using Domain.MainBoundedContext.BackOfficeModule.Aggregates.AttachedLoanAgg;
@@ -101,6 +101,8 @@ namespace Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanCaseAgg
 
         public DateTime? DisbursedDate { get; set; }
 
+        public DateTime? DisbursementProcessedDate { get; set; }
+
         public decimal DisbursedAmount { get; set; }
 
         public decimal MonthlyPaybackAmount { get; set; }
@@ -124,6 +126,9 @@ namespace Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanCaseAgg
         public double MaximumAmountPercentage { get; set; }
 
         public bool? RequireIncomeAssessment { get; set; }
+        public bool? WaiveGuarantorsBelowOwnDeposits { get; set; }
+        public Guid? DepositSecurityAccountId { get; set; }
+        public decimal? DepositSecurityAmount { get; set; }
         public string IncomeAssessmentReference { get; set; }
         public string IncomeAssessmentSignature { get; set; }
 

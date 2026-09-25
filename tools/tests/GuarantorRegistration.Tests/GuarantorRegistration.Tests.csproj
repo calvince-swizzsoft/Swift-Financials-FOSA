@@ -5,7 +5,7 @@
     <AssemblyName>GuarantorRegistration.Tests</AssemblyName><OutputPath>bin\$(Configuration)\</OutputPath>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
-  <ItemGroup><Reference Include="System"/><Reference Include="System.Core"/><Reference Include="System.ComponentModel.DataAnnotations"/><Compile Include="Program.cs"/></ItemGroup>
+  <ItemGroup><Reference Include="System.Data" /><Reference Include="System"/><Reference Include="System.Core"/><Reference Include="System.ComponentModel.DataAnnotations"/><Compile Include="Program.cs"/></ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Application.MainBoundedContext\Application.MainBoundedContext.csproj"><Name>Application.MainBoundedContext</Name></ProjectReference>
     <ProjectReference Include="..\..\..\Application.MainBoundedContext.DTO\Application.MainBoundedContext.DTO.csproj"><Name>Application.MainBoundedContext.DTO</Name></ProjectReference>

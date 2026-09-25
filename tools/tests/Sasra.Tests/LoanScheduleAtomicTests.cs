@@ -23,7 +23,7 @@ static class LoanScheduleAtomicTests
  {
   int commits=0;bool fail=false;var writes=new List<string>();
   var scope=Stub<IDbContextScope>(c=>{if(c.MethodName=="SaveChanges"){commits++;writes.Add("commit");return 1;}return null;});
-  var scopes=Stub<IDbContextScopeFactory>(c=>{if(c.MethodName!="Create")throw new Exception("Expected shared unit of work");return scope;});
+  var scopes=Stub<IDbContextScopeFactory>(c=>{if(c.MethodName!="CreateWithTransaction" || (System.Data.IsolationLevel)c.Args[0]!=System.Data.IsolationLevel.Serializable)throw new Exception("Expected serializable shared unit of work");return scope;});
   var service=new JournalEntryPostingService(scopes,Repo<Journal>(x=>writes.Add("journal")),Repo<CustomerAccountCarryForward>(x=>{}),Repo<StandingOrderHistory>(x=>{}),Repo<CustomerAccountArrearage>(x=>{}),Repo<LoanRepaymentPlan>(x=>{writes.Add("plan");if(fail)throw new InvalidOperationException("Simulated schedule write failure");}));
   var journal=new Journal();journal.GenerateNewIdentity();var h=new ServiceHeader{ApplicationUserName="test"};
   var plan=LoanAgeingEngine.CaptureDraft(Guid.NewGuid(),Guid.NewGuid(),Guid.NewGuid(),journal.Id,new DateTime(2026,1,1),100,new[]{new AmortizationTableEntry{DueDate=new DateTime(2026,2,1),PrincipalPayment=100}},h);

@@ -1,4 +1,4 @@
-using Application.MainBoundedContext.DTO.AccountsModule;
+﻿using Application.MainBoundedContext.DTO.AccountsModule;
 using Application.MainBoundedContext.DTO.RegistryModule;
 using Application.Seedwork;
 using Infrastructure.Crosscutting.Framework.Attributes;
@@ -20,6 +20,12 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
 
         [DataMember]
         public bool? RequireIncomeAssessment { get; set; }
+        [DataMember]
+        public bool? WaiveGuarantorsBelowOwnDeposits { get; set; }
+        [DataMember]
+        public Guid? DepositSecurityAccountId { get; set; }
+        [DataMember]
+        public decimal? DepositSecurityAmount { get; set; }
         [DataMember]
         public string IncomeAssessmentReference { get; set; }
         [DataMember]
@@ -455,6 +461,9 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
         [DataMember]
         [Display(Name = "Disbursed Date")]
         public DateTime? DisbursedDate { get; set; }
+
+        [DataMember]
+        public DateTime? DisbursementProcessedDate { get; set; }
 
         [DataMember]
         [Display(Name = "Disbursed Amount")]
@@ -961,6 +970,7 @@ namespace Application.MainBoundedContext.DTO.BackOfficeModule
             if (bindingModel == null)
                 throw new NotSupportedException("ObjectInstance must be LoanCaseDTO");
 
+            if (bindingModel.WaiveGuarantorsBelowOwnDeposits == true && bindingModel.DepositSecurityAmount >= bindingModel.AmountApplied && bindingModel.AmountApplied > 0m) return ValidationResult.Success;
             if (!bindingModel.LoanRegistrationMicrocredit && bindingModel.LoanRegistrationSecurityRequired)
             {
                 if (bindingModel.LoanRegistrationGuarantorSecurityMode == (int)GuarantorSecurityMode.Income && (bindingModel.TotalNumberOfGuarantors < bindingModel.LoanRegistrationMinimumGuarantors))

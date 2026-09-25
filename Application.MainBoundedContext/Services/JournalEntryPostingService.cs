@@ -168,10 +168,11 @@ namespace Application.MainBoundedContext.Services
         {
             var result = default(bool);
 
-            using (var dbContextScope = _dbContextScopeFactory.Create())
+            using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 if (journals != null && journals.Any())
                 {
+                    Application.MainBoundedContext.BackOfficeModule.Services.OwnDepositSecurityRules.ValidatePostings(_journalRepository, journals, serviceHeader);
                     journals.ForEach(item =>
                     {
                         _journalRepository.Add(item, serviceHeader);

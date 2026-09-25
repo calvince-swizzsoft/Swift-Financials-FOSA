@@ -20,6 +20,8 @@ namespace Application.MainBoundedContext.DTO.AccountsModule
 
         [DataMember]
         public bool? RequireIncomeAssessment { get; set; }
+        [DataMember]
+        public bool? WaiveGuarantorsBelowOwnDeposits { get; set; }
 
         [DataMember]
         [Display(Name = "Id")]

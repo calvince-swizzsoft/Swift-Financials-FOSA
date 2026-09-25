@@ -707,3 +707,12 @@ Existing signatures are accepted only when the same complete assessment payload
 matches using numerically identical persisted/canonical decimal scales.
 Missing signatures and actual changes to amount, income, evidence or terms still
 require reassessment. Verified against local Boresha case 12 without changing it.
+## Own-deposit security
+
+`GET api/backoffice/loancases/deposit-security?customerId=...&loanProductId=...&amount=...` returns a read-only quote: `Enabled`, `Waived`, `Amount`, `Deposits`, `Committed`, `Available`, `RequiredGuarantors`, `AccountId`. Quotes do not reserve funds. Registration recalculates and saves the reservation atomically for qualifying zero-guarantor applications.
+
+Loan case responses include `WaiveGuarantorsBelowOwnDeposits`, `DepositSecurityAccountId`, and `DepositSecurityAmount`. These are server-owned; do not submit them to establish eligibility. Existing four-guarantor fallback remains in force when principal is equal to or greater than free deposits.
+
+Stage transitions revalidate the reservation, including synchronous/asynchronous appraisal, approval, verification and disbursement. Failure returns HTTP 409 `LOAN_DEPOSIT_SECURITY_REQUIRED` with an actionable message. Generic editing/restructuring cannot discard a reserved security obligation.
+
+`POST api/backoffice/loancases/{id}/deposit-security/release` requires a BOSA loan approval role. Rejected cases can release; disbursed cases require zero principal and interest on the associated loan account. Pending applications cannot release. Principal stays fully reserved until release; no proportional release policy is assumed.

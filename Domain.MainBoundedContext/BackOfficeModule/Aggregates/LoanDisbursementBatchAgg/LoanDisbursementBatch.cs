@@ -21,6 +21,8 @@ namespace Domain.MainBoundedContext.BackOfficeModule.Aggregates.LoanDisbursement
         [Index("IX_LoanDisbursementBatch_BatchNumber")]
         public int BatchNumber { get; set; }
 
+        public DateTime? EffectiveDisbursementDate { get; set; }
+
         public byte Type { get; set; }
 
         public byte LoanProductCategory { get; set; }

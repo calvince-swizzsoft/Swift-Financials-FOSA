@@ -83,7 +83,7 @@ namespace Application.MainBoundedContext.BackOfficeModule.Services
    using(scopes.CreateReadOnlyWithTransaction(IsolationLevel.Serializable))
    {
     var report=ReportCore(asAt,null,0,100,null,h,true,true);
-    var register=cases.DatabaseSqlQuery<LoanAgeingCaseDTO>(CasesSql+" WHERE l.CreatedDate<@End AND (@Branch IS NULL OR l.BranchId=@Branch)",h,new SqlParameter("@End",asAt.Date.AddDays(1)),new SqlParameter("@Branch",SqlDbType.UniqueIdentifier){Value=(object)branchId??DBNull.Value}).ToList();
+    var register=cases.DatabaseSqlQuery<LoanAgeingCaseDTO>(CasesSql+" WHERE (l.ReceivedDate<@End OR l.DisbursedDate<@End) AND (@Branch IS NULL OR l.BranchId=@Branch)",h,new SqlParameter("@End",asAt.Date.AddDays(1)),new SqlParameter("@Branch",SqlDbType.UniqueIdentifier){Value=(object)branchId??DBNull.Value}).ToList();
     var calculated=report.Loans.ToDictionary(x=>x.LoanCaseId);
     report.Loans=register.Select(c=>{
      LoanAgeingLoanResult row;

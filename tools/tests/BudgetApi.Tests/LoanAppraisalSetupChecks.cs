@@ -8,8 +8,11 @@ using WebApplication1.ApiErrors;
 
 public class LoanAppraisalSetupProbeController : ApiController
 {
-    public IHttpActionResult Get(bool income=false, bool maker=false)
+    public IHttpActionResult Get(bool income=false, bool maker=false, bool deposit=false, bool date=false, bool schedule=false)
     {
+        if(schedule) throw new Application.MainBoundedContext.DTO.BackOfficeModule.LoanAgeingException("Instalments", "The schedule does not reconcile with the approved principal.");
+        if(date) throw new Application.MainBoundedContext.BackOfficeModule.Services.LoanDisbursementDateException("The effective disbursement date must belong to an open posting period.");
+        if(deposit) throw new Application.MainBoundedContext.BackOfficeModule.Services.LoanDepositSecurityException("Reserved BOSA deposits cannot be spent.");
         if(maker) throw new Application.Seedwork.MakerCheckerViolationException();
         if(income) throw new Application.MainBoundedContext.BackOfficeModule.Services.LoanIncomeAssessmentException("Verified income assessment is required.");
         throw new LoanAppraisalConfigurationException("Select eligible investment products before calculating deposit-based entitlement.");
@@ -38,6 +41,18 @@ static class LoanAppraisalSetupChecks
                 if(income.StatusCode!=HttpStatusCode.Conflict || !incomeBody.Contains("LOAN_INCOME_ASSESSMENT_REQUIRED") || !incomeBody.Contains("Verified income assessment"))
                     throw new Exception("Missing income assessment must return a clear 409 response: "+incomeBody);
                 Console.WriteLine("PASS loan income assessment returns 409 LOAN_INCOME_ASSESSMENT_REQUIRED");
+                var deposit=client.GetAsync("http://localhost/api/loanappraisalsetupprobe?deposit=true").Result;
+                var depositBody=deposit.Content.ReadAsStringAsync().Result;
+                if(deposit.StatusCode!=HttpStatusCode.Conflict || !depositBody.Contains("LOAN_DEPOSIT_SECURITY_REQUIRED") || !depositBody.Contains("Reserved BOSA deposits"))throw new Exception("Deposit-security explanation lost: "+depositBody);
+                Console.WriteLine("PASS deposit security returns actionable 409");
+                var date=client.GetAsync("http://localhost/api/loanappraisalsetupprobe?date=true").Result;
+                var dateBody=date.Content.ReadAsStringAsync().Result;
+                if(date.StatusCode!=HttpStatusCode.Conflict || !dateBody.Contains("LOAN_DISBURSEMENT_DATE_INVALID") || !dateBody.Contains("open posting period"))throw new Exception("Disbursement date explanation lost: "+dateBody);
+                Console.WriteLine("PASS disbursement date returns actionable 409");
+                var schedule=client.GetAsync("http://localhost/api/loanappraisalsetupprobe?schedule=true").Result;
+                var scheduleBody=schedule.Content.ReadAsStringAsync().Result;
+                if(schedule.StatusCode!=HttpStatusCode.BadRequest || !scheduleBody.Contains("LOAN_SCHEDULE_VALIDATION_FAILED") || !scheduleBody.Contains("approved principal"))throw new Exception("Schedule validation explanation lost: "+scheduleBody);
+                Console.WriteLine("PASS schedule validation returns actionable 400");
                 var maker=client.GetAsync("http://localhost/api/loanappraisalsetupprobe?maker=true").Result;
                 var makerBody=maker.Content.ReadAsStringAsync().Result;
                 if(maker.StatusCode!=HttpStatusCode.Conflict || !makerBody.Contains("MAKER_CHECKER_VIOLATION") || !makerBody.Contains("A different authorized user"))

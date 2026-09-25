@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -171,7 +171,7 @@ UNION ALL SELECT Id,Description,'Investment' Kind,IsLocked FROM dbo.swiftFin_Inv
             var candidates=Sql<Form9Candidate>(CandidatesSql,h,new SqlParameter("@Text",""),new SqlParameter("@Like","%"));
             foreach(var c in candidates.Where(c=>!appointments.Any(a=>a.CustomerId==c.CustomerId&&a.Kind==c.Kind)).GroupBy(c=>new{c.CustomerId,c.Kind}).Select(g=>g.First()))
                 result.Issues.Add(c.Name+" ("+c.Kind+"): appointment history has not been captured, including any cessation date.");
-            var loans=Sql<Form9Source>(LoansSql+" WHERE l.CreatedDate<@End",h,new SqlParameter("@End",result.AsAt.AddDays(1)));
+            var loans=Sql<Form9Source>(LoansSql,h);
             var age=ageing.GetNoticeLoanReport(result.AsAt,h);var ageLookup=age.Loans.ToDictionary(x=>x.LoanCaseId);
             if(Math.Abs(age.Difference)>.01m||Math.Abs(age.InterestDifference)>.01m)result.Issues.Add("Loan portfolio and ledger balances do not reconcile. Resolve loan-ageing differences.");
             var planEvidence=new List<LoanPlanDTO>();

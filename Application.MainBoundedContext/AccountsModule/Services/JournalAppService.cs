@@ -177,12 +177,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             if (postingPeriod != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var journal = JournalFactory.CreateJournal(parentJournalId, postingPeriod.Id, branchId, alternateChannelLogId, totalValue, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, transactionCode, valueDate, serviceHeader);
 
                     _journalEntryPostingService.PerformDoubleEntry(journal, creditChartOfAccountId, debitChartOfAccountId, serviceHeader);
 
+                    Application.MainBoundedContext.BackOfficeModule.Services.OwnDepositSecurityRules.ValidatePostings(_journalRepository, new[]{journal}, serviceHeader);
                     _journalRepository.Add(journal, serviceHeader);
 
                     if (dbContextScope.SaveChanges(serviceHeader) >= 0)
@@ -209,7 +210,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             if (postingPeriod != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var journal = JournalFactory.CreateJournal(branchId, postingPeriod.Id, branchId, alternateChannelLogId, totalValue, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, transactionCode, valueDate, serviceHeader);
 
@@ -233,6 +234,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                     }
                     //_journalEntryPostingService.PerformSingleEntry(journal, chartOfAccountId, contraChartOfAccountId, totalValue, serviceHeader);
 
+                    Application.MainBoundedContext.BackOfficeModule.Services.OwnDepositSecurityRules.ValidatePostings(_journalRepository, new[]{journal}, serviceHeader);
                     _journalRepository.Add(journal, serviceHeader);
 
                     if (dbContextScope.SaveChanges(serviceHeader) >= 0)
@@ -254,12 +256,13 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
             if (postingPeriod != null)
             {
-                using (var dbContextScope = _dbContextScopeFactory.Create())
+                using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                 {
                     var journal = JournalFactory.CreateJournal(parentJournalId, postingPeriod.Id, branchId, alternateChannelLogId, totalValue, primaryDescription, secondaryDescription, reference, moduleNavigationItemCode, transactionCode, valueDate, serviceHeader);
 
                     _journalEntryPostingService.PerformDoubleEntry(journal, creditChartOfAccountId, debitChartOfAccountId, creditCustomerAccountDTO, debitCustomerAccountDTO, serviceHeader);
 
+                    Application.MainBoundedContext.BackOfficeModule.Services.OwnDepositSecurityRules.ValidatePostings(_journalRepository, new[]{journal}, serviceHeader);
                     _journalRepository.Add(journal, serviceHeader);
 
                     if (dbContextScope.SaveChanges(serviceHeader) >= 0)
@@ -498,8 +501,9 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (postingPeriod != null)
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
+                        var securityJournals = new List<Journal>();
                         tariffs.ForEach(item =>
                         {
                             EnforceDesignationTransactionThreshold(item.Amount, transactionCode, serviceHeader);
@@ -507,9 +511,11 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                             _journalEntryPostingService.PerformDoubleEntry(journal, item.CreditGLAccountId, item.DebitGLAccountId, creditCustomerAccountDTO, debitCustomerAccountDTO, serviceHeader);
 
-                            _journalRepository.Add(journal, serviceHeader);
+                            securityJournals.Add(journal);
+                    _journalRepository.Add(journal, serviceHeader);
                         });
 
+                        Application.MainBoundedContext.BackOfficeModule.Services.OwnDepositSecurityRules.ValidatePostings(_journalRepository, securityJournals, serviceHeader);
                         result = (dbContextScope.SaveChanges(serviceHeader) >= 0);
                     }
                 }
@@ -540,7 +546,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
 
                 if (kvp.Any())
                 {
-                    using (var dbContextScope = _dbContextScopeFactory.Create())
+                    using (var dbContextScope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         foreach (var item in kvp)
                         {
@@ -575,7 +581,7 @@ namespace Application.MainBoundedContext.AccountsModule.Services
                 || journalDTOs.Any(item => item == null || item.Id == Guid.Empty)
                 || journalDTOs.Select(item => item.Id).Distinct().Count() != journalDTOs.Count)
                 return false;
-            using (var scope = _dbContextScopeFactory.Create())
+            using (var scope = _dbContextScopeFactory.CreateWithTransaction(System.Data.IsolationLevel.Serializable))
             {
                 // Read persisted state; callers may hold stale DTOs. Validate the
                 // whole request before staging changes to any original journal.

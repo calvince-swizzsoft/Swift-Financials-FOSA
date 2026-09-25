@@ -202,3 +202,7 @@ per-commission. `404` if `id` doesn't exist.
 ## Income assessment setting (24 September 2026)
 
 `RequireIncomeAssessment` is nullable: null retains the section default, true requires monthly income assessment independent of BOSA/FOSA, false suppresses the controller income requirement. New cases snapshot this setting and TakeHome policy. When true, percentage minimums apply to verified monthly gross income; only deductions are entered separately. Unlocked products must have a positive take-home threshold and opted-in products must use monthly repayments. See the Loan Case API income-assessment section for evidence and lifecycle requirements.
+
+## Own-deposit guarantor waiver
+
+Loan products expose nullable `WaiveGuarantorsBelowOwnDeposits`. Null/false retains ordinary guarantees. True is valid only for BOSA investment security and requires exactly one unlocked investment appraisal product before eligibility can be evaluated. Normal minimum/maximum guarantor settings remain the fallback. The strict comparator is principal < uncommitted eligible deposits; it does not use the investment multiplier.

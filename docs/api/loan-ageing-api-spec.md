@@ -31,7 +31,7 @@ Authenticated prefix: `/api/backoffice/loan-ageing`. Controllers delegate to `IL
 }
 ```
 
-The example is a request shape, not a schedule for an existing customer. Amounts are KSh with at most two decimals. Require 1–1,200 sequential instalments, strictly increasing dates on/after original disbursement, positive amounts and exact principal total. Evidence is required, at most 2,000 characters. Original loan/account/source/GL/principal cannot be changed through correction. Confirmation is explicit, server validated. Stale revision returns 409. No update/delete endpoint exists for saved schedules. New original batch disbursements capture revision 1 as an unconfirmed draft together with their source journals; confirming creates revision 2.
+The example is a request shape, not a schedule for an existing customer. Amounts are KSh with at most two decimals. Require 1–1,200 sequential instalments, strictly increasing dates on/after original disbursement, positive amounts and exact principal total. Evidence is required, at most 2,000 characters. Original loan/account/source/GL/principal cannot be changed through correction. Confirmation is explicit, server validated. Stale revision returns 409. No update/delete endpoint exists for saved schedules. New original batch disbursements validate the final schedule against the verified loan terms and effective date, then save revision 1 with both isConfirmed and interestTermsConfirmed true alongside the funding journals. Principal totals, interest minimums/rounding, and upfront timing are validated. Conflicting charge/recovery modes, nonstandard approved payment overrides, or ambiguous interest mappings retain an unconfirmed revision with review reasons in Evidence. Historical imports/captured schedules remain unchanged; manual confirmation appends a new revision.
 
 ## Report semantics
 
@@ -85,3 +85,8 @@ New domain table: `swiftFin_LoanRiskReviews`. Repayment-plan fields are additive
 `POST form4` now exports a system-derived working copy, using calculated categories and booked principal without manual UI review adjustments. Institution details remain required. Unresolved accounts and G/L differences are included in the workbook as exceptions. `isWorkingCopy`, `unclassifiedPrincipal`, account `isSettled` and `interestReceivable` describe this basis. Unclassified accounts retain blank Excel categories; they are not silently classified as performing.
 
 The Loan detail worksheet exposes blue category, adjustment, inclusion and explanation cells. These feed the original Form 4 count/exposure/provision formulas. Excel changes do not persist to the database. The legacy risk-review endpoint remains for compatibility but is no longer used by this Form 4 workflow.
+
+
+### Reviewing existing unconfirmed schedules
+
+Operations > Loaning > Repayment Schedules > View schedule exposes **Review and confirm schedule** for a captured plan whose principal or interest terms remain unconfirmed. This requests a fresh schedule proposal; viewing does not save. Review the proposed amounts/dates and use **Save schedule** to explicitly confirm a new revision. Proposals with unresolved exceptions cannot be saved. Already-confirmed schedules do not show this action.
